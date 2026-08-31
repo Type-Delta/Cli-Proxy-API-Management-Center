@@ -53,6 +53,16 @@ function parseApiKeysText(raw: unknown): string {
   return keys.join('\n');
 }
 
+export function mergeApiKeyEntries(raw: unknown, keys: string[]): unknown[] {
+  const existing = Array.isArray(raw) ? raw : [];
+  return keys.map((key, index) => {
+    const current = existing[index];
+    const record = asRecord(current);
+    if (!record) return key;
+    return { ...record, key };
+  });
+}
+
 function resolveApiKeysText(parsed: Record<string, unknown>): string {
   if (Object.prototype.hasOwnProperty.call(parsed, 'api-keys')) {
     return parseApiKeysText(parsed['api-keys']);
@@ -1274,7 +1284,7 @@ export function useVisualConfig() {
             .map((key) => key.trim())
             .filter(Boolean);
           if (apiKeys.length > 0) {
-            doc.setIn(['api-keys'], apiKeys);
+            doc.setIn(['api-keys'], mergeApiKeyEntries(doc.getIn(['api-keys']), apiKeys));
           } else if (docHas(doc, ['api-keys'])) {
             doc.deleteIn(['api-keys']);
           }

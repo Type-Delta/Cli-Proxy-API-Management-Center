@@ -340,7 +340,17 @@ export const normalizeConfigResponse = (raw: unknown): Config => {
   }
   const apiKeysRaw = raw['api-keys'];
   if (Array.isArray(apiKeysRaw)) {
-    config.apiKeys = apiKeysRaw.map((key) => String(key)).filter((key) => key.trim() !== '');
+    config.apiKeys = apiKeysRaw
+      .map((entry) => {
+        if (typeof entry === 'string') return entry.trim() ? entry : null;
+        if (!isRecord(entry) || typeof entry.key !== 'string' || !entry.key.trim()) return null;
+        return {
+          ...entry,
+          key: entry.key,
+          ...(isRecord(entry.limits) ? { limits: { ...entry.limits } } : {}),
+        };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
   }
 
   const geminiList = raw['gemini-api-key'];

@@ -22,12 +22,28 @@ Status: shipped
 
 Files: `AGENTS.md`, `FORK.md`
 
-The fork records its fork and upstream URLs, repository commands, architecture, glossary, sync rules, stable divergence IDs, validation, and merge history. There is no product behavior divergence at this baseline. Analytics and structured API-key features remain future work until their implementation commits land.
+The fork records its fork and upstream URLs, repository commands, architecture, glossary, sync rules, stable divergence IDs, validation, and merge history.
 
 Evidence:
 
 - `AGENTS.md` defines CPA, CPAUK, and CPAMC and documents the `origin` and `upstream` convention.
 - This file records the exact baseline, sync comparison, and validation.
+
+### DL002: Revisioned structured API-key management
+
+Status: shipped
+
+Files: `src/types/apiKeys.ts`, `src/services/api/apiKeys.ts`, `src/services/api/capabilities.ts`, `src/services/api/transformers.ts`, `src/hooks/useVisualConfig.ts`, `src/features/config/components/blocks/ApiKeysCardEditor.tsx`
+
+CPAMC reads legacy string keys and structured key objects without coercing objects to strings. Row edits preserve unknown entry and limit fields, use the configuration index plus revision on supported CPA versions, and block structured limit writes on older versions. Raw keys remain available to administrators but start concealed. Reveal and raw-copy actions are per row, revealed state clears when the route or authenticated connection changes, and full SHA-256 key IDs remain internal until the administrator explicitly copies one. The visible identity uses the shortest collision-safe even-length prefix starting at 12 characters. The existing configuration page now shows request and token caps, reset cadence, current consumption, and confirmed counter reset.
+
+Compatibility tests cover legacy and structured fixtures, unknown-field preservation, duplicate full IDs, and colliding display prefixes.
+
+Validation on 2026-08-31:
+
+- `bunx bun@1.3.14 install --frozen-lockfile`
+- `bunx bun@1.3.14 run verify`
+- Result: 427 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 
 Validation on 2026-08-31:
 

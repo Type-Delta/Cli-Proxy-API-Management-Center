@@ -4,6 +4,7 @@
  */
 
 import type { GeminiKeyConfig, ProviderKeyConfig, OpenAIProviderConfig } from './provider';
+import type { InboundApiKeyEntry } from './apiKeys';
 
 export interface QuotaExceededConfig {
   switchProject?: boolean;
@@ -22,7 +23,7 @@ export interface Config {
   wsAuth?: boolean;
   forceModelPrefix?: boolean;
   routingStrategy?: string;
-  apiKeys?: string[];
+  apiKeys?: InboundApiKeyEntry[];
   geminiApiKeys?: GeminiKeyConfig[];
   interactionsApiKeys?: GeminiKeyConfig[];
   codexApiKeys?: ProviderKeyConfig[];

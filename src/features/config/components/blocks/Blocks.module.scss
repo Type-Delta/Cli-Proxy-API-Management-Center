@@ -151,6 +151,23 @@
   }
 }
 
+.apiKeyLimitGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* 强度参考条：四段承载档位，颜色承载严重度。
    段的填充走 scaleX（只碰 transform），键入时逐字重算也不掉帧。 */
 
