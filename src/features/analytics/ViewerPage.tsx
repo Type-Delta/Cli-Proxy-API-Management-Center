@@ -34,7 +34,10 @@ export function ViewerPage() {
         }
         if (active) setSessionReady(true);
       } catch (caught) {
-        if (active) setError(caught instanceof Error ? caught.message : t('common.error'));
+        if (active) {
+          setError(caught instanceof Error ? caught.message : t('common.error'));
+          setLoading(false);
+        }
       } finally {
         if (active) setCredential(null);
       }
