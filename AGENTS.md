@@ -1,33 +1,75 @@
-# Repository Guidelines
+# AGENTS.md
 
-## Project Structure & Module Organization
+React 19 and TypeScript 6 web management client for CLIProxyAPI. Vite builds the application as one `dist/index.html` file.
 
-This is a React 19 + TypeScript Vite frontend for the CLI Proxy API Management API. Main source lives in `src/`: routes in `src/router`, pages in `src/pages`, components in `src/components`, API clients in `src/services/api`, state in `src/stores`, hooks in `src/hooks`, styles in `src/styles`, and types in `src/types`. Assets live in `src/assets`, with provider icons under `src/assets/icons`. Localization files are in `src/i18n/locales`; update all supported locales when adding user-facing text. Production output is `dist/index.html`.
+## Glossary
 
-## Build, Test, and Development Commands
+- **CPA**: The Type-Delta CLIProxyAPI fork, including its Go proxy, Management API, and release packaging.
+- **CPAUK**: CPA Usage Keeper, the analytics module embedded in CPA. Use "upstream CPAUK" for the standalone source project.
+- **CPAMC**: This Type-Delta fork of Cli-Proxy-API-Management-Center, the web management client shipped with CPA.
 
-- `bun install --frozen-lockfile`: install dependencies from `bun.lock`.
-- `bun run dev`: start the Vite dev server at `http://localhost:5173`.
-- `bun run build`: run TypeScript compilation and build `dist/`.
-- `bun run preview`: serve the built output locally.
-- `bun run test`: run the Bun test suite.
-- `bun run lint`: run ESLint over TypeScript/TSX files.
-- `bun run verify`: run tests, lint, TypeScript compilation, and the production build.
-- `bun run type-check`: run `tsc --noEmit`.
-- `bun run format`: apply Prettier to `src/**/*.{ts,tsx,css,scss}`.
+## Repository
 
-## Coding Style & Naming Conventions
+- Fork: https://github.com/Type-Delta/Cli-Proxy-API-Management-Center
+- Upstream: https://github.com/router-for-me/Cli-Proxy-API-Management-Center
+- CPA fork: https://github.com/Type-Delta/CLIProxyAPI
+- CPA upstream: https://github.com/router-for-me/CLIProxyAPI
 
-Use 2-space indentation, semicolons, single quotes, ES5 trailing commas, and 100-character line width. Prefer typed React components and avoid new `any` unless it marks a boundary. Use the `@/` alias for `src` imports. Component files use PascalCase, hooks use `useName`, API modules use domain names such as `oauth.ts`, and SCSS Modules sit beside their page or component as `Name.module.scss`.
+Keep `origin` pointed at the Type-Delta CPAMC fork and add the official repository as `upstream`:
 
-## Testing Guidelines
+```bash
+git remote add upstream https://github.com/router-for-me/Cli-Proxy-API-Management-Center.git
+git fetch upstream
+git rev-list --left-right --count origin/main...upstream/main
+git merge --no-ff upstream/main
+```
 
-Tests use Bun's built-in test runner and are colocated under `tests/` as `*.test.ts`. Run `bun run test` for focused test work and `bun run verify` before handoff. Use `bun run type-check` as a fast standalone TypeScript check. For UI changes, verify the affected route in the browser and include screenshots or notes.
+Published fork commits are merged forward. Do not rebase or force-push `main` during a routine upstream sync. Add every sync and surviving fork change to `FORK.md`.
 
-## Commit & Pull Request Guidelines
+## Commands
 
-Git history follows Conventional Commit style, for example `feat: add support for xAI provider`, `fix(auth-files): keep disabled card actions visible`, and `ci: use node 24 for releases`. Keep commits focused and scoped when useful. Pull requests should include a change summary, linked issue when applicable, UI screenshots, backend version or reproduction details for integration work, and verification notes.
+Use the Bun version declared by `packageManager` in `package.json`, currently Bun 1.3.14.
 
-## Architecture & Configuration Notes
+```bash
+bun install --frozen-lockfile
+bun run dev
+bun run test
+bun run lint
+bun run type-check
+bun run build
+bun run verify
+```
 
-This UI is not the proxy; it talks to the backend Management API under `/v0/management`. Treat backend contracts as the source of truth. For OAuth/provider changes, inspect `../CLIProxyAPI` before changing route names, provider keys, callback parameters, or auth-file semantics. Store no secrets in the repo; management keys are entered at runtime and persisted only in browser storage.
+`bun run verify` runs tests, lint, TypeScript compilation, and the production build. Run it before handoff. For UI changes, also verify the affected desktop and mobile routes through the shared CDP browser and record the result in `FORK.md`.
+
+## Architecture
+
+- `src/router/` defines application routes.
+- `src/pages/` contains route-level pages.
+- `src/features/` groups domain UI and state, including config, dashboard, providers, auth files, plugins, and quotas.
+- `src/components/` contains shared layout and UI components.
+- `src/services/api/` owns Management API clients and response normalization.
+- `src/stores/` contains Zustand stores.
+- `src/hooks/` contains shared React hooks.
+- `src/types/` contains TypeScript contracts.
+- `src/i18n/locales/` contains the four supported locales: English, Simplified Chinese, Traditional Chinese, and Russian.
+- `src/styles/` contains shared styles. Component-specific SCSS Modules stay beside their component.
+- `tests/` contains Bun tests.
+- `dist/index.html` is the single-file production artifact.
+
+CPAMC talks to CPA through versioned HTTP contracts. Treat the CPA Management API as the source of truth. CPAMC must not inspect CPA's SQLite files or infer backend configuration structs.
+
+## Conventions
+
+- Use 2-space indentation, semicolons, single quotes, ES5 trailing commas, and a 100-character line width.
+- Prefer typed React components. Use `any` only at a documented external boundary.
+- Use the `@/` alias for `src` imports.
+- Name component files in PascalCase and hooks with a `use` prefix.
+- Keep API modules grouped by domain. Place SCSS Modules beside the component or page that owns them.
+- Update every supported locale when adding user-visible text.
+- Preserve unknown backend fields when reading and writing configuration.
+- Do not put raw API keys, management keys, viewer credentials, or full key IDs in URLs, logs, browser storage, error reports, or console output.
+- Keep raw API keys concealed until the administrator explicitly reveals or copies one.
+- Keep the existing dashboard and navigation structure intact. Add analytics pages only under the Analytics navigation group.
+- Use conventional commits and keep each commit focused.
+- Update `FORK.md` whenever fork-specific behavior changes. Give each surviving divergence a stable ID.
