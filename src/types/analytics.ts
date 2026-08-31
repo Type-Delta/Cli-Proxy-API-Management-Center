@@ -73,7 +73,7 @@ export type AnalyticsSummary = {
   proxy_requests: number;
   upstream_attempts: number;
   tokens: TokenUsage;
-  known_cost_usd: number;
+  known_cost_usd: string;
   unpriced_tokens: number;
 };
 
@@ -105,7 +105,7 @@ export type AnalyticsEvent = {
   service_tier?: string;
   generated?: boolean;
   tokens: TokenUsage;
-  known_cost_usd?: number | null;
+  known_cost_usd?: string | null;
   unpriced_tokens?: number;
 };
 
@@ -120,9 +120,11 @@ export type AnalyticsKey = {
   first_activity_at: string | null;
   last_activity_at: string | null;
   total_tokens: number;
-  known_cost_usd: number;
+  known_cost_usd: string;
   unpriced_tokens: number;
 };
+
+export type AnalyticsKeyPage = { meta: AnalyticsMeta; keys: AnalyticsKey[] };
 
 export type LeaderboardRow = {
   rank: number;
@@ -132,7 +134,7 @@ export type LeaderboardRow = {
   proxy_requests: number;
   upstream_attempts: number;
   tokens: TokenUsage;
-  known_cost_usd: number;
+  known_cost_usd: string;
   unpriced_tokens: number;
   percent_of_total: string;
 };
@@ -163,8 +165,8 @@ export type AnalyticsQuery = {
 export type PricingRule = {
   rule_id: string;
   match: { model?: string; alias?: string };
-  input_per_million_usd: number | null;
-  output_per_million_usd: number | null;
+  input_per_million_usd: string | null;
+  output_per_million_usd: string | null;
   cache_read_multiplier?: string;
   cache_creation_multiplier?: string;
   source: string;
@@ -201,6 +203,15 @@ export type ViewerCreateResponse = {
   allowed_views: string[];
   expires_at: string;
   label?: string;
+};
+
+export type ViewerMetadata = {
+  id: string;
+  key_id: string;
+  allowed_views: string[];
+  expires_at: string;
+  label?: string;
+  created_at: string;
 };
 
 export type AnalyticsJob = {

@@ -45,7 +45,24 @@ Validation on 2026-08-31:
 - `bunx bun@1.3.14 run verify`
 - Result: 427 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 
+### DL003: Isolated analytics workspace
+
+Status: shipped
+
+Files: `src/features/analytics/**`, `src/services/api/analytics.ts`, `src/types/analytics.ts`, `src/components/layout/MainLayout.tsx`, `src/router/MainRoutes.tsx`, `src/App.tsx`
+
+CPAMC keeps the existing dashboard and shell and adds a capability-gated Analytics navigation group with lazy, route-contained Overview, Analysis, Keys, Leaderboard, Events, Pricing, Providers and quotas, Shared views, and Maintenance pages. Applicable reads use the versioned POST query contract. Full key IDs remain in memory and request bodies, catalog cursors use `X-Analytics-Cursor`, multi-key filters stop at 100 keys, and the client normalizes nullable empty Go collections before rendering. The key catalog covers the bounded 10,000-key lifecycle maximum.
+
+The Leaderboard uses backend token or known-cost ranking, opaque cursor pagination, stable backend ties, and explicit unpriced-token disclosure. Shared-view credentials appear only in one-time fragment links, are removed from history before decoding or exchange, and are never stored in browser storage. The durable viewer list exposes only labels, expiry, and revocation controls in the UI. Maintenance uses pollable jobs and the preview, batch ID, backup, and confirmed purge sequence. All four supported locales include the new routes and states.
+
 Validation on 2026-08-31:
+
+- `bunx bun@1.3.14 install --frozen-lockfile`
+- `bunx bun@1.3.14 run verify`
+- Result: 436 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
+- An isolated Chrome DevTools Protocol run against a live local CPA exercised all nine routes at 1440 by 900 and Overview, Keys, Leaderboard, Shared views, and Maintenance at 390 by 844. It found no body overflow, unreachable non-scrollable controls, positive-tabindex ordering, API alerts, or runtime exceptions after the nullable-collection fix.
+
+Fork baseline validation on 2026-08-31, before DL002 and DL003:
 
 - `bunx bun@1.3.14 install --frozen-lockfile`
 - `bunx bun@1.3.14 run verify`

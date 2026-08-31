@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { PageTransition } from '@/components/common/PageTransition';
 import { MainRoutes } from '@/router/MainRoutes';
-import { authFilesApi, pluginsApi } from '@/services/api';
+import { authFilesApi, capabilitiesApi, pluginsApi } from '@/services/api';
 import {
   IconSidebarAuthFiles,
   IconSidebarConfig,
@@ -100,7 +100,7 @@ interface SidebarNavGroup {
 const flattenNavItems = (items: SidebarNavItem[]): SidebarNavLinkItem[] =>
   items.flatMap((item) => (item.kind === 'drawer' ? item.children : [item]));
 
-/** 点击菜单外或按下 Escape 时关闭弹出菜单 */
+/** Close the popover when clicking outside it or pressing Escape. */
 function useMenuDismiss(
   open: boolean,
   menuRef: RefObject<HTMLDivElement | null>,
@@ -336,6 +336,7 @@ export function MainLayout() {
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [pluginResources, setPluginResources] = useState<PluginResourceEntry[]>([]);
+  const [supportsAnalytics, setSupportsAnalytics] = useState(false);
   const [expandedPluginResourceIDs, setExpandedPluginResourceIDs] = useState<Set<string>>(
     () => new Set()
   );
@@ -530,6 +531,25 @@ export function MainLayout() {
     };
   }, [apiBase, loadPluginResources, loadAuthFilesCount]);
 
+  useEffect(() => {
+    if (connectionStatus !== 'connected') {
+      setSupportsAnalytics(false);
+      return;
+    }
+    let active = true;
+    capabilitiesApi
+      .get()
+      .then((capabilities) => {
+        if (active) setSupportsAnalytics(capabilities.analytics.supported);
+      })
+      .catch(() => {
+        if (active) setSupportsAnalytics(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [apiBase, connectionStatus]);
+
   const pluginResourceGroups = pluginResources.reduce<
     Array<{ pluginID: string; pluginTitle: string; entries: PluginResourceEntry[] }>
   >((groups, resource) => {
@@ -652,6 +672,30 @@ export function MainLayout() {
         },
       ],
     },
+    ...(supportsAnalytics
+      ? [
+          {
+            id: 'analytics',
+            labelKey: 'nav_groups.analytics',
+            items: [
+              'overview',
+              'analysis',
+              'keys',
+              'leaderboard',
+              'events',
+              'pricing',
+              'providers',
+              'shared',
+              'maintenance',
+            ].map((page) => ({
+              path: `/analytics/${page}`,
+              labelKey: `analytics.pages.${page}`,
+              metaKey: `analytics.page_meta.${page}`,
+              icon: <span className="nav-sub-dot" aria-hidden="true" />,
+            })),
+          },
+        ]
+      : []),
     {
       id: 'control',
       labelKey: 'nav_groups.control',

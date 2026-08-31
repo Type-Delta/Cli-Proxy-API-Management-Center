@@ -6,6 +6,7 @@ import { ConfirmationModal } from '@/components/common/ConfirmationModal';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { ProtectedRoute } from '@/router/ProtectedRoute';
 import { useLanguageStore, useThemeStore } from '@/stores';
+import { ViewerPage } from '@/features/analytics/ViewerPage';
 
 function RootShell() {
   return (
@@ -22,6 +23,7 @@ const router = createHashRouter([
     element: <RootShell />,
     children: [
       { path: '/login', element: <LoginPage /> },
+      { path: '/viewer', element: <ViewerPage /> },
       {
         path: '/*',
         element: (
@@ -47,7 +49,7 @@ function App() {
   useEffect(() => {
     setLanguage(language);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 仅用于首屏同步 i18n 语言
+  }, []); // Synchronize the i18n language on the initial render only.
 
   useEffect(() => {
     document.documentElement.lang = language;

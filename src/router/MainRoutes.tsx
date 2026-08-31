@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, useRoutes, type Location } from 'react-router-dom';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { ProvidersWorkbenchPage } from '@/features/providers/ProvidersWorkbenchPage';
@@ -13,6 +14,34 @@ import { ConfigPage } from '@/features/config/ConfigPage';
 import { LogsPage } from '@/pages/LogsPage';
 import { SystemPage } from '@/pages/SystemPage';
 import { useAuthStore } from '@/stores';
+import { AnalyticsErrorBoundary } from '@/features/analytics/AnalyticsErrorBoundary';
+
+const analyticsPage = (kind: import('@/features/analytics/AnalyticsPage').AnalyticsPageKind) =>
+  lazy(() =>
+    import('@/features/analytics/AnalyticsPage').then(({ AnalyticsPage }) => ({
+      default: () => <AnalyticsPage kind={kind} />,
+    }))
+  );
+
+const analyticsRoutes = [
+  ['overview', analyticsPage('overview')],
+  ['analysis', analyticsPage('analysis')],
+  ['keys', analyticsPage('keys')],
+  ['leaderboard', analyticsPage('leaderboard')],
+  ['events', analyticsPage('events')],
+  ['pricing', analyticsPage('pricing')],
+  ['providers', analyticsPage('providers')],
+  ['shared', analyticsPage('shared')],
+  ['maintenance', analyticsPage('maintenance')],
+] as const;
+
+const analyticsElement = (Page: (typeof analyticsRoutes)[number][1]) => (
+  <AnalyticsErrorBoundary>
+    <Suspense fallback={<div className="loading-spinner" role="status" />}>
+      <Page />
+    </Suspense>
+  </AnalyticsErrorBoundary>
+);
 
 const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/', element: <DashboardPage /> },
@@ -28,6 +57,11 @@ const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/auth-files/oauth-model-alias', element: <AuthFilesOAuthModelAliasEditPage /> },
   { path: '/oauth', element: <OAuthPage /> },
   { path: '/quota', element: <QuotaPage /> },
+  { path: '/analytics', element: <Navigate to="/analytics/overview" replace /> },
+  ...analyticsRoutes.map(([path, Page]) => ({
+    path: `/analytics/${path}`,
+    element: analyticsElement(Page),
+  })),
   ...(supportsPlugin
     ? [
         { path: '/plugin-pages/:pluginId/:menuIndex', element: <PluginResourcePage /> },
