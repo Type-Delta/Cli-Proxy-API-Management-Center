@@ -3,7 +3,7 @@ import { MAX_ANALYTICS_KEY_FILTERS } from './query';
 
 export const MAX_RENDERED_ANALYTICS_KEYS = 200;
 
-export const analyticsKeyIdentity = (key: AnalyticsKey) =>
+export const analyticsKeyIdentity = (key: Pick<AnalyticsKey, 'label' | 'short_key_id'>) =>
   key.label ? `${key.label} · ${key.short_key_id}` : key.short_key_id;
 
 export const filterAnalyticsKeys = (keys: AnalyticsKey[], query: string) => {

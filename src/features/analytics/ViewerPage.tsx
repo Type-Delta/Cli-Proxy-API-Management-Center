@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AnalyticsSummary } from '@/types';
 import styles from './Analytics.module.scss';
+import { AnalyticsSkeleton } from './AnalyticsSkeleton';
 import { consumeViewerCredential, exchangeViewerCredential } from './viewerSecurity';
 
 function takeViewerCredential(): string {
@@ -81,7 +82,7 @@ export function ViewerPage() {
   return (
     <main className={styles.viewer}>
       <h1>{t('analytics.shared_view')}</h1>
-      {loading && <p role="status">{t('common.loading')}</p>}
+      {loading && <AnalyticsSkeleton />}
       {error && <p role="alert">{error}</p>}
       {summary && <Kpis summary={summary} />}
     </main>

@@ -5,6 +5,7 @@ import i18n from '@/i18n';
 import { analyticsCollection, keyCatalogParams } from '@/services/api/analytics';
 import {
   buildAnalyticsQuery,
+  buildLeaderboardQuery,
   MAX_ANALYTICS_KEY_FILTERS,
   resolveAnalyticsAvailability,
 } from '@/features/analytics/query';
@@ -16,6 +17,7 @@ import {
   toggleAnalyticsKey,
 } from '@/features/analytics/analyticsKeyFilterModel';
 import { AnalyticsKeyFilter } from '@/features/analytics/AnalyticsKeyFilter';
+import { Select } from '@/components/ui/Select';
 import { ANALYTICS_PAGE_ICONS, ANALYTICS_PAGES } from '@/features/analytics/navigation';
 import type { AnalyticsCapabilities } from '@/types';
 import {
@@ -127,7 +129,7 @@ describe('analytics client contracts', () => {
     expect(searched.keys[0]?.short_key_id).toBe('key-0249');
   });
 
-  test('associates the key-filter trigger with its visible label and selection summary', () => {
+  test('associates the key-filter trigger with its label and current selection', () => {
     const markup = renderToStaticMarkup(
       createElement(AnalyticsKeyFilter, {
         keys: [],
@@ -145,6 +147,136 @@ describe('analytics client contracts', () => {
     expect(markup).toContain(`>${i18n.t('analytics.key_filter')}<`);
     expect(labelledBy).toHaveLength(2);
     for (const id of labelledBy) expect(markup).toContain(`id="${id}"`);
+  });
+
+  test('announces Select values and loading state without replacing the skeleton', () => {
+    const single = renderToStaticMarkup(
+      createElement(Select, {
+        value: '7d',
+        options: [{ value: '7d', label: 'Last 7 days' }],
+        onChange: () => {},
+        ariaLabel: 'Time range',
+      })
+    );
+    const loading = renderToStaticMarkup(
+      createElement(AnalyticsKeyFilter, {
+        keys: [],
+        selected: [],
+        loading: true,
+        error: '',
+        onChange: () => {},
+        onRetry: () => {},
+      })
+    );
+
+    expect(single).toContain('aria-label="Time range Last 7 days"');
+    expect(loading).toContain('aria-busy="true"');
+    expect(loading).toContain(i18n.t('common.loading'));
+    expect(loading).toContain('aria-hidden="true"');
+  });
+
+  test('keeps the shared Select backward compatible and supports searchable multi-select', () => {
+    const single = renderToStaticMarkup(
+      createElement(Select, {
+        value: '7d',
+        options: [{ value: '7d', label: 'Last 7 days' }],
+        onChange: () => {},
+      })
+    );
+    const multiple = renderToStaticMarkup(
+      createElement(Select, {
+        mode: 'multiple',
+        value: [],
+        options: [
+          { value: 'full-internal-id', label: 'Visible key', description: 'safe-short-id' },
+        ],
+        onChange: () => {},
+        allOptionLabel: 'All API keys',
+        searchPlaceholder: 'Search keys',
+        emptyLabel: 'No keys',
+      })
+    );
+
+    expect(single).toContain('Last 7 days');
+    expect(single).toContain('aria-haspopup="listbox"');
+    expect(multiple).toContain('All API keys');
+    expect(multiple).not.toContain('full-internal-id');
+  });
+
+  test('uses shared Analytics filter state without persisting internal key IDs', () => {
+    const layout = readFileSync('src/components/layout/MainLayout.tsx', 'utf8');
+    const context = readFileSync('src/features/analytics/AnalyticsFilterProvider.tsx', 'utf8');
+
+    expect(layout.indexOf('<AnalyticsFilterProvider>')).toBeLessThan(
+      layout.indexOf('<PageTransition')
+    );
+    expect(context).toContain("useState<AnalyticsRange>('7d')");
+    expect(context).toContain('useState<string[]>([])');
+    expect(context).not.toContain('localStorage');
+    expect(context).not.toContain('URLSearchParams');
+  });
+
+  test('uses shared Select and ToggleSwitch controls throughout Analytics', () => {
+    const page = readFileSync('src/features/analytics/AnalyticsPage.tsx', 'utf8');
+    const selectStyles = readFileSync('src/components/ui/Select.module.scss', 'utf8');
+    const analyticsStyles = readFileSync('src/features/analytics/Analytics.module.scss', 'utf8');
+
+    expect(page).not.toContain('<select');
+    expect(page).not.toContain('type="checkbox"');
+    expect(page).toContain('<Select');
+    expect(page).toContain('<ToggleSwitch');
+    expect(selectStyles).toMatch(/\.trigger\s*\{[\s\S]*?height:\s*40px/);
+    expect(selectStyles).toMatch(/\.search\s*\{[\s\S]*?height:\s*40px/);
+    expect(analyticsStyles).toContain('height: 40px');
+  });
+
+  test('keeps Leaderboard unfiltered while retaining shared key selection for drilldown', () => {
+    const page = readFileSync('src/features/analytics/AnalyticsPage.tsx', 'utf8');
+    const query = buildLeaderboardQuery(
+      '7d',
+      'cost',
+      'next-page',
+      new Date('2026-09-02T00:00:00.000Z')
+    );
+
+    expect(query.operation).toBe('leaderboard');
+    expect(query.key_ids).toBeUndefined();
+    expect(query.sort_by).toBe('cost');
+    expect(query.cursor).toBe('next-page');
+    expect(page).toContain('buildLeaderboardQuery(range, sortBy, cursor)');
+    expect(page).toContain("showKeys={kind !== 'leaderboard'}");
+    expect(page).not.toContain('<Leaderboard range={range} keyIds={selected}');
+    expect(page).toContain("navigate('/analytics/keys')");
+  });
+
+  test('uses collision-safe key identities in every key selection surface', () => {
+    const page = readFileSync('src/features/analytics/AnalyticsPage.tsx', 'utf8');
+    const keyFilter = readFileSync('src/features/analytics/AnalyticsKeyFilter.tsx', 'utf8');
+
+    expect(page).toContain('{analyticsKeyIdentity(row)}');
+    expect(page.match(/label: analyticsKeyIdentity\(key\)/g)).toHaveLength(2);
+    expect(keyFilter).toContain('description: key.label ? key.short_key_id : undefined');
+  });
+
+  test('formats truncated key results from the filtered count', () => {
+    const select = readFileSync('src/components/ui/Select.tsx', 'utf8');
+    const keyFilter = readFileSync('src/features/analytics/AnalyticsKeyFilter.tsx', 'utf8');
+
+    expect(select).toContain('props.truncatedLabel(filteredOptions.length)');
+    expect(keyFilter).toContain('truncatedLabel={(filteredCount) =>');
+    expect(keyFilter).toContain('count: filteredCount');
+  });
+
+  test('delegates Analytics loading states to shared Skeleton components', () => {
+    const page = readFileSync('src/features/analytics/AnalyticsPage.tsx', 'utf8');
+    const viewer = readFileSync('src/features/analytics/ViewerPage.tsx', 'utf8');
+    const skeleton = readFileSync('src/features/analytics/AnalyticsSkeleton.tsx', 'utf8');
+
+    expect(page).toContain('<AnalyticsSkeleton');
+    expect(page).not.toContain('<div role="status">{t(\'common.loading\')}</div>');
+    expect(viewer).toContain('<AnalyticsSkeleton');
+    expect(skeleton).toContain('aria-busy="true"');
+    expect(skeleton).toContain('<Skeleton');
   });
 
   test('keeps circuit-open analytics readable as degraded', () => {
@@ -221,6 +353,7 @@ describe('analytics client contracts', () => {
     }
     expect(routes).toContain('<AnalyticsErrorBoundary>');
     expect(routes).toContain('<Suspense');
+    expect(routes).toContain('fallback={<AnalyticsSkeleton />}');
   });
 
   test('uses one ordered analytics page definition for sidebar and page tabs', () => {

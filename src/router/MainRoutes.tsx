@@ -15,6 +15,7 @@ import { LogsPage } from '@/pages/LogsPage';
 import { SystemPage } from '@/pages/SystemPage';
 import { useAuthStore } from '@/stores';
 import { AnalyticsErrorBoundary } from '@/features/analytics/AnalyticsErrorBoundary';
+import { AnalyticsSkeleton } from '@/features/analytics/AnalyticsSkeleton';
 
 const analyticsPage = (kind: import('@/features/analytics/AnalyticsPage').AnalyticsPageKind) =>
   lazy(() =>
@@ -37,7 +38,7 @@ const analyticsRoutes = [
 
 const analyticsElement = (Page: (typeof analyticsRoutes)[number][1]) => (
   <AnalyticsErrorBoundary>
-    <Suspense fallback={<div className="loading-spinner" role="status" />}>
+    <Suspense fallback={<AnalyticsSkeleton />}>
       <Page />
     </Suspense>
   </AnalyticsErrorBoundary>

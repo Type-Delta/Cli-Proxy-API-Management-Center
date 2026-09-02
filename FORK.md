@@ -94,6 +94,22 @@ Validation on 2026-09-02:
 - Result: 447 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 - Isolated raw Chrome DevTools Protocol runs against the Docker Compose stack verified the nine icon tabs, active underline and bottom rule, 20 px desktop and 16 px mobile tab-to-body spacing, searchable two-key selection, menu persistence, all-keys reset, two-stage Escape behavior, internal-only full hashes, viewport-contained menus, and no page overflow or runtime exceptions. The multi-key interaction used a synthetic three-key catalog response inside the isolated browser context; all other application traffic used the live CPA stack.
 
+### DL006: Analytics control and state consistency
+
+Status: shipped
+
+Files: `src/components/ui/Select.*`, `src/features/analytics/**`, `src/components/layout/MainLayout.tsx`, `src/router/MainRoutes.tsx`, `tests/analyticsContracts.test.ts`
+
+Analytics uses the shared Select component for every single- and multi-select control. Time range and API-key filters now share the same 40 px trigger and label typography, while the searchable multi-select retains full key IDs only as internal values and announces its current selection. Labeled keys remain collision-safe in filters, Leaderboard, Shared views, and Maintenance by pairing the label with the short hash. Analytics buttons, dropdowns, and single-line inputs use a scoped 40 px control height; textareas and the existing ToggleSwitch keep their native dimensions.
+
+An in-memory provider above keyed page transitions shares the time range and selected keys across Overview, Analysis, Keys, and Leaderboard without writing key IDs to URLs or browser storage. Leaderboard hides the key filter and always omits `key_ids`, while preserving the selection restored on the other pages. Events retains its independent filter scope. Fork-owned Analytics loading paths use the shared Skeleton component with an accessible loading status, and Maintenance uses the existing ToggleSwitch for dry-run mode.
+
+Validation on 2026-09-02:
+
+- `bunx bun@1.3.14 run verify`
+- Result: 455 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
+- An isolated raw Chrome DevTools Protocol run against the Docker Compose stack exercised all nine Analytics routes at desktop and mobile sizes. All 33 visible buttons, dropdowns, and single-line inputs measured 40 px; no native selects, horizontal overflow, visible text loaders, or runtime exceptions remained. Delayed requests exposed Skeleton states, shared filters retained 30 days and two selected keys across routes, and the Leaderboard request omitted `key_ids`.
+
 Fork baseline validation on 2026-08-31, before DL002 and DL003:
 
 - `bunx bun@1.3.14 install --frozen-lockfile`

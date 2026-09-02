@@ -2,6 +2,7 @@ import type { AnalyticsCapabilities, AnalyticsOperation, AnalyticsQuery } from '
 
 export type AnalyticsRange = '24h' | '7d' | '30d';
 export const MAX_ANALYTICS_KEY_FILTERS = 100;
+export type AnalyticsLeaderboardSort = 'tokens' | 'cost';
 
 export type AnalyticsAvailability =
   'unsupported' | 'disabled' | 'unavailable' | 'ready' | 'degraded';
@@ -42,4 +43,23 @@ export function buildAnalyticsQuery(
     ...(keyIds.length ? { key_ids: [...new Set(keyIds)].slice(0, MAX_ANALYTICS_KEY_FILTERS) } : {}),
     ...fields,
   };
+}
+
+export function buildLeaderboardQuery(
+  range: AnalyticsRange,
+  sortBy: AnalyticsLeaderboardSort,
+  cursor = '',
+  now = new Date()
+) {
+  return buildAnalyticsQuery(
+    'leaderboard',
+    range,
+    [],
+    {
+      sort_by: sortBy,
+      page_size: 50,
+      ...(cursor ? { cursor } : {}),
+    },
+    now
+  );
 }

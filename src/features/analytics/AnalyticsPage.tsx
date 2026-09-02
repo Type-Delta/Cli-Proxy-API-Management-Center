@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { analyticsApi, capabilitiesApi } from '@/services/api';
 import { useNotificationStore } from '@/stores';
 import type {
@@ -22,6 +25,7 @@ import type {
 import { copyToClipboard } from '@/utils/clipboard';
 import {
   buildAnalyticsQuery,
+  buildLeaderboardQuery,
   MAX_ANALYTICS_KEY_FILTERS,
   resolveAnalyticsAvailability,
   type AnalyticsRange,
@@ -29,6 +33,8 @@ import {
 import { AnalyticsKeyFilter } from './AnalyticsKeyFilter';
 import { AnalyticsTabs } from './AnalyticsTabs';
 import { analyticsKeyIdentity } from './analyticsKeyFilterModel';
+import { useAnalyticsFilters } from './AnalyticsFilterContext';
+import { AnalyticsSkeleton } from './AnalyticsSkeleton';
 import type { AnalyticsPageKind } from './navigation';
 import styles from './Analytics.module.scss';
 
@@ -79,12 +85,7 @@ function AsyncState({
   children: ReactNode;
 }) {
   const { t } = useTranslation();
-  if (loading)
-    return (
-      <div className={styles.state} role="status">
-        {t('common.loading')}
-      </div>
-    );
+  if (loading) return <AnalyticsSkeleton />;
   if (error)
     return (
       <div className={styles.state} role="alert">
@@ -112,6 +113,7 @@ function Filters({
   keysLoading,
   keysError,
   retryKeys,
+  showKeys = true,
 }: {
   range: AnalyticsRange;
   setRange: (range: AnalyticsRange) => void;
@@ -121,30 +123,34 @@ function Filters({
   keysLoading: boolean;
   keysError: string;
   retryKeys: () => void;
+  showKeys?: boolean;
 }) {
   const { t } = useTranslation();
   return (
     <section className={styles.filters} aria-label={t('analytics.filters')}>
-      <label>
-        {t('analytics.range')}
-        <select
-          className="input"
+      <label className={styles.filterField}>
+        <span>{t('analytics.range')}</span>
+        <Select
           value={range}
-          onChange={(event) => setRange(event.target.value as AnalyticsRange)}
-        >
-          <option value="24h">{t('analytics.range_24h')}</option>
-          <option value="7d">{t('analytics.range_7d')}</option>
-          <option value="30d">{t('analytics.range_30d')}</option>
-        </select>
+          onChange={(value) => setRange(value as AnalyticsRange)}
+          options={[
+            { value: '24h', label: t('analytics.range_24h') },
+            { value: '7d', label: t('analytics.range_7d') },
+            { value: '30d', label: t('analytics.range_30d') },
+          ]}
+          ariaLabel={t('analytics.range')}
+        />
       </label>
-      <AnalyticsKeyFilter
-        keys={keys}
-        selected={selected}
-        loading={keysLoading}
-        error={keysError}
-        onChange={setSelected}
-        onRetry={retryKeys}
-      />
+      {showKeys && (
+        <AnalyticsKeyFilter
+          keys={keys}
+          selected={selected}
+          loading={keysLoading}
+          error={keysError}
+          onChange={setSelected}
+          onRetry={retryKeys}
+        />
+      )}
     </section>
   );
 }
@@ -267,13 +273,12 @@ function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: string[] }
   return (
     <>
       <label className={styles.inlineControl}>
-        {t('analytics.dimension')}
-        <select
-          className="input"
+        <span>{t('analytics.dimension')}</span>
+        <Select
           value={dimension}
-          onChange={(event) => setDimension(event.target.value)}
-        >
-          {[
+          onChange={setDimension}
+          ariaLabel={t('analytics.dimension')}
+          options={[
             'model',
             'provider',
             'credential',
@@ -283,12 +288,8 @@ function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: string[] }
             'cache',
             'failure',
             'service_tier',
-          ].map((value) => (
-            <option key={value} value={value}>
-              {t(`analytics.dimensions.${value}`)}
-            </option>
-          ))}
-        </select>
+          ].map((value) => ({ value, label: t(`analytics.dimensions.${value}`) }))}
+        />
       </label>
       <AsyncState loading={result.loading} error={result.error} stale={result.data?.meta.degraded}>
         {result.data && <DimensionTable data={result.data} />}
@@ -438,16 +439,14 @@ function KeysView({
 
 function Leaderboard({
   range,
-  keyIds,
   onDrillDown,
 }: {
   range: AnalyticsRange;
-  keyIds: string[];
   onDrillDown: (id: string) => void;
 }) {
   const { t } = useTranslation();
   const [sortBy, setSortBy] = useState<'tokens' | 'cost'>('tokens');
-  const scope = JSON.stringify([range, keyIds, sortBy]);
+  const scope = JSON.stringify([range, sortBy]);
   const [pagination, setPagination] = useState<{ scope: string; cursors: string[] }>({
     scope,
     cursors: [''],
@@ -455,13 +454,8 @@ function Leaderboard({
   const cursors = pagination.scope === scope ? pagination.cursors : [''];
   const cursor = cursors[cursors.length - 1] ?? '';
   const request = useMemo(
-    () =>
-      buildAnalyticsQuery('leaderboard', range, keyIds, {
-        sort_by: sortBy,
-        page_size: 50,
-        ...(cursor ? { cursor } : {}),
-      }),
-    [range, keyIds, sortBy, cursor]
+    () => buildLeaderboardQuery(range, sortBy, cursor),
+    [range, sortBy, cursor]
   );
   const result = useLoad(() => analyticsApi.leaderboard(request), JSON.stringify(request));
   return (
@@ -504,7 +498,7 @@ function Leaderboard({
                     <td>{row.rank}</td>
                     <td>
                       <button className={styles.textButton} onClick={() => onDrillDown(row.key_id)}>
-                        {row.label || row.short_key_id}
+                        {analyticsKeyIdentity(row)}
                       </button>
                     </td>
                     <td>{formatNumber(row.tokens.total)}</td>
@@ -850,15 +844,17 @@ function SharedViews({ keys }: { keys: AnalyticsKey[] }) {
     <section className={styles.panel}>
       <h2>{t('analytics.shared')}</h2>
       <label>
-        {t('analytics.key')}
-        <select className="input" value={keyId} onChange={(event) => setKeyId(event.target.value)}>
-          <option value="">{t('analytics.choose_key')}</option>
-          {keys.map((key) => (
-            <option key={key.key_id} value={key.key_id}>
-              {key.label || key.short_key_id}
-            </option>
-          ))}
-        </select>
+        <span>{t('analytics.key')}</span>
+        <Select
+          value={keyId}
+          onChange={setKeyId}
+          placeholder={t('analytics.choose_key')}
+          ariaLabel={t('analytics.key')}
+          options={keys.map((key) => ({
+            value: key.key_id,
+            label: analyticsKeyIdentity(key),
+          }))}
+        />
       </label>
       <label>
         {t('analytics.label')}
@@ -884,7 +880,7 @@ function SharedViews({ keys }: { keys: AnalyticsKey[] }) {
           </Button>
         </div>
       )}
-      {viewers.loading && <div role="status">{t('common.loading')}</div>}
+      {viewers.loading && <AnalyticsSkeleton compact />}
       {viewers.error && <div role="alert">{viewers.error}</div>}
       {viewers.data && viewers.data.length > 0 && (
         <div className={styles.tableWrap}>
@@ -1036,14 +1032,14 @@ function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
               disabled={dryRun}
             />
           </label>
-          <label className={styles.checkLabel}>
-            <input
-              type="checkbox"
+          <div className={styles.toggleField}>
+            <ToggleSwitch
               checked={dryRun}
-              onChange={(event) => setDryRun(event.target.checked)}
+              onChange={setDryRun}
+              label={t('analytics.dry_run')}
+              ariaLabel={t('analytics.dry_run')}
             />
-            {t('analytics.dry_run')}
-          </label>
+          </div>
           <Button
             onClick={() => void startImport()}
             disabled={!importPath || (!dryRun && !importBackupPath)}
@@ -1053,22 +1049,20 @@ function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
           <hr />
           <h2>{t('analytics.purge_key')}</h2>
           <label>
-            {t('analytics.key')}
-            <select
-              className="input"
+            <span>{t('analytics.key')}</span>
+            <Select
               value={purgeKeyId}
-              onChange={(event) => {
-                setPurgeKeyId(event.target.value);
+              onChange={(value) => {
+                setPurgeKeyId(value);
                 setPurgeBatchId('');
               }}
-            >
-              <option value="">{t('analytics.choose_key')}</option>
-              {keys.map((key) => (
-                <option key={key.key_id} value={key.key_id}>
-                  {key.label || key.short_key_id}
-                </option>
-              ))}
-            </select>
+              placeholder={t('analytics.choose_key')}
+              ariaLabel={t('analytics.key')}
+              options={keys.map((key) => ({
+                value: key.key_id,
+                label: analyticsKeyIdentity(key),
+              }))}
+            />
           </label>
           <Button variant="secondary" onClick={() => void previewPurge()} disabled={!purgeKeyId}>
             {t('analytics.preview_purge')}
@@ -1154,7 +1148,7 @@ function HealthDetails({ health }: { health: AnalyticsHealth }) {
 export function AnalyticsPage({ kind }: { kind: AnalyticsPageKind }) {
   const { t } = useTranslation();
   const capabilities = useLoad<ManagementCapabilities>(() => capabilitiesApi.get(), 'capabilities');
-  if (capabilities.loading) return <div className={styles.state}>{t('common.loading')}</div>;
+  if (capabilities.loading) return <AnalyticsSkeleton />;
   if (capabilities.error || !capabilities.data?.analytics.supported)
     return (
       <div className={styles.state} role="status">
@@ -1190,6 +1184,15 @@ function AnalyticsWorkspace({
   analytics: AnalyticsCapabilities;
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const {
+    range,
+    setRange,
+    selectedKeyIds: selected,
+    setSelectedKeyIds: setSelected,
+  } = useAnalyticsFilters();
+  const [eventsRange, setEventsRange] = useState<AnalyticsRange>('7d');
+  const [eventsSelected, setEventsSelected] = useState<string[]>([]);
   const keyCatalog = useLoad<AnalyticsKey[]>(async () => {
     const all: AnalyticsKey[] = [];
     let cursor = '';
@@ -1200,10 +1203,13 @@ function AnalyticsWorkspace({
     } while (cursor && all.length < 10_000);
     return all;
   }, 'key-catalog');
-  const [range, setRange] = useState<AnalyticsRange>('7d');
-  const [selected, setSelected] = useState<string[]>([]);
   const keys = keyCatalog.data ?? [];
-  const filterable = ['overview', 'analysis', 'keys', 'leaderboard', 'events'].includes(kind);
+  const sharedFilterPage = ['overview', 'analysis', 'keys', 'leaderboard'].includes(kind);
+  const filterable = sharedFilterPage || kind === 'events';
+  const activeRange = kind === 'events' ? eventsRange : range;
+  const activeSelected = kind === 'events' ? eventsSelected : selected;
+  const setActiveRange = kind === 'events' ? setEventsRange : setRange;
+  const setActiveSelected = kind === 'events' ? setEventsSelected : setSelected;
   return (
     <main className={styles.page}>
       <header className={styles.header}>
@@ -1218,14 +1224,15 @@ function AnalyticsWorkspace({
       <AnalyticsTabs active={kind} />
       {filterable && (
         <Filters
-          range={range}
-          setRange={setRange}
+          range={activeRange}
+          setRange={setActiveRange}
           keys={keys}
-          selected={selected}
-          setSelected={setSelected}
+          selected={activeSelected}
+          setSelected={setActiveSelected}
           keysLoading={keyCatalog.loading}
           keysError={keyCatalog.error}
           retryKeys={() => void keyCatalog.refresh()}
+          showKeys={kind !== 'leaderboard'}
         />
       )}
       {kind === 'overview' && <Overview range={range} keyIds={selected} />}
@@ -1234,9 +1241,15 @@ function AnalyticsWorkspace({
         <KeysView keys={keys} range={range} selected={selected} setSelected={setSelected} />
       )}
       {kind === 'leaderboard' && (
-        <Leaderboard range={range} keyIds={selected} onDrillDown={(id) => setSelected([id])} />
+        <Leaderboard
+          range={range}
+          onDrillDown={(id) => {
+            setSelected([id]);
+            navigate('/analytics/keys');
+          }}
+        />
       )}
-      {kind === 'events' && <Events range={range} keyIds={selected} />}
+      {kind === 'events' && <Events range={eventsRange} keyIds={eventsSelected} />}
       {kind === 'pricing' && <Pricing />}
       {kind === 'providers' && <Providers />}
       {kind === 'shared' && <SharedViews keys={keys} />}

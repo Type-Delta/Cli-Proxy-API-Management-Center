@@ -6,6 +6,22 @@
   margin: 0 auto;
   padding: 12px 0 32px;
 }
+.page,
+.viewer,
+.state {
+  :global(.btn) {
+    height: 40px;
+    min-height: 40px;
+  }
+
+  :global(input.input) {
+    height: 40px;
+    min-height: 40px;
+    padding-top: 0;
+    padding-bottom: 0;
+    box-sizing: border-box;
+  }
+}
 .header {
   display: flex;
   justify-content: space-between;
@@ -43,12 +59,24 @@
   border: 1px solid var(--border-color);
   border-radius: 12px;
   background: var(--bg-secondary);
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 150px;
+}
+.filterField {
+  display: flex;
+  flex: 0 1 340px;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 150px;
+
+  > span:first-child {
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
   }
+}
+.filterField:first-child {
+  flex-basis: 150px;
+  max-width: 180px;
 }
 .kpis {
   display: grid;
@@ -130,9 +158,14 @@
 }
 .inlineControl {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  width: fit-content;
+  flex-direction: column;
+  gap: 6px;
+  width: min(100%, 280px);
+
+  > span {
+    font-size: 13px;
+    font-weight: 500;
+  }
 }
 .segmented,
 .actions {
@@ -140,17 +173,33 @@
   flex-wrap: wrap;
   gap: 8px;
 }
-.checkLabel {
-  flex-direction: row !important;
-  align-items: center;
+.toggleField {
+  width: fit-content;
 }
 .textButton {
+  height: 40px;
+  min-height: 40px;
   border: 0;
   background: none;
   color: var(--primary-color);
   cursor: pointer;
   padding: 0;
   text-decoration: underline;
+}
+.loadingState {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 12px;
 }
 .split {
   display: grid;
@@ -224,6 +273,11 @@
   .filters {
     align-items: stretch;
     flex-direction: column;
+  }
+  .filterField,
+  .filterField:first-child {
+    width: 100%;
+    max-width: none;
   }
   .split {
     grid-template-columns: 1fr;
