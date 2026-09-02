@@ -1,13 +1,13 @@
-// 配置文档的加载 / 保存状态机 —— 从旧 pages/ConfigPage.tsx 逐字提取。
-// 正确性核心，勿随手「顺化」：两阶段保存（预览前 re-fetch → diff → 确认时再 re-fetch，
-// 服务端变更则重新预览不落盘）、可视化模式的规范化 diff、commercial-mode 重启警告、
-// 保存成功后刷新全局 config store。
+// Configuration document load and save state machine, extracted from the former ConfigPage.
+// Preserve its two-phase save, server-change preview, visual diff normalization,
+// commercial-mode restart warning, and global config-store refresh behavior.
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { parse as parseYaml, parseDocument } from 'yaml';
 import { useConfigStore, useNotificationStore } from '@/stores';
 import { configFileApi } from '@/services/api/configFile';
+import { normalizeYamlLineEndings } from '@/utils/yaml';
 import type { ConfigEditorMode } from '../constants';
 
 function readCommercialModeFromYaml(yamlContent: string): boolean {
@@ -21,16 +21,17 @@ function readCommercialModeFromYaml(yamlContent: string): boolean {
 }
 
 function normalizeYamlForVisualDiff(yamlContent: string): string {
+  const normalizedYaml = normalizeYamlLineEndings(yamlContent);
   try {
-    const doc = parseDocument(yamlContent);
+    const doc = parseDocument(normalizedYaml);
     return doc.toString({ indent: 2, lineWidth: 120, minContentWidth: 0 });
   } catch {
-    return yamlContent;
+    return normalizedYaml;
   }
 }
 
 export type UseConfigDocumentArgs = {
-  /** 当前编辑模式（旧实现中的 activeTab）。 */
+  /** Current editor mode, formerly activeTab. */
   mode: ConfigEditorMode;
   visualDirty: boolean;
   visualParseError: string | null;
@@ -253,7 +254,7 @@ export function useConfigDocument({
     visualParseError,
   ]);
 
-  /** 源码编辑器 onChange：写入内容并标脏。 */
+  /** Update the source editor content and mark it dirty. */
   const handleChange = useCallback((value: string) => {
     setContent(value);
     setDirty(true);
@@ -277,7 +278,7 @@ export function useConfigDocument({
     });
   }, [isDirty, loadConfig, showConfirmation, t]);
 
-  /** 无需联网，直接恢复最近一次成功读取的原始服务端 YAML。 */
+  /** Restore the last successfully loaded server YAML without another request. */
   const handleDiscard = useCallback(() => {
     if (!isDirty) return;
 
@@ -302,7 +303,7 @@ export function useConfigDocument({
 
   return {
     content,
-    /** 模式切换握手（可视化→源码时把脏字段写进草稿）需要直接写 content/dirty。 */
+    /** Mode switching writes visual edits into the source draft through content and dirty. */
     setContent,
     setDirty,
     loading,

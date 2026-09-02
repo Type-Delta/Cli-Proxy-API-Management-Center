@@ -6,10 +6,11 @@ import { SectionCard } from '../SectionCard';
 import { FieldAnchor, FieldGrid, FieldStack, ToggleRow } from '../fields/FieldPrimitives';
 import { DebugToggle, LoggingToFileToggle } from '../fields/sharedFields';
 import { getValidationMessage } from '../blocks/shared';
+import { AnalyticsSettingsFields } from './AnalyticsSettingsFields';
 
 const Icon = CONFIG_TAB_ICONS.logging;
 
-/** 03 日志与诊断：调试、商业模式（重启生效）、日志输出与使用统计。 */
+/** Logging, diagnostics, in-memory usage, and durable analytics settings. */
 export function SectionLogging({
   values,
   validationErrors,
@@ -100,6 +101,13 @@ export function SectionLogging({
             />
           </FieldAnchor>
         </FieldGrid>
+
+        <AnalyticsSettingsFields
+          values={values}
+          validationErrors={validationErrors}
+          disabled={disabled}
+          onChange={onChange}
+        />
       </FieldStack>
     </SectionCard>
   );

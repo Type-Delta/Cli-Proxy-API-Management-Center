@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next';
+import { IconSidebarDashboard } from '@/components/ui/icons';
 import { CONFIG_TAB_ICONS } from '../../constants';
 import type { ConfigSectionProps } from '../../types';
 import { getValidationMessage } from '../blocks/shared';
 import { SectionCard } from '../SectionCard';
+import { AnalyticsSettingsFields } from './AnalyticsSettingsFields';
 import { FieldGrid, FieldStack } from '../fields/FieldPrimitives';
 import {
   ApiKeysField,
@@ -18,10 +20,7 @@ import {
 
 const Icon = CONFIG_TAB_ICONS.common;
 
-/**
- * 「常用」tab：原简单模式的 8 个高频字段，别名视图（不占分区序号）。
- * 渲染源与正典分区共享（sharedFields），数据同为 useVisualConfig 一份状态。
- */
+/** Common is an unnumbered alias view backed by the same visual-config state. */
 export function SectionCommon({
   values,
   validationErrors,
@@ -33,39 +32,55 @@ export function SectionCommon({
   const portError = getValidationMessage(t, validationErrors?.port);
 
   return (
-    <SectionCard
-      icon={<Icon size={16} />}
-      title={t('config_management.visual.sections.common.title')}
-      description={t('config_management.visual.sections.common.description')}
-      animateIn={animateIn}
-    >
-      <FieldStack>
-        <FieldGrid>
-          <HostField
-            values={values}
-            disabled={disabled}
-            onChange={onChange}
-            topExtra={<SponsorHintSpacer />}
-          />
-          <PortField
-            values={values}
-            disabled={disabled}
-            onChange={onChange}
-            error={portError}
-            topExtra={<SponsorHintSpacer />}
-          />
-          <ProxyUrlField values={values} disabled={disabled} onChange={onChange} />
-        </FieldGrid>
+    <>
+      <SectionCard
+        icon={<Icon size={16} />}
+        title={t('config_management.visual.sections.common.title')}
+        description={t('config_management.visual.sections.common.description')}
+        animateIn={animateIn}
+      >
+        <FieldStack>
+          <FieldGrid>
+            <HostField
+              values={values}
+              disabled={disabled}
+              onChange={onChange}
+              topExtra={<SponsorHintSpacer />}
+            />
+            <PortField
+              values={values}
+              disabled={disabled}
+              onChange={onChange}
+              error={portError}
+              topExtra={<SponsorHintSpacer />}
+            />
+            <ProxyUrlField values={values} disabled={disabled} onChange={onChange} />
+          </FieldGrid>
 
-        <ApiKeysField values={values} disabled={disabled} onChange={onChange} />
+          <ApiKeysField values={values} disabled={disabled} onChange={onChange} />
 
-        <FieldGrid>
-          <DebugToggle values={values} disabled={disabled} onChange={onChange} />
-          <LoggingToFileToggle values={values} disabled={disabled} onChange={onChange} />
-          <QuotaSwitchProjectToggle values={values} disabled={disabled} onChange={onChange} />
-          <QuotaSwitchPreviewModelToggle values={values} disabled={disabled} onChange={onChange} />
-        </FieldGrid>
-      </FieldStack>
-    </SectionCard>
+          <FieldGrid>
+            <DebugToggle values={values} disabled={disabled} onChange={onChange} />
+            <LoggingToFileToggle values={values} disabled={disabled} onChange={onChange} />
+            <QuotaSwitchProjectToggle values={values} disabled={disabled} onChange={onChange} />
+            <QuotaSwitchPreviewModelToggle values={values} disabled={disabled} onChange={onChange} />
+          </FieldGrid>
+        </FieldStack>
+      </SectionCard>
+
+      <SectionCard
+        icon={<IconSidebarDashboard size={16} />}
+        title={t('config_management.visual.sections.analytics.title')}
+        description={t('config_management.visual.sections.analytics.description')}
+        animateIn={animateIn}
+      >
+        <AnalyticsSettingsFields
+          values={values}
+          validationErrors={validationErrors}
+          disabled={disabled}
+          onChange={onChange}
+        />
+      </SectionCard>
+    </>
   );
 }

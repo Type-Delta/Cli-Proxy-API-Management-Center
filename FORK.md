@@ -2,7 +2,7 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-08-31
+Last updated: 2026-09-02
 
 ## Repository relationship
 
@@ -61,6 +61,22 @@ Validation on 2026-08-31:
 - `bunx bun@1.3.14 run verify`
 - Result: 436 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 - An isolated Chrome DevTools Protocol run against a live local CPA exercised all nine routes at 1440 by 900 and Overview, Keys, Leaderboard, Shared views, and Maintenance at 390 by 844. It found no body overflow, unreachable non-scrollable controls, positive-tabindex ordering, API alerts, or runtime exceptions after the nullable-collection fix.
+
+### DL004: Analytics configuration and navigation clarity
+
+Status: shipped
+
+Files: `src/components/layout/MainLayout.tsx`, `src/components/ui/icons.tsx`, `src/features/config/**`, `src/hooks/useVisualConfig.ts`, `src/types/visualConfig.ts`, `src/utils/yaml.ts`, `src/i18n/locales/**`, `tests/visualConfigAnalytics.test.ts`
+
+The Analytics child navigation uses nine distinct vendored Lucide icons. The Config Panel Common tab exposes every durable analytics setting through the same typed controls used by Logging and Diagnostics. The visual YAML adapter loads and writes the complete nested `analytics` contract, changes only dirty fields, and preserves unknown YAML fields.
+
+Frontend validation matches CPA's queue, batch, duration, retention, circuit, signed 64-bit storage, and trusted proxy CIDR constraints. Storage byte values retain full `int64` precision. Path help identifies `identity.key` and `viewers.json` as companion files beside the SQLite database. CRLF input is normalized before YAML parsing and diff normalization so serialized comments cannot retain stray carriage returns or gain visible blank lines on Windows.
+
+Validation on 2026-09-02:
+
+- `bunx bun@1.3.14 run verify`
+- Result: 441 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
+- An isolated raw Chrome DevTools Protocol run against a live local CPA checked the Common panel at 1440 by 900 and 390 by 844. All 12 analytics controls rendered, all nine Analytics links used SVG icons with no fallback dots, invalid CIDRs showed an error, a real `analytics.enabled` save and reload succeeded, and the run found no horizontal overflow or runtime exceptions.
 
 Fork baseline validation on 2026-08-31, before DL002 and DL003:
 

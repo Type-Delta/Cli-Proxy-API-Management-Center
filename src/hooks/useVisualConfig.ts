@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useReducer } from 'react';
 import { isMap, parse as parseYaml, parseDocument } from 'yaml';
+import { normalizeYamlLineEndings } from '@/utils/yaml';
 import type {
   DisableImageGenerationMode,
   PluginStoreAuthApplyTo,
@@ -143,11 +144,12 @@ function setIntFromStringInDoc(doc: YamlDocument, path: YamlPath, value: unknown
     return;
   }
 
-  const parsed = Number(trimmed);
-  if (Number.isFinite(parsed)) {
-    doc.setIn(path, parsed);
+  const parsed = BigInt(trimmed);
+  if (parsed >= BigInt(Number.MIN_SAFE_INTEGER) && parsed <= BigInt(Number.MAX_SAFE_INTEGER)) {
+    doc.setIn(path, Number(parsed));
     return;
   }
+  doc.setIn(path, parsed);
 }
 
 function setDisableImageGenerationInDoc(
@@ -203,11 +205,185 @@ function getRedisRetentionError(value: string): 'integer_range_1_3600' | undefin
   return parsed >= 1 && parsed <= 3600 ? undefined : 'integer_range_1_3600';
 }
 
+function getPositiveIntegerError(value: string): 'positive_integer' | undefined {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return 'positive_integer';
+  return Number(trimmed) >= 1 ? undefined : 'positive_integer';
+}
+
+function getAnalyticsQueueCapacityError(
+  value: string
+): 'analytics_queue_capacity_range' | undefined {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return 'analytics_queue_capacity_range';
+  const parsed = Number(trimmed);
+  return parsed >= 1 && parsed <= 8192 ? undefined : 'analytics_queue_capacity_range';
+}
+
+function getAnalyticsBatchSizeError(
+  value: string,
+  queueCapacity: string
+): 'analytics_batch_size_range' | undefined {
+  const trimmed = value.trim();
+  const queue = Number(queueCapacity.trim());
+  if (!/^\d+$/.test(trimmed)) return 'analytics_batch_size_range';
+  const parsed = Number(trimmed);
+  return parsed >= 1 && Number.isInteger(queue) && parsed <= queue
+    ? undefined
+    : 'analytics_batch_size_range';
+}
+
+function parseAnalyticsDurationMilliseconds(value: string): number | undefined {
+  const trimmed = value.trim();
+  const pattern = /(\d+(?:\.\d+)?)(ns|us|µs|μs|ms|s|m|h)/g;
+  const factors: Record<string, number> = {
+    ns: 0.000001,
+    us: 0.001,
+    µs: 0.001,
+    μs: 0.001,
+    ms: 1,
+    s: 1000,
+    m: 60000,
+    h: 3600000,
+  };
+  let consumed = '';
+  let total = 0;
+  for (const match of trimmed.matchAll(pattern)) {
+    consumed += match[0];
+    total += Number(match[1]) * (factors[match[2]] ?? 0);
+  }
+  return consumed === trimmed && Number.isFinite(total) ? total : undefined;
+}
+
+function getAnalyticsDurationError(value: string): 'analytics_duration_range' | undefined {
+  const milliseconds = parseAnalyticsDurationMilliseconds(value);
+  return milliseconds !== undefined && milliseconds >= 1 && milliseconds <= 60000
+    ? undefined
+    : 'analytics_duration_range';
+}
+
+const MAX_INT64 = 9223372036854775807n;
+
+function getAnalyticsStorageBytesError(
+  value: string
+): 'analytics_storage_bytes_range' | undefined {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return 'analytics_storage_bytes_range';
+  return BigInt(trimmed) <= MAX_INT64 ? undefined : 'analytics_storage_bytes_range';
+}
+
+function parseIPv4Address(value: string): bigint | undefined {
+  const octets = value.split('.');
+  if (octets.length !== 4) return undefined;
+  let address = 0n;
+  for (const octet of octets) {
+    if (!/^(0|[1-9]\d{0,2})$/.test(octet)) return undefined;
+    const parsed = Number(octet);
+    if (parsed > 255) return undefined;
+    address = (address << 8n) | BigInt(parsed);
+  }
+  return address;
+}
+
+function parseIPv6Address(value: string): bigint | undefined {
+  if (!value || value.includes('%')) return undefined;
+  const compression = value.indexOf('::');
+  if (compression !== -1 && compression !== value.lastIndexOf('::')) return undefined;
+
+  const parseGroups = (part: string, mayContainIPv4: boolean): number[] | undefined => {
+    if (!part) return [];
+    const tokens = part.split(':');
+    if (tokens.some((token) => !token)) return undefined;
+    const groups: number[] = [];
+    for (const [index, token] of tokens.entries()) {
+      if (token.includes('.')) {
+        if (!mayContainIPv4 || index !== tokens.length - 1) return undefined;
+        const ipv4 = parseIPv4Address(token);
+        if (ipv4 === undefined) return undefined;
+        groups.push(Number(ipv4 >> 16n), Number(ipv4 & 0xffffn));
+        continue;
+      }
+      if (!/^[0-9a-f]{1,4}$/i.test(token)) return undefined;
+      groups.push(Number.parseInt(token, 16));
+    }
+    return groups;
+  };
+
+  const leftText = compression === -1 ? value : value.slice(0, compression);
+  const rightText = compression === -1 ? '' : value.slice(compression + 2);
+  const left = parseGroups(leftText, compression === -1);
+  const right = parseGroups(rightText, true);
+  if (!left || !right) return undefined;
+
+  const explicitCount = left.length + right.length;
+  if (compression === -1 ? explicitCount !== 8 : explicitCount >= 8) return undefined;
+  const groups =
+    compression === -1
+      ? left
+      : [...left, ...Array.from({ length: 8 - explicitCount }, () => 0), ...right];
+  let address = 0n;
+  for (const group of groups) address = (address << 16n) | BigInt(group);
+  return address;
+}
+
+function parseCanonicalCIDR(value: string): string | undefined {
+  if (!value || value.trim() !== value) return undefined;
+  const parts = value.split('/');
+  if (parts.length !== 2 || !/^\d+$/.test(parts[1])) return undefined;
+  const addressText = parts[0];
+  const bits = addressText.includes(':') ? 128 : 32;
+  const prefix = Number(parts[1]);
+  if (!Number.isInteger(prefix) || prefix < 0 || prefix > bits) return undefined;
+  const address = bits === 128 ? parseIPv6Address(addressText) : parseIPv4Address(addressText);
+  if (address === undefined) return undefined;
+  const hostBits = BigInt(bits - prefix);
+  const hostMask = hostBits === 0n ? 0n : (1n << hostBits) - 1n;
+  if ((address & hostMask) !== 0n) return undefined;
+  return `${bits}:${prefix}:${address}`;
+}
+
+function getAnalyticsProxyCIDRError(
+  values: string[]
+): 'analytics_proxy_cidrs_invalid' | undefined {
+  if (values.length > 64) return 'analytics_proxy_cidrs_invalid';
+  const seen = new Set<string>();
+  for (const value of values) {
+    const parsed = parseCanonicalCIDR(value);
+    if (!parsed || seen.has(parsed)) return 'analytics_proxy_cidrs_invalid';
+    seen.add(parsed);
+  }
+  return undefined;
+}
+
 export function getVisualConfigValidationErrors(
   values: VisualConfigValues
 ): VisualConfigValidationErrors {
   return {
     port: getPortError(values.port),
+    analyticsPath:
+      values.analyticsPath.trim() === values.analyticsPath
+        ? undefined
+        : 'analytics_path_whitespace',
+    analyticsQueueCapacity: getAnalyticsQueueCapacityError(values.analyticsQueueCapacity),
+    analyticsBatchSize: getAnalyticsBatchSizeError(
+      values.analyticsBatchSize,
+      values.analyticsQueueCapacity
+    ),
+    analyticsFlushInterval: getAnalyticsDurationError(values.analyticsFlushInterval),
+    analyticsHotRetentionDays: getPositiveIntegerError(values.analyticsHotRetentionDays),
+    analyticsCircuitFailureThreshold: getPositiveIntegerError(
+      values.analyticsCircuitFailureThreshold
+    ),
+    analyticsMaxStorageBytes:
+      getAnalyticsStorageBytesError(values.analyticsMaxStorageBytes) ??
+      (/^0+$/.test(values.analyticsMaxStorageBytes.trim()) &&
+      /^0+$/.test(values.analyticsMinFreeBytes.trim())
+        ? 'analytics_storage_budget_required'
+        : undefined),
+    analyticsMinFreeBytes: getAnalyticsStorageBytesError(values.analyticsMinFreeBytes),
+    analyticsViewerTrustedProxyCidrs: getAnalyticsProxyCIDRError(
+      values.analyticsViewerTrustedProxyCidrs
+    ),
     errorLogsMaxFiles: getNonNegativeIntegerError(values.errorLogsMaxFiles),
     logsMaxTotalSizeMb: getNonNegativeIntegerError(values.logsMaxTotalSizeMb),
     redisUsageQueueRetentionSeconds: getRedisRetentionError(values.redisUsageQueueRetentionSeconds),
@@ -884,6 +1060,17 @@ function getNextDirtyFields(
       'errorLogsMaxFiles',
       'usageStatisticsEnabled',
       'redisUsageQueueRetentionSeconds',
+      'analyticsEnabled',
+      'analyticsPath',
+      'analyticsQueueCapacity',
+      'analyticsBatchSize',
+      'analyticsFlushInterval',
+      'analyticsHotRetentionDays',
+      'analyticsCircuitFailureThreshold',
+      'analyticsMaxStorageBytes',
+      'analyticsMinFreeBytes',
+      'analyticsStoreCredentialId',
+      'analyticsViewerAllowLoopbackHttp',
       'pluginsEnabled',
       'passthroughHeaders',
       'disableCooling',
@@ -930,6 +1117,16 @@ function getNextDirtyFields(
       'routingSessionAffinityTTL',
     ] as Array<keyof VisualConfigValues>
   ).forEach(updateScalarDirty);
+
+  if (Object.prototype.hasOwnProperty.call(patch, 'analyticsViewerTrustedProxyCidrs')) {
+    updateDirty(
+      'analyticsViewerTrustedProxyCidrs',
+      areStringArraysEqual(
+        nextValues.analyticsViewerTrustedProxyCidrs,
+        baselineValues.analyticsViewerTrustedProxyCidrs
+      )
+    );
+  }
 
   if (Object.prototype.hasOwnProperty.call(patch, 'pluginStoreSources')) {
     updateDirty(
@@ -1082,6 +1279,9 @@ export function useVisualConfig() {
       const payload = asRecord(parsed.payload);
       const streaming = asRecord(parsed.streaming);
       const plugins = asRecord(parsed.plugins);
+      const analytics = asRecord(parsed.analytics);
+      const analyticsPrivacy = asRecord(analytics?.privacy);
+      const analyticsViewer = asRecord(analytics?.viewer);
       const claudeHeaderDefaults = asRecord(parsed['claude-header-defaults']);
       const codexHeaderDefaults = asRecord(parsed['codex-header-defaults']);
 
@@ -1122,6 +1322,27 @@ export function useVisualConfig() {
         redisUsageQueueRetentionSeconds: String(
           parsed['redis-usage-queue-retention-seconds'] ?? ''
         ),
+        analyticsEnabled: Boolean(analytics?.enabled),
+        analyticsPath: typeof analytics?.path === 'string' ? analytics.path : '',
+        analyticsQueueCapacity: String(analytics?.['queue-capacity'] ?? '8192'),
+        analyticsBatchSize: String(analytics?.['batch-size'] ?? '256'),
+        analyticsFlushInterval:
+          typeof analytics?.['flush-interval'] === 'string'
+            ? analytics['flush-interval']
+            : '250ms',
+        analyticsHotRetentionDays: String(analytics?.['hot-retention-days'] ?? '90'),
+        analyticsCircuitFailureThreshold: String(
+          analytics?.['circuit-failure-threshold'] ?? '5'
+        ),
+        analyticsMaxStorageBytes: String(analytics?.['max-storage-bytes'] ?? '5368709120'),
+        analyticsMinFreeBytes: String(analytics?.['min-free-bytes'] ?? '536870912'),
+        analyticsStoreCredentialId: Boolean(
+          analyticsPrivacy?.['store-credential-id'] ?? true
+        ),
+        analyticsViewerTrustedProxyCidrs: parseStringList(
+          analyticsViewer?.['trusted-proxy-cidrs']
+        ),
+        analyticsViewerAllowLoopbackHttp: Boolean(analyticsViewer?.['allow-loopback-http']),
 
         proxyUrl: typeof parsed['proxy-url'] === 'string' ? parsed['proxy-url'] : '',
         forceModelPrefix: Boolean(parsed['force-model-prefix']),
@@ -1213,13 +1434,28 @@ export function useVisualConfig() {
   const applyVisualChangesToYaml = useCallback(
     (currentYaml: string): string => {
       try {
-        const doc = parseDocument(currentYaml);
+        const normalizedYaml = normalizeYamlLineEndings(currentYaml);
+        const doc = parseDocument(normalizedYaml);
         if (doc.errors.length > 0) return currentYaml;
         if (!isMap(doc.contents)) {
           doc.contents = doc.createNode({}) as unknown as typeof doc.contents;
         }
         const values = visualValues;
         const shouldWritePluginStoreAuth = dirtyFields.has('pluginStoreAuth');
+        const analyticsDirty = [
+          'analyticsEnabled',
+          'analyticsPath',
+          'analyticsQueueCapacity',
+          'analyticsBatchSize',
+          'analyticsFlushInterval',
+          'analyticsHotRetentionDays',
+          'analyticsCircuitFailureThreshold',
+          'analyticsMaxStorageBytes',
+          'analyticsMinFreeBytes',
+          'analyticsStoreCredentialId',
+          'analyticsViewerTrustedProxyCidrs',
+          'analyticsViewerAllowLoopbackHttp',
+        ].some((field) => dirtyFields.has(field));
 
         if (dirtyFields.has('host')) setStringInDoc(doc, ['host'], values.host);
         if (dirtyFields.has('port')) setIntFromStringInDoc(doc, ['port'], values.port);
@@ -1336,6 +1572,91 @@ export function useVisualConfig() {
             ['redis-usage-queue-retention-seconds'],
             values.redisUsageQueueRetentionSeconds
           );
+        }
+
+        if (analyticsDirty) {
+          ensureMapInDoc(doc, ['analytics']);
+          if (dirtyFields.has('analyticsEnabled')) {
+            doc.setIn(['analytics', 'enabled'], values.analyticsEnabled);
+          }
+          if (dirtyFields.has('analyticsPath')) {
+            setStringInDoc(doc, ['analytics', 'path'], values.analyticsPath);
+          }
+          if (dirtyFields.has('analyticsQueueCapacity')) {
+            setIntFromStringInDoc(
+              doc,
+              ['analytics', 'queue-capacity'],
+              values.analyticsQueueCapacity
+            );
+          }
+          if (dirtyFields.has('analyticsBatchSize')) {
+            setIntFromStringInDoc(
+              doc,
+              ['analytics', 'batch-size'],
+              values.analyticsBatchSize
+            );
+          }
+          if (dirtyFields.has('analyticsFlushInterval')) {
+            setStringInDoc(
+              doc,
+              ['analytics', 'flush-interval'],
+              values.analyticsFlushInterval
+            );
+          }
+          if (dirtyFields.has('analyticsHotRetentionDays')) {
+            setIntFromStringInDoc(
+              doc,
+              ['analytics', 'hot-retention-days'],
+              values.analyticsHotRetentionDays
+            );
+          }
+          if (dirtyFields.has('analyticsCircuitFailureThreshold')) {
+            setIntFromStringInDoc(
+              doc,
+              ['analytics', 'circuit-failure-threshold'],
+              values.analyticsCircuitFailureThreshold
+            );
+          }
+          if (dirtyFields.has('analyticsMaxStorageBytes')) {
+            setIntFromStringInDoc(
+              doc,
+              ['analytics', 'max-storage-bytes'],
+              values.analyticsMaxStorageBytes
+            );
+          }
+          if (dirtyFields.has('analyticsMinFreeBytes')) {
+            setIntFromStringInDoc(
+              doc,
+              ['analytics', 'min-free-bytes'],
+              values.analyticsMinFreeBytes
+            );
+          }
+          if (dirtyFields.has('analyticsStoreCredentialId')) {
+            ensureMapInDoc(doc, ['analytics', 'privacy']);
+            doc.setIn(
+              ['analytics', 'privacy', 'store-credential-id'],
+              values.analyticsStoreCredentialId
+            );
+          }
+          if (
+            dirtyFields.has('analyticsViewerTrustedProxyCidrs') ||
+            dirtyFields.has('analyticsViewerAllowLoopbackHttp')
+          ) {
+            ensureMapInDoc(doc, ['analytics', 'viewer']);
+            if (dirtyFields.has('analyticsViewerTrustedProxyCidrs')) {
+              setStringListInDoc(
+                doc,
+                ['analytics', 'viewer', 'trusted-proxy-cidrs'],
+                values.analyticsViewerTrustedProxyCidrs
+              );
+            }
+            if (dirtyFields.has('analyticsViewerAllowLoopbackHttp')) {
+              doc.setIn(
+                ['analytics', 'viewer', 'allow-loopback-http'],
+                values.analyticsViewerAllowLoopbackHttp
+              );
+            }
+          }
         }
 
         if (dirtyFields.has('proxyUrl')) setStringInDoc(doc, ['proxy-url'], values.proxyUrl);
@@ -1602,7 +1923,7 @@ export function useVisualConfig() {
   return {
     visualValues,
     visualDirty,
-    /** 脏字段的叶值键集合（streaming 为点号叶），供 tab 脏点 / 头部计数消费。 */
+    /** Dirty leaf-value keys. Streaming fields use dotted paths. */
     visualDirtyFields: dirtyFields as ReadonlySet<string>,
     visualParseError,
     visualValidationErrors,

@@ -8,6 +8,15 @@ export type PayloadParamValidationErrorCode =
 
 export type VisualConfigFieldPath =
   | 'port'
+  | 'analyticsPath'
+  | 'analyticsQueueCapacity'
+  | 'analyticsBatchSize'
+  | 'analyticsFlushInterval'
+  | 'analyticsHotRetentionDays'
+  | 'analyticsCircuitFailureThreshold'
+  | 'analyticsMaxStorageBytes'
+  | 'analyticsMinFreeBytes'
+  | 'analyticsViewerTrustedProxyCidrs'
   | 'errorLogsMaxFiles'
   | 'logsMaxTotalSizeMb'
   | 'redisUsageQueueRetentionSeconds'
@@ -20,7 +29,17 @@ export type VisualConfigFieldPath =
   | 'streaming.nonstreamKeepaliveInterval';
 
 export type VisualConfigValidationErrorCode =
-  'port_range' | 'non_negative_integer' | 'integer_range_1_3600';
+  | 'port_range'
+  | 'non_negative_integer'
+  | 'positive_integer'
+  | 'integer_range_1_3600'
+  | 'analytics_queue_capacity_range'
+  | 'analytics_batch_size_range'
+  | 'analytics_duration_range'
+  | 'analytics_path_whitespace'
+  | 'analytics_storage_budget_required'
+  | 'analytics_storage_bytes_range'
+  | 'analytics_proxy_cidrs_invalid';
 
 export type VisualConfigValidationErrors = Partial<
   Record<VisualConfigFieldPath, VisualConfigValidationErrorCode>
@@ -105,6 +124,18 @@ export type VisualConfigValues = {
   errorLogsMaxFiles: string;
   usageStatisticsEnabled: boolean;
   redisUsageQueueRetentionSeconds: string;
+  analyticsEnabled: boolean;
+  analyticsPath: string;
+  analyticsQueueCapacity: string;
+  analyticsBatchSize: string;
+  analyticsFlushInterval: string;
+  analyticsHotRetentionDays: string;
+  analyticsCircuitFailureThreshold: string;
+  analyticsMaxStorageBytes: string;
+  analyticsMinFreeBytes: string;
+  analyticsStoreCredentialId: boolean;
+  analyticsViewerTrustedProxyCidrs: string[];
+  analyticsViewerAllowLoopbackHttp: boolean;
   proxyUrl: string;
   forceModelPrefix: boolean;
   passthroughHeaders: boolean;
@@ -169,6 +200,18 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   errorLogsMaxFiles: '',
   usageStatisticsEnabled: false,
   redisUsageQueueRetentionSeconds: '',
+  analyticsEnabled: false,
+  analyticsPath: '',
+  analyticsQueueCapacity: '8192',
+  analyticsBatchSize: '256',
+  analyticsFlushInterval: '250ms',
+  analyticsHotRetentionDays: '90',
+  analyticsCircuitFailureThreshold: '5',
+  analyticsMaxStorageBytes: '5368709120',
+  analyticsMinFreeBytes: '536870912',
+  analyticsStoreCredentialId: true,
+  analyticsViewerTrustedProxyCidrs: [],
+  analyticsViewerAllowLoopbackHttp: false,
   proxyUrl: '',
   forceModelPrefix: false,
   passthroughHeaders: false,

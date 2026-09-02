@@ -424,6 +424,102 @@ export function IconCode({ size = 20, ...props }: IconProps) {
   );
 }
 
+export function IconChartNoAxesCombined({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M12 16v5" />
+      <path d="M16 14.639V21" />
+      <path d="M20 10.656V21" />
+      <path d="m22 3-8.646 8.646a.5.5 0 0 1-.708 0L9.354 8.354a.5.5 0 0 0-.707 0L2 15" />
+      <path d="M4 18.463V21" />
+      <path d="M8 14.656V21" />
+    </svg>
+  );
+}
+
+export function IconKeyRound({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" />
+      <circle cx="16.5" cy="7.5" r=".5" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function IconTrophy({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2" />
+      <path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2" />
+      <path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3" />
+      <path d="M4 22h16" />
+      <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z" />
+      <path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3" />
+    </svg>
+  );
+}
+
+export function IconListTree({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M8 5h13" />
+      <path d="M13 12h8" />
+      <path d="M13 19h8" />
+      <path d="M3 10a2 2 0 0 0 2 2h3" />
+      <path d="M3 5v12a2 2 0 0 0 2 2h3" />
+    </svg>
+  );
+}
+
+export function IconBadgeDollarSign({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+      <path d="M12 18V6" />
+    </svg>
+  );
+}
+
+export function IconServerCog({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="m10.852 14.772-.383.923" />
+      <path d="M13.148 14.772a3 3 0 1 0-2.296-5.544l-.383-.923" />
+      <path d="m13.148 9.228.383-.923" />
+      <path d="m13.53 15.696-.382-.924a3 3 0 1 1-2.296-5.544" />
+      <path d="m14.772 10.852.923-.383" />
+      <path d="m14.772 13.148.923.383" />
+      <path d="M4.5 10H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-.5" />
+      <path d="M4.5 14H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2h-.5" />
+      <path d="M6 18h.01" />
+      <path d="M6 6h.01" />
+      <path d="m9.228 10.852-.923-.383" />
+      <path d="m9.228 13.148-.923.383" />
+    </svg>
+  );
+}
+
+export function IconShare2({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" />
+      <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />
+    </svg>
+  );
+}
+
+export function IconWrench({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" />
+    </svg>
+  );
+}
+
 export function IconSidebarDashboard({ size = 20, ...props }: IconProps) {
   return (
     <svg {...baseSvgProps} width={size} height={size} {...props}>
@@ -434,6 +530,8 @@ export function IconSidebarDashboard({ size = 20, ...props }: IconProps) {
     </svg>
   );
 }
+
+export const IconLayoutDashboard = IconSidebarDashboard;
 
 export function IconSidebarQuickStart({ size = 20, ...props }: IconProps) {
   return (
