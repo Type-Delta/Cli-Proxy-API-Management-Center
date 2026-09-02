@@ -16,7 +16,7 @@ const analyticsYaml = `analytics:
   flush-interval: 500ms
   hot-retention-days: 45
   circuit-failure-threshold: 7
-  max-storage-bytes: 2147483648
+  max-storage-bytes: 9223372036854775807
   min-free-bytes: 268435456
   privacy:
     store-credential-id: false
@@ -75,7 +75,7 @@ describe('visual analytics configuration', () => {
       flushInterval: '500ms',
       hotRetentionDays: '45',
       circuitFailureThreshold: '7',
-      maxStorageBytes: '2147483648',
+      maxStorageBytes: '9223372036854775807',
       minFreeBytes: '268435456',
       storeCredentialId: false,
       viewerTrustedProxyCidrs: ['10.20.0.0/16'],
@@ -152,7 +152,7 @@ describe('visual analytics configuration', () => {
         return null;
       }
       if (phase === 1) {
-        visualConfig.setVisualValues({ analyticsMaxStorageBytes: '9223372036854775807' });
+        visualConfig.setVisualValues({ analyticsMaxStorageBytes: '9223372036854775806' });
         setPhase(2);
         return null;
       }
@@ -166,7 +166,7 @@ describe('visual analytics configuration', () => {
 
     const markup = renderToStaticMarkup(createElement(Harness));
     const output = decodeURIComponent(markup.slice('<pre>'.length, -'</pre>'.length));
-    expect(output).toContain('max-storage-bytes: 9223372036854775807');
+    expect(output).toContain('max-storage-bytes: 9223372036854775806');
   });
 
   test('matches CPA validation for storage bytes and trusted proxy CIDRs', () => {
@@ -195,6 +195,14 @@ describe('visual analytics configuration', () => {
       analyticsViewerTrustedProxyCidrs: ['10.20.0.1/16'],
     });
     expect(hostBits.analyticsViewerTrustedProxyCidrs).toBe('analytics_proxy_cidrs_invalid');
+
+    const leadingZeroPrefix = getVisualConfigValidationErrors({
+      ...DEFAULT_VISUAL_VALUES,
+      analyticsViewerTrustedProxyCidrs: ['10.20.0.0/016'],
+    });
+    expect(leadingZeroPrefix.analyticsViewerTrustedProxyCidrs).toBe(
+      'analytics_proxy_cidrs_invalid'
+    );
 
     const duplicates = getVisualConfigValidationErrors({
       ...DEFAULT_VISUAL_VALUES,

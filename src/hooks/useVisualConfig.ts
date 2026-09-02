@@ -152,6 +152,16 @@ function setIntFromStringInDoc(doc: YamlDocument, path: YamlPath, value: unknown
   doc.setIn(path, parsed);
 }
 
+function getIntegerScalarText(
+  doc: YamlDocument,
+  path: YamlPath,
+  fallback: unknown
+): string {
+  const node = doc.getIn(path, true) as { source?: unknown } | null | undefined;
+  const source = typeof node?.source === 'string' ? node.source : '';
+  return /^-?\d+$/.test(source) ? source : String(fallback);
+}
+
 function setDisableImageGenerationInDoc(
   doc: YamlDocument,
   path: YamlPath,
@@ -329,7 +339,7 @@ function parseIPv6Address(value: string): bigint | undefined {
 function parseCanonicalCIDR(value: string): string | undefined {
   if (!value || value.trim() !== value) return undefined;
   const parts = value.split('/');
-  if (parts.length !== 2 || !/^\d+$/.test(parts[1])) return undefined;
+  if (parts.length !== 2 || !/^(0|[1-9]\d*)$/.test(parts[1])) return undefined;
   const addressText = parts[0];
   const bits = addressText.includes(':') ? 128 : 32;
   const prefix = Number(parts[1]);
@@ -1334,8 +1344,16 @@ export function useVisualConfig() {
         analyticsCircuitFailureThreshold: String(
           analytics?.['circuit-failure-threshold'] ?? '5'
         ),
-        analyticsMaxStorageBytes: String(analytics?.['max-storage-bytes'] ?? '5368709120'),
-        analyticsMinFreeBytes: String(analytics?.['min-free-bytes'] ?? '536870912'),
+        analyticsMaxStorageBytes: getIntegerScalarText(
+          document,
+          ['analytics', 'max-storage-bytes'],
+          analytics?.['max-storage-bytes'] ?? '5368709120'
+        ),
+        analyticsMinFreeBytes: getIntegerScalarText(
+          document,
+          ['analytics', 'min-free-bytes'],
+          analytics?.['min-free-bytes'] ?? '536870912'
+        ),
         analyticsStoreCredentialId: Boolean(
           analyticsPrivacy?.['store-credential-id'] ?? true
         ),
