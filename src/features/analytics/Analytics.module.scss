@@ -1,7 +1,7 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
   width: min(100%, 1320px);
   margin: 0 auto;
   padding: 12px 0 32px;
@@ -34,23 +34,6 @@
   background: color-mix(in srgb, var(--warning-color) 14%, transparent);
   color: var(--warning-color);
 }
-.tabs {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  a {
-    flex: none;
-    padding: 7px 10px;
-    border-radius: 8px;
-    color: var(--text-secondary);
-    text-decoration: none;
-    &[aria-current='page'] {
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-    }
-  }
-}
 .filters {
   display: flex;
   align-items: end;
@@ -66,14 +49,6 @@
     gap: 6px;
     min-width: 150px;
   }
-  select[multiple] {
-    min-width: min(440px, 80vw);
-    min-height: 76px;
-  }
-}
-.filterCount {
-  color: var(--text-secondary);
-  font-size: 12px;
 }
 .kpis {
   display: grid;
@@ -241,7 +216,7 @@
 }
 @media (max-width: 760px) {
   .page {
-    gap: 14px;
+    gap: 16px;
   }
   .header {
     align-items: flex-start;
@@ -249,10 +224,6 @@
   .filters {
     align-items: stretch;
     flex-direction: column;
-    select[multiple] {
-      min-width: 0;
-      width: 100%;
-    }
   }
   .split {
     grid-template-columns: 1fr;

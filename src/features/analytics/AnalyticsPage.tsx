@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { analyticsApi, capabilitiesApi } from '@/services/api';
@@ -27,30 +26,13 @@ import {
   resolveAnalyticsAvailability,
   type AnalyticsRange,
 } from './query';
+import { AnalyticsKeyFilter } from './AnalyticsKeyFilter';
+import { AnalyticsTabs } from './AnalyticsTabs';
+import { analyticsKeyIdentity } from './analyticsKeyFilterModel';
+import type { AnalyticsPageKind } from './navigation';
 import styles from './Analytics.module.scss';
 
-export type AnalyticsPageKind =
-  | 'overview'
-  | 'analysis'
-  | 'keys'
-  | 'leaderboard'
-  | 'events'
-  | 'pricing'
-  | 'providers'
-  | 'shared'
-  | 'maintenance';
-
-const tabs: AnalyticsPageKind[] = [
-  'overview',
-  'analysis',
-  'keys',
-  'leaderboard',
-  'events',
-  'pricing',
-  'providers',
-  'shared',
-  'maintenance',
-];
+export type { AnalyticsPageKind } from './navigation';
 
 const formatNumber = (value: number) => new Intl.NumberFormat().format(value);
 const formatCost = (value: string | null | undefined) =>
@@ -127,12 +109,18 @@ function Filters({
   keys,
   selected,
   setSelected,
+  keysLoading,
+  keysError,
+  retryKeys,
 }: {
   range: AnalyticsRange;
   setRange: (range: AnalyticsRange) => void;
   keys: AnalyticsKey[];
   selected: string[];
   setSelected: (ids: string[]) => void;
+  keysLoading: boolean;
+  keysError: string;
+  retryKeys: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -149,39 +137,14 @@ function Filters({
           <option value="30d">{t('analytics.range_30d')}</option>
         </select>
       </label>
-      <label>
-        {t('analytics.key_filter')}
-        <select
-          className="input"
-          multiple
-          value={selected}
-          onChange={(event) =>
-            setSelected(
-              Array.from(event.currentTarget.selectedOptions, (option) => option.value).slice(
-                0,
-                MAX_ANALYTICS_KEY_FILTERS
-              )
-            )
-          }
-        >
-          {keys.map((key) => (
-            <option key={key.key_id} value={key.key_id}>
-              {key.label || key.short_key_id} · {key.status}
-            </option>
-          ))}
-        </select>
-      </label>
-      <span className={styles.filterCount}>
-        {t('analytics.keys_selected', {
-          count: selected.length,
-          limit: MAX_ANALYTICS_KEY_FILTERS,
-        })}
-      </span>
-      {selected.length > 0 && (
-        <Button variant="secondary" size="sm" onClick={() => setSelected([])}>
-          {t('analytics.clear_keys')}
-        </Button>
-      )}
+      <AnalyticsKeyFilter
+        keys={keys}
+        selected={selected}
+        loading={keysLoading}
+        error={keysError}
+        onChange={setSelected}
+        onRetry={retryKeys}
+      />
     </section>
   );
 }
@@ -377,12 +340,6 @@ function KeysView({
   setSelected: (ids: string[]) => void;
 }) {
   const { t } = useTranslation();
-  const [search, setSearch] = useState('');
-  const visible = keys.filter((key) =>
-    `${key.label ?? ''} ${key.short_key_id} ${key.status}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
   const summaryRequest = useMemo(
     () => buildAnalyticsQuery('summary', range, selected),
     [range, selected]
@@ -412,14 +369,6 @@ function KeysView({
   );
   return (
     <>
-      <label className={styles.inlineControl}>
-        {t('analytics.search_keys')}
-        <input
-          className="input"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-      </label>
       <div className={`${styles.panel} ${styles.tableWrap}`}>
         <table>
           <caption>{t('analytics.keys_catalog')}</caption>
@@ -433,9 +382,9 @@ function KeysView({
             </tr>
           </thead>
           <tbody>
-            {visible.map((key) => (
+            {keys.map((key) => (
               <tr key={key.key_id}>
-                <td>{key.label || key.short_key_id}</td>
+                <td>{analyticsKeyIdentity(key)}</td>
                 <td>{key.status}</td>
                 <td>{formatNumber(key.total_tokens)}</td>
                 <td>{formatCost(key.known_cost_usd)}</td>
@@ -1266,13 +1215,7 @@ function AnalyticsWorkspace({
           {analytics.state}
         </span>
       </header>
-      <nav className={styles.tabs} aria-label={t('analytics.navigation')}>
-        {tabs.map((tab) => (
-          <NavLink key={tab} to={`/analytics/${tab}`}>
-            {t(`analytics.pages.${tab}`)}
-          </NavLink>
-        ))}
-      </nav>
+      <AnalyticsTabs active={kind} />
       {filterable && (
         <Filters
           range={range}
@@ -1280,6 +1223,9 @@ function AnalyticsWorkspace({
           keys={keys}
           selected={selected}
           setSelected={setSelected}
+          keysLoading={keyCatalog.loading}
+          keysError={keyCatalog.error}
+          retryKeys={() => void keyCatalog.refresh()}
         />
       )}
       {kind === 'overview' && <Overview range={range} keyIds={selected} />}

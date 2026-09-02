@@ -17,14 +17,7 @@ import { PageTransition } from '@/components/common/PageTransition';
 import { MainRoutes } from '@/router/MainRoutes';
 import { authFilesApi, capabilitiesApi, pluginsApi } from '@/services/api';
 import {
-  IconBadgeDollarSign,
-  IconChartNoAxesCombined,
   IconChevronDown,
-  IconKeyRound,
-  IconLayoutDashboard,
-  IconListTree,
-  IconServerCog,
-  IconShare2,
   IconSidebarAuthFiles,
   IconSidebarConfig,
   IconSidebarDashboard,
@@ -36,8 +29,6 @@ import {
   IconSidebarQuota,
   IconSidebarStore,
   IconSidebarSystem,
-  IconTrophy,
-  IconWrench,
 } from '@/components/ui/icons';
 import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
 import {
@@ -55,6 +46,7 @@ import {
   type PluginResourceEntry,
 } from '@/features/plugins/pluginResources';
 import { APIKEY_FUN_DISPLAY_NAME, hasApiKeyFunConfig } from '@/features/providers/sponsor';
+import { ANALYTICS_PAGE_ICONS, ANALYTICS_PAGES } from '@/features/analytics/navigation';
 import { triggerHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { LANGUAGE_LABEL_KEYS, LANGUAGE_ORDER } from '@/utils/constants';
 import { isSupportedLanguage } from '@/utils/language';
@@ -72,30 +64,6 @@ const sidebarIcons: Record<string, ReactNode> = {
   config: <IconSidebarConfig size={18} />,
   logs: <IconSidebarLogs size={18} />,
   system: <IconSidebarSystem size={18} />,
-};
-
-const analyticsPages = [
-  'overview',
-  'analysis',
-  'keys',
-  'leaderboard',
-  'events',
-  'pricing',
-  'providers',
-  'shared',
-  'maintenance',
-] as const;
-
-const analyticsIcons: Record<(typeof analyticsPages)[number], ReactNode> = {
-  overview: <IconLayoutDashboard size={18} />,
-  analysis: <IconChartNoAxesCombined size={18} />,
-  keys: <IconKeyRound size={18} />,
-  leaderboard: <IconTrophy size={18} />,
-  events: <IconListTree size={18} />,
-  pricing: <IconBadgeDollarSign size={18} />,
-  providers: <IconServerCog size={18} />,
-  shared: <IconShare2 size={18} />,
-  maintenance: <IconWrench size={18} />,
 };
 
 interface SidebarNavLinkItem {
@@ -710,12 +678,15 @@ export function MainLayout() {
           {
             id: 'analytics',
             labelKey: 'nav_groups.analytics',
-            items: analyticsPages.map((page) => ({
-              path: `/analytics/${page}`,
-              labelKey: `analytics.pages.${page}`,
-              metaKey: `analytics.page_meta.${page}`,
-              icon: analyticsIcons[page],
-            })),
+            items: ANALYTICS_PAGES.map((page) => {
+              const Icon = ANALYTICS_PAGE_ICONS[page];
+              return {
+                path: `/analytics/${page}`,
+                labelKey: `analytics.pages.${page}`,
+                metaKey: `analytics.page_meta.${page}`,
+                icon: <Icon size={18} />,
+              };
+            }),
           },
         ]
       : []),

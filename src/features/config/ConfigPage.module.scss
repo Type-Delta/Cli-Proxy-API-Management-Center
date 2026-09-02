@@ -33,11 +33,16 @@
 .panel {
   display: flex;
   flex-direction: column;
+  gap: 20px;
   min-width: 0;
 }
 
 @include mobile {
   .page {
+    gap: 16px;
+  }
+
+  .panel {
     gap: 16px;
   }
 }
