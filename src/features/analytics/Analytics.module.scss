@@ -1,4 +1,5 @@
 @use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
 
 .page {
   position: relative;
@@ -9,6 +10,7 @@
   margin: 0 auto;
   padding: 12px 0 32px;
 }
+
 .routeSource {
   display: contents;
 }
@@ -22,46 +24,58 @@
   overflow: hidden;
   pointer-events: none;
 }
-.page,
-.viewer,
-.state {
-  :global(.btn) {
-    height: 40px;
-    min-height: 40px;
-  }
 
-  :global(input.input) {
-    height: 40px;
-    min-height: 40px;
-    padding-top: 0;
-    padding-bottom: 0;
-    box-sizing: border-box;
-  }
-}
 .header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 16px;
+  gap: 16px 24px;
+  flex-wrap: wrap;
+
   h1 {
-    margin: 2px 0 0;
-    font-size: clamp(28px, 4vw, 48px);
+    margin: 0;
+    color: var(--text-primary);
+    font-size: clamp(26px, 3.2vw, 30px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
   }
 }
-.eyebrowRow {
+
+.headerCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.headerActions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
-  min-height: 23px;
+  min-height: 40px;
+  flex-wrap: wrap;
 
-  p {
-    margin: 0;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-size: 11px;
+  button {
+    min-height: 40px;
   }
 }
+
+.updated {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .ready,
 .degraded {
   display: inline-flex;
@@ -71,11 +85,8 @@
   border-radius: $radius-full;
   border: 1px solid color-mix(in srgb, var(--viz-success) 35%, transparent);
   background: color-mix(in srgb, var(--viz-success) 8%, transparent);
-  font-family: $font-mono;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 650;
   color: var(--success-badge-text);
 }
 .degraded {
@@ -112,14 +123,26 @@
   gap: 20px;
 }
 .filters {
+  min-width: 0;
+}
+
+.filtersCard {
   display: flex;
   align-items: end;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 14px;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--bg-secondary);
+
+  button,
+  input {
+    min-height: 40px;
+  }
+}
+.rangeFilter {
+  display: flex;
+  min-width: min(100%, 320px);
+  flex: 0 1 420px;
+  flex-direction: column;
+  gap: 6px;
 }
 .filterField {
   display: flex;
@@ -135,49 +158,54 @@
     line-height: 1.35;
   }
 }
-.filterField:first-child {
-  flex-basis: 150px;
-  max-width: 180px;
+.rangeFilter .filterField {
+  width: min(100%, 240px);
+  flex: none;
+}
+.rangeBounds,
+.rangeZone {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.45;
+}
+.rangeBounds {
+  overflow-wrap: anywhere;
+}
+.rangeModalFields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  input,
+  button {
+    min-height: 40px;
+  }
 }
 .kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
   gap: 12px;
 }
-.card,
-.panel {
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--bg-secondary);
-  padding: 16px;
-}
-.card {
+
+.metricCard {
   display: flex;
   flex-direction: column;
   gap: 8px;
+
   span {
     color: var(--text-secondary);
   }
+
   strong {
     font-size: 24px;
+    font-variant-numeric: tabular-nums;
   }
 }
+
 .warning {
   border-color: var(--warning-color);
-}
-.panel {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  h2,
-  p {
-    margin: 0;
-  }
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
 }
 .chart {
   height: 180px;
@@ -191,30 +219,6 @@
     min-width: 3px;
     background: var(--primary-color);
     border-radius: 3px 3px 0 0;
-  }
-}
-.tableWrap {
-  overflow-x: auto;
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 640px;
-  }
-  caption {
-    text-align: left;
-    font-weight: 700;
-    padding-bottom: 12px;
-  }
-  th,
-  td {
-    padding: 10px;
-    border-bottom: 1px solid var(--border-color);
-    text-align: left;
-    white-space: nowrap;
-  }
-  th {
-    color: var(--text-secondary);
-    font-size: 12px;
   }
 }
 .inlineControl {
@@ -234,6 +238,13 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+.actions {
+  button,
+  input {
+    min-height: 40px;
+  }
+}
 .toggleField {
   width: fit-content;
 }
@@ -252,10 +263,6 @@
   width: 100%;
   flex-direction: column;
   gap: 14px;
-  padding: 16px;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--bg-secondary);
 }
 .skeletonGrid {
   display: grid;
@@ -289,32 +296,38 @@
   border-radius: 8px;
   background: color-mix(in srgb, var(--warning-color) 12%, transparent);
 }
-.details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 10px;
-  margin: 0;
-  div {
-    padding: 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-  }
-  dt {
-    color: var(--text-secondary);
-    font-size: 12px;
-  }
-  dd {
-    margin: 5px 0 0;
+
+.refreshingContent {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 20px;
+
+  &[aria-busy='true'] > :not(.refreshingIndicator) {
+    opacity: 0.58;
+    transition: opacity 160ms ease-out;
   }
 }
-.state {
-  margin: 0 auto;
-  width: min(100%, 720px);
-  padding: 24px;
+
+.refreshingIndicator {
+  position: absolute;
+  z-index: 1;
+  inset: 8px 8px auto auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--bg-secondary);
-  text-align: center;
+  border-radius: $radius-full;
+  background: var(--bg-primary);
+  box-shadow: var(--shadow);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.eventsTable {
+  min-width: 868px;
 }
 .srOnly {
   position: absolute;
@@ -324,7 +337,7 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
 }
-@media (max-width: 760px) {
+@include mobile {
   .page {
     gap: 16px;
   }
@@ -333,14 +346,22 @@
     gap: 16px;
   }
   .header {
-    align-items: flex-start;
+    align-items: stretch;
+    flex-direction: column;
   }
-  .filters {
+
+  .headerActions {
+    justify-content: flex-start;
+  }
+
+  .filtersCard {
     align-items: stretch;
     flex-direction: column;
   }
   .filterField,
-  .filterField:first-child {
+  .rangeFilter,
+  .rangeFilter .filterField {
+    flex: 0 0 auto;
     width: 100%;
     max-width: none;
   }
@@ -349,6 +370,10 @@
   }
   .chart {
     height: 130px;
+  }
+
+  .refreshingContent {
+    gap: 16px;
   }
 }
 

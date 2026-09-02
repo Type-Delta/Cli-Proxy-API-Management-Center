@@ -1,0 +1,138 @@
+.page {
+  display: flex;
+  width: min(100% - 32px, 1080px);
+  margin: 32px auto;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+
+  img {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
+  h1,
+  p {
+    margin: 0;
+  }
+
+  h1 {
+    color: var(--text-primary);
+    font-size: clamp(24px, 4vw, 30px);
+  }
+
+  p {
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+}
+
+.rangeControl {
+  display: flex;
+  min-width: 180px;
+  flex-direction: column;
+  gap: 6px;
+
+  > span {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
+  button {
+    min-height: 40px;
+  }
+}
+
+.scope {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+
+  p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+}
+
+.totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+
+  > div {
+    min-width: 0;
+  }
+
+  span,
+  strong {
+    display: block;
+  }
+
+  span {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
+  strong {
+    margin-top: 7px;
+    color: var(--text-primary);
+    font-size: 20px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.sparkline {
+  height: 72px;
+  margin-top: 12px;
+}
+
+.eventResult {
+  display: inline-flex;
+  padding: 2px 8px;
+  border: 1px solid var(--success-badge-border);
+  border-radius: 999px;
+  background: var(--success-badge-bg);
+  color: var(--success-badge-text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.eventFailure {
+  border-color: var(--failure-badge-border);
+  background: var(--failure-badge-bg);
+  color: var(--failure-badge-text);
+}
+
+.retry {
+  min-height: 40px;
+}
+
+@media (max-width: 768px) {
+  .page {
+    margin: 20px auto;
+  }
+
+  .header,
+  .rangeControl {
+    align-items: stretch;
+    width: 100%;
+  }
+}

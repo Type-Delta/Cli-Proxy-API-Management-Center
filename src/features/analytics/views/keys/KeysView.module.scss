@@ -1,0 +1,69 @@
+.rangeNote,
+.disclosure {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.disclosure {
+  margin: 0 0 14px;
+}
+
+.sortButton {
+  display: inline-flex;
+  min-width: 40px;
+  min-height: 40px;
+  align-items: center;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.retryButton {
+  min-height: 40px;
+  margin-inline-start: 10px;
+}
+
+.stackedValue {
+  display: flex;
+  min-width: 190px;
+  flex-direction: column;
+  gap: 3px;
+  white-space: nowrap;
+
+  small {
+    color: var(--text-secondary);
+  }
+}
+
+.shareValue {
+  display: grid;
+  min-width: 112px;
+  grid-template-columns: 62px auto;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.shareTrack {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--muted-bg);
+
+  > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--primary-color);
+  }
+}
+
+.journey {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}

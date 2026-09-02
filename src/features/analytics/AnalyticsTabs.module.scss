@@ -1,17 +1,53 @@
 @use '../../styles/mixins' as *;
 
 .tabs {
+  position: relative;
+  min-width: 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.scroller {
+  display: flex;
+  align-items: stretch;
+  gap: 18px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+  min-width: 0;
+  overscroll-behavior-inline: contain;
+
+  &::-webkit-scrollbar {
+    height: 5px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: $radius-full;
+    background: var(--border-hover);
+  }
+}
+
+.group {
+  display: flex;
+  align-items: flex-end;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.groupLabel {
+  align-self: center;
+  padding-inline: 8px 4px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.groupLinks {
   display: flex;
   align-items: stretch;
   gap: 2px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  min-width: 0;
-  border-bottom: 1px solid var(--border-color);
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
 }
 
 .tab {
@@ -20,7 +56,8 @@
   align-items: center;
   gap: 7px;
   flex-shrink: 0;
-  padding: 8px 12px 11px;
+  min-height: 40px;
+  padding: 8px 12px;
   border-radius: 8px 8px 0 0;
   color: var(--text-secondary);
   font-size: 13px;
@@ -50,6 +87,29 @@
   &:focus-visible {
     outline: 2px solid var(--primary-color);
     outline-offset: -2px;
+  }
+}
+
+@include mobile {
+  .tabs::after {
+    content: '';
+    position: absolute;
+    inset: 0 0 5px auto;
+    width: 30px;
+    pointer-events: none;
+    background: linear-gradient(to right, transparent, var(--bg-primary));
+  }
+
+  .scroller {
+    padding-inline-end: 24px;
+  }
+
+  .group {
+    gap: 2px;
+  }
+
+  .groupLabel {
+    padding-inline-start: 4px;
   }
 }
 

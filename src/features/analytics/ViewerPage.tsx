@@ -1,114 +1,400 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AnalyticsSummary } from '@/types';
-import styles from './Analytics.module.scss';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/Table';
+import { Sparkline } from '@/features/dashboard/components/Sparkline';
 import { AnalyticsSkeleton } from './AnalyticsSkeleton';
+import { AsyncState, TimeRangeControl } from './components/AnalyticsShared';
+import {
+  formatCompactTokens,
+  formatCostValue,
+  formatDateTime,
+  formatDuration,
+  formatNumber,
+} from './components/analyticsFormatting';
+import {
+  analyticsRangeBucketWidth,
+  parseAnalyticsUrlState,
+  serializeAnalyticsUrlState,
+} from './query';
+import { useAnalyticsLoad } from './useAnalyticsLoad';
 import { consumeViewerCredential, exchangeViewerCredential } from './viewerSecurity';
+import {
+  buildViewerRange,
+  fetchViewerJSON,
+  viewerQuery,
+  type ViewerCapabilities,
+  type ViewerEventPage,
+  type ViewerSummary,
+  type ViewerTimeseries,
+} from './views/viewer/viewerApi';
+import styles from './views/viewer/ViewerPage.module.scss';
+
+let capturedViewerCredential: string | undefined;
 
 function takeViewerCredential(): string {
-  return consumeViewerCredential(
+  if (capturedViewerCredential !== undefined) return capturedViewerCredential;
+  capturedViewerCredential = consumeViewerCredential(
     window.location.hash,
     (url) => window.history.replaceState(null, '', url),
     `${window.location.pathname}${window.location.search}#/viewer`
   );
+  return capturedViewerCredential;
+}
+
+function RegionError({
+  title,
+  error,
+  onRetry,
+}: {
+  title: string;
+  error: string;
+  onRetry: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Card>
+      <EmptyState
+        title={title}
+        description={error}
+        action={
+          <Button className={styles.retry} variant="secondary" onClick={onRetry}>
+            {t('common.retry')}
+          </Button>
+        }
+      />
+    </Card>
+  );
+}
+
+function ViewerTotals({ summary }: { summary: ViewerSummary }) {
+  const { t, i18n } = useTranslation();
+  const cards = [
+    [t('analytics.proxy_requests'), formatNumber(summary.proxy_requests, i18n.resolvedLanguage)],
+    [
+      t('analytics.upstream_attempts'),
+      formatNumber(summary.upstream_attempts, i18n.resolvedLanguage),
+    ],
+    [t('analytics.total_tokens'), formatCompactTokens(summary.tokens.total, i18n.resolvedLanguage)],
+    [t('analytics.known_cost'), formatCostValue(summary.known_cost_usd, i18n.resolvedLanguage)],
+    [t('analytics.input_tokens'), formatCompactTokens(summary.tokens.input, i18n.resolvedLanguage)],
+    [
+      t('analytics.output_tokens'),
+      formatCompactTokens(summary.tokens.output, i18n.resolvedLanguage),
+    ],
+    [
+      t('analytics.reasoning_tokens'),
+      formatCompactTokens(summary.tokens.reasoning, i18n.resolvedLanguage),
+    ],
+    [
+      t('analytics.cache_tokens'),
+      formatCompactTokens(
+        summary.tokens.cache_read + summary.tokens.cache_creation,
+        i18n.resolvedLanguage
+      ),
+    ],
+  ] as const;
+  return (
+    <section className={styles.totals} aria-label={t('analytics.totals')}>
+      {cards.map(([label, value]) => (
+        <Card key={label}>
+          <span>{label}</span>
+          <strong title={typeof value === 'string' ? undefined : value.title}>
+            {typeof value === 'string' ? value : value.text}
+          </strong>
+        </Card>
+      ))}
+      {summary.unpriced_tokens > 0 && (
+        <Card>
+          <span>{t('analytics.unpriced_tokens')}</span>
+          <strong>{formatNumber(summary.unpriced_tokens, i18n.resolvedLanguage)}</strong>
+        </Card>
+      )}
+    </section>
+  );
 }
 
 export function ViewerPage() {
-  const { t } = useTranslation();
-  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const { t, i18n } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const range = useMemo(() => parseAnalyticsUrlState(location.search).range, [location.search]);
+  const setRange = (nextRange: typeof range) => {
+    const state = parseAnalyticsUrlState(location.search);
+    navigate(
+      {
+        pathname: location.pathname,
+        search: serializeAnalyticsUrlState({ ...state, range: nextRange }),
+      },
+      { replace: true }
+    );
+  };
   const [credential, setCredential] = useState<string | null>(takeViewerCredential);
   const [sessionReady, setSessionReady] = useState(false);
+  const [sessionError, setSessionError] = useState('');
+  const [exchangeAttempt, setExchangeAttempt] = useState(0);
+  const exchangeRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     if (credential === null) return;
     let active = true;
-    const exchange = async () => {
+    if (!exchangeRef.current) {
+      exchangeRef.current = credential ? exchangeViewerCredential(credential) : Promise.resolve();
+    }
+    const finishExchange = async () => {
       try {
-        if (credential) {
-          try {
-            await exchangeViewerCredential(credential);
-          } catch {
-            throw new Error(t('analytics.viewer_exchange_failed'));
-          }
-        }
-        if (active) setSessionReady(true);
-      } catch (caught) {
+        await exchangeRef.current;
+        capturedViewerCredential = undefined;
         if (active) {
-          setError(caught instanceof Error ? caught.message : t('common.error'));
-          setLoading(false);
+          setCredential(null);
+          setSessionReady(true);
         }
-      } finally {
-        if (active) setCredential(null);
+      } catch {
+        if (active) setSessionError(t('analytics.viewer_exchange_failed'));
       }
     };
-    void exchange();
+    void finishExchange();
     return () => {
       active = false;
     };
-  }, [credential, t]);
+  }, [credential, exchangeAttempt, t]);
 
-  useEffect(() => {
-    if (!sessionReady) return;
-    let active = true;
-    const load = async () => {
-      try {
-        const now = new Date();
-        const start = new Date(now.getTime() - 7 * 86400000);
-        const query = new URLSearchParams({
-          start: start.toISOString(),
-          end: now.toISOString(),
-          time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-        });
-        const response = await fetch(`/v0/analytics/viewer/summary?${query}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        });
-        if (!response.ok) throw new Error(t('analytics.viewer_unavailable'));
-        if (active) setSummary((await response.json()) as AnalyticsSummary);
-      } catch (caught) {
-        if (active) setError(caught instanceof Error ? caught.message : t('common.error'));
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [sessionReady, t]);
+  const retryExchange = () => {
+    exchangeRef.current = null;
+    setSessionError('');
+    setExchangeAttempt((current) => current + 1);
+  };
 
-  return (
-    <main className={styles.viewer}>
-      <h1>{t('analytics.shared_view')}</h1>
-      {loading && <AnalyticsSkeleton />}
-      {error && <p role="alert">{error}</p>}
-      {summary && <Kpis summary={summary} />}
-    </main>
+  const bounds = useMemo(() => buildViewerRange(range), [range]);
+  const baseQuery = useMemo(() => viewerQuery(bounds), [bounds]);
+  const capabilities = useAnalyticsLoad(
+    () => fetchViewerJSON<ViewerCapabilities>('capabilities'),
+    'viewer-capabilities',
+    sessionReady
   );
-}
+  const summary = useAnalyticsLoad(
+    () => fetchViewerJSON<ViewerSummary>('summary', baseQuery),
+    JSON.stringify(['viewer-summary', bounds]),
+    sessionReady
+  );
+  const series = useAnalyticsLoad(
+    () =>
+      fetchViewerJSON<ViewerTimeseries>(
+        'timeseries',
+        viewerQuery(bounds, { bucket_width: analyticsRangeBucketWidth(range) })
+      ),
+    JSON.stringify(['viewer-timeseries', bounds, range]),
+    sessionReady
+  );
+  const events = useAnalyticsLoad(
+    () => fetchViewerJSON<ViewerEventPage>('events', viewerQuery(bounds, { page_size: 50 })),
+    JSON.stringify(['viewer-events', bounds]),
+    sessionReady
+  );
+  const resolvedRange =
+    summary.data?.meta.range ?? series.data?.meta.range ?? events.data?.meta.range ?? bounds;
 
-function Kpis({ summary }: { summary: AnalyticsSummary }) {
-  const { t } = useTranslation();
+  if (!sessionReady && !sessionError) {
+    return (
+      <main className={styles.page}>
+        <AnalyticsSkeleton />
+      </main>
+    );
+  }
+
+  if (sessionError) {
+    return (
+      <main className={styles.page}>
+        <header className={styles.header}>
+          <div className={styles.identity}>
+            <img src={INLINE_LOGO_JPEG} alt="" />
+            <div>
+              <h1>{t('analytics.shared_view')}</h1>
+              <p>CLI Proxy API Management Center</p>
+            </div>
+          </div>
+        </header>
+        <RegionError
+          title={t('analytics.viewer_unavailable')}
+          error={sessionError}
+          onRetry={retryExchange}
+        />
+      </main>
+    );
+  }
+
+  const label = capabilities.data?.label || summary.data?.label || events.data?.label;
+  const allowedViews = (capabilities.data?.allowed_views ?? []).map((view) =>
+    t(`analytics.viewer_views.${view}`, {
+      defaultValue: view.replace(/[_-]+/g, ' ').replace(/^./, (letter) => letter.toUpperCase()),
+    })
+  );
   return (
-    <section className={styles.kpis} aria-label={t('analytics.totals')}>
-      <article className={styles.card}>
-        <span>{t('analytics.proxy_requests')}</span>
-        <strong>{summary.proxy_requests.toLocaleString()}</strong>
-      </article>
-      <article className={styles.card}>
-        <span>{t('analytics.total_tokens')}</span>
-        <strong>{summary.tokens.total.toLocaleString()}</strong>
-      </article>
-      <article className={styles.card}>
-        <span>{t('analytics.known_cost')}</span>
-        <strong>${summary.known_cost_usd}</strong>
-      </article>
-      <article className={styles.card}>
-        <span>{t('analytics.unpriced_tokens')}</span>
-        <strong>{summary.unpriced_tokens.toLocaleString()}</strong>
-      </article>
-    </section>
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.identity}>
+          <img src={INLINE_LOGO_JPEG} alt="" />
+          <div>
+            <h1>{t('analytics.shared_view')}</h1>
+            <p>CLI Proxy API Management Center</p>
+          </div>
+        </div>
+        <TimeRangeControl
+          className={styles.rangeControl}
+          range={range}
+          resolvedRange={resolvedRange}
+          setRange={setRange}
+        />
+      </header>
+
+      <AsyncState loading={capabilities.loading} error="">
+        {capabilities.data && (
+          <Card title={label || t('analytics.shared_view')}>
+            <div className={styles.scope}>
+              <p>
+                {t('analytics.viewer_scope_explanation', {
+                  label:
+                    label || t('analytics.viewer_scoped_key', { defaultValue: 'the shared key' }),
+                  defaultValue:
+                    'This read-only view is limited to {{label}}. It cannot change CPA configuration or credentials.',
+                })}
+              </p>
+              <p>
+                {t('analytics.viewer_expiry_explanation', {
+                  date: formatDateTime(capabilities.data.expires_at, i18n.resolvedLanguage),
+                  defaultValue: 'Access expires {{date}}.',
+                })}
+              </p>
+              <p>
+                {t('analytics.viewer_allowed_views', {
+                  views: allowedViews.join(', '),
+                  defaultValue: 'Available data: {{views}}',
+                })}
+              </p>
+            </div>
+          </Card>
+        )}
+      </AsyncState>
+      {capabilities.error && (
+        <RegionError
+          title={t('analytics.viewer_scope_failed', { defaultValue: 'View scope could not load' })}
+          error={capabilities.error}
+          onRetry={() => void capabilities.refresh()}
+        />
+      )}
+
+      <AsyncState loading={summary.loading} error="" stale={summary.data?.meta.degraded}>
+        {summary.data && <ViewerTotals summary={summary.data} />}
+      </AsyncState>
+      {summary.error && (
+        <RegionError
+          title={t('analytics.viewer_summary_failed', {
+            defaultValue: 'Usage totals could not load',
+          })}
+          error={summary.error}
+          onRetry={() => void summary.refresh()}
+        />
+      )}
+
+      <AsyncState loading={series.loading} error="" stale={series.data?.meta.degraded}>
+        {series.data && (
+          <Card title={t('analytics.activity')}>
+            {series.data.points.length === 0 ? (
+              <EmptyState
+                title={t('analytics.no_data_title')}
+                description={t('analytics.no_activity_description')}
+              />
+            ) : (
+              <Sparkline
+                className={styles.sparkline}
+                points={series.data.points.map((point) => point.tokens.total)}
+                ariaLabel={t('analytics.chart_summary', { count: series.data.points.length })}
+              />
+            )}
+          </Card>
+        )}
+      </AsyncState>
+      {series.error && (
+        <RegionError
+          title={t('analytics.viewer_series_failed', {
+            defaultValue: 'Usage activity could not load',
+          })}
+          error={series.error}
+          onRetry={() => void series.refresh()}
+        />
+      )}
+
+      <AsyncState loading={events.loading} error="" stale={events.data?.meta.degraded}>
+        {events.data && (
+          <Card title={t('analytics.events')}>
+            {events.data.events.length === 0 ? (
+              <EmptyState
+                title={t('analytics.no_data_title')}
+                description={t('analytics.no_events_description')}
+              />
+            ) : (
+              <Table aria-label={t('analytics.events')}>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('analytics.time')}</TableHead>
+                    <TableHead>{t('analytics.provider')}</TableHead>
+                    <TableHead>{t('analytics.model')}</TableHead>
+                    <TableHead>{t('analytics.result', { defaultValue: 'Result' })}</TableHead>
+                    <TableHead>{t('analytics.latency')}</TableHead>
+                    <TableHead>{t('analytics.total_tokens')}</TableHead>
+                    <TableHead>{t('analytics.known_cost')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {events.data.events.map((event) => {
+                    const tokens = formatCompactTokens(event.tokens.total, i18n.resolvedLanguage);
+                    const cost = formatCostValue(event.known_cost_usd, i18n.resolvedLanguage);
+                    return (
+                      <TableRow key={event.attempt_id}>
+                        <TableCell title={event.requested_at}>
+                          {formatDateTime(event.requested_at, i18n.resolvedLanguage)}
+                        </TableCell>
+                        <TableCell>{event.provider}</TableCell>
+                        <TableCell>{event.model}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`${styles.eventResult} ${event.succeeded ? '' : styles.eventFailure}`.trim()}
+                          >
+                            {event.succeeded ? t('common.success') : t('common.failure')}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {formatDuration(event.latency_ms, i18n.resolvedLanguage)}
+                        </TableCell>
+                        <TableCell title={tokens.title}>{tokens.text}</TableCell>
+                        <TableCell title={cost.title}>{cost.text}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
+        )}
+      </AsyncState>
+      {events.error && (
+        <RegionError
+          title={t('analytics.viewer_events_failed', { defaultValue: 'Events could not load' })}
+          error={events.error}
+          onRetry={() => void events.refresh()}
+        />
+      )}
+    </main>
   );
 }

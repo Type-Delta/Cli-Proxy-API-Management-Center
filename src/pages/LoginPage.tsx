@@ -17,7 +17,17 @@ import styles from './LoginPage.module.scss';
 /**
  * 将 API 错误转换为本地化的用户友好消息
  */
-type RedirectState = { from?: { pathname?: string } };
+type RedirectState = {
+  from?: { pathname?: string; search?: string; hash?: string };
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function loginRedirectFromState(state: unknown) {
+  const from = (state as RedirectState | null)?.from;
+  const pathname = from?.pathname;
+  if (!pathname?.startsWith('/') || pathname.startsWith('//')) return '/';
+  return `${pathname}${from?.search ?? ''}${from?.hash ?? ''}`;
+}
 
 function getLocalizedErrorMessage(error: unknown, t: (key: string) => string): string {
   const apiError = error as Partial<ApiError>;
@@ -132,7 +142,7 @@ export function LoginPage() {
           setAutoLoginSuccess(true);
           // 延迟跳转，让用户看到成功动画
           setTimeout(() => {
-            const redirect = (location.state as RedirectState | null)?.from?.pathname || '/';
+            const redirect = loginRedirectFromState(location.state);
             navigate(redirect, { replace: true });
           }, 1500);
         } else {
@@ -166,7 +176,7 @@ export function LoginPage() {
         rememberPassword,
       });
       showNotification(t('common.connected_status'), 'success');
-      navigate('/', { replace: true });
+      navigate(loginRedirectFromState(location.state), { replace: true });
     } catch (err: unknown) {
       const message = getLocalizedErrorMessage(err, t);
       setError(message);
@@ -178,6 +188,7 @@ export function LoginPage() {
     apiBase,
     detectedBase,
     login,
+    location.state,
     managementKey,
     navigate,
     rememberPassword,
@@ -196,7 +207,7 @@ export function LoginPage() {
   );
 
   if (isAuthenticated && !autoLoading && !autoLoginSuccess) {
-    const redirect = (location.state as RedirectState | null)?.from?.pathname || '/';
+    const redirect = loginRedirectFromState(location.state);
     return <Navigate to={redirect} replace />;
   }
 

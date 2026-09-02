@@ -6,7 +6,7 @@ import type { AnalyticsLoadResult } from './useAnalyticsLoad';
 export type AnalyticsShellContextValue = {
   capabilities: AnalyticsLoadResult<ManagementCapabilities>;
   contentHost: HTMLElement | null;
-  activeKind: AnalyticsPageKind;
+  shellKind: AnalyticsPageKind;
   setPortalPayloadPresent: (token: symbol, present: boolean) => void;
 };
 
@@ -23,6 +23,6 @@ export function useAnalyticsCapabilities() {
 }
 
 export function useAnalyticsContentHost() {
-  const { activeKind, contentHost, setPortalPayloadPresent } = useAnalyticsShellContext();
-  return { activeKind, contentHost, setPortalPayloadPresent };
+  const { contentHost, setPortalPayloadPresent, shellKind } = useAnalyticsShellContext();
+  return { contentHost, setPortalPayloadPresent, shellKind };
 }

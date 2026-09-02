@@ -46,7 +46,7 @@ import {
   type PluginResourceEntry,
 } from '@/features/plugins/pluginResources';
 import { APIKEY_FUN_DISPLAY_NAME, hasApiKeyFunConfig } from '@/features/providers/sponsor';
-import { ANALYTICS_PAGE_ICONS, ANALYTICS_PAGES } from '@/features/analytics/navigation';
+import { ANALYTICS_WORKSPACE_ICON } from '@/features/analytics/navigation';
 import { AnalyticsFilterProvider } from '@/features/analytics/AnalyticsFilterProvider';
 import { AnalyticsShell } from '@/features/analytics/AnalyticsShell';
 import { triggerHeaderRefresh } from '@/hooks/useHeaderRefresh';
@@ -66,6 +66,7 @@ const sidebarIcons: Record<string, ReactNode> = {
   config: <IconSidebarConfig size={18} />,
   logs: <IconSidebarLogs size={18} />,
   system: <IconSidebarSystem size={18} />,
+  analytics: <ANALYTICS_WORKSPACE_ICON size={18} />,
 };
 
 interface SidebarNavLinkItem {
@@ -624,6 +625,16 @@ export function MainLayout() {
           metaKey: 'nav_meta.dashboard',
           icon: sidebarIcons.dashboard,
         },
+        ...(supportsAnalytics
+          ? [
+              {
+                path: '/analytics',
+                labelKey: 'nav.analytics',
+                metaKey: 'nav_meta.analytics',
+                icon: sidebarIcons.analytics,
+              },
+            ]
+          : []),
         ...(!isApiKeyFunConfigured ? [quickStartNavItem] : []),
       ],
     },
@@ -675,23 +686,6 @@ export function MainLayout() {
         },
       ],
     },
-    ...(supportsAnalytics
-      ? [
-          {
-            id: 'analytics',
-            labelKey: 'nav_groups.analytics',
-            items: ANALYTICS_PAGES.map((page) => {
-              const Icon = ANALYTICS_PAGE_ICONS[page];
-              return {
-                path: `/analytics/${page}`,
-                labelKey: `analytics.pages.${page}`,
-                metaKey: `analytics.page_meta.${page}`,
-                icon: <Icon size={18} />,
-              };
-            }),
-          },
-        ]
-      : []),
     {
       id: 'control',
       labelKey: 'nav_groups.control',

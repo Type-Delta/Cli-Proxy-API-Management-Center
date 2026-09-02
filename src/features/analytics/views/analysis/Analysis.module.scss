@@ -1,0 +1,783 @@
+@use '../../../../styles/variables' as *;
+
+.analysis {
+  --analysis-input: var(--primary-active);
+  --analysis-output: var(--viz-success);
+  --analysis-cache-read: var(--amber-color);
+  --analysis-cache-write: var(--viz-failure);
+  --analysis-reasoning: color-mix(in srgb, var(--primary-active) 52%, var(--viz-failure));
+  --analysis-request: color-mix(in srgb, var(--text-primary) 76%, var(--bg-primary));
+  --analysis-cost: color-mix(in srgb, var(--viz-success) 58%, var(--primary-active));
+  --analysis-model-1: var(--primary-active);
+  --analysis-model-2: var(--amber-color);
+  --analysis-model-3: var(--viz-success);
+  --analysis-model-4: var(--viz-failure);
+  --analysis-model-5: color-mix(in srgb, var(--primary-active) 58%, var(--viz-success));
+  --analysis-model-6: color-mix(in srgb, var(--amber-color) 55%, var(--viz-failure));
+  --analysis-heatmap: var(--viz-failure);
+
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.cardHeading {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+
+  > span {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  small {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.45;
+  }
+}
+
+.partialBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 3px 9px;
+  border: 1px solid var(--warning-border);
+  border-radius: $radius-full;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.initialLoading {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.refreshing {
+  position: relative;
+  opacity: 0.58;
+  transition: opacity var(--dur-press) ease-out;
+}
+
+.refreshingLabel {
+  position: absolute;
+  z-index: 3;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 4px 9px;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-full;
+  background: var(--bg-primary);
+  box-shadow: var(--shadow);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: $spacing-md;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  i {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    flex: none;
+    border-radius: 3px;
+  }
+}
+
+.requestSwatch,
+.costSwatch {
+  height: 2px !important;
+  border-radius: $radius-full !important;
+  background: var(--analysis-request);
+}
+
+.requestSwatch {
+  background: repeating-linear-gradient(90deg, var(--analysis-request) 0 4px, transparent 4px 7px);
+}
+
+.costSwatch {
+  background: var(--analysis-cost);
+}
+
+.chartScroller,
+.heatmapScroller {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+}
+
+.chartStage {
+  position: relative;
+  width: var(--analysis-chart-width);
+  min-width: 100%;
+  height: 280px;
+}
+
+.chartSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.gridline {
+  stroke: var(--border-color);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.axisLabel,
+.axisTitle {
+  fill: var(--text-tertiary);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.axisTitle {
+  fill: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.requestLine,
+.costLine {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.requestLine {
+  stroke: var(--analysis-request);
+  stroke-dasharray: 6 5;
+}
+
+.costLine {
+  stroke: var(--analysis-cost);
+}
+
+.costPoint {
+  fill: var(--analysis-cost);
+}
+
+.chartTargets {
+  position: absolute;
+  inset-block: 0;
+  display: flex;
+}
+
+.chartTarget {
+  min-width: 40px;
+  min-height: 40px;
+  flex: 1 0 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  outline-offset: -3px;
+  background: transparent;
+  cursor: crosshair;
+
+  &:hover {
+    background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-active);
+  }
+}
+
+.chartReadout,
+.heatmapReadout {
+  display: flex;
+  align-items: center;
+  gap: 6px 14px;
+  min-height: 40px;
+  margin-top: $spacing-sm;
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  background: var(--muted-bg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+
+  strong {
+    color: var(--text-primary);
+  }
+}
+
+.topModelsLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 0.34fr);
+  gap: $spacing-lg;
+}
+
+.modelSegment {
+  transition: opacity var(--dur-hover) ease-out;
+}
+
+.ranking,
+.efficiencyList {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rankButton {
+  display: grid;
+  width: 100%;
+  min-height: 44px;
+  grid-template-columns: 22px 8px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible,
+  &[aria-pressed='true'] {
+    border-color: var(--border-color);
+    background: var(--muted-bg);
+  }
+
+  i {
+    width: 8px;
+    height: 20px;
+    border-radius: $radius-full;
+  }
+
+  strong {
+    color: var(--text-primary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  > span:last-child {
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.rankNumber {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rankName {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.latencyMetrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(100px, 1fr));
+  gap: 8px;
+  margin-bottom: $spacing-md;
+
+  > span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+    padding: 9px 10px;
+    border-radius: $radius-md;
+    background: var(--muted-bg);
+  }
+
+  small {
+    color: var(--text-secondary);
+    font-size: 11px;
+  }
+
+  strong {
+    color: var(--text-primary);
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  em {
+    width: fit-content;
+    padding: 2px 6px;
+    border-radius: $radius-full;
+    background: var(--count-badge-bg);
+    color: var(--count-badge-text);
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 650;
+  }
+}
+
+.latencyStage {
+  width: 760px;
+  max-width: 100%;
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 760 / 330;
+  margin: 0 auto;
+}
+
+.p95TtftLine,
+.p95LatencyLine {
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.p95TtftLine {
+  stroke: var(--analysis-input);
+}
+
+.p95LatencyLine {
+  stroke: var(--analysis-cache-write);
+}
+
+.p95TtftLabel,
+.p95LatencyLabel {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.p95TtftLabel {
+  fill: var(--analysis-input);
+}
+
+.p95LatencyLabel {
+  fill: var(--analysis-cache-write);
+}
+
+.scatterTarget {
+  cursor: crosshair;
+  outline: none;
+
+  &:focus-visible circle:last-child {
+    stroke: var(--text-primary);
+    stroke-width: 2;
+  }
+}
+
+.scatterSuccess {
+  fill: var(--viz-success);
+}
+
+.scatterFailure {
+  fill: var(--viz-failure);
+}
+
+.distributionTabs {
+  display: flex;
+  max-width: 100%;
+  gap: 4px;
+  margin-bottom: $spacing-md;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-color);
+
+  button {
+    position: relative;
+    min-width: max-content;
+    min-height: 44px;
+    padding: 6px 14px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+
+    &[aria-selected='true'] {
+      border-bottom-color: var(--text-primary);
+      color: var(--text-primary);
+      font-weight: 650;
+    }
+  }
+}
+
+.tabLoading {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--primary-active);
+}
+
+.distributionList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px $spacing-lg;
+}
+
+.distributionRow {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.distributionTopline {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+
+  strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    flex: none;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.shareTrack,
+.categoryMix {
+  display: flex;
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: $radius-full;
+  background: var(--muted-bg);
+}
+
+.shareTrack span {
+  border-radius: inherit;
+  background: var(--primary-active);
+}
+
+.distributionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.insightGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-lg;
+}
+
+.costTotal,
+.blendedRate {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+
+  strong {
+    color: var(--text-primary);
+    font-size: 20px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.costBar {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  gap: 2px;
+  margin: $spacing-md 0;
+  overflow: hidden;
+  border-radius: $radius-md;
+  background: var(--muted-bg);
+
+  span {
+    display: block;
+    height: 18px;
+    min-width: 2px;
+  }
+}
+
+.costList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 18px;
+  margin: 0 0 $spacing-md;
+
+  > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  dt {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 7px;
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
+  dt i {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 2px;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.blendedRate {
+  padding-top: $spacing-md;
+  border-top: 1px solid var(--border-color);
+
+  strong small {
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+  }
+}
+
+.efficiencyList li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 0.75fr);
+  align-items: center;
+  gap: 14px;
+  min-height: 52px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-color);
+
+  > div:first-child {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 3px 10px;
+  }
+
+  > div:first-child strong {
+    min-width: 0;
+    overflow: hidden;
+    grid-column: 1 / -1;
+    color: var(--text-primary);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  > div:first-child span {
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.efficiencyMeasure {
+  display: grid;
+  grid-template-columns: minmax(44px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+
+  > span {
+    display: block;
+    height: 6px;
+    overflow: hidden;
+    border-radius: $radius-full;
+    background: var(--muted-bg);
+  }
+
+  > span i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--analysis-cost);
+  }
+
+  strong {
+    color: var(--text-primary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  small {
+    color: var(--text-secondary);
+    font-size: 10px;
+  }
+}
+
+.heatmapGrid {
+  display: grid;
+  width: var(--analysis-heatmap-width);
+  min-width: 100%;
+  grid-template-columns: 176px repeat(var(--analysis-heatmap-columns), minmax(104px, 1fr));
+  gap: 4px;
+}
+
+.heatmapCorner,
+.heatmapHeader,
+.heatmapRowLabel {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 6px 9px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.heatmapHeader {
+  min-width: 0;
+  overflow: hidden;
+  justify-content: center;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heatmapRow {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: 176px repeat(var(--analysis-heatmap-columns), minmax(104px, 1fr));
+  gap: 4px;
+}
+
+.heatmapRowLabel {
+  overflow: hidden;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heatmapCell {
+  min-width: 40px;
+  min-height: 44px;
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, var(--analysis-heatmap) 18%, var(--border-color));
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--analysis-heatmap) var(--cell-strength), var(--bg-tertiary));
+  color: color-mix(in srgb, var(--text-primary) 88%, var(--bg-primary));
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible,
+  &[aria-pressed='true'] {
+    border-color: var(--text-primary);
+    outline-offset: 2px;
+  }
+}
+
+.heatmapLegend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: $spacing-sm;
+  color: var(--text-secondary);
+  font-size: 11px;
+
+  i {
+    width: 96px;
+    height: 7px;
+    border-radius: $radius-full;
+    background: linear-gradient(
+      90deg,
+      var(--bg-tertiary),
+      color-mix(in srgb, var(--analysis-heatmap) 55%, var(--bg-tertiary)),
+      var(--analysis-heatmap)
+    );
+  }
+}
+
+@media (max-width: $breakpoint-mobile) {
+  .analysis {
+    gap: $spacing-md;
+  }
+
+  .topModelsLayout,
+  .insightGrid,
+  .distributionList {
+    grid-template-columns: 1fr;
+  }
+
+  .latencyMetrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chartReadout,
+  .heatmapReadout {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .costList {
+    grid-template-columns: 1fr;
+  }
+
+  .efficiencyList li {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .refreshing,
+  .modelSegment {
+    transition: none;
+  }
+}

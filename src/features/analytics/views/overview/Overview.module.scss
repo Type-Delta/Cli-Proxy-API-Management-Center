@@ -1,0 +1,336 @@
+@use '../../../../styles/variables' as *;
+
+.overview,
+.summaryStack,
+.activitySection,
+.heatmapCards {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.summaryStack,
+.heatmapCards {
+  gap: 12px;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metricCard {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 220px;
+  overflow: hidden;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metricAccent {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--metric-accent);
+}
+
+.metricLabel {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.metricValue {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: clamp(24px, 3vw, 30px);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metricDetail {
+  display: flex;
+  min-height: 38px;
+  align-items: flex-start;
+  gap: 6px 12px;
+  flex-wrap: wrap;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.detailItem {
+  display: inline-flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 4px;
+
+  b {
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.sparklineSlot {
+  min-height: 32px;
+  margin-block-start: auto;
+  padding-block-start: 8px;
+  border-block-start: 1px solid var(--border-color);
+}
+
+.dailyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dailyMetric {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 16px;
+  border-inline-start: 1px solid var(--border-color);
+
+  &:first-child {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+
+  > span {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
+  strong {
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 22px;
+    font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.rangeBasis {
+  margin: 14px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.activityHeader {
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  flex-wrap: wrap;
+
+  h2,
+  p {
+    margin: 0;
+  }
+
+  h2 {
+    color: var(--text-primary);
+    font-size: 20px;
+    line-height: 1.25;
+  }
+
+  p {
+    max-width: 70ch;
+    margin-block-start: 5px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+}
+
+.windowField {
+  display: flex;
+  width: min(100%, 180px);
+  flex-direction: column;
+  gap: 6px;
+
+  > span {
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  button {
+    min-height: 40px;
+  }
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.legendScale {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.legendCell {
+  width: 12px;
+  height: 12px;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
+  border-radius: 3px;
+}
+
+.heatmapScroller {
+  max-width: 100%;
+  overflow-x: auto;
+  padding-block: 2px 8px;
+  scrollbar-gutter: stable;
+}
+
+.heatmapGrid {
+  display: grid;
+  width: max-content;
+  min-width: 100%;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(40px, 1fr);
+  grid-template-rows: repeat(7, 40px);
+  gap: 4px;
+}
+
+.heatmapCell {
+  display: block;
+  min-width: 40px;
+  min-height: 40px;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
+  border-radius: 6px;
+  cursor: help;
+  transition:
+    border-color var(--dur-hover) var(--ease-out-strong),
+    box-shadow var(--dur-hover) var(--ease-out-strong),
+    transform var(--dur-press) var(--ease-out-strong);
+
+  &:hover {
+    border-color: var(--text-secondary);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    box-shadow: 0 3px 8px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  }
+}
+
+.tokenLevel0,
+.healthLevel0 {
+  background: var(--bg-tertiary);
+}
+
+.tokenLevel1 {
+  background: color-mix(in srgb, var(--viz-success) 16%, var(--bg-primary));
+}
+
+.tokenLevel2 {
+  background: color-mix(in srgb, var(--viz-success) 30%, var(--bg-primary));
+}
+
+.tokenLevel3 {
+  background: color-mix(in srgb, var(--viz-success) 46%, var(--bg-primary));
+}
+
+.tokenLevel4 {
+  background: color-mix(in srgb, var(--viz-success) 65%, var(--bg-primary));
+}
+
+.tokenLevel5 {
+  background: var(--viz-success);
+}
+
+.healthLevel1 {
+  background: var(--viz-failure);
+}
+
+.healthLevel2 {
+  background: color-mix(in srgb, var(--viz-failure) 58%, var(--bg-primary));
+}
+
+.healthLevel3 {
+  background: color-mix(in srgb, var(--amber-color) 72%, var(--bg-primary));
+}
+
+.healthLevel4 {
+  background: color-mix(in srgb, var(--viz-success) 48%, var(--bg-primary));
+}
+
+.healthLevel5 {
+  background: var(--viz-success);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 1024px) {
+  .metricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .metricGrid,
+  .dailyGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metricCard {
+    min-height: 200px;
+  }
+
+  .dailyMetric {
+    padding: 12px 0;
+    border-block-start: 1px solid var(--border-color);
+    border-inline-start: 0;
+
+    &:first-child {
+      padding-block-start: 0;
+      border-block-start: 0;
+    }
+  }
+
+  .activityHeader {
+    align-items: stretch;
+  }
+
+  .windowField {
+    width: 100%;
+  }
+
+  .heatmapGrid {
+    min-width: max-content;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heatmapCell {
+    transition: none;
+  }
+}

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Select } from '@/components/ui/Select';
 import type { AnalyticsKey } from '@/types';
 import { filterAnalyticsKeys, MAX_RENDERED_ANALYTICS_KEYS } from './analyticsKeyFilterModel';
+import { formatAnalyticsEnum } from './components/analyticsFormatting';
 import { MAX_ANALYTICS_KEY_FILTERS } from './query';
 import styles from './Analytics.module.scss';
 
@@ -32,10 +33,10 @@ export function AnalyticsKeyFilter({
         value: key.key_id,
         label: key.label || key.short_key_id,
         description: key.label ? key.short_key_id : undefined,
-        badge: key.status,
+        badge: formatAnalyticsEnum(t, 'key_status', key.status),
         searchText: key.status,
       })),
-    [sortedKeys]
+    [sortedKeys, t]
   );
 
   return (

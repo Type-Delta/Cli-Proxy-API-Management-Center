@@ -1,7 +1,8 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import i18n from '@/i18n';
 import { Button } from '@/components/ui/Button';
-import styles from './Analytics.module.scss';
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export class AnalyticsErrorBoundary extends Component<
   { children: ReactNode },
@@ -20,13 +21,19 @@ export class AnalyticsErrorBoundary extends Component<
   render() {
     if (this.state.failed) {
       return (
-        <section className={styles.state} role="alert">
-          <h2>{i18n.t('analytics.error_title')}</h2>
-          <p>{i18n.t('analytics.error_route')}</p>
-          <Button variant="secondary" onClick={() => this.setState({ failed: false })}>
-            {i18n.t('common.refresh')}
-          </Button>
-        </section>
+        <Card>
+          <div role="alert">
+            <EmptyState
+              title={i18n.t('analytics.error_title')}
+              description={i18n.t('analytics.error_route')}
+              action={
+                <Button variant="secondary" onClick={() => this.setState({ failed: false })}>
+                  {i18n.t('common.refresh')}
+                </Button>
+              }
+            />
+          </div>
+        </Card>
       );
     }
     return this.props.children;

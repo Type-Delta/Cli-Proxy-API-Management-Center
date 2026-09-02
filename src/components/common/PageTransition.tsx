@@ -7,6 +7,7 @@ import {
   PageTransitionLayerContext,
   type LayerStatus,
 } from './PageTransitionLayer';
+import { isSamePageLocationUpdate, pageTransitionLayerKey } from './pageTransitionState';
 import './PageTransition.scss';
 
 interface PageTransitionProps {
@@ -84,15 +85,17 @@ export function PageTransition({
   const [isAnimating, setIsAnimating] = useState(false);
   const [layers, setLayers] = useState<Layer[]>(() => [
     {
-      key: location.key,
+      key: pageTransitionLayerKey(location),
       location,
       status: 'current',
     },
   ]);
   const currentLayer =
     layers.find((layer) => layer.status === 'current') ?? layers[layers.length - 1];
-  const currentLayerKey = currentLayer?.key ?? location.key;
+  const nextLayerKey = pageTransitionLayerKey(location);
+  const currentLayerKey = currentLayer?.key ?? nextLayerKey;
   const currentLayerPathname = currentLayer?.location.pathname;
+  const currentLayerLocation = currentLayer?.location;
 
   const resolveScrollContainer = useCallback(() => {
     if (scrollContainerRef?.current) return scrollContainerRef.current;
@@ -102,14 +105,21 @@ export function PageTransition({
 
   useLayoutEffect(() => {
     if (isAnimating) return;
-    if (location.key === currentLayerKey) return;
+    if (currentLayerLocation && isSamePageLocationUpdate(currentLayerLocation, location)) {
+      setLayers((previous) =>
+        previous.map((layer) =>
+          layer.status === 'current' ? { ...layer, location } : layer
+        )
+      );
+      return;
+    }
     if (currentLayerPathname === location.pathname) return;
     const scrollContainer = resolveScrollContainer();
     const exitScrollOffset = scrollContainer?.scrollTop ?? 0;
     exitScrollOffsetRef.current = exitScrollOffset;
     scrollPositionsRef.current.set(currentLayerKey, exitScrollOffset);
 
-    enterScrollOffsetRef.current = scrollPositionsRef.current.get(location.key) ?? 0;
+    enterScrollOffsetRef.current = scrollPositionsRef.current.get(nextLayerKey) ?? 0;
     const resolveOrderIndex = (pathname?: string) => {
       if (!getRouteOrder || !pathname) return null;
       const index = getRouteOrder(pathname);
@@ -130,7 +140,7 @@ export function PageTransition({
 
     // When using iOS-style stacking, history POP within the same "section" can have equal route order.
     // In that case, prefer treating navigation to an existing layer as a backward (pop) transition.
-    if (nextVariant === 'ios' && layers.some((layer) => layer.key === location.key)) {
+    if (nextVariant === 'ios' && layers.some((layer) => layer.key === nextLayerKey)) {
       nextDirection = 'backward';
     }
 
@@ -161,7 +171,7 @@ export function PageTransition({
         .filter((_, idx) => idx !== resolvedCurrentIndex)
         .map((layer): Layer => ({ ...layer, status: 'stacked' }));
 
-      const nextCurrent: Layer = { key: location.key, location, status: 'current' };
+      const nextCurrent: Layer = { key: nextLayerKey, location, status: 'current' };
 
       if (!previousCurrent) {
         nextLayersRef.current = [nextCurrent];
@@ -177,7 +187,7 @@ export function PageTransition({
           return [...previousStack, exitingLayer, nextCurrent];
         }
 
-        const targetIndex = prev.findIndex((layer) => layer.key === location.key);
+        const targetIndex = prev.findIndex((layer) => layer.key === nextLayerKey);
         if (targetIndex !== -1) {
           const targetStack: Layer[] = prev.slice(0, targetIndex + 1).map((layer, idx): Layer => {
             const isTarget = idx === targetIndex;
@@ -215,6 +225,8 @@ export function PageTransition({
     location,
     currentLayerKey,
     currentLayerPathname,
+    currentLayerLocation,
+    nextLayerKey,
     getRouteOrder,
     getTransitionVariant,
     resolveScrollContainer,

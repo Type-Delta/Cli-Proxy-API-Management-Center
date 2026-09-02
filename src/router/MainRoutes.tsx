@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, useRoutes, type Location } from 'react-router-dom';
+import { Navigate, useLocation, useRoutes, type Location } from 'react-router-dom';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { ProvidersWorkbenchPage } from '@/features/providers/ProvidersWorkbenchPage';
 import { AuthFilesPage } from '@/features/authFiles/AuthFilesPage';
@@ -17,6 +17,8 @@ import { useAuthStore } from '@/stores';
 import { AnalyticsErrorBoundary } from '@/features/analytics/AnalyticsErrorBoundary';
 import { AnalyticsSkeleton } from '@/features/analytics/AnalyticsSkeleton';
 import { AnalyticsContentPortal } from '@/features/analytics/AnalyticsShell';
+import { ANALYTICS_PAGES } from '@/features/analytics/navigation';
+import { leaderboardRedirectTarget } from '@/features/analytics/query';
 
 const analyticsPage = (kind: import('@/features/analytics/AnalyticsPage').AnalyticsPageKind) =>
   lazy(() =>
@@ -25,17 +27,7 @@ const analyticsPage = (kind: import('@/features/analytics/AnalyticsPage').Analyt
     }))
   );
 
-const analyticsRoutes = [
-  ['overview', analyticsPage('overview')],
-  ['analysis', analyticsPage('analysis')],
-  ['keys', analyticsPage('keys')],
-  ['leaderboard', analyticsPage('leaderboard')],
-  ['events', analyticsPage('events')],
-  ['pricing', analyticsPage('pricing')],
-  ['providers', analyticsPage('providers')],
-  ['shared', analyticsPage('shared')],
-  ['maintenance', analyticsPage('maintenance')],
-] as const;
+const analyticsRoutes = ANALYTICS_PAGES.map((kind) => [kind, analyticsPage(kind)] as const);
 
 const analyticsElement = (
   kind: import('@/features/analytics/AnalyticsPage').AnalyticsPageKind,
@@ -49,6 +41,11 @@ const analyticsElement = (
     </AnalyticsErrorBoundary>
   </AnalyticsContentPortal>
 );
+
+function LeaderboardRedirect() {
+  const location = useLocation();
+  return <Navigate to={leaderboardRedirectTarget(location.search)} replace />;
+}
 
 const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/', element: <DashboardPage /> },
@@ -65,6 +62,7 @@ const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/oauth', element: <OAuthPage /> },
   { path: '/quota', element: <QuotaPage /> },
   { path: '/analytics', element: <Navigate to="/analytics/overview" replace /> },
+  { path: '/analytics/leaderboard', element: <LeaderboardRedirect /> },
   ...analyticsRoutes.map(([path, Page]) => ({
     path: `/analytics/${path}`,
     element: analyticsElement(path, Page),
