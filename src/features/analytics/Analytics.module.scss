@@ -1,10 +1,26 @@
+@use '../../styles/variables' as *;
+
 .page {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 20px;
   width: min(100%, 1320px);
   margin: 0 auto;
   padding: 12px 0 32px;
+}
+.routeSource {
+  display: contents;
+}
+.routeConduit {
+  display: block;
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 .page,
 .viewer,
@@ -31,6 +47,13 @@
     margin: 2px 0 0;
     font-size: clamp(28px, 4vw, 48px);
   }
+}
+.eyebrowRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 23px;
+
   p {
     margin: 0;
     color: var(--text-secondary);
@@ -41,14 +64,52 @@
 }
 .ready,
 .degraded {
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--success-color) 14%, transparent);
-  color: var(--success-color);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: $radius-full;
+  border: 1px solid color-mix(in srgb, var(--viz-success) 35%, transparent);
+  background: color-mix(in srgb, var(--viz-success) 8%, transparent);
+  font-family: $font-mono;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--success-badge-text);
 }
 .degraded {
-  background: color-mix(in srgb, var(--warning-color) 14%, transparent);
+  border-color: color-mix(in srgb, var(--warning-color) 35%, transparent);
+  background: color-mix(in srgb, var(--warning-color) 8%, transparent);
   color: var(--warning-color);
+
+  .readyDot {
+    background: var(--warning-color);
+    animation: none;
+  }
+}
+.readyDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--viz-success);
+  animation: analyticsLivePing 2s ease-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+.statusPlaceholder {
+  display: inline-flex;
+  align-items: center;
+  height: 23px;
+}
+.contentHost,
+.contentBody {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 20px;
 }
 .filters {
   display: flex;
@@ -247,7 +308,7 @@
   }
 }
 .state {
-  margin: 36px auto;
+  margin: 0 auto;
   width: min(100%, 720px);
   padding: 24px;
   border: 1px solid var(--border-color);
@@ -267,6 +328,10 @@
   .page {
     gap: 16px;
   }
+  .contentHost,
+  .contentBody {
+    gap: 16px;
+  }
   .header {
     align-items: flex-start;
   }
@@ -284,6 +349,18 @@
   }
   .chart {
     height: 130px;
+  }
+}
+
+@keyframes analyticsLivePing {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--viz-success) 40%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 .viewer {

@@ -22,7 +22,12 @@ export function AnalyticsTabs({ active }: { active: AnalyticsPageKind }) {
   }, [active]);
 
   return (
-    <nav className={styles.tabs} aria-label={t('analytics.navigation')} ref={listRef}>
+    <nav
+      className={styles.tabs}
+      aria-label={t('analytics.navigation')}
+      ref={listRef}
+      data-analytics-tabs
+    >
       {ANALYTICS_PAGES.map((page) => {
         const Icon = ANALYTICS_PAGE_ICONS[page];
         return (

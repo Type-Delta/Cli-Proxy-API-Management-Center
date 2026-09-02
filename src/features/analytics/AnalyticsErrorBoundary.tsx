@@ -21,7 +21,7 @@ export class AnalyticsErrorBoundary extends Component<
     if (this.state.failed) {
       return (
         <section className={styles.state} role="alert">
-          <h1>{i18n.t('analytics.error_title')}</h1>
+          <h2>{i18n.t('analytics.error_title')}</h2>
           <p>{i18n.t('analytics.error_route')}</p>
           <Button variant="secondary" onClick={() => this.setState({ failed: false })}>
             {i18n.t('common.refresh')}

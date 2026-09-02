@@ -48,6 +48,7 @@ import {
 import { APIKEY_FUN_DISPLAY_NAME, hasApiKeyFunConfig } from '@/features/providers/sponsor';
 import { ANALYTICS_PAGE_ICONS, ANALYTICS_PAGES } from '@/features/analytics/navigation';
 import { AnalyticsFilterProvider } from '@/features/analytics/AnalyticsFilterProvider';
+import { AnalyticsShell } from '@/features/analytics/AnalyticsShell';
 import { triggerHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { LANGUAGE_LABEL_KEYS, LANGUAGE_ORDER } from '@/utils/constants';
 import { isSupportedLanguage } from '@/utils/language';
@@ -1203,12 +1204,14 @@ export function MainLayout() {
             }`}
           >
             <AnalyticsFilterProvider>
-              <PageTransition
-                render={(location) => <MainRoutes location={location} />}
-                getRouteOrder={getRouteOrder}
-                getTransitionVariant={getTransitionVariant}
-                scrollContainerRef={contentRef}
-              />
+              <AnalyticsShell pathname={location.pathname}>
+                <PageTransition
+                  render={(routeLocation) => <MainRoutes location={routeLocation} />}
+                  getRouteOrder={getRouteOrder}
+                  getTransitionVariant={getTransitionVariant}
+                  scrollContainerRef={contentRef}
+                />
+              </AnalyticsShell>
             </AnalyticsFilterProvider>
           </main>
         </div>

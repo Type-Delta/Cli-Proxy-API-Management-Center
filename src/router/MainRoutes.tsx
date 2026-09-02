@@ -16,6 +16,7 @@ import { SystemPage } from '@/pages/SystemPage';
 import { useAuthStore } from '@/stores';
 import { AnalyticsErrorBoundary } from '@/features/analytics/AnalyticsErrorBoundary';
 import { AnalyticsSkeleton } from '@/features/analytics/AnalyticsSkeleton';
+import { AnalyticsContentPortal } from '@/features/analytics/AnalyticsShell';
 
 const analyticsPage = (kind: import('@/features/analytics/AnalyticsPage').AnalyticsPageKind) =>
   lazy(() =>
@@ -36,12 +37,17 @@ const analyticsRoutes = [
   ['maintenance', analyticsPage('maintenance')],
 ] as const;
 
-const analyticsElement = (Page: (typeof analyticsRoutes)[number][1]) => (
-  <AnalyticsErrorBoundary>
-    <Suspense fallback={<AnalyticsSkeleton />}>
-      <Page />
-    </Suspense>
-  </AnalyticsErrorBoundary>
+const analyticsElement = (
+  kind: import('@/features/analytics/AnalyticsPage').AnalyticsPageKind,
+  Page: (typeof analyticsRoutes)[number][1]
+) => (
+  <AnalyticsContentPortal kind={kind}>
+    <AnalyticsErrorBoundary>
+      <Suspense fallback={<AnalyticsSkeleton />}>
+        <Page />
+      </Suspense>
+    </AnalyticsErrorBoundary>
+  </AnalyticsContentPortal>
 );
 
 const createMainRoutes = (supportsPlugin: boolean) => [
@@ -61,7 +67,7 @@ const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/analytics', element: <Navigate to="/analytics/overview" replace /> },
   ...analyticsRoutes.map(([path, Page]) => ({
     path: `/analytics/${path}`,
-    element: analyticsElement(Page),
+    element: analyticsElement(path, Page),
   })),
   ...(supportsPlugin
     ? [

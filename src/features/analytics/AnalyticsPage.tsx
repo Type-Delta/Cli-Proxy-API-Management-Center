@@ -1,13 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
-import { analyticsApi, capabilitiesApi } from '@/services/api';
+import { analyticsApi } from '@/services/api';
 import { useNotificationStore } from '@/stores';
 import type {
-  AnalyticsCapabilities,
   AnalyticsDimensionPage,
   AnalyticsEventPage,
   AnalyticsHealth,
@@ -15,7 +14,6 @@ import type {
   AnalyticsKey,
   AnalyticsSummary,
   AnalyticsTimeseries,
-  ManagementCapabilities,
   PricingSnapshot,
   ProviderStatus,
   QuotaStatus,
@@ -31,10 +29,11 @@ import {
   type AnalyticsRange,
 } from './query';
 import { AnalyticsKeyFilter } from './AnalyticsKeyFilter';
-import { AnalyticsTabs } from './AnalyticsTabs';
 import { analyticsKeyIdentity } from './analyticsKeyFilterModel';
 import { useAnalyticsFilters } from './AnalyticsFilterContext';
 import { AnalyticsSkeleton } from './AnalyticsSkeleton';
+import { useAnalyticsCapabilities } from './AnalyticsShellContext';
+import { useAnalyticsLoad as useLoad } from './useAnalyticsLoad';
 import type { AnalyticsPageKind } from './navigation';
 import styles from './Analytics.module.scss';
 
@@ -43,35 +42,6 @@ export type { AnalyticsPageKind } from './navigation';
 const formatNumber = (value: number) => new Intl.NumberFormat().format(value);
 const formatCost = (value: string | null | undefined) =>
   value === null || value === undefined ? '—' : `$${value}`;
-
-function useLoad<T>(load: () => Promise<T>, key: string) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const loadRef = useRef(load);
-  const keyRef = useRef(key);
-  useEffect(() => {
-    loadRef.current = load;
-    keyRef.current = key;
-  }, [load, key]);
-  const refresh = useCallback(async () => {
-    const requestKey = key;
-    setLoading(true);
-    setError('');
-    try {
-      const next = await loadRef.current();
-      if (keyRef.current !== requestKey) return;
-      setData(next);
-    } catch (caught) {
-      if (keyRef.current !== requestKey) return;
-      setError(caught instanceof Error ? caught.message : 'Request failed');
-    } finally {
-      if (keyRef.current === requestKey) setLoading(false);
-    }
-  }, [key]);
-  useEffect(() => void refresh(), [refresh]);
-  return { data, error, loading, refresh };
-}
 
 function AsyncState({
   loading,
@@ -1147,12 +1117,12 @@ function HealthDetails({ health }: { health: AnalyticsHealth }) {
 
 export function AnalyticsPage({ kind }: { kind: AnalyticsPageKind }) {
   const { t } = useTranslation();
-  const capabilities = useLoad<ManagementCapabilities>(() => capabilitiesApi.get(), 'capabilities');
+  const capabilities = useAnalyticsCapabilities();
   if (capabilities.loading) return <AnalyticsSkeleton />;
   if (capabilities.error || !capabilities.data?.analytics.supported)
     return (
       <div className={styles.state} role="status">
-        <h1>{t('analytics.unavailable_title')}</h1>
+        <h2>{t('analytics.unavailable_title')}</h2>
         <p>{capabilities.error || t('analytics.unsupported')}</p>
       </div>
     );
@@ -1161,7 +1131,7 @@ export function AnalyticsPage({ kind }: { kind: AnalyticsPageKind }) {
   if (availability === 'disabled' || availability === 'unavailable')
     return (
       <div className={styles.state} role="status">
-        <h1>{t('analytics.unavailable_title')}</h1>
+        <h2>{t('analytics.unavailable_title')}</h2>
         <p>{t(`analytics.state_${analytics.state}`)}</p>
       </div>
     );
@@ -1169,21 +1139,14 @@ export function AnalyticsPage({ kind }: { kind: AnalyticsPageKind }) {
   if ((queryPage && !analytics.management_query_v1) || (kind === 'shared' && !analytics.viewer_v1))
     return (
       <div className={styles.state} role="status">
-        <h1>{t('analytics.unavailable_title')}</h1>
+        <h2>{t('analytics.unavailable_title')}</h2>
         <p>{t('analytics.unsupported')}</p>
       </div>
     );
-  return <AnalyticsWorkspace kind={kind} analytics={analytics} />;
+  return <AnalyticsWorkspace kind={kind} />;
 }
 
-function AnalyticsWorkspace({
-  kind,
-  analytics,
-}: {
-  kind: AnalyticsPageKind;
-  analytics: AnalyticsCapabilities;
-}) {
-  const { t } = useTranslation();
+function AnalyticsWorkspace({ kind }: { kind: AnalyticsPageKind }) {
   const navigate = useNavigate();
   const {
     range,
@@ -1211,17 +1174,7 @@ function AnalyticsWorkspace({
   const setActiveRange = kind === 'events' ? setEventsRange : setRange;
   const setActiveSelected = kind === 'events' ? setEventsSelected : setSelected;
   return (
-    <main className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <p>{t('analytics.eyebrow')}</p>
-          <h1>{t(`analytics.pages.${kind}`)}</h1>
-        </div>
-        <span className={analytics.degraded ? styles.degraded : styles.ready}>
-          {analytics.state}
-        </span>
-      </header>
-      <AnalyticsTabs active={kind} />
+    <>
       {filterable && (
         <Filters
           range={activeRange}
@@ -1254,6 +1207,6 @@ function AnalyticsWorkspace({
       {kind === 'providers' && <Providers />}
       {kind === 'shared' && <SharedViews keys={keys} />}
       {kind === 'maintenance' && <Maintenance keys={keys} />}
-    </main>
+    </>
   );
 }

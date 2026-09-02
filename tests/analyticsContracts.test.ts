@@ -351,18 +351,138 @@ describe('analytics client contracts', () => {
     ]) {
       expect(routes).toContain(`['${page}', analyticsPage('${page}')]`);
     }
+    expect(routes).toMatch(
+      /<AnalyticsContentPortal kind=\{kind\}>[\s\S]*<AnalyticsErrorBoundary>[\s\S]*<Suspense[\s\S]*<Page \/>[\s\S]*<\/Suspense>[\s\S]*<\/AnalyticsErrorBoundary>[\s\S]*<\/AnalyticsContentPortal>/
+    );
     expect(routes).toContain('<AnalyticsErrorBoundary>');
     expect(routes).toContain('<Suspense');
     expect(routes).toContain('fallback={<AnalyticsSkeleton />}');
   });
 
   test('uses one ordered analytics page definition for sidebar and page tabs', () => {
-    const page = readFileSync('src/features/analytics/AnalyticsPage.tsx', 'utf8');
+    const shell = readFileSync('src/features/analytics/AnalyticsShell.tsx', 'utf8');
     const layout = readFileSync('src/components/layout/MainLayout.tsx', 'utf8');
 
-    expect(page).toContain('<AnalyticsTabs active={kind} />');
+    expect(shell).toContain('<AnalyticsTabs active={kind} />');
     expect(layout).toContain('ANALYTICS_PAGES.map');
     expect(Object.keys(ANALYTICS_PAGE_ICONS)).toEqual([...ANALYTICS_PAGES]);
+  });
+
+  test('keeps the Analytics shell outside route transitions and portals only the current body', () => {
+    const layout = readFileSync('src/components/layout/MainLayout.tsx', 'utf8');
+    const shell = readFileSync('src/features/analytics/AnalyticsShell.tsx', 'utf8');
+    const shellStart = layout.indexOf('<AnalyticsShell pathname={location.pathname}>');
+    const transitionStart = layout.indexOf('<PageTransition', shellStart);
+
+    expect(shellStart).toBeGreaterThan(-1);
+    expect(transitionStart).toBeGreaterThan(shellStart);
+    expect(layout.match(/<PageTransition/g)).toHaveLength(1);
+    expect(shell).toContain('data-analytics-route-source');
+    expect(shell).toContain('isAnalyticsPath ? ` ${styles.routeConduit}` :');
+    expect(shell).toContain("import { createPortal } from 'react-dom'");
+    expect(shell).toContain('usePageTransitionLayer()');
+    expect(shell).toContain(
+      'const canPortal = Boolean(contentHost && layer?.isCurrentLayer && kind === activeKind)'
+    );
+    expect(shell).toContain('if (!contentHost || !canPortal) return null');
+    expect(shell).toContain('return createPortal(children, contentHost)');
+    expect(shell).toContain('role="status"');
+    expect(shell).toContain('<i className={styles.readyDot} aria-hidden="true" />');
+  });
+
+  test('keeps the Analytics header eager while route pages render body content only', () => {
+    const shell = readFileSync('src/features/analytics/AnalyticsShell.tsx', 'utf8');
+    const page = readFileSync('src/features/analytics/AnalyticsPage.tsx', 'utf8');
+    const errorBoundary = readFileSync('src/features/analytics/AnalyticsErrorBoundary.tsx', 'utf8');
+
+    expect(shell).toContain('data-analytics-shell');
+    expect(shell).toContain('data-analytics-header');
+    expect(shell).toContain('data-analytics-eyebrow-row');
+    expect(shell).toContain('data-analytics-title');
+    expect(shell).toContain('data-analytics-content-host');
+    expect(shell).toContain('data-analytics-content');
+    expect(shell).toContain('<AnalyticsTabs active={kind} />');
+    expect(shell).toContain('<div className={styles.contentHost} data-analytics-content-host>');
+    expect(shell).not.toContain('<main');
+    expect(page).not.toContain('<main');
+    expect(page).not.toContain('<h1');
+    expect(page).not.toContain('<AnalyticsTabs');
+    expect(errorBoundary).not.toContain('<h1');
+  });
+
+  test('exposes stable Analytics shell and portal markers for transition QA', () => {
+    const shell = readFileSync('src/features/analytics/AnalyticsShell.tsx', 'utf8');
+    const tabs = readFileSync('src/features/analytics/AnalyticsTabs.tsx', 'utf8');
+
+    expect(shell).toContain(
+      '<div className={styles.contentBody} ref={setContentHostRef} data-analytics-content>'
+    );
+    expect(shell).toContain('createPortal(');
+    expect(tabs).toContain('data-analytics-tabs');
+  });
+
+  test('keeps a host-owned skeleton visible while rapid navigation has no current portal', () => {
+    const shell = readFileSync('src/features/analytics/AnalyticsShell.tsx', 'utf8');
+
+    expect(shell).toContain('const [hasPortalPayload, setHasPortalPayload] = useState(false)');
+    expect(shell).toContain('{!hasPortalPayload && <AnalyticsSkeleton />}');
+    expect(shell).toContain('setPortalPayloadPresent(token, true)');
+    expect(shell).toContain('setPortalPayloadPresent(token, false)');
+    expect(shell.match(/data-analytics-content-host/g)).toHaveLength(1);
+    expect(shell.match(/data-analytics-content>/g)).toHaveLength(1);
+  });
+
+  test('loads capabilities once in the persistent shell without replacing its header', () => {
+    const shell = readFileSync('src/features/analytics/AnalyticsShell.tsx', 'utf8');
+    const page = readFileSync('src/features/analytics/AnalyticsPage.tsx', 'utf8');
+
+    expect(shell).toContain('() => capabilitiesApi.get()');
+    expect(shell).toContain("'capabilities',\n    isAnalyticsPath");
+    expect(shell).toContain('<Skeleton width={72} height={23} rounded={999} />');
+    expect(shell.indexOf("{t('analytics.eyebrow')}")).toBeLessThan(
+      shell.indexOf('className={isReady ? styles.ready : styles.degraded}')
+    );
+    expect(page).toContain('useAnalyticsCapabilities()');
+    expect(page).not.toContain('capabilitiesApi.get()');
+  });
+
+  test('rejects stale Analytics load generations across refresh and lifecycle cleanup', () => {
+    const loader = readFileSync('src/features/analytics/useAnalyticsLoad.ts', 'utf8');
+
+    expect(loader).toContain('const generationRef = useRef(0)');
+    expect(loader).toContain('const requestGeneration = ++generationRef.current');
+    expect(loader).toContain('requestGeneration !== generationRef.current');
+    expect(loader).toContain('requestGeneration === generationRef.current');
+    expect(loader).toContain('useLayoutEffect');
+    expect(loader).toMatch(/if \(keyChanged \|\| enabledChanged\) generationRef\.current \+= 1;/);
+    expect(loader).toMatch(/if \(!enabled\) \{\s*setLoading\(false\);\s*return;\s*\}/);
+    expect(loader).toMatch(
+      /useLayoutEffect\(\(\) => \{\s*return \(\) => \{\s*generationRef\.current \+= 1;\s*\};\s*\}, \[\]\);/
+    );
+    expect(loader).toMatch(
+      /return \(\) => \{\s*generationRef\.current \+= 1;\s*\};\s*\}, \[refresh\]\);/
+    );
+  });
+
+  test('matches the Dashboard live badge geometry and keeps portal content in one stable column', () => {
+    const analyticsStyles = readFileSync('src/features/analytics/Analytics.module.scss', 'utf8');
+
+    expect(analyticsStyles).toMatch(
+      /\.ready,[\s\S]*?\.degraded\s*\{[\s\S]*?display:\s*inline-flex;[\s\S]*?gap:\s*6px;[\s\S]*?padding:\s*3px 9px;[\s\S]*?border-radius:\s*\$radius-full;[\s\S]*?var\(--viz-success\) 35%[\s\S]*?var\(--viz-success\) 8%[\s\S]*?font-family:\s*\$font-mono;[\s\S]*?font-size:\s*10px;[\s\S]*?font-weight:\s*700;[\s\S]*?letter-spacing:\s*0\.14em;[\s\S]*?text-transform:\s*uppercase;[\s\S]*?color:\s*var\(--success-badge-text\)/
+    );
+    expect(analyticsStyles).toMatch(
+      /\.contentHost,[\s\S]*?\.contentBody\s*\{[\s\S]*?display:\s*flex;[\s\S]*?min-width:\s*0;[\s\S]*?flex-direction:\s*column;[\s\S]*?gap:\s*20px;/
+    );
+    expect(analyticsStyles).toContain('animation: analyticsLivePing 2s ease-out infinite');
+    expect(analyticsStyles).toMatch(
+      /\.degraded\s*\{[\s\S]*?\.readyDot\s*\{[\s\S]*?animation:\s*none;/
+    );
+    expect(analyticsStyles).toMatch(
+      /\.routeConduit\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?width:\s*1px;[\s\S]*?height:\s*1px;/
+    );
+    expect(analyticsStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*animation:\s*none;/
+    );
   });
 
   test('ships page names in every supported locale', async () => {

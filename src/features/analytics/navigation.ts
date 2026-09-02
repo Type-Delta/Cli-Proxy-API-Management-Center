@@ -26,6 +26,11 @@ export const ANALYTICS_PAGES = [
 
 export type AnalyticsPageKind = (typeof ANALYTICS_PAGES)[number];
 
+export function analyticsPageKindFromPathname(pathname: string): AnalyticsPageKind {
+  const segment = pathname.split('/')[2];
+  return ANALYTICS_PAGES.find((page) => page === segment) ?? 'overview';
+}
+
 export const ANALYTICS_PAGE_ICONS: Record<AnalyticsPageKind, ComponentType<IconProps>> = {
   overview: IconLayoutDashboard,
   analysis: IconChartNoAxesCombined,

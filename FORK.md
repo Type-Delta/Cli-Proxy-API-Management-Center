@@ -110,6 +110,23 @@ Validation on 2026-09-02:
 - Result: 455 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 - An isolated raw Chrome DevTools Protocol run against the Docker Compose stack exercised all nine Analytics routes at desktop and mobile sizes. All 33 visible buttons, dropdowns, and single-line inputs measured 40 px; no native selects, horizontal overflow, visible text loaders, or runtime exceptions remained. Delayed requests exposed Skeleton states, shared filters retained 30 days and two selected keys across routes, and the Leaderboard request omitted `key_ids`.
 
+### DL007: Persistent Analytics shell and portal loading
+
+Status: shipped
+
+Files: `src/components/layout/MainLayout.tsx`, `src/router/MainRoutes.tsx`, `src/features/analytics/**`, `tests/analyticsContracts.test.ts`
+
+Analytics keeps its module label, readiness badge, page title, and routed tab bar outside lazy route content. The active route body, including Suspense, capability, query-loading, unavailable, and error states, renders through one in-page portal host below the tabs. A host-owned Skeleton covers handoffs where rapid navigation advances the URL before the keyed page transition creates its next current layer, so the content slot never becomes empty or collapses. Outgoing and stacked transition layers cannot portal stale content, while a token registry prevents an outgoing cleanup from hiding a newer payload.
+
+The Analytics provider keeps one `PageTransition` instance mounted across Analytics and non-Analytics routes. Capability reads are enabled only while Analytics is active, and request generations prevent an older same-key response from replacing a newer result after refresh or leave and re-entry. The ready badge mirrors the Dashboard live badge geometry, typography, color, and pulse, appears immediately after “CPA Usage Keeper” above the title, and preserves the same geometry without animation for degraded and reduced-motion states.
+
+Validation on 2026-09-02:
+
+- `bunx bun@1.3.14 run verify`
+- Result: 462 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
+- The Impeccable UI detector returned no findings for the changed layout, Analytics, and routing files.
+- An isolated raw Chrome DevTools Protocol run against the Docker Compose stack paused lazy capability and Analytics requests while switching Overview, Analysis, and Keys. The same shell, header, title, tabs, content host, and global page-transition nodes survived loading and route changes; header, tab, and host top coordinates remained exactly 82 px, 199 px, and 257.1875 px. A 60 ms Analysis-to-Keys double switch produced 78 samples with a minimum 222.546875 px content height and 29 host-Skeleton handoff samples. A newer ready capability response remained authoritative after an older disabled response completed late. Desktop, degraded, and 320 CSS-pixel Russian reduced-motion runs reported no overflow, runtime exceptions, or console errors.
+
 Fork baseline validation on 2026-08-31, before DL002 and DL003:
 
 - `bunx bun@1.3.14 install --frozen-lockfile`
