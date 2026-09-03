@@ -1,4 +1,6 @@
 import type { AnalyticsEvent, AnalyticsMeta, AnalyticsSummary, AnalyticsTimeseries } from '@/types';
+import { apiClient } from '@/services/api/client';
+import { normalizeApiBase } from '@/utils/connection';
 import { resolveAnalyticsRange, type AnalyticsRange } from '../../query';
 
 export type ViewerCapabilities = {
@@ -70,9 +72,53 @@ export function viewerQuery(
   });
 }
 
-export async function fetchViewerJSON<T>(path: string, query?: URLSearchParams): Promise<T> {
-  const response = await fetch(`/v0/analytics/viewer/${path}${query ? `?${query}` : ''}`, {
-    credentials: 'same-origin',
+export function viewerApiOrigin(apiBase: string): string {
+  const normalized = normalizeApiBase(apiBase);
+  if (!normalized) return '';
+  try {
+    return new URL(normalized).origin;
+  } catch {
+    return '';
+  }
+}
+
+export function resolveViewerApiBase(linkApiBase?: string): string {
+  return linkApiBase || viewerApiOrigin(apiClient.getApiBase());
+}
+
+export function buildViewerLink(
+  credential: string,
+  currentOrigin = typeof window === 'undefined' ? '' : window.location.origin,
+  pathname = typeof window === 'undefined' ? '/' : window.location.pathname,
+  apiBase = apiClient.getApiBase()
+): string {
+  const apiOrigin = viewerApiOrigin(apiBase);
+  const apiQuery =
+    apiOrigin && apiOrigin !== currentOrigin ? `?api=${encodeURIComponent(apiOrigin)}` : '';
+  return `${currentOrigin}${pathname}#/viewer${apiQuery}#${credential}`;
+}
+
+export function buildViewerURL(path: string, apiBase = resolveViewerApiBase()): string {
+  const viewerPath = `/v0/analytics/viewer/${path.replace(/^\/+/, '')}`;
+  return apiBase ? new URL(viewerPath, apiBase).toString() : viewerPath;
+}
+
+export function viewerCredentialsMode(
+  url: string,
+  currentOrigin = typeof window === 'undefined' ? '' : window.location.origin
+): RequestCredentials {
+  if (!currentOrigin) return 'same-origin';
+  return new URL(url, currentOrigin).origin === currentOrigin ? 'same-origin' : 'include';
+}
+
+export async function fetchViewerJSON<T>(
+  path: string,
+  query?: URLSearchParams,
+  apiBase = resolveViewerApiBase()
+): Promise<T> {
+  const url = buildViewerURL(path, apiBase);
+  const response = await fetch(`${url}${query ? `?${query}` : ''}`, {
+    credentials: viewerCredentialsMode(url),
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) throw new Error(`Viewer request failed (${response.status})`);

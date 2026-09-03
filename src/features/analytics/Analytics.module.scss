@@ -457,3 +457,34 @@
 .quotaMeter {
   width: 72px;
 }
+
+@media (max-width: 639px) {
+  .ready,
+  .degraded {
+    padding: 0;
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .statusLabel,
+  .refreshLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .statusPlaceholder {
+    height: 40px;
+  }
+
+  .statusSkeleton,
+  .updated {
+    display: none;
+  }
+}

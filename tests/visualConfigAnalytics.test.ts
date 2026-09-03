@@ -99,6 +99,7 @@ describe('visual analytics configuration', () => {
           analyticsCircuitFailureThreshold: '5',
           analyticsMaxStorageBytes: '5368709120',
           analyticsMinFreeBytes: '536870912',
+          analyticsStorageTimeZone: ' Local ',
           analyticsStoreCredentialId: true,
           analyticsViewerTrustedProxyCidrs: ['172.30.0.0/24'],
           analyticsViewerAllowLoopbackHttp: false,
@@ -127,6 +128,7 @@ describe('visual analytics configuration', () => {
       'circuit-failure-threshold': 5,
       'max-storage-bytes': 5368709120,
       'min-free-bytes': 536870912,
+      'storage-time-zone': 'Local',
       privacy: { 'store-credential-id': true },
       viewer: {
         'trusted-proxy-cidrs': ['172.30.0.0/24'],
@@ -171,6 +173,7 @@ describe('visual analytics configuration', () => {
       'Asia/Calcutta',
       'Europe/Kyiv',
       'America/St_Johns',
+      'Local',
     ]) {
       const errors = getVisualConfigValidationErrors({
         ...DEFAULT_VISUAL_VALUES,

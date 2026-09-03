@@ -57,7 +57,7 @@ function useAnalysisCard(request: AnalyticsAnalysisQuery, card: string) {
 }
 
 export function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: string[] }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const { reportResolvedRange } = useAnalyticsFilters();
   const request = useMemo(
     () =>
@@ -96,51 +96,71 @@ export function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: str
 
   return (
     <div className={styles.analysis}>
-      <TokenUsageChart
-        section={tokenUsage.data?.series_by_category}
-        loading={tokenUsage.loading}
-        error={tokenUsage.error}
-        onRetry={() => void tokenUsage.refresh()}
-        locale={locale}
-      />
-      <TopModelsChart
-        section={topModels.data?.model_by_time}
-        loading={topModels.loading}
-        error={topModels.error}
-        onRetry={() => void topModels.refresh()}
-        locale={locale}
-      />
-      <LatencyDiagnostics
-        section={latency.data?.latency}
-        loading={latency.loading}
-        error={latency.error}
-        onRetry={() => void latency.refresh()}
-        locale={locale}
-      />
-      <UsageDistribution results={distributions} locale={locale} />
-      <div className={styles.insightGrid}>
+      <section className={styles.analysisSection} aria-labelledby="analytics-analysis-consumption">
+        <h2 id="analytics-analysis-consumption" className={styles.analysisSectionLabel}>
+          {t('analytics.analysis.section_consumption', { defaultValue: 'Consumption' })}
+        </h2>
+        <TokenUsageChart
+          section={tokenUsage.data?.series_by_category}
+          loading={tokenUsage.loading}
+          error={tokenUsage.error}
+          errorStatus={tokenUsage.errorStatus}
+          retryAt={tokenUsage.retryAt}
+          onRetry={() => void tokenUsage.refresh()}
+          locale={locale}
+        />
         <CostBreakdown
           section={costBreakdown.data?.cost_components}
           loading={costBreakdown.loading}
           error={costBreakdown.error}
+          errorStatus={costBreakdown.errorStatus}
+          retryAt={costBreakdown.retryAt}
           onRetry={() => void costBreakdown.refresh()}
           locale={locale}
         />
+        <UsageDistribution results={distributions} locale={locale} />
+      </section>
+      <section className={styles.analysisSection} aria-labelledby="analytics-analysis-behaviour">
+        <h2 id="analytics-analysis-behaviour" className={styles.analysisSectionLabel}>
+          {t('analytics.analysis.section_behaviour', { defaultValue: 'Behaviour' })}
+        </h2>
         <ModelEfficiency
           section={modelEfficiency.data?.model_by_time}
           loading={modelEfficiency.loading}
           error={modelEfficiency.error}
+          errorStatus={modelEfficiency.errorStatus}
+          retryAt={modelEfficiency.retryAt}
           onRetry={() => void modelEfficiency.refresh()}
           locale={locale}
         />
-      </div>
-      <KeyModelHeatmap
-        section={keyModel.data?.key_model_matrix}
-        loading={keyModel.loading}
-        error={keyModel.error}
-        onRetry={() => void keyModel.refresh()}
-        locale={locale}
-      />
+        <TopModelsChart
+          section={topModels.data?.model_by_time}
+          loading={topModels.loading}
+          error={topModels.error}
+          errorStatus={topModels.errorStatus}
+          retryAt={topModels.retryAt}
+          onRetry={() => void topModels.refresh()}
+          locale={locale}
+        />
+        <LatencyDiagnostics
+          section={latency.data?.latency}
+          loading={latency.loading}
+          error={latency.error}
+          errorStatus={latency.errorStatus}
+          retryAt={latency.retryAt}
+          onRetry={() => void latency.refresh()}
+          locale={locale}
+        />
+        <KeyModelHeatmap
+          section={keyModel.data?.key_model_matrix}
+          loading={keyModel.loading}
+          error={keyModel.error}
+          errorStatus={keyModel.errorStatus}
+          retryAt={keyModel.retryAt}
+          onRetry={() => void keyModel.refresh()}
+          locale={locale}
+        />
+      </section>
     </div>
   );
 }

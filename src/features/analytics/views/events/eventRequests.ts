@@ -44,9 +44,7 @@ export async function loadEventDimensionRows(
   let resolvedRange: AnalyticsDimensionPage['meta']['range'] | undefined;
   do {
     const page = await load(
-      cursor && resolvedRange
-        ? freezeAnalyticsCursorQuery(request, cursor, resolvedRange)
-        : request
+      cursor && resolvedRange ? freezeAnalyticsCursorQuery(request, cursor, resolvedRange) : request
     );
     resolvedRange ??= page.meta.range;
     rows.push(...page.rows);

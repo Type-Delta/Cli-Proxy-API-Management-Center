@@ -105,7 +105,12 @@ const validDate = (value: string | null) => {
 const validFilterValue = (value: string | null) => {
   // Reject control characters so hash-state filters cannot smuggle terminal/log escapes.
   // eslint-disable-next-line no-control-regex
-  if (!value || value.length > 200 || value.trim() !== value || /[\u0000-\u001f\u007f]/.test(value)) {
+  if (
+    !value ||
+    value.length > 200 ||
+    value.trim() !== value ||
+    /[\u0000-\u001f\u007f]/.test(value)
+  ) {
     return '';
   }
   return value;

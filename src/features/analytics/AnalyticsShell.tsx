@@ -116,12 +116,15 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
               <div className={styles.headerActions}>
                 {capabilities.loading ? (
                   <span className={styles.statusPlaceholder} aria-hidden="true">
-                    <Skeleton width={72} height={23} rounded={999} />
+                    <i className={styles.readyDot} />
+                    <span className={styles.statusSkeleton}>
+                      <Skeleton width={72} height={23} rounded={999} />
+                    </span>
                   </span>
                 ) : (
                   <span className={isReady ? styles.ready : styles.degraded} role="status">
                     <i className={styles.readyDot} aria-hidden="true" />
-                    {stateLabel}
+                    <span className={styles.statusLabel}>{stateLabel}</span>
                   </span>
                 )}
                 {refreshCount > 0 && (
@@ -130,9 +133,10 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
                     size="sm"
                     onClick={() => void refreshPage()}
                     disabled={refreshing}
+                    aria-label={t('common.refresh')}
                   >
                     {refreshing ? <LoadingSpinner size={14} /> : <IconRefreshCw size={14} />}
-                    {t('common.refresh')}
+                    <span className={styles.refreshLabel}>{t('common.refresh')}</span>
                   </Button>
                 )}
                 <span className={styles.updated} aria-live="polite">

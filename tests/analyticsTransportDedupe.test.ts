@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, spyOn, test } from 'bun:test';
-import { analyticsApi, analyticsInFlightQueryCount, analyticsRequestKey } from '@/services/api/analytics';
+import {
+  analyticsApi,
+  analyticsInFlightQueryCount,
+  analyticsRequestKey,
+} from '@/services/api/analytics';
 import { apiClient, parseRetryAfterSeconds } from '@/services/api/client';
-import { analyticsLoadFailure, analyticsRetryCountdown } from '@/features/analytics/useAnalyticsLoad';
+import {
+  analyticsLoadFailure,
+  analyticsRetryCountdown,
+} from '@/features/analytics/useAnalyticsLoad';
 import type { AnalyticsAnalysisQuery } from '@/types';
 
 const analysisRequest = (start = '2026-09-01T00:00:00Z'): AnalyticsAnalysisQuery =>
@@ -36,7 +43,9 @@ describe('analytics query key', () => {
   });
 
   test('keeps array order significant', () => {
-    expect(analyticsRequestKey({ ids: ['a', 'b'] })).not.toBe(analyticsRequestKey({ ids: ['b', 'a'] }));
+    expect(analyticsRequestKey({ ids: ['a', 'b'] })).not.toBe(
+      analyticsRequestKey({ ids: ['b', 'a'] })
+    );
   });
 });
 
@@ -114,7 +123,8 @@ describe('Analysis mount fan-out', () => {
     try {
       const pending: Promise<unknown>[] = [];
       for (let pass = 0; pass < 2; pass += 1) {
-        for (let card = 0; card < 6; card += 1) pending.push(analyticsApi.analysis(analysisRequest()));
+        for (let card = 0; card < 6; card += 1)
+          pending.push(analyticsApi.analysis(analysisRequest()));
         for (const dimension of ['key', 'model', 'credential', 'provider']) {
           pending.push(
             analyticsApi.dimensions({

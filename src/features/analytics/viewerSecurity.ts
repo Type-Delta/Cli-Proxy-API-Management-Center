@@ -1,26 +1,74 @@
-export function consumeViewerCredential(
-  hash: string,
-  replace: (url: string) => void,
-  cleanURL = '#/viewer'
-): string {
-  const marker = '#/viewer#';
-  if (!hash.startsWith(marker)) return '';
-  const encoded = hash.slice(marker.length);
-  replace(cleanURL);
+import {
+  buildViewerURL,
+  resolveViewerApiBase,
+  viewerCredentialsMode,
+} from './views/viewer/viewerApi';
+
+export type ViewerCredential = {
+  credential: string;
+  apiBase: string;
+};
+
+function validViewerApiBase(value: string | null): string {
+  if (!value) return '';
   try {
-    return decodeURIComponent(encoded);
+    const url = new URL(value);
+    if (
+      value.trim() !== value ||
+      value.includes('?') ||
+      value.includes('#') ||
+      !/^https?:$/.test(url.protocol) ||
+      !url.hostname ||
+      url.username ||
+      url.password ||
+      (url.pathname !== '' && url.pathname !== '/') ||
+      url.search ||
+      url.hash
+    ) {
+      return '';
+    }
+    return url.origin;
   } catch {
     return '';
   }
 }
 
+export function consumeViewerCredential(
+  hash: string,
+  replace: (url: string) => void,
+  cleanURL = '#/viewer'
+): ViewerCredential {
+  const marker = '#/viewer';
+  if (!hash.startsWith(`${marker}#`) && !hash.startsWith(`${marker}?`)) {
+    return { credential: '', apiBase: '' };
+  }
+  const credentialMarker = hash.indexOf('#', marker.length);
+  if (credentialMarker < 0) return { credential: '', apiBase: '' };
+  const query = hash.slice(marker.length, credentialMarker);
+  const encoded = hash.slice(credentialMarker + 1);
+  replace(cleanURL);
+  try {
+    return {
+      credential: decodeURIComponent(encoded),
+      apiBase: validViewerApiBase(new URLSearchParams(query).get('api')),
+    };
+  } catch {
+    return { credential: '', apiBase: '' };
+  }
+}
+
 export async function exchangeViewerCredential(
   credential: string,
-  request: typeof fetch = fetch
+  requestOrApiBase: typeof fetch | string = fetch,
+  apiBase?: string
 ): Promise<void> {
-  const exchanged = await request('/v0/analytics/viewer/session', {
+  const request = typeof requestOrApiBase === 'function' ? requestOrApiBase : fetch;
+  const resolvedApiBase =
+    typeof requestOrApiBase === 'string' ? requestOrApiBase : (apiBase ?? resolveViewerApiBase());
+  const url = buildViewerURL('session', resolvedApiBase);
+  const exchanged = await request(url, {
     method: 'POST',
-    credentials: 'same-origin',
+    credentials: viewerCredentialsMode(url),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ credential }),
   });

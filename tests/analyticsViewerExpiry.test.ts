@@ -1,7 +1,8 @@
-import { describe, expect, test } from 'bun:test';
+import { beforeAll, describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import '@/i18n';
+import i18n from '@/i18n';
 import { ViewerScope } from '@/features/analytics/ViewerPage';
 import {
   viewerExpiryTimes,
@@ -15,6 +16,10 @@ const capabilities: ViewerCapabilities = {
   session_expires_at: '2026-09-03T14:01:00Z',
   view_expires_at: '2026-09-10T13:31:00Z',
 };
+
+beforeAll(async () => {
+  await i18n.changeLanguage('en');
+});
 
 describe('Viewer expiry', () => {
   test('separates the link expiry from the session expiry', () => {

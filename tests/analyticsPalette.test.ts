@@ -1,0 +1,194 @@
+import { describe, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import {
+  TOP_MODEL_LIMIT,
+  buildTopModelSeries,
+} from '@/features/analytics/views/analysis/analysisModel';
+import type { AnalysisModel, AnalysisModelByTime } from '@/types';
+
+// The chart palettes are literal hex in themes.scss precisely so this file can read them:
+// `color-mix()` is a browser primitive with no evaluator here, and the round-4 defects were
+// invisible exactly because nothing could measure the resolved colours.
+const themes = readFileSync(new URL('../src/styles/themes.scss', import.meta.url), 'utf8');
+
+/**
+ * Splits the sheet into its top-level selector blocks. Anchored to the start of a line so a
+ * `[data-theme='dark']` mentioned inside a comment cannot be mistaken for the block itself.
+ */
+const SELECTORS = Array.from(themes.matchAll(/^(?::root|\[data-theme='(\w+)'\])\s*\{/gm));
+const BLOCKS = new Map(
+  SELECTORS.map((match, index) => {
+    const next = SELECTORS[index + 1];
+    const start = (match.index ?? 0) + match[0].length;
+    return [match[1] ?? 'root', themes.slice(start, next?.index ?? themes.length)] as const;
+  })
+);
+
+const readToken = (theme: 'root' | 'white' | 'dark', name: string): string | null => {
+  const match = (BLOCKS.get(theme) ?? '').match(new RegExp(`${name}:\\s*(#[0-9a-f]{6})`, 'i'));
+  return match ? match[1] : null;
+};
+
+/**
+ * The three painted themes. `[data-theme='white']` overrides only its own tokens, so any
+ * viz token it does not redeclare is inherited from `:root` — resolve it the same way CSS does.
+ */
+const resolve = (theme: 'light' | 'white' | 'dark', name: string) => {
+  const value =
+    theme === 'dark'
+      ? readToken('dark', name)
+      : theme === 'white'
+        ? readToken('white', name)
+        : null;
+  const token = value ?? readToken('root', name);
+  if (!token) throw new Error(`themes.scss declares no ${name}`);
+  return token;
+};
+
+const BACKGROUNDS = { light: '#f0eee8', white: '#ffffff', dark: '#1d1b18' } as const;
+const THEMES = ['light', 'white', 'dark'] as const;
+
+const channel = (value: number) => {
+  const c = value / 255;
+  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+};
+const luminance = (hex: string) => {
+  const [r, g, b] = [1, 3, 5].map((i) => channel(parseInt(hex.slice(i, i + 2), 16)));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+/** WCAG 2.x relative-contrast ratio; mirrors the helper in analyticsAffordances.test.ts. */
+const contrast = (a: string, b: string) => {
+  const [hi, lo] = [luminance(a) + 0.05, luminance(b) + 0.05].sort((x, y) => y - x);
+  return hi / lo;
+};
+
+/** Fills only have to separate from each other and the card, so 3:1 is the graphical floor. */
+const GRAPHICAL_FLOOR = 3;
+
+describe('request health ramp', () => {
+  test.each(THEMES)('%s: contrast against the card rises strictly from L1 to L5', (theme) => {
+    const background = BACKGROUNDS[theme];
+    const ratios = [1, 2, 3, 4, 5].map((level) =>
+      contrast(resolve(theme, `--viz-health-${level}`), background)
+    );
+    for (let index = 1; index < ratios.length; index += 1) {
+      expect(ratios[index]).toBeGreaterThan(ratios[index - 1]);
+    }
+    // A step the eye can actually resolve, not just a float that happens to be larger.
+    for (let index = 1; index < ratios.length; index += 1) {
+      expect(ratios[index] / ratios[index - 1]).toBeGreaterThan(1.25);
+    }
+  });
+
+  test.each(THEMES)('%s: the five levels are five different colours', (theme) => {
+    const values = [1, 2, 3, 4, 5].map((level) => resolve(theme, `--viz-health-${level}`));
+    expect(new Set(values).size).toBe(5);
+  });
+});
+
+describe('token category palette', () => {
+  // Stack order in TimeSeriesCharts/UsageDistribution, mapped in Analysis.module.scss:
+  // input -> output -> cache_read -> cache_creation -> reasoning.
+  const STACK = ['--viz-cat-1', '--viz-cat-2', '--viz-cat-3', '--viz-cat-4', '--viz-cat-5'];
+
+  test.each(THEMES)('%s: every stack neighbour clears 3:1', (theme) => {
+    const fills = STACK.map((name) => resolve(theme, name));
+    for (let index = 1; index < fills.length; index += 1) {
+      expect(contrast(fills[index], fills[index - 1])).toBeGreaterThanOrEqual(GRAPHICAL_FLOOR);
+    }
+  });
+
+  test.each(THEMES)('%s: every fill clears 3:1 against the card it sits on', (theme) => {
+    for (const name of STACK) {
+      expect(contrast(resolve(theme, name), BACKGROUNDS[theme])).toBeGreaterThanOrEqual(
+        GRAPHICAL_FLOOR
+      );
+    }
+  });
+
+  test.each(THEMES)('%s: the cost overlay is not one of the fills', (theme) => {
+    const cost = resolve(theme, '--viz-line-cost');
+    // A 2px line needs to read against the card as well as against whatever it crosses.
+    expect(contrast(cost, BACKGROUNDS[theme])).toBeGreaterThanOrEqual(4.5);
+    expect(STACK.map((name) => resolve(theme, name))).not.toContain(cost);
+  });
+});
+
+describe('top model palette', () => {
+  // Analysis.module.scss maps --analysis-model-1..6 to --viz-cat-6,7,8,9,10,1 and the
+  // "Other" band to --viz-cat-other.
+  const MODEL_STACK = [
+    '--viz-cat-6',
+    '--viz-cat-7',
+    '--viz-cat-8',
+    '--viz-cat-9',
+    '--viz-cat-10',
+    '--viz-cat-1',
+    '--viz-cat-other',
+  ];
+
+  test('the palette covers every rank the ranking can render', () => {
+    expect(MODEL_STACK.length).toBe(TOP_MODEL_LIMIT + 1);
+  });
+
+  test.each(THEMES)(
+    '%s: every model stack neighbour clears 3:1 and every swatch is distinct',
+    (theme) => {
+      const fills = MODEL_STACK.map((name) => resolve(theme, name));
+      expect(new Set(fills).size).toBe(MODEL_STACK.length);
+      for (let index = 1; index < fills.length; index += 1) {
+        expect(contrast(fills[index], fills[index - 1])).toBeGreaterThanOrEqual(GRAPHICAL_FLOOR);
+      }
+      for (const fill of fills) {
+        expect(contrast(fill, BACKGROUNDS[theme])).toBeGreaterThanOrEqual(GRAPHICAL_FLOOR);
+      }
+    }
+  );
+});
+
+describe('top model ranking cap', () => {
+  const model = (name: string, total: number): AnalysisModel => ({
+    model: name,
+    requests: 1,
+    input_tokens: total,
+    output_tokens: 0,
+    cached_tokens: 0,
+    cache_read_tokens: 0,
+    cache_creation_tokens: 0,
+    reasoning_tokens: 0,
+    total_tokens: total,
+    known_cost_usd: '0',
+  });
+
+  const section = (count: number): AnalysisModelByTime => ({
+    meta: { partial: false },
+    models: Array.from({ length: count }, (_, index) =>
+      model(`model-${index}`, (count - index) * 10)
+    ),
+    buckets: [
+      {
+        start: '2026-09-01T00:00:00Z',
+        models: Array.from({ length: count }, (_, index) =>
+          model(`model-${index}`, (count - index) * 10)
+        ),
+      },
+    ],
+  });
+
+  test('ten ranked models collapse to six plus one Other band', () => {
+    const ranked = buildTopModelSeries(section(10));
+    expect(ranked).toHaveLength(TOP_MODEL_LIMIT + 1);
+    expect(ranked.slice(0, TOP_MODEL_LIMIT).every((item) => !item.other)).toBe(true);
+    expect(ranked[TOP_MODEL_LIMIT].other).toBe(true);
+    // The band carries the tail's totals, so the stack still sums to the range total.
+    expect(ranked[TOP_MODEL_LIMIT].totalTokens).toBe(40 + 30 + 20 + 10);
+    expect(ranked[TOP_MODEL_LIMIT].values).toEqual([100]);
+    expect(ranked.reduce((sum, item) => sum + item.share, 0)).toBeCloseTo(100, 6);
+  });
+
+  test('a ranking within the cap is left alone', () => {
+    const ranked = buildTopModelSeries(section(TOP_MODEL_LIMIT));
+    expect(ranked).toHaveLength(TOP_MODEL_LIMIT);
+    expect(ranked.some((item) => item.other)).toBe(false);
+  });
+});

@@ -298,8 +298,14 @@
         "integrity_check": "完整性检查",
         "checkpoint": "WAL 检查点",
         "reindex": "重建索引",
-        "import": "导入",
-        "purge": "清除"
+        "restore": "还原",
+        "purge_key": "清除密钥",
+        "rollback_import": "回滚导入",
+        "import_cpauk": "导入 CPAUK",
+        "retention": "保留",
+        "repair": "修复",
+        "reprice": "重新定价",
+        "start_new_identity_epoch": "新建身份纪元"
       },
       "job_state": {
         "queued": "排队中",
@@ -345,6 +351,44 @@
         "videos": "视频",
         "audio": "音频",
         "unknown": "未知"
+      },
+      "provider": {
+        "openai": "OpenAI",
+        "anthropic": "Anthropic",
+        "gemini": "Gemini",
+        "codex": "Codex",
+        "claude": "Claude",
+        "antigravity": "Antigravity",
+        "qwen": "Qwen",
+        "iflow": "iFlow",
+        "kimi": "Kimi",
+        "vertex": "Vertex"
+      },
+      "executor": {
+        "AIStudioExecutor": "AI Studio",
+        "AntigravityExecutor": "Antigravity",
+        "ClaudeExecutor": "Claude",
+        "CodexExecutor": "Codex",
+        "CodexWebsocketsExecutor": "Codex（WebSocket）",
+        "CodexAutoExecutor": "Codex（自动）",
+        "GeminiVertexExecutor": "Gemini（Vertex）",
+        "KimiExecutor": "Kimi",
+        "OpenAICompatExecutor": "OpenAI 兼容",
+        "XAIExecutor": "xAI",
+        "GeminiExecutor": "Gemini",
+        "XAIWebsocketsExecutor": "xAI（WebSocket）",
+        "XAIAutoExecutor": "xAI（自动）"
+      },
+      "auth_type": {
+        "apikey": "API 密钥",
+        "oauth": "OAuth"
+      },
+      "error_class": {
+        "rate_limited": "已限流",
+        "upstream_unavailable": "上游不可用",
+        "upstream_rejected": "上游拒绝",
+        "upstream_redirect": "上游重定向",
+        "transport_failure": "传输失败"
       }
     },
     "range_today": "今天",
@@ -545,7 +589,6 @@
       "daily_basis_unavailable": "已用范围基础不可用。",
       "failed": "失败的",
       "health_grid": "按时间段请求健康状况",
-      "health_legend": "要求健康，少一点，多一点健康",
       "key_metrics": "关键指标",
       "known_cost": "已知 API 成本",
       "less": "较少的",
@@ -579,7 +622,10 @@
       "window_week": "周",
       "window_month": "月",
       "window_year": "年",
-      "heatmap_readout_hint": "悬停或聚焦单元格以查看其时间段。"
+      "heatmap_readout_hint": "悬停或聚焦单元格以查看其时间段。",
+      "unhealthy": "不健康",
+      "healthy": "健康",
+      "health_legend_v2": "请求健康度，从不健康到健康"
     },
     "analysis": {
       "blended_rate": "混合率",
@@ -613,7 +659,7 @@
       "latency_unsupported_title": "不支持范围",
       "load_failed": "无法加载此视图",
       "max_latency": "最大延迟",
-      "max_ttft": "最大TTFT",
+      "max_ttft": "最大 TTFT",
       "maximum": "最大限度",
       "model_efficiency_description": "每 100 万个总代币的已知成本。",
       "model_efficiency_title": "模型效率",
@@ -627,7 +673,7 @@
       "no_token_usage": "请求记录在此范围内后，将显示令牌使用情况。",
       "p50_latency": "p50 延迟",
       "p50_ttft": "p50 TTFT",
-      "p95_latency": "p95潜伏期",
+      "p95_latency": "p95 潜伏期",
       "p95_ttft": "p95 TTFT",
       "partial": "部分数据",
       "per_million_tokens": "每 100 万个代币",
@@ -648,7 +694,10 @@
       "uncached_input": "输入",
       "volume": "用量",
       "ttft_description": "首个令牌用时",
-      "heatmap_readout_hint": "悬停或聚焦单元格以查看其汇总数据。"
+      "heatmap_readout_hint": "悬停或聚焦单元格以查看其汇总数据。",
+      "other_models": "其他模型",
+      "section_consumption": "消耗",
+      "section_behaviour": "行为"
     },
     "maintenance": {
       "abandoned": "已放弃事件",
@@ -736,7 +785,10 @@
     "events_retention_compacted": "早于 {{cutoff}} 的事件已被保留策略压缩；请缩小范围。",
     "observed_requests": "观测请求数",
     "observed_failures": "观测失败数",
-    "observed_counters_note": "观测计数来自当前的凭据健康快照，会随 CPA 重启而重置，且不会与分析使用总量一致。"
+    "observed_counters_note": "观测计数来自当前的凭据健康快照，会随 CPA 重启而重置，且不会与分析使用总量一致。",
+    "events_row_hint": "选择一行以查看完整的请求详情",
+    "events_filter_summary": "{{count}} 个已启用的筛选条件",
+    "events_filter_button": "筛选条件"
   },
   "dashboard": {
     "hero_verdict_good": "运行平稳",
@@ -2086,7 +2138,8 @@
     "login_failed": "登录失败",
     "commercial_mode_restart_required": "商业模式开关已变更，请重启服务后生效",
     "copy_failed": "复制失败",
-    "link_copied": "已复制"
+    "link_copied": "已复制",
+    "save_failed": "保存失败"
   },
   "language": {
     "switch": "语言",

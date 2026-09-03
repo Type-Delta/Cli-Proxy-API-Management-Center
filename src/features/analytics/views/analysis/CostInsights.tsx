@@ -15,12 +15,16 @@ export function CostBreakdown({
   section,
   loading,
   error,
+  errorStatus,
+  retryAt,
   onRetry,
   locale,
 }: {
   section: AnalysisCostComponents | null | undefined;
   loading: boolean;
   error: string;
+  errorStatus?: number;
+  retryAt?: number;
   onRetry: () => void;
   locale?: string;
 }) {
@@ -64,6 +68,8 @@ export function CostBreakdown({
       })}
       loading={loading}
       error={error}
+      errorStatus={errorStatus}
+      retryAt={retryAt}
       hasData={Boolean(section)}
       partial={section?.meta.partial}
       emptyDescription={
@@ -135,12 +141,16 @@ export function ModelEfficiency({
   section,
   loading,
   error,
+  errorStatus,
+  retryAt,
   onRetry,
   locale,
 }: {
   section: AnalysisModelByTime | null | undefined;
   loading: boolean;
   error: string;
+  errorStatus?: number;
+  retryAt?: number;
   onRetry: () => void;
   locale?: string;
 }) {
@@ -156,6 +166,8 @@ export function ModelEfficiency({
       })}
       loading={loading}
       error={error}
+      errorStatus={errorStatus}
+      retryAt={retryAt}
       hasData={models.length > 0}
       partial={section?.meta.partial}
       emptyDescription={

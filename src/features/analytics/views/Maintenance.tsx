@@ -503,9 +503,7 @@ function HealthCard({ health }: { health: AnalyticsLoadResult<AnalyticsHealth> }
 
 /** A relative timestamp with the exact instant kept in the `title` for screen readers and hover. */
 function RelativeTimestamp({ value, locale }: { value: string; locale?: string }) {
-  return (
-    <span title={formatDateTime(value, locale)}>{formatRelativeDate(value, locale)}</span>
-  );
+  return <span title={formatDateTime(value, locale)}>{formatRelativeDate(value, locale)}</span>;
 }
 
 function HealthDetails({

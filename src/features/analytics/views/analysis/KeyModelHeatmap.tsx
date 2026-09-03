@@ -35,12 +35,16 @@ export function KeyModelHeatmap({
   section,
   loading,
   error,
+  errorStatus,
+  retryAt,
   onRetry,
   locale,
 }: {
   section: AnalysisKeyModelMatrix | null | undefined;
   loading: boolean;
   error: string;
+  errorStatus?: number;
+  retryAt?: number;
   onRetry: () => void;
   locale?: string;
 }) {
@@ -129,6 +133,8 @@ export function KeyModelHeatmap({
       })}
       loading={loading}
       error={error}
+      errorStatus={errorStatus}
+      retryAt={retryAt}
       hasData={Boolean(matrix && matrix.rows.length > 0 && matrix.models.length > 0)}
       partial={section?.meta.partial}
       emptyDescription={

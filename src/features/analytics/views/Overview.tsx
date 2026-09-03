@@ -52,6 +52,8 @@ export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: str
       <AsyncState
         loading={timeseries.loading}
         error={timeseries.error}
+        errorStatus={timeseries.errorStatus}
+        retryAt={timeseries.retryAt}
         stale={timeseries.data?.meta.degraded}
         onRetry={() => void timeseries.refresh()}
       >
@@ -74,6 +76,8 @@ export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: str
       <AsyncState
         loading={summary.loading}
         error={summary.error}
+        errorStatus={summary.errorStatus}
+        retryAt={summary.retryAt}
         stale={summary.data?.meta.degraded}
         onRetry={() => void summary.refresh()}
       >
@@ -90,6 +94,8 @@ export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: str
         activity={activity.data}
         loading={activity.loading}
         error={activity.error}
+        errorStatus={activity.errorStatus}
+        retryAt={activity.retryAt}
         window={activityWindow}
         onWindowChange={setActivityWindow}
         onRetry={() => void activity.refresh()}

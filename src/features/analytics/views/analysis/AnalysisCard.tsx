@@ -68,7 +68,7 @@ export function AnalysisCard({
             title={t('analytics.analysis.load_failed', {
               defaultValue: 'Could not load this view',
             })}
-            description={error}
+            description={failure.text}
             action={
               <Button variant="secondary" onClick={onRetry} disabled={retryIn > 0}>
                 {retryIn > 0

@@ -176,7 +176,9 @@ describe('retentionCutoffFromError', () => {
   test('reads the cutoff wherever the error envelope carries it', () => {
     const cutoff = '2026-08-04T00:00:00Z';
     const nested = Object.assign(new Error('invalid query'), {
-      details: { error: { code: 'analytics_invalid_query', details: { retention_cutoff: cutoff } } },
+      details: {
+        error: { code: 'analytics_invalid_query', details: { retention_cutoff: cutoff } },
+      },
     });
     const flat = Object.assign(new Error('invalid query'), {
       details: { details: { retained_cutoff: cutoff } },
@@ -188,7 +190,9 @@ describe('retentionCutoffFromError', () => {
 
   test('falls back to empty so the view keeps the generic mapped copy', () => {
     expect(retentionCutoffFromError(new Error('boom'))).toBe('');
-    expect(retentionCutoffFromError(Object.assign(new Error('x'), { details: { error: 'nope' } }))).toBe('');
+    expect(
+      retentionCutoffFromError(Object.assign(new Error('x'), { details: { error: 'nope' } }))
+    ).toBe('');
     expect(retentionCutoffFromError(null)).toBe('');
   });
 });

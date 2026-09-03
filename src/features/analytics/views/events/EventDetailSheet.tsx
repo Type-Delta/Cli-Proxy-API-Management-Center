@@ -93,7 +93,7 @@ export function EventDetailSheet({
               </div>
               <div>
                 <dt>{t('analytics.provider')}</dt>
-                <dd>{event.provider || '—'}</dd>
+                <dd>{formatAnalyticsEnum(t, 'provider', event.provider)}</dd>
               </div>
               <div>
                 <dt>{t('analytics.model')}</dt>
@@ -105,15 +105,15 @@ export function EventDetailSheet({
               </div>
               <div>
                 <dt>{t('analytics.endpoint', { defaultValue: 'Endpoint' })}</dt>
-                <dd>{event.endpoint_class || '—'}</dd>
+                <dd>{formatAnalyticsEnum(t, 'endpoint', event.endpoint_class)}</dd>
               </div>
               <div>
                 <dt>{t('analytics.executor', { defaultValue: 'Executor' })}</dt>
-                <dd>{formatAnalyticsEnum(t, 'state', event.executor_type)}</dd>
+                <dd>{formatAnalyticsEnum(t, 'executor', event.executor_type)}</dd>
               </div>
               <div>
                 <dt>{t('analytics.auth_type', { defaultValue: 'Auth type' })}</dt>
-                <dd>{formatAnalyticsEnum(t, 'state', event.auth_type)}</dd>
+                <dd>{formatAnalyticsEnum(t, 'auth_type', event.auth_type)}</dd>
               </div>
               <div>
                 <dt>{t('analytics.credential', { defaultValue: 'Credential' })}</dt>
@@ -139,7 +139,7 @@ export function EventDetailSheet({
               </div>
               <div>
                 <dt>{t('analytics.error_class', { defaultValue: 'Error class' })}</dt>
-                <dd>{formatAnalyticsEnum(t, 'state', event.error_class)}</dd>
+                <dd>{formatAnalyticsEnum(t, 'error_class', event.error_class)}</dd>
               </div>
               <div>
                 <dt>{t('analytics.status_code', { defaultValue: 'Status code' })}</dt>
@@ -159,11 +159,11 @@ export function EventDetailSheet({
               </div>
               <div>
                 <dt>{t('analytics.requested_tier', { defaultValue: 'Requested tier' })}</dt>
-                <dd>{formatAnalyticsEnum(t, 'state', event.service_tier_requested)}</dd>
+                <dd>{formatAnalyticsEnum(t, 'service_tier', event.service_tier_requested)}</dd>
               </div>
               <div>
                 <dt>{t('analytics.used_tier', { defaultValue: 'Used tier' })}</dt>
-                <dd>{formatAnalyticsEnum(t, 'state', event.service_tier_used)}</dd>
+                <dd>{formatAnalyticsEnum(t, 'service_tier', event.service_tier_used)}</dd>
               </div>
               <div>
                 <dt>{t('analytics.generated', { defaultValue: 'Generated' })}</dt>
@@ -202,7 +202,7 @@ export function EventDetailSheet({
               </div>
               <div>
                 <dt>{t('analytics.price_source', { defaultValue: 'Price source' })}</dt>
-                <dd>{formatAnalyticsEnum(t, 'state', event.price_source)}</dd>
+                <dd>{formatAnalyticsEnum(t, 'source', event.price_source)}</dd>
               </div>
             </dl>
           </Card>

@@ -184,6 +184,8 @@ export function Pricing() {
     <AsyncState
       loading={result.loading}
       error={result.error}
+      errorStatus={result.errorStatus}
+      retryAt={result.retryAt}
       onRetry={() => void result.refresh()}
     >
       {result.data && (

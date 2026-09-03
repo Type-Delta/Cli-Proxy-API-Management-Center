@@ -175,6 +175,8 @@ export function KeysView({
       <AsyncState
         loading={ranking.loading}
         error=""
+        errorStatus={ranking.errorStatus}
+        retryAt={ranking.retryAt}
         stale={ranking.data?.meta.degraded}
         onRetry={() => void ranking.refresh()}
       >
@@ -389,6 +391,8 @@ export function KeysView({
             <AsyncState
               loading={recent.loading}
               error=""
+              errorStatus={recent.errorStatus}
+              retryAt={recent.retryAt}
               stale={recent.data?.meta.degraded}
               onRetry={() => void recent.refresh()}
             >

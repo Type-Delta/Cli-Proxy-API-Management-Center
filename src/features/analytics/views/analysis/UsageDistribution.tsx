@@ -77,6 +77,8 @@ export function UsageDistribution({
       })}
       loading={result.loading}
       error={result.error}
+      errorStatus={result.errorStatus}
+      retryAt={result.retryAt}
       hasData={result.data !== null}
       partial={result.data?.meta.degraded}
       emptyDescription={t('analytics.analysis.no_distribution', {

@@ -45,9 +45,7 @@ export function AnalyticsTabs({ active }: { active: AnalyticsPageKind }) {
   const syncOverflow = useCallback(() => {
     const scroller = listRef.current;
     if (!scroller) return;
-    setOverflow(
-      tabOverflowEdges(scroller.scrollLeft, scroller.clientWidth, scroller.scrollWidth)
-    );
+    setOverflow(tabOverflowEdges(scroller.scrollLeft, scroller.clientWidth, scroller.scrollWidth));
   }, []);
 
   // Layout effect so the first paint already carries the right affordance.
@@ -95,12 +93,7 @@ export function AnalyticsTabs({ active }: { active: AnalyticsPageKind }) {
       data-analytics-tabs
       data-overflow={overflow}
     >
-      <IconChevronLeft
-        size={14}
-        className={styles.edgeHint}
-        data-edge="start"
-        aria-hidden="true"
-      />
+      <IconChevronLeft size={14} className={styles.edgeHint} data-edge="start" aria-hidden="true" />
       <IconChevronLeft size={14} className={styles.edgeHint} data-edge="end" aria-hidden="true" />
       {/* The group wrappers are layout only; `presentation` keeps the tabs as the tablist's
           own children while the visible group labels stay in the DOM. */}

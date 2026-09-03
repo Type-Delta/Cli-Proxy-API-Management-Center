@@ -297,8 +297,14 @@
         "integrity_check": "Проверка целостности",
         "checkpoint": "Контрольная точка WAL",
         "reindex": "Переиндексация",
-        "import": "Импорт",
-        "purge": "Удаление"
+        "restore": "Восстановление копии",
+        "purge_key": "Удаление ключа",
+        "rollback_import": "Откат импорта",
+        "import_cpauk": "Импорт CPAUK",
+        "retention": "Хранение",
+        "repair": "Ремонт",
+        "reprice": "Переоценка",
+        "start_new_identity_epoch": "Новая эпоха идентичности"
       },
       "job_state": {
         "queued": "В очереди",
@@ -344,6 +350,44 @@
         "videos": "Видео",
         "audio": "Аудио",
         "unknown": "Неизвестно"
+      },
+      "provider": {
+        "openai": "OpenAI",
+        "anthropic": "Anthropic",
+        "gemini": "Gemini",
+        "codex": "Codex",
+        "claude": "Claude",
+        "antigravity": "Antigravity",
+        "qwen": "Qwen",
+        "iflow": "iFlow",
+        "kimi": "Kimi",
+        "vertex": "Vertex"
+      },
+      "executor": {
+        "AIStudioExecutor": "AI Studio",
+        "AntigravityExecutor": "Antigravity",
+        "ClaudeExecutor": "Claude",
+        "CodexExecutor": "Codex",
+        "CodexWebsocketsExecutor": "Codex (WebSocket)",
+        "CodexAutoExecutor": "Codex (авто)",
+        "GeminiVertexExecutor": "Gemini (Vertex)",
+        "KimiExecutor": "Kimi",
+        "OpenAICompatExecutor": "OpenAI-совместимый",
+        "XAIExecutor": "xAI",
+        "GeminiExecutor": "Gemini",
+        "XAIWebsocketsExecutor": "xAI (WebSocket)",
+        "XAIAutoExecutor": "xAI (авто)"
+      },
+      "auth_type": {
+        "apikey": "API-ключ",
+        "oauth": "OAuth"
+      },
+      "error_class": {
+        "rate_limited": "Ограничение скорости",
+        "upstream_unavailable": "Вышестоящий сервер недоступен",
+        "upstream_rejected": "Вышестоящий сервер отклонил запрос",
+        "upstream_redirect": "Перенаправление вышестоящего сервера",
+        "transport_failure": "Сбой передачи"
       }
     },
     "range_today": "Сегодня",
@@ -544,7 +588,6 @@
       "daily_basis_unavailable": "База прошедшего диапазона недоступна.",
       "failed": "Неуспешный",
       "health_grid": "Запросить работоспособность по временному интервалу",
-      "health_legend": "Запросите здоровье, от меньшего к более здоровому",
       "key_metrics": "Ключевые показатели",
       "known_cost": "Известная стоимость API",
       "less": "Меньше",
@@ -578,7 +621,10 @@
       "window_week": "Неделя",
       "window_month": "Месяц",
       "window_year": "Год",
-      "heatmap_readout_hint": "Наведите курсор или сфокусируйте ячейку, чтобы увидеть её интервал."
+      "heatmap_readout_hint": "Наведите курсор или сфокусируйте ячейку, чтобы увидеть её интервал.",
+      "unhealthy": "Нездоровый",
+      "healthy": "Здоровый",
+      "health_legend_v2": "Работоспособность запросов: от нездоровых к здоровым"
     },
     "analysis": {
       "blended_rate": "Смешанная ставка",
@@ -647,7 +693,10 @@
       "uncached_input": "Вход",
       "volume": "Объем",
       "ttft_description": "Время до первого токена",
-      "heatmap_readout_hint": "Наведите курсор или сфокусируйте ячейку, чтобы увидеть её итоги."
+      "heatmap_readout_hint": "Наведите курсор или сфокусируйте ячейку, чтобы увидеть её итоги.",
+      "other_models": "Другие модели",
+      "section_consumption": "Потребление",
+      "section_behaviour": "Поведение"
     },
     "maintenance": {
       "abandoned": "Отброшенные события",
@@ -735,7 +784,10 @@
     "events_retention_compacted": "События старше {{cutoff}} были сжаты хранением; сузьте диапазон.",
     "observed_requests": "Наблюдаемые запросы",
     "observed_failures": "Наблюдаемые сбои",
-    "observed_counters_note": "Наблюдаемые значения берутся из текущего снимка состояния учётных данных, поэтому они сбрасываются при перезапуске CPA и не совпадают с итогами аналитики использования."
+    "observed_counters_note": "Наблюдаемые значения берутся из текущего снимка состояния учётных данных, поэтому они сбрасываются при перезапуске CPA и не совпадают с итогами аналитики использования.",
+    "events_row_hint": "Выберите строку, чтобы увидеть все детали попытки",
+    "events_filter_summary": "Активных фильтров: {{count}}",
+    "events_filter_button": "Фильтры"
   },
   "dashboard": {
     "hero_verdict_good": "Всё стабильно",
@@ -2064,7 +2116,8 @@
     "login_failed": "Вход не выполнен",
     "commercial_mode_restart_required": "Режим коммерческого использования изменён. Перезапустите сервис, чтобы применить изменения",
     "copy_failed": "Не удалось скопировать",
-    "link_copied": "Ссылка скопирована в буфер обмена"
+    "link_copied": "Ссылка скопирована в буфер обмена",
+    "save_failed": "Не удалось сохранить"
   },
   "language": {
     "switch": "Язык",

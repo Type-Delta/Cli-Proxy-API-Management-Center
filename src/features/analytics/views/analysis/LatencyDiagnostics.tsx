@@ -31,12 +31,16 @@ export function LatencyDiagnostics({
   section,
   loading,
   error,
+  errorStatus,
+  retryAt,
   onRetry,
   locale,
 }: {
   section: AnalysisLatency | null | undefined;
   loading: boolean;
   error: string;
+  errorStatus?: number;
+  retryAt?: number;
   onRetry: () => void;
   locale?: string;
 }) {
@@ -96,6 +100,8 @@ export function LatencyDiagnostics({
       })}
       loading={loading}
       error={error}
+      errorStatus={errorStatus}
+      retryAt={retryAt}
       hasData={presentation.state === 'ready' || hasSpecialState}
       partial={presentation.partial}
       emptyDescription={t('analytics.analysis.no_latency', {

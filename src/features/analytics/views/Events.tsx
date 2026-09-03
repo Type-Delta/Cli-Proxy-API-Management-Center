@@ -42,7 +42,12 @@ import {
   type AnalyticsEventFilters,
   type AnalyticsRange,
 } from '../query';
-import { useAnalyticsLoad } from '../useAnalyticsLoad';
+import {
+  analyticsLoadFailure,
+  noteAnalyticsRetryAt,
+  useAnalyticsLoad,
+  useAnalyticsRetryCountdown,
+} from '../useAnalyticsLoad';
 import { EventColumnSettings, type EventColumnOption } from './events/EventColumnSettings';
 import { EventDetailSheet } from './events/EventDetailSheet';
 import {
@@ -81,11 +86,16 @@ const uniqueEvents = (pages: readonly AnalyticsEventPage[]) => {
 
 export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: string[] }) {
   const { t, i18n } = useTranslation();
-  const { keys, reportResolvedRange, eventFilters: filters, setEventFilters: setFilters } =
-    useAnalyticsFilters();
+  const {
+    keys,
+    reportResolvedRange,
+    eventFilters: filters,
+    setEventFilters: setFilters,
+  } = useAnalyticsFilters();
   const [pages, setPages] = useState<AnalyticsEventPage[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState('');
+  const [loadMoreRetryAt, setLoadMoreRetryAt] = useState<number>();
   const [exporting, setExporting] = useState(false);
   const [exportChoice, setExportChoice] = useState('');
   const [exportError, setExportError] = useState('');
@@ -95,6 +105,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
   );
   const [selectedAttemptId, setSelectedAttemptId] = useState('');
   const [activeRow, setActiveRow] = useState(0);
+  const filterCardRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   const dimensionRequest = (dimension: string) =>
@@ -162,6 +173,19 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
       throw caught;
     }
   }, scope);
+  const retryDeadline = Math.max(
+    result.retryAt ?? 0,
+    loadMoreRetryAt ?? 0,
+    providerDimensions.retryAt ?? 0,
+    modelDimensions.retryAt ?? 0,
+    sourceDimensions.retryAt ?? 0,
+    failureDimensions.retryAt ?? 0
+  );
+  const retryIn = useAnalyticsRetryCountdown(retryDeadline || undefined);
+  const retryLabel =
+    retryIn > 0
+      ? t('analytics.retry_in', { defaultValue: 'Retry in {{seconds}} s', seconds: retryIn })
+      : t('common.retry');
   const retentionMessage = retentionCutoff
     ? t('analytics.events_retention_compacted', {
         cutoff: formatDateTime(retentionCutoff, i18n.resolvedLanguage),
@@ -173,6 +197,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     scopeRef.current = scope;
     setLoadingMore(false);
     setLoadMoreError('');
+    setLoadMoreRetryAt(undefined);
     setRetentionCutoff('');
     setActiveRow(0);
   }, [scope]);
@@ -216,9 +241,9 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
   const allOption = (label: string) => ({ value: '', label });
   const providerOptions = [
     allOption(t('analytics.all_providers', { defaultValue: 'All providers' })),
-    ...[
-      ...new Set((providerDimensions.data ?? []).map((row) => row.value).filter(Boolean)),
-    ].map((value) => ({ value, label: value })),
+    ...[...new Set((providerDimensions.data ?? []).map((row) => row.value).filter(Boolean))].map(
+      (value) => ({ value, label: formatAnalyticsEnum(t, 'provider', value) })
+    ),
   ];
   const modelOptions = [
     allOption(t('analytics.all_models', { defaultValue: 'All models' })),
@@ -254,7 +279,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
       ),
     ].map((value) => ({
       value,
-      label: formatAnalyticsEnum(t, 'state', value),
+      label: formatAnalyticsEnum(t, 'error_class', value),
     })),
   ];
 
@@ -294,10 +319,16 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
       const next = await analyticsApi.events(
         freezeAnalyticsCursorQuery(request, nextCursor, firstPage.meta.range)
       );
-      if (scopeRef.current === startedScope) setPages((current) => [...current, next]);
+      if (scopeRef.current === startedScope) {
+        setPages((current) => [...current, next]);
+        setLoadMoreRetryAt(undefined);
+      }
     } catch (caught) {
+      const failed = analyticsLoadFailure(caught);
+      noteAnalyticsRetryAt(failed.retryAt);
       if (scopeRef.current === startedScope) {
         setLoadMoreError(caught instanceof Error ? caught.message : t('common.error'));
+        setLoadMoreRetryAt(failed.retryAt);
       }
     } finally {
       if (scopeRef.current === startedScope) setLoadingMore(false);
@@ -411,7 +442,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
       case 'total_cost':
         return <span title={cost.title}>{cost.text}</span>;
       case 'executor_type':
-        return formatAnalyticsEnum(t, 'state', event.executor_type);
+        return formatAnalyticsEnum(t, 'executor', event.executor_type);
     }
   };
 
@@ -448,89 +479,112 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
 
   return (
     <>
-      <Card title={t('analytics.event_filters', { defaultValue: 'Event filters' })}>
-        <div className={styles.controlGrid}>
-          <label className={styles.control}>
-            <span>{t('analytics.provider')}</span>
-            <Select
-              value={filters.provider}
-              onChange={(value) => updateFilter('provider', value)}
-              options={providerOptions}
-              ariaLabel={t('analytics.provider')}
-            />
-          </label>
-          <label className={styles.control}>
-            <span>{t('analytics.model')}</span>
-            <Select
-              value={filters.model}
-              onChange={(value) => updateFilter('model', value)}
-              options={modelOptions}
-              ariaLabel={t('analytics.model')}
-            />
-          </label>
-          <label className={styles.control}>
-            <span>{t('analytics.source', { defaultValue: 'Source' })}</span>
-            <Select
-              value={filters.source}
-              onChange={(value) => updateFilter('source', value)}
-              options={sourceOptions}
-              ariaLabel={t('analytics.source', { defaultValue: 'Source' })}
-            />
-          </label>
-          <label className={styles.control}>
-            <span>{t('analytics.result', { defaultValue: 'Result' })}</span>
-            <Select
-              value={filters.result}
-              onChange={(value) =>
-                updateFilter('result', value as AnalyticsEventFilters['result'])
-              }
-              options={resultOptions}
-              ariaLabel={t('analytics.result', { defaultValue: 'Result' })}
-            />
-          </label>
-          <label className={styles.control}>
-            <span>{t('analytics.error_class', { defaultValue: 'Error class' })}</span>
-            <Select
-              value={filters.errorClass}
-              onChange={(value) => updateFilter('errorClass', value)}
-              options={errorOptions}
-              ariaLabel={t('analytics.error_class', { defaultValue: 'Error class' })}
-            />
-          </label>
-        </div>
-        <div className={styles.filterFooter}>
-          <Button
-            variant="secondary"
-            disabled={!hasFilters}
-            onClick={() => setFilters(DEFAULT_ANALYTICS_EVENT_FILTERS)}
-          >
-            {t('analytics.clear_filters', { defaultValue: 'Clear filters' })}
-          </Button>
-          {sourceDimensions.error && (
-            <span className={styles.sourceNotice}>
-              {t('analytics.source_loaded_fallback', {
-                defaultValue:
-                  'CPA did not return Source options; this control uses values from loaded events.',
-              })}
-            </span>
-          )}
-        </div>
-        {[
-          [providerDimensions.error, providerDimensions.refresh],
-          [modelDimensions.error, modelDimensions.refresh],
-          [sourceDimensions.error, sourceDimensions.refresh],
-          [failureDimensions.error, failureDimensions.refresh],
-        ]
-          .filter(([error]) => Boolean(error))
-          .map(([error, retry], index) => (
-            <div className="error-box" role="alert" key={`${index}:${String(error)}`}>
-              <span>{String(error)}</span>
-              <Button variant="secondary" onClick={() => void (retry as () => Promise<unknown>)()}>
-                {t('common.retry')}
-              </Button>
-            </div>
-          ))}
-      </Card>
+      <div className={styles.mobileFilterSummary}>
+        <span>
+          {t('analytics.events_filter_summary', {
+            count: Object.keys(requestFilters).length,
+            defaultValue: '{{count}} active filters',
+          })}
+        </span>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() =>
+            filterCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        >
+          {t('analytics.events_filter_button', { defaultValue: 'Filters' })}
+        </Button>
+      </div>
+      <div ref={filterCardRef} id="analytics-events-filters" className={styles.filterTarget}>
+        <Card title={t('analytics.event_filters', { defaultValue: 'Event filters' })}>
+          <div className={styles.controlGrid}>
+            <label className={styles.control}>
+              <span>{t('analytics.provider')}</span>
+              <Select
+                value={filters.provider}
+                onChange={(value) => updateFilter('provider', value)}
+                options={providerOptions}
+                ariaLabel={t('analytics.provider')}
+              />
+            </label>
+            <label className={styles.control}>
+              <span>{t('analytics.model')}</span>
+              <Select
+                value={filters.model}
+                onChange={(value) => updateFilter('model', value)}
+                options={modelOptions}
+                ariaLabel={t('analytics.model')}
+              />
+            </label>
+            <label className={styles.control}>
+              <span>{t('analytics.source', { defaultValue: 'Source' })}</span>
+              <Select
+                value={filters.source}
+                onChange={(value) => updateFilter('source', value)}
+                options={sourceOptions}
+                ariaLabel={t('analytics.source', { defaultValue: 'Source' })}
+              />
+            </label>
+            <label className={styles.control}>
+              <span>{t('analytics.result', { defaultValue: 'Result' })}</span>
+              <Select
+                value={filters.result}
+                onChange={(value) =>
+                  updateFilter('result', value as AnalyticsEventFilters['result'])
+                }
+                options={resultOptions}
+                ariaLabel={t('analytics.result', { defaultValue: 'Result' })}
+              />
+            </label>
+            <label className={styles.control}>
+              <span>{t('analytics.error_class', { defaultValue: 'Error class' })}</span>
+              <Select
+                value={filters.errorClass}
+                onChange={(value) => updateFilter('errorClass', value)}
+                options={errorOptions}
+                ariaLabel={t('analytics.error_class', { defaultValue: 'Error class' })}
+              />
+            </label>
+          </div>
+          <div className={styles.filterFooter}>
+            <Button
+              variant="secondary"
+              disabled={!hasFilters}
+              onClick={() => setFilters(DEFAULT_ANALYTICS_EVENT_FILTERS)}
+            >
+              {t('analytics.clear_filters', { defaultValue: 'Clear filters' })}
+            </Button>
+            {sourceDimensions.error && (
+              <span className={styles.sourceNotice}>
+                {t('analytics.source_loaded_fallback', {
+                  defaultValue:
+                    'CPA did not return Source options; this control uses values from loaded events.',
+                })}
+              </span>
+            )}
+          </div>
+          {[
+            [providerDimensions.error, providerDimensions.refresh],
+            [modelDimensions.error, modelDimensions.refresh],
+            [sourceDimensions.error, sourceDimensions.refresh],
+            [failureDimensions.error, failureDimensions.refresh],
+          ]
+            .filter(([error]) => Boolean(error))
+            .map(([error, retry], index) => (
+              <div className="error-box" role="alert" key={`${index}:${String(error)}`}>
+                <span>{String(error)}</span>
+                <Button
+                  variant="secondary"
+                  onClick={() => void (retry as () => Promise<unknown>)()}
+                  disabled={retryIn > 0}
+                >
+                  {retryLabel}
+                </Button>
+              </div>
+            ))}
+        </Card>
+      </div>
 
       {result.error && effectivePages.length === 0 ? (
         <Card>
@@ -538,8 +592,12 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
             title={t('analytics.load_failed')}
             description={retentionMessage || result.error}
             action={
-              <Button variant="secondary" onClick={() => void result.refresh()}>
-                {t('common.retry')}
+              <Button
+                variant="secondary"
+                onClick={() => void result.refresh()}
+                disabled={retryIn > 0}
+              >
+                {retryLabel}
               </Button>
             }
           />
@@ -548,6 +606,8 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
         <AsyncState
           loading={result.loading}
           error=""
+          errorStatus={result.errorStatus}
+          retryAt={result.retryAt}
           stale={lastPage?.meta.degraded}
           onRetry={() => void result.refresh()}
         >
@@ -591,8 +651,12 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                   <span title={retentionMessage ? result.error : undefined}>
                     {retentionMessage || result.error}
                   </span>
-                  <Button variant="secondary" onClick={() => void result.refresh()}>
-                    {t('common.retry')}
+                  <Button
+                    variant="secondary"
+                    onClick={() => void result.refresh()}
+                    disabled={retryIn > 0}
+                  >
+                    {retryLabel}
                   </Button>
                 </div>
               )}
@@ -648,12 +712,16 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                   aria-label={t('analytics.events')}
                   aria-rowcount={totalCount === undefined ? undefined : totalCount + 1}
                 >
+                  <caption className={styles.tableCaption}>
+                    {t('analytics.events_row_hint', {
+                      defaultValue: 'Select a row for full attempt details',
+                    })}
+                  </caption>
                   <TableHeader>
                     <TableRow>
                       {visibleColumns.map((column) => (
                         <TableHead key={column}>{labelByColumn.get(column)}</TableHead>
                       ))}
-                      <TableHead>{t('common.action')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -671,20 +739,6 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                         {visibleColumns.map((column) => (
                           <TableCell key={column}>{renderCell(column, event)}</TableCell>
                         ))}
-                        <TableCell>
-                          {/* The row carries the keyboard interaction; this affordance stays
-                              visible for the mouse but adds no tab stop. */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className={styles.detailButton}
-                            tabIndex={-1}
-                            aria-hidden="true"
-                            onClick={() => setSelectedAttemptId(event.attempt_id)}
-                          >
-                            <IconEye size={16} />
-                          </Button>
-                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -704,8 +758,15 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                       })}
                 </span>
                 {nextCursor && (
-                  <Button variant="secondary" loading={loadingMore} onClick={() => void loadMore()}>
-                    {t('analytics.load_more', { defaultValue: 'Load more' })}
+                  <Button
+                    variant="secondary"
+                    loading={loadingMore}
+                    disabled={retryIn > 0}
+                    onClick={() => void loadMore()}
+                  >
+                    {retryIn > 0
+                      ? retryLabel
+                      : t('analytics.load_more', { defaultValue: 'Load more' })}
                   </Button>
                 )}
               </div>

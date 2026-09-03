@@ -284,6 +284,7 @@ function getAnalyticsTimeZoneError(
 ): 'analytics_storage_time_zone_invalid' | undefined {
   const trimmed = value.trim();
   if (!trimmed) return 'analytics_storage_time_zone_invalid';
+  if (trimmed === 'Local') return undefined;
   try {
     new Intl.DateTimeFormat('en-US', { timeZone: trimmed });
     return undefined;
@@ -1652,7 +1653,7 @@ export function useVisualConfig() {
             setStringInDoc(
               doc,
               ['analytics', 'storage-time-zone'],
-              values.analyticsStorageTimeZone
+              values.analyticsStorageTimeZone.trim()
             );
           }
           if (dirtyFields.has('analyticsStoreCredentialId')) {

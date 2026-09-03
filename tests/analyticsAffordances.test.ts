@@ -121,7 +121,9 @@ describe('analytics error copy', () => {
   test('replaces the raw message with actionable copy but keeps it as detail', () => {
     const copy = analyticsErrorCopy(t, ' Network Error ');
     expect(copy.kind).toBe('network');
-    expect(copy.text).toBe('Could not reach the analytics API. Check the connection and try again.');
+    expect(copy.text).toBe(
+      'Could not reach the analytics API. Check the connection and try again.'
+    );
     expect(copy.detail).toBe('Network Error');
     expect(analyticsErrorCopy(t, '').detail).toBeUndefined();
   });

@@ -88,6 +88,38 @@
   // whole grid is painted with them, so volume ramps use this desaturated blue instead.
   --viz-neutral: #3f6493;
 
+  // Nominal (categorical) data palette. Semantic tokens encode meaning, so they cannot also
+  // encode category identity: stacked neighbours derived from them measured 1.10-1.18:1 apart.
+  // These ten hues alternate between a dark band (relative luminance ~0.026) and a light band
+  // (~0.245), which puts every consecutive pair >= 3.6:1 apart and every swatch >= 3:1 against
+  // --bg-primary in both the warm and the white theme. Order is the stack order, so index the
+  // series by position, never modulo. Tests pin these values in tests/analyticsPalette.test.ts.
+  --viz-cat-1: #0e2865;
+  --viz-cat-2: #249a57;
+  --viz-cat-3: #4e134e;
+  --viz-cat-4: #bf770c;
+  --viz-cat-5: #02313b;
+  --viz-cat-6: #e3567c;
+  --viz-cat-7: #341b6c;
+  --viz-cat-8: #57982c;
+  --viz-cat-9: #4e1f0b;
+  --viz-cat-10: #269982;
+  // The "everything else" band that closes a capped ranking. Achromatic so it never reads as
+  // a named category, but placed on the light band so it separates from --viz-cat-1 beneath it.
+  --viz-cat-other: #8e867f;
+  // Line overlays drawn over the categorical fills; >= 1.9:1 against every fill and >= 4.5:1
+  // against the card so they stay readable as thin strokes.
+  --viz-line-cost: #b10e3a;
+
+  // Ordinal request-health ramp. Contrast against --bg-primary is strictly increasing
+  // (1.89 / 2.90 / 4.28 / 6.29 / 8.94) so "healthier" always reads as "stronger", while the
+  // red -> amber -> green hue progression carries the semantics.
+  --viz-health-1: #ed998f;
+  --viz-health-2: #eb5e4e;
+  --viz-health-3: #9f6208;
+  --viz-health-4: #176338;
+  --viz-health-5: #084a2b;
+
   // 动效词汇表：内置 ease 太弱，交互反馈统一用强减速曲线。
   // 按压 160ms / 悬停 200ms，UI 动效不超过 300ms。
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
@@ -242,6 +274,29 @@
   --viz-success: #0fae78;
   --viz-failure: #cf4b3a;
   --viz-neutral: #88b0dc;
+
+  // Same ten hues, re-banded for the dark card: the alternating bands invert to ~0.155 and
+  // ~0.700 relative luminance so neighbours stay >= 3.6:1 apart and each swatch >= 3.3:1
+  // against --bg-primary. Hue order matches :root, so a category keeps its identity on theme
+  // change.
+  --viz-cat-1: #3066e1;
+  --viz-cat-2: #a3eac2;
+  --viz-cat-3: #b72eb7;
+  --viz-cat-4: #f9d59e;
+  --viz-cat-5: #047890;
+  --viz-cat-6: #f7d0db;
+  --viz-cat-7: #7b55d4;
+  --viz-cat-8: #c0e5a7;
+  --viz-cat-9: #ba4b1b;
+  --viz-cat-10: #a1e8d9;
+  --viz-cat-other: #dcd9d7;
+  --viz-line-cost: #f87296;
+
+  --viz-health-1: #8a2217;
+  --viz-health-2: #c02615;
+  --viz-health-3: #b46f09;
+  --viz-health-4: #2ab265;
+  --viz-health-5: #18d77e;
 }
 
 @media (max-width: 768px),

@@ -1,19 +1,29 @@
 @use '../../../../styles/variables' as *;
 
 .analysis {
-  --analysis-input: var(--primary-active);
-  --analysis-output: var(--viz-success);
-  --analysis-cache-read: var(--amber-color);
-  --analysis-cache-write: var(--viz-failure);
-  --analysis-reasoning: color-mix(in srgb, var(--primary-active) 52%, var(--viz-failure));
+  // One category, one hue, everywhere: Token Usage, Cost Breakdown and Usage Distribution all
+  // read these five, in stack order, from the nominal --viz-cat-* palette in themes.scss.
+  // Deriving them from semantic tokens (the previous scheme) left adjacent stack segments
+  // 1.10-1.18:1 apart, which is not a boundary anyone can see.
+  --analysis-input: var(--viz-cat-1);
+  --analysis-output: var(--viz-cat-2);
+  --analysis-cache-read: var(--viz-cat-3);
+  --analysis-cache-write: var(--viz-cat-4);
+  --analysis-reasoning: var(--viz-cat-5);
+  // Line overlays. The request line is achromatic and dashed so it never competes with a
+  // category hue; the cost line takes a reserved hue that no fill uses.
   --analysis-request: color-mix(in srgb, var(--text-primary) 76%, var(--bg-primary));
-  --analysis-cost: color-mix(in srgb, var(--viz-success) 58%, var(--primary-active));
-  --analysis-model-1: var(--primary-active);
-  --analysis-model-2: var(--amber-color);
-  --analysis-model-3: var(--viz-success);
-  --analysis-model-4: var(--viz-failure);
-  --analysis-model-5: color-mix(in srgb, var(--primary-active) 58%, var(--viz-success));
-  --analysis-model-6: color-mix(in srgb, var(--amber-color) 55%, var(--viz-failure));
+  --analysis-cost: var(--viz-line-cost);
+  // Top Models is capped at six ranks plus an "Other" band, so six swatches is the whole
+  // ranking: --viz-cat-6..10 continue the alternating luminance bands after the five
+  // category hues, and Other is the achromatic band.
+  --analysis-model-1: var(--viz-cat-6);
+  --analysis-model-2: var(--viz-cat-7);
+  --analysis-model-3: var(--viz-cat-8);
+  --analysis-model-4: var(--viz-cat-9);
+  --analysis-model-5: var(--viz-cat-10);
+  --analysis-model-6: var(--viz-cat-1);
+  --analysis-model-other: var(--viz-cat-other);
   --analysis-heatmap: var(--viz-neutral);
 
   display: flex;
@@ -892,4 +902,20 @@
   .modelSegment {
     transition: none;
   }
+}
+
+.analysisSection {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.analysisSectionLabel {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }

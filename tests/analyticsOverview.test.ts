@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { beforeAll, describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { I18nextProvider } from 'react-i18next';
@@ -22,6 +22,7 @@ import {
   serializeAnalyticsUrlState,
   type AnalyticsRange,
 } from '@/features/analytics/query';
+import { resolveAnalyticsAsyncState } from '@/features/analytics/components/analyticsAsyncState';
 
 const tokens = (fields: Partial<TokenUsage> = {}): TokenUsage => ({
   input: 0,
@@ -74,7 +75,16 @@ const summary = (fields: Partial<AnalyticsSummary> = {}): AnalyticsSummary => ({
   ...fields,
 });
 
+beforeAll(async () => {
+  await i18n.changeLanguage('en');
+});
+
 describe('analytics overview model', () => {
+  test('keeps stale content during a range-change load', () => {
+    expect(resolveAnalyticsAsyncState(true, '', true)).toBe('content');
+    expect(resolveAnalyticsAsyncState(true, '', false)).toBe('initial-loading');
+  });
+
   test('builds v2 named activity ranges from the selected window and its range zone', () => {
     const bangkok: AnalyticsRange = {
       preset: 'last_n_days',

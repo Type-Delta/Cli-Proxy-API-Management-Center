@@ -421,7 +421,6 @@
       "daily_basis_unavailable": "The elapsed range basis is unavailable.",
       "failed": "Failed",
       "health_grid": "Request health by time bucket",
-      "health_legend": "Request health, less to more healthy",
       "key_metrics": "Key metrics",
       "known_cost": "Known API cost",
       "less": "Less",
@@ -455,7 +454,10 @@
       "window_week": "Week",
       "window_month": "Month",
       "window_year": "Year",
-      "heatmap_readout_hint": "Hover or focus a cell to read its bucket."
+      "heatmap_readout_hint": "Hover or focus a cell to read its bucket.",
+      "unhealthy": "Unhealthy",
+      "healthy": "Healthy",
+      "health_legend_v2": "Request health, unhealthy to healthy"
     },
     "analysis": {
       "blended_rate": "Blended rate",
@@ -524,7 +526,10 @@
       "uncached_input": "Input",
       "volume": "Volume",
       "ttft_description": "Time to first token",
-      "heatmap_readout_hint": "Hover or focus a cell to read its totals."
+      "heatmap_readout_hint": "Hover or focus a cell to read its totals.",
+      "other_models": "Other models",
+      "section_consumption": "Consumption",
+      "section_behaviour": "Behaviour"
     },
     "maintenance": {
       "abandoned": "Abandoned events",
@@ -644,8 +649,14 @@
         "integrity_check": "Integrity check",
         "checkpoint": "WAL checkpoint",
         "reindex": "Reindex",
-        "import": "Import",
-        "purge": "Purge"
+        "restore": "Restore",
+        "purge_key": "Purge key",
+        "rollback_import": "Rollback import",
+        "import_cpauk": "Import CPAUK",
+        "retention": "Retention",
+        "repair": "Repair",
+        "reprice": "Reprice",
+        "start_new_identity_epoch": "New identity epoch"
       },
       "job_state": {
         "queued": "Queued",
@@ -691,6 +702,44 @@
         "videos": "Videos",
         "audio": "Audio",
         "unknown": "Unknown"
+      },
+      "provider": {
+        "openai": "OpenAI",
+        "anthropic": "Anthropic",
+        "gemini": "Gemini",
+        "codex": "Codex",
+        "claude": "Claude",
+        "antigravity": "Antigravity",
+        "qwen": "Qwen",
+        "iflow": "iFlow",
+        "kimi": "Kimi",
+        "vertex": "Vertex"
+      },
+      "executor": {
+        "AIStudioExecutor": "AI Studio",
+        "AntigravityExecutor": "Antigravity",
+        "ClaudeExecutor": "Claude",
+        "CodexExecutor": "Codex",
+        "CodexWebsocketsExecutor": "Codex (WebSocket)",
+        "CodexAutoExecutor": "Codex (Auto)",
+        "GeminiVertexExecutor": "Gemini (Vertex)",
+        "KimiExecutor": "Kimi",
+        "OpenAICompatExecutor": "OpenAI Compatible",
+        "XAIExecutor": "xAI",
+        "GeminiExecutor": "Gemini",
+        "XAIWebsocketsExecutor": "xAI (WebSocket)",
+        "XAIAutoExecutor": "xAI (Auto)"
+      },
+      "auth_type": {
+        "apikey": "API key",
+        "oauth": "OAuth"
+      },
+      "error_class": {
+        "rate_limited": "Rate limited",
+        "upstream_unavailable": "Upstream unavailable",
+        "upstream_rejected": "Upstream rejected",
+        "upstream_redirect": "Upstream redirect",
+        "transport_failure": "Transport failure"
       }
     },
     "ttft_description": "Time to first token",
@@ -736,7 +785,10 @@
     "events_retention_compacted": "Events older than {{cutoff}} were compacted; narrow the range.",
     "observed_requests": "Observed requests",
     "observed_failures": "Observed failures",
-    "observed_counters_note": "Observed counts come from the current credential health snapshot, so they restart with CPA and will not match analytics usage totals."
+    "observed_counters_note": "Observed counts come from the current credential health snapshot, so they restart with CPA and will not match analytics usage totals.",
+    "events_row_hint": "Select a row for full attempt details",
+    "events_filter_summary": "{{count}} active filters",
+    "events_filter_button": "Filters"
   },
   "dashboard": {
     "hero_verdict_good": "All systems steady",
@@ -2086,7 +2138,8 @@
     "login_failed": "Login failed",
     "commercial_mode_restart_required": "Commercial mode setting changed. Please restart the service for it to take effect",
     "copy_failed": "Copy failed",
-    "link_copied": "Link copied to clipboard"
+    "link_copied": "Link copied to clipboard",
+    "save_failed": "Save failed"
   },
   "language": {
     "switch": "Language",

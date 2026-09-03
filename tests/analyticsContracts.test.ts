@@ -390,8 +390,8 @@ describe('analytics client contracts', () => {
     );
     const failedRequest = (async () => new Response(null, { status: 401 })) as typeof fetch;
 
-    expect(consumed).toBe(credential);
-    await expect(exchangeViewerCredential(consumed, failedRequest)).rejects.toThrow(
+    expect(consumed.credential).toBe(credential);
+    await expect(exchangeViewerCredential(consumed.credential, failedRequest)).rejects.toThrow(
       'viewer exchange failed'
     );
     expect(replacements).toEqual(['#/viewer']);

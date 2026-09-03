@@ -37,10 +37,15 @@ import {
   type FormattedValue,
   type MetricCard,
 } from './views/overview/overviewModel';
-import { consumeViewerCredential, exchangeViewerCredential } from './viewerSecurity';
+import {
+  consumeViewerCredential,
+  exchangeViewerCredential,
+  type ViewerCredential,
+} from './viewerSecurity';
 import {
   buildViewerRange,
   fetchViewerJSON,
+  resolveViewerApiBase,
   viewerExpiryTimes,
   viewerQuery,
   type ViewerCapabilities,
@@ -54,22 +59,23 @@ import styles from './views/viewer/ViewerPage.module.scss';
  * Keyed by the link the credential came from, so opening a second viewer link
  * in the same SPA lifetime never replays the first link's credential.
  */
-let capturedViewerCredential: { link: string; credential: string } | undefined;
+let capturedViewerCredential: { link: string; viewer: ViewerCredential } | undefined;
 
 function viewerLinkId() {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
 }
 
-function takeViewerCredential(): string {
+function takeViewerCredential(): ViewerCredential {
   const link = viewerLinkId();
-  if (capturedViewerCredential?.link === link) return capturedViewerCredential.credential;
-  const credential = consumeViewerCredential(
+  if (capturedViewerCredential?.link === link) return capturedViewerCredential.viewer;
+  const consumed = consumeViewerCredential(
     window.location.hash,
     (url) => window.history.replaceState(null, '', url),
     `${window.location.pathname}${window.location.search}#/viewer`
   );
-  capturedViewerCredential = { link, credential };
-  return credential;
+  const viewer = { ...consumed, apiBase: resolveViewerApiBase(consumed.apiBase) };
+  capturedViewerCredential = { link, viewer };
+  return viewer;
 }
 
 function RegionError({
@@ -234,24 +240,24 @@ export function ViewerPage() {
       { replace: true }
     );
   };
-  const [credential, setCredential] = useState<string | null>(takeViewerCredential);
+  const [viewerCredential] = useState<ViewerCredential>(takeViewerCredential);
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionError, setSessionError] = useState('');
   const [exchangeAttempt, setExchangeAttempt] = useState(0);
   const exchangeRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
-    if (credential === null) return;
     let active = true;
     if (!exchangeRef.current) {
-      exchangeRef.current = credential ? exchangeViewerCredential(credential) : Promise.resolve();
+      exchangeRef.current = viewerCredential.credential
+        ? exchangeViewerCredential(viewerCredential.credential, viewerCredential.apiBase)
+        : Promise.resolve();
     }
     const finishExchange = async () => {
       try {
         await exchangeRef.current;
         capturedViewerCredential = undefined;
         if (active) {
-          setCredential(null);
           setSessionReady(true);
         }
       } catch {
@@ -262,7 +268,7 @@ export function ViewerPage() {
     return () => {
       active = false;
     };
-  }, [credential, exchangeAttempt, t]);
+  }, [viewerCredential, exchangeAttempt, t]);
 
   const retryExchange = () => {
     exchangeRef.current = null;
@@ -273,12 +279,12 @@ export function ViewerPage() {
   const bounds = useMemo(() => buildViewerRange(range), [range]);
   const baseQuery = useMemo(() => viewerQuery(bounds), [bounds]);
   const capabilities = useAnalyticsLoad(
-    () => fetchViewerJSON<ViewerCapabilities>('capabilities'),
+    () => fetchViewerJSON<ViewerCapabilities>('capabilities', undefined, viewerCredential.apiBase),
     'viewer-capabilities',
     sessionReady
   );
   const summary = useAnalyticsLoad(
-    () => fetchViewerJSON<ViewerSummary>('summary', baseQuery),
+    () => fetchViewerJSON<ViewerSummary>('summary', baseQuery, viewerCredential.apiBase),
     JSON.stringify(['viewer-summary', bounds]),
     sessionReady
   );
@@ -286,13 +292,19 @@ export function ViewerPage() {
     () =>
       fetchViewerJSON<ViewerTimeseries>(
         'timeseries',
-        viewerQuery(bounds, { bucket_width: analyticsRangeBucketWidth(range) })
+        viewerQuery(bounds, { bucket_width: analyticsRangeBucketWidth(range) }),
+        viewerCredential.apiBase
       ),
     JSON.stringify(['viewer-timeseries', bounds, range]),
     sessionReady
   );
   const events = useAnalyticsLoad(
-    () => fetchViewerJSON<ViewerEventPage>('events', viewerQuery(bounds, { page_size: 50 })),
+    () =>
+      fetchViewerJSON<ViewerEventPage>(
+        'events',
+        viewerQuery(bounds, { page_size: 50 }),
+        viewerCredential.apiBase
+      ),
     JSON.stringify(['viewer-events', bounds]),
     sessionReady
   );
@@ -355,6 +367,8 @@ export function ViewerPage() {
       <AsyncState
         loading={capabilities.loading}
         error=""
+        errorStatus={capabilities.errorStatus}
+        retryAt={capabilities.retryAt}
         onRetry={() => void capabilities.refresh()}
       >
         {capabilities.data && (
@@ -378,6 +392,8 @@ export function ViewerPage() {
       <AsyncState
         loading={summary.loading}
         error=""
+        errorStatus={summary.errorStatus}
+        retryAt={summary.retryAt}
         stale={summary.data?.meta.degraded}
         onRetry={() => void summary.refresh()}
       >
@@ -396,6 +412,8 @@ export function ViewerPage() {
       <AsyncState
         loading={series.loading}
         error=""
+        errorStatus={series.errorStatus}
+        retryAt={series.retryAt}
         stale={series.data?.meta.degraded}
         onRetry={() => void series.refresh()}
       >
@@ -437,6 +455,8 @@ export function ViewerPage() {
       <AsyncState
         loading={events.loading}
         error=""
+        errorStatus={events.errorStatus}
+        retryAt={events.retryAt}
         stale={events.data?.meta.degraded}
         onRetry={() => void events.refresh()}
       >

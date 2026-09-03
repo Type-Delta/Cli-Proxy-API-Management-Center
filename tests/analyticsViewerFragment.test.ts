@@ -13,14 +13,16 @@ describe('Analytics viewer fragment handling', () => {
       '/management.html#/viewer'
     );
 
-    expect(consumed).toBe(credential);
+    expect(consumed.credential).toBe(credential);
     expect(replacements).toEqual(['/management.html#/viewer']);
     expect(replacements[0]).not.toContain('viewer secret');
   });
 
   test('scrubs malformed credentials and never puts credential material in data URLs', () => {
     const replacements: string[] = [];
-    expect(consumeViewerCredential('#/viewer#%E0%A4%A', (url) => replacements.push(url))).toBe('');
+    expect(
+      consumeViewerCredential('#/viewer#%E0%A4%A', (url) => replacements.push(url)).credential
+    ).toBe('');
     expect(replacements).toEqual(['#/viewer']);
 
     const range = buildViewerRange(

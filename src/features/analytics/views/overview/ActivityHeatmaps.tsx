@@ -34,17 +34,28 @@ const HEALTH_LEVEL_CLASSES = [
   styles.healthLevel5,
 ];
 
-function HeatmapLegend({ label, classes }: { label: string; classes: string[] }) {
-  const { t } = useTranslation();
+// The endpoint labels name what the ramp encodes, so Request Health can say
+// "Unhealthy -> Healthy" while Token activity keeps "Less -> More".
+function HeatmapLegend({
+  label,
+  classes,
+  low,
+  high,
+}: {
+  label: string;
+  classes: string[];
+  low: string;
+  high: string;
+}) {
   return (
     <div className={styles.legend} aria-label={label}>
-      <span>{t('analytics.overview.less', { defaultValue: 'Less' })}</span>
+      <span>{low}</span>
       <span className={styles.legendScale} aria-hidden="true">
         {classes.map((className, index) => (
           <i className={`${styles.legendCell} ${className}`} key={index} />
         ))}
       </span>
-      <span>{t('analytics.overview.more', { defaultValue: 'More' })}</span>
+      <span>{high}</span>
     </div>
   );
 }
@@ -158,6 +169,8 @@ export function ActivityHeatmaps({
   activity,
   loading,
   error,
+  errorStatus,
+  retryAt,
   window,
   onWindowChange,
   onRetry,
@@ -165,6 +178,8 @@ export function ActivityHeatmaps({
   activity: AnalyticsActivity | null;
   loading: boolean;
   error: string;
+  errorStatus?: number;
+  retryAt?: number;
   window: ActivityWindow;
   onWindowChange: (window: ActivityWindow) => void;
   onRetry?: () => void;
@@ -248,7 +263,14 @@ export function ActivityHeatmaps({
         </label>
       </header>
 
-      <AsyncState loading={loading} error={error} stale={activity?.meta.degraded} onRetry={onRetry}>
+      <AsyncState
+        loading={loading}
+        error={error}
+        errorStatus={errorStatus}
+        retryAt={retryAt}
+        stale={activity?.meta.degraded}
+        onRetry={onRetry}
+      >
         {activity &&
           (buckets.length === 0 ? (
             <Card>
@@ -273,6 +295,8 @@ export function ActivityHeatmaps({
                       defaultValue: 'Token activity intensity, less to more',
                     })}
                     classes={TOKEN_LEVEL_CLASSES}
+                    low={t('analytics.overview.less', { defaultValue: 'Less' })}
+                    high={t('analytics.overview.more', { defaultValue: 'More' })}
                   />
                 }
               >
@@ -310,10 +334,15 @@ export function ActivityHeatmaps({
                 })}
                 extra={
                   <HeatmapLegend
-                    label={t('analytics.overview.health_legend', {
-                      defaultValue: 'Request health, less to more healthy',
+                    // New key, not a new defaultValue: the four locales still carry the old
+                    // "less to more healthy" phrasing for `health_legend`, which would win
+                    // over any defaultValue here.
+                    label={t('analytics.overview.health_legend_v2', {
+                      defaultValue: 'Request health, unhealthy to healthy',
                     })}
                     classes={HEALTH_LEVEL_CLASSES}
+                    low={t('analytics.overview.unhealthy', { defaultValue: 'Unhealthy' })}
+                    high={t('analytics.overview.healthy', { defaultValue: 'Healthy' })}
                   />
                 }
               >

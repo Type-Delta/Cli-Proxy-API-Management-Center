@@ -19,10 +19,7 @@ const kindForStatus = (status: number): AnalyticsErrorKind | null => {
   return null;
 };
 
-export function classifyAnalyticsError(
-  error: string,
-  errorStatus?: number
-): AnalyticsErrorKind {
+export function classifyAnalyticsError(error: string, errorStatus?: number): AnalyticsErrorKind {
   // A status reported by the transport is authoritative; the message text is only a fallback
   // for callers that have not threaded one through (and for localized server sentences).
   const byReportedStatus = errorStatus === undefined ? null : kindForStatus(errorStatus);
@@ -39,7 +36,11 @@ export function classifyAnalyticsError(
   if (/\b(too many requests|rate.?limit(ed)?|quota exceeded|throttled)\b/.test(lower)) {
     return 'rate_limit';
   }
-  if (/\b(unauthorized|unauthenticated|forbidden|permission denied|invalid (management )?key)\b/.test(lower)) {
+  if (
+    /\b(unauthorized|unauthenticated|forbidden|permission denied|invalid (management )?key)\b/.test(
+      lower
+    )
+  ) {
     return 'permission';
   }
   // Transport failures never carry a status: Axios reports them as "Network Error" or a

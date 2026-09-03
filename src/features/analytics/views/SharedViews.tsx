@@ -21,6 +21,7 @@ import { copyToClipboard } from '@/utils/clipboard';
 import { analyticsKeyIdentity } from '../analyticsKeyFilterModel';
 import { formatDateTime } from '../components/analyticsFormatting';
 import { viewerAfterCopy, redactViewerKeyId } from './manage/sharedViewsLogic';
+import { buildViewerLink } from './viewer/viewerApi';
 import { useAnalyticsLoad as useLoad } from '../useAnalyticsLoad';
 import styles from '../Analytics.module.scss';
 
@@ -85,9 +86,7 @@ export function SharedViews({ keys }: { keys: AnalyticsKey[] }) {
       setCreating(false);
     }
   };
-  const link = viewer
-    ? `${window.location.origin}${window.location.pathname}#/viewer#${viewer.credential}`
-    : '';
+  const link = viewer ? buildViewerLink(viewer.credential) : '';
   const copy = async () => {
     if (!link || copying || !viewer) return;
     setCopying(true);

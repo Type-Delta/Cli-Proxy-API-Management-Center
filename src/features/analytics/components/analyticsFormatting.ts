@@ -127,9 +127,14 @@ export function formatAnalyticsEnum(
     | 'state'
     | 'source'
     | 'service_tier'
-    | 'endpoint',
+    | 'endpoint'
+    | 'executor'
+    | 'auth_type'
+    | 'error_class'
+    | 'provider',
   value: string | null | undefined
 ) {
   if (!value) return DASH;
-  return t(`analytics.enums.${category}.${value}`, { defaultValue: readableEnumFallback(value) });
+  const fallback = category === 'provider' ? value : readableEnumFallback(value);
+  return t(`analytics.enums.${category}.${value}`, { defaultValue: fallback });
 }

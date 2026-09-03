@@ -1,4 +1,4 @@
-import { Children, useState, type ReactNode } from 'react';
+import { Children, useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -67,7 +67,15 @@ export function AsyncState({
 }) {
   const { t } = useTranslation();
   const hasContent = Children.toArray(children).length > 0;
-  const state = resolveAnalyticsAsyncState(loading, error, hasContent);
+  const [hasRenderedContent, setHasRenderedContent] = useState(false);
+  useEffect(() => {
+    if (hasContent) setHasRenderedContent(true);
+  }, [hasContent]);
+  const state = resolveAnalyticsAsyncState(
+    loading,
+    error,
+    hasContent || (loading && hasRenderedContent)
+  );
   // The raw transport text ("Network Error") is diagnostic, not an instruction — show the
   // actionable sentence and keep the original in a tooltip.
   const failure = analyticsErrorCopy(t, error, errorStatus);

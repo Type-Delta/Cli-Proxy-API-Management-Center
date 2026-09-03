@@ -179,6 +179,34 @@ Validation on 2026-09-03:
 - `bunx eslint` on the changed TS/TSX files above: 0 errors, 0 warnings.
 - `bun run verify`: 550 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 
+### DL011: Round-5 analytics UI hardening — chart palettes, Retry-After wiring, viewer origin, locale-independent tests
+
+CPAMC's analytics workspace picked up eight related fixes in the same round.
+
+Chart series now draw from two dedicated CSS custom-property ramps in `themes.scss` instead of reusing the semantic status colors: a ten-hue nominal palette (`--viz-cat-1..10`, plus an achromatic `--viz-cat-other` for a capped ranking's "everything else" band and a `--viz-line-cost` overlay stroke) for categorical series such as per-model breakdowns, and a five-step ordinal ramp (`--viz-health-1..5`) whose contrast against `--bg-primary` increases monotonically so a stronger color always reads as healthier. Both ramps are re-banded per theme (light/white/dark) to hold a minimum neighbor and background contrast ratio; `tests/analyticsPalette.test.ts` parses the literal hex values out of the stylesheet and asserts the WCAG contrast floors directly, since `color-mix()` has no evaluator outside a browser.
+
+Retry-After metadata (`errorStatus`, `retryAt`) now flows from every owned analytics load hook through to `AsyncState`, which disables its retry button and shows a countdown while a 429's deadline is still in the future, instead of allowing an immediate re-request that would just be rejected again.
+
+The Events table replaced its always-empty keyboard-affordance action column with a `<caption>` (`analytics.events_row_hint`) that states row selection is available; on narrow viewports a filter summary chip (`analytics.events_filter_summary`, `analytics.events_filter_button`) scrolls the filter card into view instead of duplicating the filter form inline.
+
+The Analysis view groups its cards into two labeled `<section>` landmarks, Consumption (token usage, cost breakdown, usage distribution) and Behaviour (model efficiency, top models, latency diagnostics), each with an `aria-labelledby` heading instead of one flat list of cards.
+
+`fetchViewerJSON` resolves viewer requests against the configured API base (`apiClient.getApiBase()`) rather than a hardcoded same-origin path, and chooses `same-origin` vs. `include` credentials by comparing the resolved URL's origin to `window.location.origin`, so a shared-view link opens correctly when CPAMC and CPA are served from different origins (paired with DL011's server-side allowlist).
+
+The analytics storage time zone field accepts the literal value `Local` without attempting `Intl.DateTimeFormat` validation, and trims the value before persisting it, so the config UI doesn't reject the sentinel or save trailing whitespace as part of an IANA zone name.
+
+`AsyncState` now retains previously rendered content through a subsequent loading pass (tracked via a `hasRenderedContent` flag) instead of reverting to `initial-loading`, so changing the analytics range no longer blanks a chart while the new range's data streams in.
+
+Several analytics test files call `i18n.changeLanguage('en')` in `beforeAll` because rendered assertions were comparing English literals; without it, the tests only passed under the runtime's default English locale and broke under `LANG=zh_CN.UTF-8`.
+
+Finally, the four CPAMC locale files gained the enum-label groups `analytics.enums.provider`, `.executor`, `.auth_type`, and `.error_class` (empty groups previously fell back to the raw Go value or a naive humanized string), completed `analytics.enums.job_kind` with the maintenance controller's actual operation names (`restore`, `purge_key`, `rollback_import`, `import_cpauk`, `retention`, `repair`, `reprice`, `start_new_identity_epoch`), and dropped the stale `import`/`purge` job-kind entries that controller no longer emits, plus the `en`/`ru`/`zh-CN`/`zh-TW` translations for all of the above.
+
+**Implementation evidence:** `src/styles/themes.scss`, `src/features/analytics/components/AnalyticsShared.tsx`, `src/features/analytics/components/analyticsFormatting.ts`, `src/features/analytics/views/Analysis.tsx`, `src/features/analytics/views/Events.tsx`, `src/features/analytics/views/events/{EventDetailSheet.tsx,Events.module.scss}`, `src/features/analytics/views/viewer/viewerApi.ts`, `src/services/api/client.ts` (`ApiClient.getApiBase`), `src/hooks/useVisualConfig.ts` (`getAnalyticsTimeZoneError`, `analyticsStorageTimeZone` trim), and `src/i18n/locales/{en,ru,zh-CN,zh-TW}.json`.
+
+**Recorded validation:** `bun run verify` (577 tests, lint, `tsc && vite build`) passes, including new `tests/analyticsPalette.test.ts` (contrast-ratio assertions per theme), `tests/analyticsRetryWiring.test.ts` (retry disabled under an active `Retry-After`), and `tests/analyticsViewerSecurity.test.ts` (`buildViewerURL` resolves against a configured non-default API origin; `viewerCredentialsMode` picks `same-origin` vs. `include`), plus the updated `tests/analyticsOverview.test.ts` (stale content survives a range-change load) and `tests/visualConfigAnalytics.test.ts` (`Local` sentinel accepted and trimmed). `LANG=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8 bun test` passes the same 577 tests, confirming the locale-independent assertions. A key-set scan (`analytics.*` in each locale JSON) confirms all four files carry the identical 608-key set after the additions.
+
+**Last updated:** 2026-09-03
+
 ## Upstream comparison
 
 Before the initial sync, from `d249ff008e0bc2803deb23fb3e2c62418a1e8d17`:

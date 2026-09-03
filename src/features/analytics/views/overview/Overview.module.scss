@@ -325,24 +325,29 @@
   color: var(--floating-surface);
 }
 
+// Ordinal ramp, not five semantic colours: mixing --viz-failure/--amber-color/--viz-success
+// against the card put L2 and L3 within 0.01 of each other in light and made dark L3 (amber,
+// 4.75) hotter than L4 (green, 2.35). The --viz-health-* tokens keep the red -> amber -> green
+// reading while stepping contrast against --bg-primary strictly upward, so "more healthy" is
+// always "more emphatic". Values and steps are pinned in tests/analyticsPalette.test.ts.
 .healthLevel1 {
-  background: var(--viz-failure);
+  background: var(--viz-health-1);
 }
 
 .healthLevel2 {
-  background: color-mix(in srgb, var(--viz-failure) 58%, var(--bg-primary));
+  background: var(--viz-health-2);
 }
 
 .healthLevel3 {
-  background: color-mix(in srgb, var(--amber-color) 72%, var(--bg-primary));
+  background: var(--viz-health-3);
 }
 
 .healthLevel4 {
-  background: color-mix(in srgb, var(--viz-success) 48%, var(--bg-primary));
+  background: var(--viz-health-4);
 }
 
 .healthLevel5 {
-  background: var(--viz-success);
+  background: var(--viz-health-5);
 }
 
 .srOnly {

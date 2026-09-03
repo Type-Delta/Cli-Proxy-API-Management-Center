@@ -21,6 +21,7 @@ import {
   buildTokenSeries,
   buildTopModelSeries,
   TOKEN_CATEGORY_KEYS,
+  type RankedModelSeries,
   type TokenCategoryKey,
 } from './analysisModel';
 import styles from './Analysis.module.scss';
@@ -37,6 +38,9 @@ const CATEGORY_COLORS: Record<TokenCategoryKey, string> = {
   reasoning: 'var(--analysis-reasoning)',
 };
 
+// One swatch per rank, never reused: `buildTopModelSeries` caps the ranking at
+// TOP_MODEL_LIMIT and folds the rest into a single "Other" band, so an index can no longer
+// wrap around onto an earlier model's colour.
 const MODEL_COLORS = [
   'var(--analysis-model-1)',
   'var(--analysis-model-2)',
@@ -45,6 +49,9 @@ const MODEL_COLORS = [
   'var(--analysis-model-5)',
   'var(--analysis-model-6)',
 ];
+
+const modelColor = (model: RankedModelSeries, index: number) =>
+  model.other ? 'var(--analysis-model-other)' : (MODEL_COLORS[index] ?? MODEL_COLORS[0]);
 
 const pointsPath = (values: number[], maximum: number, plotWidth: number) =>
   buildSmoothLinePath(
@@ -71,12 +78,16 @@ export function TokenUsageChart({
   section,
   loading,
   error,
+  errorStatus,
+  retryAt,
   onRetry,
   locale,
 }: {
   section: AnalysisSeriesByCategory | null | undefined;
   loading: boolean;
   error: string;
+  errorStatus?: number;
+  retryAt?: number;
   onRetry: () => void;
   locale?: string;
 }) {
@@ -110,6 +121,8 @@ export function TokenUsageChart({
       })}
       loading={loading}
       error={error}
+      errorStatus={errorStatus}
+      retryAt={retryAt}
       hasData={points.length > 0}
       partial={section?.meta.partial}
       emptyDescription={
@@ -306,12 +319,16 @@ export function TopModelsChart({
   section,
   loading,
   error,
+  errorStatus,
+  retryAt,
   onRetry,
   locale,
 }: {
   section: AnalysisModelByTime | null | undefined;
   loading: boolean;
   error: string;
+  errorStatus?: number;
+  retryAt?: number;
   onRetry: () => void;
   locale?: string;
 }) {
@@ -350,6 +367,8 @@ export function TopModelsChart({
       })}
       loading={loading}
       error={error}
+      errorStatus={errorStatus}
+      retryAt={retryAt}
       hasData={ranked.length > 0 && buckets.length > 0}
       partial={section?.meta.partial}
       emptyDescription={
@@ -412,7 +431,7 @@ export function TopModelsChart({
                           width={barWidth}
                           height={Math.max(0, height)}
                           rx={1.5}
-                          fill={MODEL_COLORS[modelIndex % MODEL_COLORS.length]}
+                          fill={modelColor(model, modelIndex)}
                           opacity={!highlighted || highlighted === model.model ? 1 : 0.18}
                           className={styles.modelSegment}
                         />
@@ -462,10 +481,12 @@ export function TopModelsChart({
           aria-label={t('analytics.analysis.model_ranking', { defaultValue: 'Model ranking' })}
         >
           {ranked.map((model, index) => {
-            const color = MODEL_COLORS[index % MODEL_COLORS.length];
+            const color = modelColor(model, index);
             const activeValue = activeBucket === null ? null : model.values[activeBucket];
-            const accessibleModel =
-              model.model.length > 72 ? `${model.model.slice(0, 69)}...` : model.model;
+            const name = model.other
+              ? t('analytics.analysis.other_models', { defaultValue: 'Other models' })
+              : model.model;
+            const accessibleModel = name.length > 72 ? `${name.slice(0, 69)}...` : name;
             return (
               <li key={model.model}>
                 <button
@@ -493,8 +514,8 @@ export function TopModelsChart({
                 >
                   <span className={styles.rankNumber}>{index + 1}</span>
                   <i style={{ background: color }} aria-hidden="true" />
-                  <span className={styles.rankName} title={model.model}>
-                    {model.model}
+                  <span className={styles.rankName} title={name}>
+                    {name}
                   </span>
                   <strong title={formatNumber(activeValue ?? model.totalTokens, locale)}>
                     {formatCompactTokens(activeValue ?? model.totalTokens, locale).text}
