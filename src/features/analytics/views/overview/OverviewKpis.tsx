@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Sparkline } from '@/features/dashboard/components/Sparkline';
+import { toneForSuccessRate } from '@/features/dashboard/utils';
 import type { AnalyticsSummary } from '@/types';
 import {
   formatCompactTokens,
@@ -12,37 +13,28 @@ import {
 } from '../../components/analyticsFormatting';
 import {
   buildOverviewMetrics,
+  exactNumber,
   roundToTenth,
+  toneForCacheRate,
+  TONE_ACCENTS,
+  trendAriaLabel,
+  type FormattedValue,
+  type MetricCard,
   type OverviewMetricKey,
   type OverviewSparklines,
 } from './overviewModel';
 import styles from './Overview.module.scss';
-
-type FormattedValue = { text: string; title?: string };
-
-type MetricCard = {
-  key: OverviewMetricKey;
-  label: string;
-  value: FormattedValue;
-  detail: ReactNode;
-  accent: string;
-};
-
-const exactNumber = (value: number, locale?: string): FormattedValue => {
-  const text = formatNumber(value, locale);
-  return { text, title: String(value) };
-};
 
 const exactPercent = (value: number | null, locale?: string): FormattedValue => ({
   text: formatPercent(value, locale),
   title: value === null ? undefined : `${String(value)}%`,
 });
 
-function MetricDetail({ children }: { children: ReactNode }) {
+export function MetricDetail({ children }: { children: ReactNode }) {
   return <div className={styles.metricDetail}>{children}</div>;
 }
 
-function DetailValue({ label, value }: { label: string; value: FormattedValue }) {
+export function DetailValue({ label, value }: { label: string; value: FormattedValue }) {
   return (
     <span className={styles.detailItem} title={value.title}>
       <span>{label}</span>
@@ -51,23 +43,58 @@ function DetailValue({ label, value }: { label: string; value: FormattedValue })
   );
 }
 
-function Trend({
-  label,
-  points,
-  color,
-  loading,
-  emptyLabel,
-}: {
-  label: string;
-  points: number[];
-  color: string;
-  loading: boolean;
-  emptyLabel: string;
-}) {
-  if (loading) return <Skeleton width="100%" height={32} rounded={6} />;
-  const exactPoints = points.map(String).join(', ');
-  const ariaLabel = exactPoints ? `${label}: ${exactPoints}` : `${label}: ${emptyLabel}`;
-  return <Sparkline points={points} color={color} ariaLabel={ariaLabel} />;
+/**
+ * Renders KPI tiles as one keyboard stop each; the sparkline is decorative
+ * because the card's `aria-label` already carries label, value and detail.
+ */
+export function MetricTiles({ cards, label }: { cards: MetricCard[]; label: string }) {
+  const { t } = useTranslation();
+  return (
+    <section className={styles.metricGrid} aria-label={label}>
+      {cards.map((card) => (
+        <div
+          key={card.key}
+          className={styles.metricCardFocus}
+          role="group"
+          tabIndex={0}
+          aria-label={card.ariaLabel}
+        >
+          <Card className={styles.metricCard}>
+            <div
+              className={styles.metricAccent}
+              style={{ '--metric-accent': card.accent } as CSSProperties}
+            />
+            <span className={styles.metricLabel}>{card.label}</span>
+            <strong className={styles.metricValue} title={card.value.title}>
+              {card.value.text}
+            </strong>
+            {card.detail}
+            {card.trend && (
+              <div className={styles.sparklineSlot} aria-hidden="true">
+                {card.trend.loading ? (
+                  <Skeleton width="100%" height={32} rounded={6} />
+                ) : (
+                  <Sparkline
+                    points={card.trend.points}
+                    color={card.accent}
+                    ariaLabel={trendAriaLabel(
+                      t,
+                      t('analytics.overview.trend', {
+                        defaultValue: '{{metric}} trend',
+                        metric: card.label,
+                      }),
+                      card.trend.points,
+                      card.trend.formatter
+                    )}
+                  />
+                )}
+              </div>
+            )}
+          </Card>
+        </div>
+      ))}
+    </section>
+  );
 }
 
 export function OverviewKpis({
@@ -86,17 +113,25 @@ export function OverviewKpis({
     ...formatCompactTokens(value, locale),
     title: String(value),
   });
-  const cards: MetricCard[] = [
+  const numberText = (value: number) => exactNumber(value, locale).text;
+  const percentText = (value: number | null) => exactPercent(value, locale).text;
+  const compactText = (value: number) => compact(value).text;
+  const costText = (value: number) => formatCostValue(value, locale).text;
+  const requestTone = toneForSuccessRate(metrics.successRate);
+  const cacheTone = toneForCacheRate(metrics.cacheReadRate);
+  const trend = (points: number[], formatter: (value: number) => string) => ({
+    points,
+    formatter,
+    loading: trendsLoading,
+  });
+  const cards: MetricCard<OverviewMetricKey>[] = [
     {
       key: 'requests',
       label: t('analytics.overview.requests', { defaultValue: 'Requests' }),
       value: exactNumber(metrics.requests, locale),
-      accent:
-        metrics.successRate === null || metrics.successRate >= 95
-          ? 'var(--viz-success)'
-          : metrics.successRate >= 80
-            ? 'var(--amber-color)'
-            : 'var(--viz-failure)',
+      ariaLabel: `${t('analytics.overview.requests', { defaultValue: 'Requests' })}: ${numberText(metrics.requests)}. ${t('analytics.overview.succeeded', { defaultValue: 'Succeeded' })}: ${numberText(metrics.succeeded)}. ${t('analytics.overview.failed', { defaultValue: 'Failed' })}: ${numberText(metrics.failed)}. ${t('analytics.overview.success_rate', { defaultValue: 'Success rate' })}: ${percentText(metrics.successRate)}.`,
+      accent: TONE_ACCENTS[requestTone],
+      trend: trend(sparklines.requests, numberText),
       detail: (
         <MetricDetail>
           <DetailValue
@@ -118,7 +153,9 @@ export function OverviewKpis({
       key: 'tokens',
       label: t('analytics.overview.tokens', { defaultValue: 'Tokens' }),
       value: compact(metrics.totalTokens),
-      accent: 'var(--viz-success)',
+      ariaLabel: `${t('analytics.overview.tokens', { defaultValue: 'Tokens' })}: ${compactText(metrics.totalTokens)}. ${t('analytics.overview.cache_read', { defaultValue: 'Cache read' })}: ${compactText(metrics.cacheReadTokens)}. ${t('analytics.overview.cache_write', { defaultValue: 'Cache write' })}: ${compactText(metrics.cacheCreationTokens)}. ${t('analytics.overview.reasoning', { defaultValue: 'Reasoning' })}: ${compactText(metrics.reasoningTokens)}.`,
+      accent: TONE_ACCENTS.idle,
+      trend: trend(sparklines.tokens, compactText),
       detail: (
         <MetricDetail>
           <DetailValue
@@ -140,7 +177,9 @@ export function OverviewKpis({
       key: 'rpm',
       label: t('analytics.overview.rpm', { defaultValue: 'RPM' }),
       value: exactNumber(metrics.requestsPerMinute, locale),
-      accent: 'var(--viz-success)',
+      ariaLabel: `${t('analytics.overview.rpm', { defaultValue: 'RPM' })}: ${numberText(metrics.requestsPerMinute)}. ${t('analytics.overview.requests_per_minute', { defaultValue: 'Requests per minute' })}.`,
+      accent: TONE_ACCENTS.idle,
+      trend: trend(sparklines.rpm, numberText),
       detail: (
         <MetricDetail>
           <span>
@@ -155,7 +194,9 @@ export function OverviewKpis({
       key: 'tpm',
       label: t('analytics.overview.tpm', { defaultValue: 'TPM' }),
       value: compact(metrics.tokensPerMinute),
-      accent: 'var(--viz-success)',
+      ariaLabel: `${t('analytics.overview.tpm', { defaultValue: 'TPM' })}: ${compactText(metrics.tokensPerMinute)}. ${t('analytics.overview.tokens_per_minute', { defaultValue: 'Tokens per minute' })}.`,
+      accent: TONE_ACCENTS.idle,
+      trend: trend(sparklines.tpm, compactText),
       detail: (
         <MetricDetail>
           <span>
@@ -168,7 +209,9 @@ export function OverviewKpis({
       key: 'cache_rate',
       label: t('analytics.overview.cache_rate', { defaultValue: 'Cache rate' }),
       value: exactPercent(metrics.cacheReadRate, locale),
-      accent: 'var(--viz-success)',
+      ariaLabel: `${t('analytics.overview.cache_rate', { defaultValue: 'Cache rate' })}: ${percentText(metrics.cacheReadRate)}. ${t('analytics.overview.cache_rate_basis', { defaultValue: 'Cache reads as a share of input tokens' })}.`,
+      accent: TONE_ACCENTS[cacheTone],
+      trend: trend(sparklines.cache_rate, percentText),
       detail: (
         <MetricDetail>
           <span>
@@ -183,7 +226,16 @@ export function OverviewKpis({
       key: 'cost',
       label: t('analytics.overview.cost', { defaultValue: 'Cost' }),
       value: formatCostValue(metrics.costLabel, locale),
-      accent: metrics.priceCoverageComplete ? 'var(--amber-color)' : 'var(--viz-failure)',
+      ariaLabel: `${t('analytics.overview.cost', { defaultValue: 'Cost' })}: ${formatCostValue(metrics.costLabel, locale).text}. ${
+        metrics.priceCoverageComplete
+          ? t('analytics.overview.known_cost', { defaultValue: 'Known API cost' })
+          : t('analytics.overview.unpriced_tokens', {
+              defaultValue: '{{count}} unpriced tokens',
+              count: formatNumber(metrics.unpricedTokens, locale),
+            })
+      }.`,
+      accent: TONE_ACCENTS[metrics.priceCoverageComplete ? 'idle' : 'warning'],
+      trend: trend(sparklines.cost, costText),
       detail: (
         <MetricDetail>
           <span>
@@ -217,62 +269,42 @@ export function OverviewKpis({
     },
   ];
   const rangeDays = metrics.rangeDays === null ? null : roundToTenth(metrics.rangeDays);
+  const dailyAverageLabel = t('analytics.overview.daily_average', {
+    defaultValue: 'Daily average',
+  });
+  const dailyBasis =
+    rangeDays === null
+      ? t('analytics.overview.daily_basis_unavailable', {
+          defaultValue: 'The elapsed range basis is unavailable.',
+        })
+      : t('analytics.overview.daily_basis', {
+          defaultValue: 'Calculated across {{days}} elapsed days, including partial days.',
+          days: formatNumber(rangeDays, locale),
+        });
+  const dailyAriaLabel = `${dailyAverageLabel}. ${dailyValues
+    .map(({ label, value }) => `${label}: ${value.text}`)
+    .join('. ')}. ${dailyBasis}`;
 
   return (
     <div className={styles.summaryStack}>
-      <section
-        className={styles.metricGrid}
-        aria-label={t('analytics.overview.key_metrics', { defaultValue: 'Key metrics' })}
-      >
-        {cards.map((card) => (
-          <Card key={card.key} className={styles.metricCard}>
-            <div
-              className={styles.metricAccent}
-              style={{ '--metric-accent': card.accent } as CSSProperties}
-            />
-            <span className={styles.metricLabel}>{card.label}</span>
-            <strong className={styles.metricValue} title={card.value.title}>
-              {card.value.text}
-            </strong>
-            {card.detail}
-            <div className={styles.sparklineSlot}>
-              <Trend
-                label={t('analytics.overview.trend', {
-                  defaultValue: '{{metric}} trend',
-                  metric: card.label,
-                })}
-                points={sparklines[card.key]}
-                color={card.accent}
-                loading={trendsLoading}
-                emptyLabel={t('analytics.overview.no_timeseries_points', {
-                  defaultValue: 'No time-series points',
-                })}
-              />
-            </div>
-          </Card>
-        ))}
-      </section>
+      <MetricTiles
+        cards={cards}
+        label={t('analytics.overview.key_metrics', { defaultValue: 'Key metrics' })}
+      />
 
-      <Card title={t('analytics.overview.daily_average', { defaultValue: 'Daily average' })}>
-        <div className={styles.dailyGrid}>
-          {dailyValues.map(({ label, value }) => (
-            <div className={styles.dailyMetric} key={label}>
-              <span>{label}</span>
-              <strong title={value.title}>{value.text}</strong>
-            </div>
-          ))}
-        </div>
-        <p className={styles.rangeBasis}>
-          {rangeDays === null
-            ? t('analytics.overview.daily_basis_unavailable', {
-                defaultValue: 'The elapsed range basis is unavailable.',
-              })
-            : t('analytics.overview.daily_basis', {
-                defaultValue: 'Calculated across {{days}} elapsed days, including partial days.',
-                days: formatNumber(rangeDays, locale),
-              })}
-        </p>
-      </Card>
+      <div className={styles.dailyCardFocus} role="group" tabIndex={0} aria-label={dailyAriaLabel}>
+        <Card title={dailyAverageLabel}>
+          <div className={styles.dailyGrid}>
+            {dailyValues.map(({ label, value }) => (
+              <div className={styles.dailyMetric} key={label}>
+                <span>{label}</span>
+                <strong title={value.title}>{value.text}</strong>
+              </div>
+            ))}
+          </div>
+          <p className={styles.rangeBasis}>{dailyBasis}</p>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import {
   formatCompactTokens,
   formatCostValue,
   formatNumber,
+  formatPercent,
 } from '../../components/analyticsFormatting';
 import { AnalysisCard } from './AnalysisCard';
 import { buildModelEfficiency } from './analysisModel';
@@ -97,22 +98,25 @@ export function CostBreakdown({
               width: `${total > 0 ? (Math.max(0, segment.value) / total) * 100 : 25}%`,
               background: segment.color,
             }}
-            title={`${segment.label}: ${formatCostValue(segment.value, locale).text}`}
+            title={`${segment.label}: ${formatCostValue(segment.value, locale).title}`}
           />
         ))}
       </div>
       <dl className={styles.costList}>
-        {segments.map((segment) => (
-          <div key={segment.key}>
-            <dt>
-              <i style={{ background: segment.color }} aria-hidden="true" />
-              {segment.label}
-            </dt>
-            <dd title={formatCostValue(segment.value, locale).title}>
-              {formatCostValue(segment.value, locale).text}
-            </dd>
-          </div>
-        ))}
+        {segments.map((segment) => {
+          const percentage = total > 0 ? (Math.max(0, segment.value) / total) * 100 : 0;
+          return (
+            <div key={segment.key}>
+              <dt>
+                <i style={{ background: segment.color }} aria-hidden="true" />
+                {segment.label}
+              </dt>
+              <dd title={formatCostValue(segment.value, locale).title}>
+                {formatCostValue(segment.value, locale).text} · {formatPercent(percentage, locale)}
+              </dd>
+            </div>
+          );
+        })}
       </dl>
       <div className={styles.blendedRate}>
         <span>{t('analytics.analysis.blended_rate', { defaultValue: 'Blended rate' })}</span>
@@ -142,7 +146,7 @@ export function ModelEfficiency({
 }) {
   const { t } = useTranslation();
   const models = useMemo(() => buildModelEfficiency(section?.models ?? []), [section]);
-  const maximum = Math.max(0, ...models.map((model) => model.costPerMillion ?? 0));
+  const maximumVolume = Math.max(0, ...models.map((model) => model.total_tokens));
 
   return (
     <AnalysisCard
@@ -182,9 +186,19 @@ export function ModelEfficiency({
                 </span>
               </div>
               <div className={styles.efficiencyMeasure}>
-                <span aria-hidden="true">
-                  <i style={{ width: `${maximum > 0 ? (rate / maximum) * 100 : 0}%` }} />
-                </span>
+                <div className={styles.efficiencyVolume}>
+                  <span>{t('analytics.analysis.volume', { defaultValue: 'Volume' })}</span>
+                  <strong title={formatNumber(model.total_tokens, locale)}>
+                    {formatCompactTokens(model.total_tokens, locale).text}
+                  </strong>
+                  <i aria-hidden="true">
+                    <b
+                      style={{
+                        width: `${maximumVolume > 0 ? (model.total_tokens / maximumVolume) * 100 : 0}%`,
+                      }}
+                    />
+                  </i>
+                </div>
                 <strong title={formatCostValue(rate, locale).title}>
                   {formatCostValue(rate, locale).text}
                   <small> / 1M</small>

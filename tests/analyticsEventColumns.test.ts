@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { DEFAULT_ANALYTICS_EVENT_FILTERS } from '@/features/analytics/query';
 import {
   EVENT_COLUMN_IDS,
   EVENT_COLUMNS_STORAGE_KEY,
@@ -6,8 +7,12 @@ import {
   moveEventColumn,
   normalizeEventColumnPreferences,
   saveEventColumnPreferences,
+  shortIdentifier,
 } from '@/features/analytics/views/events/eventColumns';
-import { eventExportRequest } from '@/features/analytics/views/events/eventRequests';
+import {
+  eventExportRequest,
+  loadEventDimensionRows,
+} from '@/features/analytics/views/events/eventRequests';
 
 describe('Events column preferences', () => {
   test('keeps CPAUK-compatible 17-column order and repairs stale preferences', () => {
@@ -62,6 +67,91 @@ describe('Events export requests', () => {
       end: '2026-09-03T00:00:00.000Z',
       time_zone: 'UTC',
       filters: { provider: ['openai'], result: 'failure' },
+    });
+  });
+});
+
+describe('Events dimension options', () => {
+  test('follows every dimension cursor against the first resolved range', async () => {
+    const requests: Array<Record<string, unknown>> = [];
+    const rows = await loadEventDimensionRows(
+      {
+        schema_version: 2,
+        operation: 'dimensions',
+        range: { preset: 'last_n_days', n: 7, time_zone: 'Asia/Bangkok' },
+        dimension: 'model',
+        page_size: 500,
+      },
+      async (request) => {
+        requests.push(request as unknown as Record<string, unknown>);
+        return {
+          meta: {
+            range: {
+              start: '2026-08-27T00:00:00.000Z',
+              end: '2026-09-03T00:00:00.000Z',
+              time_zone: 'Asia/Bangkok',
+            },
+            next_cursor: requests.length === 1 ? 'page-two' : null,
+            degraded: false,
+          },
+          rows: [
+            {
+              value: requests.length === 1 ? 'gpt-5' : 'claude-sonnet',
+              proxy_requests: 1,
+              upstream_attempts: 1,
+              tokens: {
+                input: 1,
+                output: 1,
+                reasoning: 0,
+                cached: 0,
+                cache_read: 0,
+                cache_creation: 0,
+                total: 2,
+                schema: 'normalized-v1',
+                quality: 'exact',
+              },
+              known_cost_usd: '0',
+              unpriced_tokens: 0,
+              percent_of_total: '50',
+            },
+          ],
+        };
+      }
+    );
+
+    expect(rows.map((row) => row.value)).toEqual(['gpt-5', 'claude-sonnet']);
+    expect(requests).toHaveLength(2);
+    expect(requests[1]?.cursor).toBe('page-two');
+    expect(requests[1]?.range).toBeUndefined();
+    expect(requests[1]?.start).toBe('2026-08-27T00:00:00.000Z');
+  });
+});
+
+describe('shortIdentifier', () => {
+  test('truncates long hashes and never returns the full raw value', () => {
+    const fullHash = 'a'.repeat(48) + 'b'.repeat(16);
+    const short = shortIdentifier(fullHash);
+
+    expect(short).not.toBe(fullHash);
+    expect(short).toBe(`${fullHash.slice(0, 8)}…${fullHash.slice(-6)}`);
+    expect(short.length).toBeLessThan(fullHash.length);
+  });
+
+  test('passes short values through and falls back for empty input', () => {
+    expect(shortIdentifier('short-id')).toBe('short-id');
+    expect(shortIdentifier(null)).toBe('—');
+    expect(shortIdentifier(undefined)).toBe('—');
+  });
+});
+
+describe('Event filters reset', () => {
+  test('DEFAULT_ANALYTICS_EVENT_FILTERS clears every filter field', () => {
+    expect(DEFAULT_ANALYTICS_EVENT_FILTERS).toEqual({
+      provider: '',
+      model: '',
+      source: '',
+      result: '',
+      errorClass: '',
     });
   });
 });

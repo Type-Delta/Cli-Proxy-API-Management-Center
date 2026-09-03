@@ -12,10 +12,8 @@ import {
   formatDateTime,
   formatDuration,
 } from '../../components/analyticsFormatting';
+import { shortIdentifier } from './eventColumns';
 import styles from './Events.module.scss';
-
-const shortIdentifier = (value: string | null | undefined) =>
-  value && value.length > 16 ? `${value.slice(0, 8)}…${value.slice(-6)}` : value || '—';
 
 export function EventDetailSheet({
   open,
@@ -91,7 +89,7 @@ export function EventDetailSheet({
             <dl className={styles.detailGrid}>
               <div>
                 <dt>{t('analytics.key')}</dt>
-                <dd title={event.key_id}>{keyIdentity}</dd>
+                <dd title={shortIdentifier(event.key_id)}>{keyIdentity}</dd>
               </div>
               <div>
                 <dt>{t('analytics.provider')}</dt>
@@ -119,7 +117,7 @@ export function EventDetailSheet({
               </div>
               <div>
                 <dt>{t('analytics.credential', { defaultValue: 'Credential' })}</dt>
-                <dd title={event.credential_id ?? undefined}>
+                <dd title={shortIdentifier(event.credential_id)}>
                   {shortIdentifier(event.credential_id)}
                 </dd>
               </div>

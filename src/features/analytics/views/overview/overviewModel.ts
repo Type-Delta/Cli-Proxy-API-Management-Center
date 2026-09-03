@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+import type { TFunction } from 'i18next';
 import type {
   ActivityBucket,
   ActivityWindow,
@@ -5,10 +7,11 @@ import type {
   AnalyticsSummary,
   TimeseriesPoint,
 } from '@/types';
-import { MAX_ANALYTICS_KEY_FILTERS } from '../../query';
+import type { MeterTone } from '@/features/dashboard/utils';
+import { formatNumber } from '../../components/analyticsFormatting';
+import { MAX_ANALYTICS_KEY_FILTERS, type AnalyticsRange } from '../../query';
 
 export const ACTIVITY_WINDOWS: readonly ActivityWindow[] = ['day', 'week', 'month', 'year'];
-export const DEFAULT_ACTIVITY_WINDOW: ActivityWindow = 'week';
 
 /** Fixed calendar-style grid: seven rows filled column by column, as CPAUK draws it. */
 export const HEATMAP_ROWS = 7;
@@ -27,19 +30,22 @@ const WINDOW_RANGES: Record<ActivityWindow, { preset: 'last_n_hours' | 'last_n_d
     year: { preset: 'last_n_days', n: 365 },
   };
 
-export const resolvedTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-
-export function buildActivityQuery(
+/**
+ * The zone always comes from the selected range: there is no browser-zone
+ * default and no exported raw form, so the activity request cannot silently
+ * disagree with the KPI tiles again.
+ */
+export function buildOverviewActivityQuery(
   window: ActivityWindow,
   keyIds: string[],
-  timeZone = resolvedTimeZone()
+  range: AnalyticsRange
 ): AnalyticsActivityQuery {
   const { preset, n } = WINDOW_RANGES[window];
   const uniqueKeyIds = [...new Set(keyIds)].slice(0, MAX_ANALYTICS_KEY_FILTERS);
   return {
     schema_version: 2,
     operation: 'activity',
-    range: { preset, n, time_zone: timeZone },
+    range: { preset, n, time_zone: range.timeZone },
     window,
     ...(uniqueKeyIds.length ? { key_ids: uniqueKeyIds } : {}),
   };
@@ -132,6 +138,82 @@ export function heatmapNeighbour(index: number, key: string, count: number): num
 export type OverviewMetricKey = 'requests' | 'tokens' | 'rpm' | 'tpm' | 'cache_rate' | 'cost';
 
 export type OverviewSparklines = Record<OverviewMetricKey, number[]>;
+
+export type TrendSummary = {
+  first: string;
+  last: string;
+  peak: string;
+  direction: 'up' | 'down' | 'flat';
+};
+
+export type FormattedValue = { text: string; title?: string };
+
+/** One KPI tile: label, value, detail rows and an optional decorative trend. */
+export type MetricCard<Key extends string = string> = {
+  key: Key;
+  label: string;
+  value: FormattedValue;
+  detail: ReactNode;
+  ariaLabel: string;
+  accent: string;
+  trend?: { points: number[]; formatter: (value: number) => string; loading: boolean };
+};
+
+export const TONE_ACCENTS: Record<MeterTone, string> = {
+  good: 'var(--viz-success)',
+  warning: 'var(--amber-color)',
+  critical: 'var(--viz-failure)',
+  idle: 'var(--text-quaternary)',
+};
+
+export const exactNumber = (value: number, locale?: string): FormattedValue => ({
+  text: formatNumber(value, locale),
+  title: String(value),
+});
+
+/**
+ * Summarizes a sparkline as first → last, direction and peak, so the label
+ * stays short and readable instead of dumping every raw point.
+ */
+export function trendAriaLabel(
+  t: TFunction,
+  label: string,
+  points: readonly number[],
+  formatter: (value: number) => string
+): string {
+  const summary = summarizeTrend(points, formatter);
+  if (!summary) {
+    return `${label}: ${t('analytics.overview.no_timeseries_points', {
+      defaultValue: 'No time-series points',
+    })}`;
+  }
+  const direction = summary.direction === 'up' ? '↑' : summary.direction === 'down' ? '↓' : '→';
+  const maximumLabel = t('analytics.analysis.maximum', { defaultValue: 'max' });
+  return `${label}. ${summary.first} → ${summary.last}. ${direction}. ${maximumLabel}: ${summary.peak}.`;
+}
+
+export function summarizeTrend(
+  points: readonly number[],
+  formatter: (value: number) => string
+): TrendSummary | null {
+  const values = points.filter(Number.isFinite);
+  if (values.length === 0) return null;
+  const first = values[0];
+  const last = values[values.length - 1];
+  return {
+    first: formatter(first),
+    last: formatter(last),
+    peak: formatter(Math.max(...values)),
+    direction: last > first ? 'up' : last < first ? 'down' : 'flat',
+  };
+}
+
+/** CPAUK's shared cache-health thresholds; a low cache rate is neutral, not a failure. */
+export function toneForCacheRate(rate: number | null): MeterTone {
+  if (rate === null || rate < 20) return 'idle';
+  if (rate < 50) return 'warning';
+  return 'good';
+}
 
 const bucketMinutes = (point: TimeseriesPoint) => {
   const span = new Date(point.end).getTime() - new Date(point.start).getTime();

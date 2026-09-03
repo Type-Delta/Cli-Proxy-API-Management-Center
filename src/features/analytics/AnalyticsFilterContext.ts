@@ -1,6 +1,12 @@
 import { createContext, useContext } from 'react';
 import type { AnalyticsKey, AnalyticsRange as AnalyticsResolvedRange } from '@/types';
-import type { AnalyticsLeaderboardSort, AnalyticsRange } from './query';
+import type { ActivityWindow } from '@/types';
+import type {
+  AnalyticsDistribution,
+  AnalyticsEventFilters,
+  AnalyticsLeaderboardSort,
+  AnalyticsRange,
+} from './query';
 
 export type AnalyticsFilterState = {
   range: AnalyticsRange;
@@ -11,6 +17,12 @@ export type AnalyticsFilterState = {
   setSelectedKeyIds: (ids: string[]) => void;
   sort: AnalyticsLeaderboardSort;
   setSort: (sort: AnalyticsLeaderboardSort) => void;
+  eventFilters: AnalyticsEventFilters;
+  setEventFilters: (filters: AnalyticsEventFilters) => void;
+  activityWindow: ActivityWindow;
+  setActivityWindow: (window: ActivityWindow) => void;
+  distribution: AnalyticsDistribution;
+  setDistribution: (distribution: AnalyticsDistribution) => void;
   keys: AnalyticsKey[];
   keysLoading: boolean;
   keysError: string;

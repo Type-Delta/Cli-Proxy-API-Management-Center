@@ -124,15 +124,17 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
                     {stateLabel}
                   </span>
                 )}
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => void refreshPage()}
-                  disabled={refreshing || refreshCount === 0}
-                >
-                  {refreshing ? <LoadingSpinner size={14} /> : <IconRefreshCw size={14} />}
-                  {t('common.refresh')}
-                </Button>
+                {refreshCount > 0 && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void refreshPage()}
+                    disabled={refreshing}
+                  >
+                    {refreshing ? <LoadingSpinner size={14} /> : <IconRefreshCw size={14} />}
+                    {t('common.refresh')}
+                  </Button>
+                )}
                 <span className={styles.updated} aria-live="polite">
                   {updatedAt
                     ? t('analytics.updated_at', {

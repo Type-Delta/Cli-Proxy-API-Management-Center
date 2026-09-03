@@ -145,6 +145,19 @@ Validation on 2026-09-03:
 - Independent raw Chrome DevTools Protocol verification rendered all eight pages at 1440 by 900 and 390 by 844 in light and dark themes. It found no document overflow, unnamed controls, raw key or full-hash leaks, raw server enum tokens, console exceptions, or ordinary-navigation request failures. Deep-link login restore, cross-tab URL state, rapid route recovery, and same-route range updates passed.
 - A seeded seven-day `Asia/Kolkata` Analysis run verified both 168-bucket time-series charts at their start, midpoint, and end. Each chart's 168 interaction targets measured exactly 40 px wide and aligned with its bucket centers to within 0.000244 px.
 
+### DL009: Analytics accessibility, state-aware charts, and URL-carried filters
+
+Status: shipped
+
+Files: `src/features/analytics/**`, `src/i18n/locales/**`
+
+Overview KPI tiles are grouped as accessible sets with roving-tabindex heatmap grids, summarized chart `aria-label`s, and cost/error KPI tones that follow semantic status rather than raw color. The activity heatmap uses a neutral ramp with contrast-switching value labels and marks the selected range as its own query zone instead of relying on color alone. Analysis latency charts use log10 axes with mobile-sized latency tiles and a bounded "browse slowest samples" list; the key/model heatmap caps visible columns and reports how many are shown. Analysis cards load independently per section so one failed section does not block the rest, and each has its own retry. Route-level errors now retry in place instead of forcing a full reload. Events filters, the activity window, and the distribution tab persist to URL state so a shared link reproduces the same view; dimension pages follow the pointer instead of a fixed layout. Keys defaults to cost-descending sort, and Keys/Events fall back to mobile card lists below the table breakpoint. Pricing catalog sync now surfaces a real failure toast instead of assuming success, and reprice runs against the analytics workspace's active range (shown and explained in the Pricing view) instead of a fixed 24h/7d/30d choice. The Viewer route reuses the same KPI tile treatment as the authenticated pages. Fifty new `analytics.*` translation keys covering these views, including a new `analytics.maintenance.*` group for the Maintenance page's job, backup, restore, and purge copy, were added to all four locale files (`en`, `ru`, `zh-CN`, `zh-TW`) with matching key sets.
+
+Validation on 2026-09-03:
+
+- `bun run verify`
+- Result: 521 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
+
 Fork baseline validation on 2026-08-31, before DL002 and DL003:
 
 - `bunx bun@1.3.14 install --frozen-lockfile`

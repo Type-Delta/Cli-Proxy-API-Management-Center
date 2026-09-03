@@ -8,6 +8,8 @@ export type AnalyticsLoadResult<T> = {
   loading: boolean;
   lastUpdatedAt: Date | null;
   refresh: () => Promise<void>;
+  /** Same load as `refresh`, but rejects (instead of only setting `error`) so a caller can react to failure. */
+  refreshOrThrow: () => Promise<void>;
 };
 
 type AnalyticsLoadToken = {
@@ -51,6 +53,7 @@ export function useAnalyticsLoad<T>(
   const registrationRef = useRef({ coordinator, kind });
   const isCurrentLayer = layer?.isCurrentLayer ?? true;
   const isCurrentLayerRef = useRef(isCurrentLayer);
+  const lastErrorRef = useRef('');
 
   useLayoutEffect(() => {
     loadRef.current = load;
@@ -63,20 +66,25 @@ export function useAnalyticsLoad<T>(
     }
   }, [coordinator, enabled, isCurrentLayer, key, kind, load]);
 
-  const refresh = useCallback(async () => {
+  // Shared load routine. Returns whether it succeeded; on failure the error state is set
+  // (unchanged behaviour for every existing caller) and the message is stashed in a ref so
+  // `refreshOrThrow` can surface it synchronously after awaiting, without relying on a
+  // possibly-stale `error` closure.
+  const runLoad = useCallback(async (): Promise<boolean> => {
     const requestKey = keyRef.current;
     const requestEnabled = enabledRef.current;
     const token = gateRef.current.begin(requestKey);
     if (!requestEnabled) {
       setLoading(false);
-      return;
+      return true;
     }
 
     setLoading(true);
     setError('');
+    let ok = true;
     try {
       const next = await loadRef.current();
-      if (!gateRef.current.isCurrent(token, keyRef.current, enabledRef.current)) return;
+      if (!gateRef.current.isCurrent(token, keyRef.current, enabledRef.current)) return ok;
       const updatedAt = new Date();
       setData(next);
       setLastUpdatedAt(updatedAt);
@@ -85,14 +93,27 @@ export function useAnalyticsLoad<T>(
         coordinator.markUpdated(kind, updatedAt);
       }
     } catch (caught) {
-      if (!gateRef.current.isCurrent(token, keyRef.current, enabledRef.current)) return;
-      setError(caught instanceof Error ? caught.message : 'Request failed');
+      ok = false;
+      const message = caught instanceof Error ? caught.message : 'Request failed';
+      lastErrorRef.current = message;
+      if (!gateRef.current.isCurrent(token, keyRef.current, enabledRef.current)) return ok;
+      setError(message);
     } finally {
       if (gateRef.current.isCurrent(token, keyRef.current, enabledRef.current)) {
         setLoading(false);
       }
     }
+    return ok;
   }, []);
+
+  const refresh = useCallback(async () => {
+    await runLoad();
+  }, [runLoad]);
+
+  const refreshOrThrow = useCallback(async () => {
+    const ok = await runLoad();
+    if (!ok) throw new Error(lastErrorRef.current || 'Request failed');
+  }, [runLoad]);
 
   useEffect(() => {
     if (!coordinator || !kind || !isCurrentLayer) return;
@@ -114,5 +135,5 @@ export function useAnalyticsLoad<T>(
     return () => gate.invalidate();
   }, []);
 
-  return { data, error, loading, lastUpdatedAt, refresh };
+  return { data, error, loading, lastUpdatedAt, refresh, refreshOrThrow };
 }

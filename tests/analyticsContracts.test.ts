@@ -110,16 +110,34 @@ describe('analytics client contracts', () => {
       range: { ...sevenDays, n: 30 },
       keyRefs: ['a1b2c3d4e5f6', fullId, 'unsafe key', 'second_ref'],
       sort: 'cost',
+      eventFilters: {
+        provider: 'openai',
+        model: 'gpt-5.1',
+        source: 'import',
+        result: 'failure',
+        errorClass: 'rate_limit',
+      },
+      activityWindow: 'month',
+      distribution: 'model',
     });
 
     expect(search).toBe(
-      '?range=last_n_days&time_zone=Asia%2FBangkok&n=30&grain=1d&keys=a1b2c3d4e5f6%2Csecond_ref&sort=cost'
+      '?range=last_n_days&time_zone=Asia%2FBangkok&n=30&grain=1d&keys=a1b2c3d4e5f6%2Csecond_ref&provider=openai&model=gpt-5.1&source=import&result=failure&error_class=rate_limit&activity=month&distribution=model'
     );
     expect(search).not.toContain(fullId);
     expect(parseAnalyticsUrlState(search)).toEqual({
       range: { ...sevenDays, n: 30 },
       keyRefs: ['a1b2c3d4e5f6', 'second_ref'],
       sort: 'cost',
+      eventFilters: {
+        provider: 'openai',
+        model: 'gpt-5.1',
+        source: 'import',
+        result: 'failure',
+        errorClass: 'rate_limit',
+      },
+      activityWindow: 'month',
+      distribution: 'model',
     });
   });
 
@@ -129,11 +147,14 @@ describe('analytics client contracts', () => {
     ).toEqual({
       range: sevenDays,
       keyRefs: ['ok'],
-      sort: 'tokens',
+      sort: 'cost',
+      eventFilters: { provider: '', model: '', source: '', result: '', errorClass: '' },
+      activityWindow: 'week',
+      distribution: 'key',
     });
     expect(
       leaderboardRedirectTarget('?range=24h&time_zone=Asia%2FBangkok&keys=short-one&sort=tokens')
-    ).toBe('/analytics/keys?range=last_n_hours&time_zone=Asia%2FBangkok&n=24&grain=1h&sort=cost');
+    ).toBe('/analytics/keys?range=last_n_hours&time_zone=Asia%2FBangkok&n=24&grain=1h');
   });
 
   test('builds the all-keys leaderboard contract with stable pagination', () => {
@@ -384,6 +405,7 @@ describe('analytics client contracts', () => {
           pages?: Record<string, string>;
           groups?: Record<string, string>;
           enums?: Record<string, unknown>;
+          errors?: Record<string, string>;
           clear_keys?: string;
           keys_selected?: string;
         };
@@ -391,6 +413,12 @@ describe('analytics client contracts', () => {
       expect(Object.keys(document.analytics?.pages ?? {})).toEqual(ANALYTICS_PAGES);
       expect(Object.keys(document.analytics?.groups ?? {})).toEqual(ANALYTICS_GROUPS);
       expect(document.analytics?.enums).toBeDefined();
+      expect(Object.keys(document.analytics?.errors ?? {}).sort()).toEqual([
+        'network',
+        'permission',
+        'rate_limit',
+        'server',
+      ]);
       expect(document.analytics?.clear_keys).toBeUndefined();
       expect(document.analytics?.keys_selected).toBeUndefined();
     }

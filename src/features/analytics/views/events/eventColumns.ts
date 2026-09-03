@@ -20,6 +20,10 @@ export const EVENT_COLUMN_IDS = [
 
 export type EventColumnId = (typeof EVENT_COLUMN_IDS)[number];
 
+// Truncates a raw key/credential hash for display; never render the full value in the DOM.
+export const shortIdentifier = (value: string | null | undefined) =>
+  value && value.length > 16 ? `${value.slice(0, 8)}…${value.slice(-6)}` : value || '—';
+
 export type EventColumnPreferences = {
   version: 1;
   visible: EventColumnId[];

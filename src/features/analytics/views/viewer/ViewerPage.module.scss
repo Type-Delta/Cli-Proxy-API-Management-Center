@@ -72,33 +72,6 @@
   }
 }
 
-.totals {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-
-  > div {
-    min-width: 0;
-  }
-
-  span,
-  strong {
-    display: block;
-  }
-
-  span {
-    color: var(--text-secondary);
-    font-size: 12px;
-  }
-
-  strong {
-    margin-top: 7px;
-    color: var(--text-primary);
-    font-size: 20px;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
 .sparkline {
   height: 72px;
   margin-top: 12px;

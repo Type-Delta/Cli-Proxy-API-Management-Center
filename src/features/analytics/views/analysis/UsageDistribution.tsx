@@ -1,7 +1,8 @@
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useMemo, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '@/components/ui/EmptyState';
 import type { AnalyticsDimensionPage } from '@/types';
+import { useAnalyticsFilters } from '../../AnalyticsFilterContext';
 import type { AnalyticsLoadResult } from '../../useAnalyticsLoad';
 import {
   formatCompactTokens,
@@ -42,7 +43,8 @@ export function UsageDistribution({
   locale?: string;
 }) {
   const { t } = useTranslation();
-  const [active, setActive] = useState<AnalysisDistribution>('key');
+  // The active dimension lives in the hash query so a shared link reopens on it.
+  const { distribution: active, setDistribution: setActive } = useAnalyticsFilters();
   const result = results[active];
   const rows = useMemo(() => buildDistributionRows(result.data?.rows ?? []), [result.data]);
   const labels: Record<AnalysisDistribution, string> = {
@@ -142,7 +144,10 @@ export function UsageDistribution({
                 <div
                   className={styles.shareTrack}
                   role="img"
-                  aria-label={`${value}, ${formatPercent(row.percent, locale)} ${t('analytics.analysis.token_share', { defaultValue: 'token share' })}`}
+                  aria-label={`${value}, ${formatPercent(row.percent, locale)} ${t('analytics.analysis.token_share', { defaultValue: 'token share' })}`.slice(
+                    0,
+                    199
+                  )}
                 >
                   <span style={{ width: `${Math.min(100, Math.max(0, row.percent))}%` }} />
                 </div>
@@ -167,7 +172,8 @@ export function UsageDistribution({
                       ([key, count]) =>
                         `${t(`analytics.analysis.category_${key}`, { defaultValue: key.replace('_', ' ') })} ${formatNumber(count, locale)}`
                     )
-                    .join(', ')}
+                    .join(', ')
+                    .slice(0, 199)}
                 >
                   {mix.map(([key, count, color]) => (
                     <span

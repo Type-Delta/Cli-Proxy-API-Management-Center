@@ -21,20 +21,41 @@
   gap: 12px;
 }
 
-.metricCard {
-  position: relative;
-  display: flex;
+.metricCardFocus,
+.dailyCardFocus {
   min-width: 0;
+  border-radius: 12px;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-active);
+    outline-offset: 3px;
+  }
+}
+
+.metricCardFocus {
   min-height: 220px;
+}
+
+.dailyCardFocus {
+  min-height: 40px;
+}
+
+.metricCard {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  min-height: inherit;
+  box-sizing: border-box;
   overflow: hidden;
   flex-direction: column;
   gap: 8px;
 }
 
 .metricAccent {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
+  width: 28px;
+  height: 3px;
+  margin-block-end: 2px;
+  border-radius: $radius-full;
   background: var(--metric-accent);
 }
 
@@ -193,6 +214,61 @@
   border-radius: 3px;
 }
 
+.heatmapPanel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.heatmapSummary {
+  display: flex;
+  margin: 0;
+  gap: 8px 20px;
+  flex-wrap: wrap;
+
+  > div {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+  }
+
+  dt {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+  }
+}
+
+.heatmapTooltip {
+  min-height: 34px;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--floating-surface);
+  box-shadow: var(--shadow);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-hover) var(--ease-out-strong);
+  visibility: hidden;
+}
+
+.heatmapPanel:has(.heatmapCell:focus-visible) .heatmapTooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
 .heatmapScroller {
   max-width: 100%;
   overflow-x: auto;
@@ -216,7 +292,7 @@
   min-height: 40px;
   border: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
   border-radius: 6px;
-  cursor: help;
+  color: var(--text-primary);
   transition:
     border-color var(--dur-hover) var(--ease-out-strong),
     box-shadow var(--dur-hover) var(--ease-out-strong),
@@ -240,23 +316,30 @@
 }
 
 .tokenLevel1 {
-  background: color-mix(in srgb, var(--viz-success) 16%, var(--bg-primary));
+  --cell-strength: 16%;
+  background: color-mix(in srgb, var(--primary-active) 16%, var(--bg-primary));
 }
 
 .tokenLevel2 {
-  background: color-mix(in srgb, var(--viz-success) 30%, var(--bg-primary));
+  --cell-strength: 30%;
+  background: color-mix(in srgb, var(--primary-active) 30%, var(--bg-primary));
 }
 
 .tokenLevel3 {
-  background: color-mix(in srgb, var(--viz-success) 46%, var(--bg-primary));
+  --cell-strength: 46%;
+  background: color-mix(in srgb, var(--primary-active) 46%, var(--bg-primary));
 }
 
 .tokenLevel4 {
-  background: color-mix(in srgb, var(--viz-success) 65%, var(--bg-primary));
+  --cell-strength: 62%;
+  background: color-mix(in srgb, var(--primary-active) 62%, var(--bg-primary));
+  color: var(--text-primary);
 }
 
 .tokenLevel5 {
-  background: var(--viz-success);
+  --cell-strength: 100%;
+  background: var(--primary-active);
+  color: var(--floating-surface);
 }
 
 .healthLevel1 {
@@ -305,6 +388,10 @@
     min-height: 200px;
   }
 
+  .metricCardFocus {
+    min-height: 200px;
+  }
+
   .dailyMetric {
     padding: 12px 0;
     border-block-start: 1px solid var(--border-color);
@@ -330,7 +417,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .heatmapCell {
+  .heatmapCell,
+  .heatmapTooltip {
     transition: none;
   }
 }

@@ -1,20 +1,28 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '@/components/ui/EmptyState';
 import type { AnalysisLatency } from '@/types';
 import { formatDateTime, formatDuration, formatNumber } from '../../components/analyticsFormatting';
 import { AnalysisCard } from './AnalysisCard';
-import { resolveLatencyPresentation } from './analysisModel';
+import {
+  ANALYSIS_CHART_BASE_WIDTH,
+  ANALYSIS_CHART_HEIGHT,
+  ANALYSIS_PLOT_HEIGHT,
+  ANALYSIS_PLOT_INSET,
+  analysisPlotWidth,
+  buildLogAxis,
+  logAxisRatio,
+  percentile,
+  resolveLatencyPresentation,
+  slowestLatencySamples,
+} from './analysisModel';
 import styles from './Analysis.module.scss';
 
-const WIDTH = 760;
-const HEIGHT = 330;
-const PLOT = { left: 68, right: 22, top: 24, bottom: 54 };
-const PLOT_WIDTH = WIDTH - PLOT.left - PLOT.right;
-const PLOT_HEIGHT = HEIGHT - PLOT.top - PLOT.bottom;
-
-const logRatio = (value: number, maximum: number) =>
-  Math.log1p(Math.max(0, value)) / Math.log1p(Math.max(1, maximum));
+const WIDTH = ANALYSIS_CHART_BASE_WIDTH;
+const HEIGHT = ANALYSIS_CHART_HEIGHT;
+const PLOT = ANALYSIS_PLOT_INSET;
+const PLOT_WIDTH = analysisPlotWidth(WIDTH);
+const PLOT_HEIGHT = ANALYSIS_PLOT_HEIGHT;
 
 export function LatencyDiagnostics({
   section,
@@ -30,29 +38,52 @@ export function LatencyDiagnostics({
   locale?: string;
 }) {
   const { t } = useTranslation();
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const presentation = useMemo(() => resolveLatencyPresentation(section ?? null), [section]);
   const samples = presentation.samples;
-  const maxTtft = Math.max(
-    1,
-    section?.max_ttft_ms ?? 0,
-    ...samples.map((sample) => sample.ttft_ms ?? 0)
-  );
-  const maxLatency = Math.max(
-    1,
-    section?.max_latency_ms ?? 0,
-    ...samples.map((sample) => sample.latency_ms)
-  );
+  const ttftValues = samples.map((sample) => sample.ttft_ms ?? 0);
+  const latencyValues = samples.map((sample) => sample.latency_ms);
+  const ttftAxis = buildLogAxis([...ttftValues, section?.p95_ttft_ms ?? 0]);
+  const latencyAxis = buildLogAxis([...latencyValues, section?.p95_latency_ms ?? 0]);
   const p95X =
-    section?.p95_ttft_ms === null || section?.p95_ttft_ms === undefined
+    section?.p95_ttft_ms == null
       ? null
-      : PLOT.left + logRatio(section.p95_ttft_ms, maxTtft) * PLOT_WIDTH;
+      : PLOT.left + logAxisRatio(section.p95_ttft_ms, ttftAxis) * PLOT_WIDTH;
   const p95Y =
-    section?.p95_latency_ms === null || section?.p95_latency_ms === undefined
+    section?.p95_latency_ms == null
       ? null
-      : PLOT.top + (1 - logRatio(section.p95_latency_ms, maxLatency)) * PLOT_HEIGHT;
-  const active = activeIndex === null ? null : samples[activeIndex];
+      : PLOT.top + (1 - logAxisRatio(section.p95_latency_ms, latencyAxis)) * PLOT_HEIGHT;
+  const browsable = useMemo(() => slowestLatencySamples(samples), [samples]);
   const hasSpecialState = presentation.state === 'unsupported' || presentation.state === 'missing';
+  const chartLabel = t('analytics.analysis.latency_chart_summary', {
+    defaultValue: '{{count}} latency samples on logarithmic TTFT and latency axes with p95 lines',
+    count: samples.length,
+  });
+  const stats = [
+    {
+      label: t('analytics.analysis.p50_ttft', { defaultValue: 'p50 TTFT' }),
+      value: percentile(ttftValues, 0.5),
+    },
+    {
+      label: t('analytics.analysis.p95_ttft', { defaultValue: 'p95 TTFT' }),
+      value: section?.p95_ttft_ms,
+    },
+    {
+      label: t('analytics.analysis.max_ttft', { defaultValue: 'Max TTFT' }),
+      value: section?.max_ttft_ms,
+    },
+    {
+      label: t('analytics.analysis.p50_latency', { defaultValue: 'p50 latency' }),
+      value: percentile(latencyValues, 0.5),
+    },
+    {
+      label: t('analytics.analysis.p95_latency', { defaultValue: 'p95 latency' }),
+      value: section?.p95_latency_ms,
+    },
+    {
+      label: t('analytics.analysis.max_latency', { defaultValue: 'Max latency' }),
+      value: section?.max_latency_ms,
+    },
+  ];
 
   return (
     <AnalysisCard
@@ -90,34 +121,15 @@ export function LatencyDiagnostics({
       ) : (
         <>
           <div className={styles.latencyMetrics}>
-            <span>
-              <small>{t('analytics.analysis.p95_ttft', { defaultValue: 'p95 TTFT' })}</small>
-              <strong>
-                {section?.p95_ttft_ms == null ? '—' : formatDuration(section.p95_ttft_ms, locale)}
-              </strong>
-            </span>
-            <span>
-              <small>{t('analytics.analysis.p95_latency', { defaultValue: 'p95 latency' })}</small>
-              <strong>
-                {section?.p95_latency_ms == null
-                  ? '—'
-                  : formatDuration(section.p95_latency_ms, locale)}
-              </strong>
-            </span>
-            <span>
-              <small>{t('analytics.analysis.max_ttft', { defaultValue: 'Max TTFT' })}</small>
-              <strong>
-                {section?.max_ttft_ms == null ? '—' : formatDuration(section.max_ttft_ms, locale)}
-              </strong>
-            </span>
-            <span>
-              <small>{t('analytics.analysis.max_latency', { defaultValue: 'Max latency' })}</small>
-              <strong>
-                {section?.max_latency_ms == null
-                  ? '—'
-                  : formatDuration(section.max_latency_ms, locale)}
-              </strong>
-            </span>
+            {stats
+              .slice(1, 3)
+              .concat(stats.slice(4, 6))
+              .map((stat) => (
+                <span key={stat.label}>
+                  <small>{stat.label}</small>
+                  <strong>{stat.value == null ? '—' : formatDuration(stat.value, locale)}</strong>
+                </span>
+              ))}
             <span>
               <small>{t('analytics.analysis.sample_count', { defaultValue: 'Samples' })}</small>
               <strong>{formatNumber(section?.sample_count ?? 0, locale)}</strong>
@@ -127,95 +139,87 @@ export function LatencyDiagnostics({
             </span>
           </div>
           {presentation.state === 'ready' && (
-            <div className={styles.chartScroller}>
-              <div className={`${styles.chartStage} ${styles.latencyStage}`}>
+            <>
+              <div className={styles.latencyPlot}>
                 <svg
                   className={styles.chartSvg}
                   viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
                   role="img"
-                  aria-label={t('analytics.analysis.latency_chart_summary', {
-                    defaultValue: '{{count}} latency samples with p95 reference lines',
-                    count: samples.length,
-                  })}
+                  tabIndex={0}
+                  aria-label={chartLabel}
                 >
-                  {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
-                    <g key={ratio} aria-hidden="true">
-                      <line
-                        x1={PLOT.left}
-                        y1={PLOT.top + ratio * PLOT_HEIGHT}
-                        x2={WIDTH - PLOT.right}
-                        y2={PLOT.top + ratio * PLOT_HEIGHT}
-                        className={styles.gridline}
-                      />
-                      <line
-                        x1={PLOT.left + ratio * PLOT_WIDTH}
-                        y1={PLOT.top}
-                        x2={PLOT.left + ratio * PLOT_WIDTH}
-                        y2={PLOT.top + PLOT_HEIGHT}
-                        className={styles.gridline}
-                      />
-                    </g>
-                  ))}
+                  {latencyAxis.ticks.map((tick) => {
+                    const y = PLOT.top + (1 - logAxisRatio(tick, latencyAxis)) * PLOT_HEIGHT;
+                    return (
+                      <g key={`y-${tick}`} aria-hidden="true">
+                        <line
+                          x1={PLOT.left}
+                          y1={y}
+                          x2={WIDTH - PLOT.right}
+                          y2={y}
+                          className={styles.gridline}
+                        />
+                        <text
+                          x={PLOT.left - 8}
+                          y={y + 4}
+                          className={styles.axisLabel}
+                          textAnchor="end"
+                        >
+                          {formatDuration(tick, locale)}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  {ttftAxis.ticks.map((tick) => {
+                    const x = PLOT.left + logAxisRatio(tick, ttftAxis) * PLOT_WIDTH;
+                    return (
+                      <g key={`x-${tick}`} aria-hidden="true">
+                        <line
+                          x1={x}
+                          y1={PLOT.top}
+                          x2={x}
+                          y2={PLOT.top + PLOT_HEIGHT}
+                          className={styles.gridline}
+                        />
+                        <text x={x} y={HEIGHT - 8} className={styles.axisLabel} textAnchor="middle">
+                          {formatDuration(tick, locale)}
+                        </text>
+                      </g>
+                    );
+                  })}
                   {p95X !== null && (
-                    <g aria-hidden="true">
-                      <line
-                        x1={p95X}
-                        y1={PLOT.top}
-                        x2={p95X}
-                        y2={PLOT.top + PLOT_HEIGHT}
-                        className={styles.p95TtftLine}
-                      />
-                      <text x={p95X + 5} y={PLOT.top + 12} className={styles.p95TtftLabel}>
-                        {t('analytics.analysis.p95_ttft', { defaultValue: 'p95 TTFT' })}
-                      </text>
-                    </g>
+                    <line
+                      aria-hidden="true"
+                      x1={p95X}
+                      y1={PLOT.top}
+                      x2={p95X}
+                      y2={PLOT.top + PLOT_HEIGHT}
+                      className={styles.p95TtftLine}
+                    />
                   )}
                   {p95Y !== null && (
-                    <g aria-hidden="true">
-                      <line
-                        x1={PLOT.left}
-                        y1={p95Y}
-                        x2={WIDTH - PLOT.right}
-                        y2={p95Y}
-                        className={styles.p95LatencyLine}
-                      />
-                      <text
-                        x={WIDTH - PLOT.right - 4}
-                        y={p95Y - 6}
-                        className={styles.p95LatencyLabel}
-                        textAnchor="end"
-                      >
-                        {t('analytics.analysis.p95_latency', { defaultValue: 'p95 latency' })}
-                      </text>
-                    </g>
+                    <line
+                      aria-hidden="true"
+                      x1={PLOT.left}
+                      y1={p95Y}
+                      x2={WIDTH - PLOT.right}
+                      y2={p95Y}
+                      className={styles.p95LatencyLine}
+                    />
                   )}
                   {samples.map((sample, index) => {
-                    const x = PLOT.left + logRatio(sample.ttft_ms ?? 0, maxTtft) * PLOT_WIDTH;
+                    const x = PLOT.left + logAxisRatio(sample.ttft_ms ?? 0, ttftAxis) * PLOT_WIDTH;
                     const y =
-                      PLOT.top + (1 - logRatio(sample.latency_ms, maxLatency)) * PLOT_HEIGHT;
-                    const label = `${sample.model}, ${formatDateTime(sample.requested_at, locale)}, ${t('analytics.analysis.ttft', { defaultValue: 'TTFT' })} ${formatDuration(sample.ttft_ms ?? 0, locale)}, ${t('analytics.latency', { defaultValue: 'Latency' })} ${formatDuration(sample.latency_ms, locale)}`;
+                      PLOT.top + (1 - logAxisRatio(sample.latency_ms, latencyAxis)) * PLOT_HEIGHT;
                     return (
-                      <g
+                      <circle
                         key={`${sample.requested_at}-${index}`}
-                        role="img"
-                        tabIndex={0}
-                        aria-label={label}
-                        onFocus={() => setActiveIndex(index)}
-                        onBlur={() => setActiveIndex(null)}
-                        onMouseEnter={() => setActiveIndex(index)}
-                        onMouseLeave={() => setActiveIndex(null)}
-                        className={styles.scatterTarget}
-                      >
-                        <circle cx={x} cy={y} r={20} fill="transparent" />
-                        <circle
-                          cx={x}
-                          cy={y}
-                          r={activeIndex === index ? 6 : 4}
-                          className={
-                            sample.succeeded ? styles.scatterSuccess : styles.scatterFailure
-                          }
-                        />
-                      </g>
+                        cx={x}
+                        cy={y}
+                        r={4}
+                        aria-hidden="true"
+                        className={sample.succeeded ? styles.scatterSuccess : styles.scatterFailure}
+                      />
                     );
                   })}
                   <text
@@ -224,37 +228,56 @@ export function LatencyDiagnostics({
                     className={styles.axisTitle}
                     textAnchor="middle"
                   >
-                    {t('analytics.analysis.ttft', { defaultValue: 'TTFT' })} ·{' '}
-                    {formatDuration(maxTtft, locale)}{' '}
-                    {t('analytics.analysis.maximum', { defaultValue: 'max' })}
+                    {t('analytics.analysis.ttft', { defaultValue: 'TTFT' })} · log10
                   </text>
                   <text
-                    x={16}
+                    x={14}
                     y={PLOT.top + PLOT_HEIGHT / 2}
                     className={styles.axisTitle}
                     textAnchor="middle"
-                    transform={`rotate(-90 16 ${PLOT.top + PLOT_HEIGHT / 2})`}
+                    transform={`rotate(-90 14 ${PLOT.top + PLOT_HEIGHT / 2})`}
                   >
-                    {t('analytics.latency', { defaultValue: 'Latency' })} ·{' '}
-                    {formatDuration(maxLatency, locale)}{' '}
-                    {t('analytics.analysis.maximum', { defaultValue: 'max' })}
+                    {t('analytics.latency', { defaultValue: 'Latency' })} · log10
                   </text>
                 </svg>
               </div>
-            </div>
-          )}
-          {active && (
-            <div className={styles.chartReadout} role="status">
-              <strong>{active.model}</strong>
-              <span>
-                {t('analytics.analysis.ttft', { defaultValue: 'TTFT' })}{' '}
-                {formatDuration(active.ttft_ms ?? 0, locale)}
-              </span>
-              <span>
-                {t('analytics.latency', { defaultValue: 'Latency' })}{' '}
-                {formatDuration(active.latency_ms, locale)}
-              </span>
-            </div>
+              <dl className={styles.latencyMobileSummary} aria-label={chartLabel}>
+                {stats.map((stat) => (
+                  <div key={stat.label}>
+                    <dt>{stat.label}</dt>
+                    <dd>{stat.value == null ? '—' : formatDuration(stat.value, locale)}</dd>
+                  </div>
+                ))}
+              </dl>
+              <details className={styles.sampleBrowser}>
+                <summary>
+                  {t('analytics.analysis.browse_samples', { defaultValue: 'Browse samples' })}
+                </summary>
+                <p className={styles.sampleBrowserCount}>
+                  {t('analytics.analysis.browse_samples_count', {
+                    defaultValue: 'Showing the {{shown}} slowest of {{total}} samples.',
+                    shown: browsable.shown,
+                    total: browsable.total,
+                  })}
+                </p>
+                <ol>
+                  {browsable.rows.map((sample, index) => (
+                    <li key={`${sample.requested_at}-${index}`}>
+                      <strong>{sample.model}</strong>
+                      <span>{formatDateTime(sample.requested_at, locale)}</span>
+                      <span>
+                        {t('analytics.analysis.ttft', { defaultValue: 'TTFT' })}{' '}
+                        {formatDuration(sample.ttft_ms ?? 0, locale)}
+                      </span>
+                      <span>
+                        {t('analytics.latency', { defaultValue: 'Latency' })}{' '}
+                        {formatDuration(sample.latency_ms, locale)}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            </>
           )}
         </>
       )}

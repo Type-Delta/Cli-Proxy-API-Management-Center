@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/Table';
+import { Meter } from '@/features/dashboard/components/Meter';
 import { analyticsApi } from '@/services/api';
 import type { ProviderCredential, ProviderQuota, ProviderStatus, QuotaStatus } from '@/types';
 import { formatDateTime, formatNumber } from '../components/analyticsFormatting';
@@ -21,9 +22,21 @@ import { useAnalyticsLoad as useLoad } from '../useAnalyticsLoad';
 import {
   calculateQuotaProgress,
   mergeProviderCredentials,
+  quotaTone,
   shortCredentialIdentity,
 } from './manage/providerUtils';
 import styles from '../Analytics.module.scss';
+
+function providerLabel(
+  t: (key: string, options?: { defaultValue?: string }) => string,
+  provider: string | null | undefined
+) {
+  const trimmed = (provider ?? '').trim();
+  if (!trimmed || trimmed.toLowerCase() === 'unknown') {
+    return t('analytics.provider_unattributed', { defaultValue: 'Unattributed' });
+  }
+  return trimmed;
+}
 
 type CollectionLoad = {
   data: readonly unknown[] | null;
@@ -104,14 +117,21 @@ function QuotaCell({ quota, locale }: { quota: ProviderQuota | null; locale?: st
   }
   const used = formatNumber(progress.used ?? 0, locale);
   const limit = formatNumber(progress.limit ?? 0, locale);
+  const percentLabel = `${Math.round(progress.percent)}%`;
   return (
-    <span title={`${used} / ${limit}`}>
-      <progress
-        max={100}
+    <span className={styles.quotaCell} title={`${used} / ${limit}`}>
+      <Meter
         value={progress.percent}
-        aria-label={`${Math.round(progress.percent)}%`}
-      />{' '}
-      {Math.round(progress.percent)}% ({used}/{limit})
+        tone={quotaTone(progress.percent)}
+        ariaLabel={t('analytics.quota_used_label', {
+          defaultValue: 'Quota used: {{percent}} ({{used}} of {{limit}})',
+          percent: percentLabel,
+          used,
+          limit,
+        })}
+        className={styles.quotaMeter}
+      />
+      {percentLabel} ({used}/{limit})
     </span>
   );
 }
@@ -143,7 +163,7 @@ function ProviderSummaryTable({
           const quota = quotaByProvider.get(row.provider);
           return (
             <TableRow key={row.provider}>
-              <TableCell>{row.provider}</TableCell>
+              <TableCell>{providerLabel(t, row.provider)}</TableCell>
               <TableCell>{formatNumber(row.credentials, i18n.resolvedLanguage)}</TableCell>
               <TableCell>
                 {formatNumber(row.available_credentials, i18n.resolvedLanguage)}
@@ -210,7 +230,7 @@ function CredentialTable({
                 {shortCredentialIdentity(row.credential_id)}
               </code>
             </TableCell>
-            <TableCell>{row.provider}</TableCell>
+            <TableCell>{providerLabel(t, row.provider)}</TableCell>
             <TableCell>{localizedValue(t, 'auth_type', row.auth_type)}</TableCell>
             <TableCell>
               <span className="status-badge">
@@ -250,7 +270,7 @@ function CredentialDetail({ row }: { row: ProviderCredential }) {
         </TableRow>
         <TableRow>
           <TableHead>{t('analytics.provider', { defaultValue: 'Provider' })}</TableHead>
-          <TableCell>{row.provider}</TableCell>
+          <TableCell>{providerLabel(t, row.provider)}</TableCell>
         </TableRow>
         <TableRow>
           <TableHead>{t('analytics.auth_type', { defaultValue: 'Auth type' })}</TableHead>

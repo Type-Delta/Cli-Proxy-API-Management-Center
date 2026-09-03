@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/Table';
 import { IconEye, IconSettings } from '@/components/ui/icons';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { analyticsApi } from '@/services/api';
 import type { AnalyticsEvent, AnalyticsEventPage, AnalyticsFilters, AnalyticsKey } from '@/types';
 import { useAnalyticsFilters } from '../AnalyticsFilterContext';
@@ -28,8 +29,10 @@ import {
 } from '../components/analyticsFormatting';
 import {
   buildAnalyticsQuery,
+  DEFAULT_ANALYTICS_EVENT_FILTERS,
   freezeAnalyticsCursorQuery,
   resolveAnalyticsRange,
+  type AnalyticsEventFilters,
   type AnalyticsRange,
 } from '../query';
 import { useAnalyticsLoad } from '../useAnalyticsLoad';
@@ -38,27 +41,12 @@ import { EventDetailSheet } from './events/EventDetailSheet';
 import {
   loadEventColumnPreferences,
   saveEventColumnPreferences,
+  shortIdentifier,
   type EventColumnId,
   type EventColumnPreferences,
 } from './events/eventColumns';
-import { eventExportRequest } from './events/eventRequests';
+import { eventExportRequest, loadEventDimensionRows } from './events/eventRequests';
 import styles from './events/Events.module.scss';
-
-type EventFilters = {
-  provider: string;
-  model: string;
-  source: string;
-  result: '' | 'success' | 'failure';
-  errorClass: string;
-};
-
-const EMPTY_FILTERS: EventFilters = {
-  provider: '',
-  model: '',
-  source: '',
-  result: '',
-  errorClass: '',
-};
 
 const eventSource = (event: AnalyticsEvent) => event.source?.trim() ?? '';
 
@@ -82,8 +70,8 @@ const uniqueEvents = (pages: readonly AnalyticsEventPage[]) => {
 
 export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: string[] }) {
   const { t, i18n } = useTranslation();
-  const { keys, reportResolvedRange } = useAnalyticsFilters();
-  const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS);
+  const { keys, reportResolvedRange, eventFilters: filters, setEventFilters: setFilters } =
+    useAnalyticsFilters();
   const [pages, setPages] = useState<AnalyticsEventPage[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState('');
@@ -95,23 +83,36 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     loadEventColumnPreferences
   );
   const [selectedAttemptId, setSelectedAttemptId] = useState('');
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const dimensionRequest = (dimension: string) =>
     buildAnalyticsQuery('dimensions', range, keyIds, { dimension, page_size: 500 });
   const providerDimensions = useAnalyticsLoad(
-    () => analyticsApi.dimensions(dimensionRequest('provider')),
+    () =>
+      loadEventDimensionRows(dimensionRequest('provider'), (request) =>
+        analyticsApi.dimensions(request)
+      ),
     JSON.stringify(['event-provider-options', range, keyIds])
   );
   const modelDimensions = useAnalyticsLoad(
-    () => analyticsApi.dimensions(dimensionRequest('model')),
+    () =>
+      loadEventDimensionRows(dimensionRequest('model'), (request) =>
+        analyticsApi.dimensions(request)
+      ),
     JSON.stringify(['event-model-options', range, keyIds])
   );
   const sourceDimensions = useAnalyticsLoad(
-    () => analyticsApi.dimensions(dimensionRequest('source')),
+    () =>
+      loadEventDimensionRows(dimensionRequest('source'), (request) =>
+        analyticsApi.dimensions(request)
+      ),
     JSON.stringify(['event-source-options', range, keyIds])
   );
   const failureDimensions = useAnalyticsLoad(
-    () => analyticsApi.dimensions(dimensionRequest('failure')),
+    () =>
+      loadEventDimensionRows(dimensionRequest('failure'), (request) =>
+        analyticsApi.dimensions(request)
+      ),
     JSON.stringify(['event-failure-options', range, keyIds])
   );
 
@@ -184,12 +185,12 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
   const providerOptions = [
     allOption(t('analytics.all_providers', { defaultValue: 'All providers' })),
     ...[
-      ...new Set((providerDimensions.data?.rows ?? []).map((row) => row.value).filter(Boolean)),
+      ...new Set((providerDimensions.data ?? []).map((row) => row.value).filter(Boolean)),
     ].map((value) => ({ value, label: value })),
   ];
   const modelOptions = [
     allOption(t('analytics.all_models', { defaultValue: 'All models' })),
-    ...[...new Set((modelDimensions.data?.rows ?? []).map((row) => row.value).filter(Boolean))].map(
+    ...[...new Set((modelDimensions.data ?? []).map((row) => row.value).filter(Boolean))].map(
       (value) => ({ value, label: value })
     ),
   ];
@@ -197,8 +198,8 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     allOption(t('analytics.all_sources', { defaultValue: 'All sources' })),
     ...[
       ...new Set(
-        (sourceDimensions.data?.rows ?? []).some((row) => row.value)
-          ? (sourceDimensions.data?.rows ?? []).map((row) => row.value).filter(Boolean)
+        (sourceDimensions.data ?? []).some((row) => row.value)
+          ? (sourceDimensions.data ?? []).map((row) => row.value).filter(Boolean)
           : sourceValues
       ),
     ].map((value) => ({
@@ -215,7 +216,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     allOption(t('analytics.all_error_classes', { defaultValue: 'All error classes' })),
     ...[
       ...new Set(
-        (failureDimensions.data?.rows ?? [])
+        (failureDimensions.data ?? [])
           .map((row) => row.value)
           .filter((value) => Boolean(value) && value !== 'success')
       ),
@@ -249,8 +250,11 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     columnPreferences.visible.includes(id)
   );
 
-  const updateFilter = <K extends keyof EventFilters>(name: K, value: EventFilters[K]) => {
-    setFilters((current) => ({ ...current, [name]: value }));
+  const updateFilter = <K extends keyof AnalyticsEventFilters>(
+    name: K,
+    value: AnalyticsEventFilters[K]
+  ) => {
+    setFilters({ ...filters, [name]: value });
   };
 
   const loadMore = async () => {
@@ -314,7 +318,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
           </span>
         );
       case 'api_key':
-        return <span title={event.key_id}>{keyIdentity(event)}</span>;
+        return <span title={shortIdentifier(event.key_id)}>{keyIdentity(event)}</span>;
       case 'source':
         return eventSource(event)
           ? formatAnalyticsEnum(t, 'state', eventSource(event))
@@ -450,7 +454,9 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
             <span>{t('analytics.result', { defaultValue: 'Result' })}</span>
             <Select
               value={filters.result}
-              onChange={(value) => updateFilter('result', value as EventFilters['result'])}
+              onChange={(value) =>
+                updateFilter('result', value as AnalyticsEventFilters['result'])
+              }
               options={resultOptions}
               ariaLabel={t('analytics.result', { defaultValue: 'Result' })}
             />
@@ -469,7 +475,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
           <Button
             variant="secondary"
             disabled={!hasFilters}
-            onClick={() => setFilters(EMPTY_FILTERS)}
+            onClick={() => setFilters(DEFAULT_ANALYTICS_EVENT_FILTERS)}
           >
             {t('analytics.clear_filters', { defaultValue: 'Clear filters' })}
           </Button>
@@ -492,7 +498,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
           .map(([error, retry], index) => (
             <div className="error-box" role="alert" key={`${index}:${String(error)}`}>
               <span>{String(error)}</span>
-              <Button variant="secondary" onClick={() => void (retry as () => Promise<void>)()}>
+              <Button variant="secondary" onClick={() => void (retry as () => Promise<unknown>)()}>
                 {t('common.retry')}
               </Button>
             </div>
@@ -512,7 +518,12 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
           />
         </Card>
       ) : (
-        <AsyncState loading={result.loading} error="" stale={lastPage?.meta.degraded}>
+        <AsyncState
+          loading={result.loading}
+          error=""
+          stale={lastPage?.meta.degraded}
+          onRetry={() => void result.refresh()}
+        >
           {effectivePages.length > 0 && (
             <Card
               title={t('analytics.events')}
@@ -524,8 +535,14 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                   </Button>
                   <Select
                     value={exportChoice}
-                    onChange={(value) => void exportRows(value as 'csv' | 'json')}
+                    onChange={(value) => {
+                      if (value) void exportRows(value as 'csv' | 'json');
+                    }}
                     options={[
+                      {
+                        value: '',
+                        label: t('analytics.export_menu', { defaultValue: 'Export' }),
+                      },
                       {
                         value: 'csv',
                         label: t('analytics.export_csv', { defaultValue: 'Export CSV' }),
@@ -535,11 +552,6 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                         label: t('analytics.export_json', { defaultValue: 'Export JSON' }),
                       },
                     ]}
-                    placeholder={
-                      exporting
-                        ? t('analytics.exporting', { defaultValue: 'Exporting…' })
-                        : t('analytics.export_menu', { defaultValue: 'Export' })
-                    }
                     ariaLabel={t('analytics.export_menu', { defaultValue: 'Export' })}
                     disabled={exporting}
                     fullWidth={false}
@@ -571,6 +583,35 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                       : t('analytics.no_events_description')
                   }
                 />
+              ) : isMobile ? (
+                <div className={styles.cardList}>
+                  {events.map((event) => (
+                    <Card key={event.attempt_id} className={styles.eventCard}>
+                      <div className={styles.eventCardHead}>
+                        <span title={event.requested_at}>
+                          {formatDateTime(event.requested_at, i18n.resolvedLanguage)}
+                        </span>
+                        {renderCell('result', event)}
+                      </div>
+                      <div className={styles.eventCardModel}>{event.model || '—'}</div>
+                      <div className={styles.eventCardKey} title={shortIdentifier(event.key_id)}>
+                        {keyIdentity(event)}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={styles.detailButton}
+                        aria-label={t('analytics.view_event', {
+                          defaultValue: 'View event details',
+                        })}
+                        onClick={() => setSelectedAttemptId(event.attempt_id)}
+                      >
+                        <IconEye size={16} />
+                        {t('analytics.view_event', { defaultValue: 'View event details' })}
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
               ) : (
                 <Table
                   className={styles.eventsTable}

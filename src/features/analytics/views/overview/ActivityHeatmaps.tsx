@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -48,20 +48,39 @@ function HeatmapLegend({ label, classes }: { label: string; classes: string[] })
   );
 }
 
+/** The per-card summary strip: "Total tokens · Input · Output" and its health twin. */
+function HeatmapSummary({ items }: { items: Array<{ label: string; value: string }> }) {
+  return (
+    <dl className={styles.heatmapSummary}>
+      {items.map((item) => (
+        <div key={item.label}>
+          <dt>{item.label}</dt>
+          <dd>{item.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function HeatmapGrid({
   buckets,
   levels,
   classes,
   label,
   cellLabel,
+  header,
 }: {
   buckets: ActivityBucket[];
   levels: number[];
   classes: string[];
   label: string;
   cellLabel: (bucket: ActivityBucket) => string;
+  /** Rendered above the grid; both cards pass their totals strip here. */
+  header: ReactNode;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [tooltip, setTooltip] = useState('');
+  const tooltipId = useId();
   const cells = useRef<Array<HTMLSpanElement | null>>([]);
 
   useEffect(() => {
@@ -77,34 +96,43 @@ function HeatmapGrid({
   };
 
   return (
-    <div className={styles.heatmapScroller}>
-      <div
-        className={styles.heatmapGrid}
-        role="grid"
-        aria-label={label}
-        aria-rowcount={Math.min(7, buckets.length)}
-        aria-colcount={heatmapColumns(buckets.length)}
-      >
-        {buckets.map((bucket, index) => {
-          const description = cellLabel(bucket);
-          return (
-            <span
-              ref={(element) => {
-                cells.current[index] = element;
-              }}
-              className={`${styles.heatmapCell} ${classes[levels[index] ?? 0]}`}
-              key={`${bucket.start}-${index}`}
-              role="gridcell"
-              aria-label={description}
-              aria-rowindex={(index % 7) + 1}
-              aria-colindex={Math.floor(index / 7) + 1}
-              title={description}
-              tabIndex={index === activeIndex ? 0 : -1}
-              onFocus={() => setActiveIndex(index)}
-              onKeyDown={(event) => onKeyDown(event, index)}
-            />
-          );
-        })}
+    <div className={styles.heatmapPanel}>
+      {header}
+      <div id={tooltipId} role="tooltip" className={styles.heatmapTooltip} aria-hidden="true">
+        {tooltip}
+      </div>
+      <div className={styles.heatmapScroller}>
+        <div
+          className={styles.heatmapGrid}
+          role="grid"
+          aria-label={label}
+          aria-rowcount={Math.min(7, buckets.length)}
+          aria-colcount={heatmapColumns(buckets.length)}
+        >
+          {buckets.map((bucket, index) => {
+            const description = cellLabel(bucket);
+            return (
+              <span
+                ref={(element) => {
+                  cells.current[index] = element;
+                }}
+                className={`${styles.heatmapCell} ${classes[levels[index] ?? 0]}`}
+                key={`${bucket.start}-${index}`}
+                role="gridcell"
+                aria-label={description}
+                aria-rowindex={(index % 7) + 1}
+                aria-colindex={Math.floor(index / 7) + 1}
+                data-strength={levels[index] ?? 0}
+                tabIndex={index === activeIndex ? 0 : -1}
+                onFocus={() => {
+                  setActiveIndex(index);
+                  setTooltip(description);
+                }}
+                onKeyDown={(event) => onKeyDown(event, index)}
+              />
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -128,6 +156,18 @@ export function ActivityHeatmaps({
   const buckets = activity?.buckets ?? [];
   const tokenLevels = tokenActivityLevels(buckets.map((bucket) => bucket.total_tokens));
   const healthLevels = requestHealthLevels(buckets);
+  const totals = buckets.reduce(
+    (result, bucket) => ({
+      tokens: result.tokens + bucket.total_tokens,
+      input: result.input + bucket.input_tokens,
+      output: result.output + bucket.output_tokens,
+      succeeded: result.succeeded + bucket.succeeded,
+      failed: result.failed + bucket.failed,
+    }),
+    { tokens: 0, input: 0, output: 0, succeeded: 0, failed: 0 }
+  );
+  const attempts = totals.succeeded + totals.failed;
+  const successRate = attempts > 0 ? (totals.succeeded / attempts) * 100 : null;
   const windowOptions = ACTIVITY_WINDOWS.map((value) => ({
     value,
     label: t(`analytics.overview.window_${value}`, {
@@ -226,6 +266,24 @@ export function ActivityHeatmaps({
                     defaultValue: 'Token activity by time bucket',
                   })}
                   cellLabel={tokenLabel}
+                  header={
+                    <HeatmapSummary
+                      items={[
+                        {
+                          label: t('analytics.total_tokens', { defaultValue: 'Total tokens' }),
+                          value: formatNumber(totals.tokens, locale),
+                        },
+                        {
+                          label: t('analytics.input_tokens', { defaultValue: 'Input tokens' }),
+                          value: formatNumber(totals.input, locale),
+                        },
+                        {
+                          label: t('analytics.output_tokens', { defaultValue: 'Output tokens' }),
+                          value: formatNumber(totals.output, locale),
+                        },
+                      ]}
+                    />
+                  }
                 />
               </Card>
               <Card
@@ -249,6 +307,26 @@ export function ActivityHeatmaps({
                     defaultValue: 'Request health by time bucket',
                   })}
                   cellLabel={requestLabel}
+                  header={
+                    <HeatmapSummary
+                      items={[
+                        {
+                          label: t('analytics.overview.success_rate', {
+                            defaultValue: 'Success rate',
+                          }),
+                          value: formatPercent(successRate, locale),
+                        },
+                        {
+                          label: t('analytics.overview.succeeded', { defaultValue: 'Succeeded' }),
+                          value: formatNumber(totals.succeeded, locale),
+                        },
+                        {
+                          label: t('analytics.overview.failed', { defaultValue: 'Failed' }),
+                          value: formatNumber(totals.failed, locale),
+                        },
+                      ]}
+                    />
+                  }
                 />
               </Card>
             </div>

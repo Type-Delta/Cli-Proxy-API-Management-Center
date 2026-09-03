@@ -25,6 +25,18 @@ export const ANALYSIS_CHART_BASE_WIDTH = 960;
 const ANALYSIS_CHART_HORIZONTAL_INSET = 72;
 const ANALYSIS_CHART_BUCKET_WIDTH = 40;
 
+/**
+ * One plot box for every analysis SVG chart, so ticks, gridlines and hover
+ * targets line up across cards instead of drifting per file.
+ */
+export const ANALYSIS_CHART_HEIGHT = 280;
+export const ANALYSIS_PLOT_INSET = { left: 54, right: 18, top: 16, bottom: 36 } as const;
+export const ANALYSIS_PLOT_HEIGHT =
+  ANALYSIS_CHART_HEIGHT - ANALYSIS_PLOT_INSET.top - ANALYSIS_PLOT_INSET.bottom;
+
+export const analysisPlotWidth = (chartWidth: number) =>
+  chartWidth - ANALYSIS_PLOT_INSET.left - ANALYSIS_PLOT_INSET.right;
+
 export function analysisChartWidth(bucketCount: number) {
   return Math.max(
     ANALYSIS_CHART_BASE_WIDTH,
@@ -154,6 +166,33 @@ export function buildModelEfficiency(models: AnalysisModel[]): ModelEfficiencyRo
     );
 }
 
+export type LogAxis = { min: number; max: number; ticks: number[] };
+
+export function buildLogAxis(values: number[]): LogAxis {
+  const positive = values.filter((value) => Number.isFinite(value) && value > 0);
+  if (positive.length === 0) return { min: 1, max: 10, ticks: [1, 10] };
+  const min = 10 ** Math.floor(Math.log10(Math.min(...positive)));
+  const max = 10 ** Math.ceil(Math.log10(Math.max(...positive)));
+  const resolvedMax = Math.max(min * 10, max);
+  const ticks: number[] = [];
+  for (let value = min; value <= resolvedMax; value *= 10) ticks.push(value);
+  return { min, max: resolvedMax, ticks };
+}
+
+export function logAxisRatio(value: number, axis: LogAxis) {
+  const clamped = Math.max(axis.min, Math.min(axis.max, value));
+  return (
+    (Math.log10(clamped) - Math.log10(axis.min)) / (Math.log10(axis.max) - Math.log10(axis.min))
+  );
+}
+
+export function percentile(values: number[], percentage: number) {
+  const sorted = values.filter(Number.isFinite).sort((left, right) => left - right);
+  if (sorted.length === 0) return null;
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * percentage) - 1));
+  return sorted[index];
+}
+
 export type LatencyPresentation = {
   state: 'missing' | 'unsupported' | 'empty' | 'ready';
   partial: boolean;
@@ -178,6 +217,22 @@ export function resolveLatencyPresentation(latency: AnalysisLatency | null): Lat
     partial: latency.meta.partial,
     samples,
   };
+}
+
+export const LATENCY_SAMPLE_BROWSE_LIMIT = 25;
+
+/**
+ * The scatter draws every sample; the browsable list only carries the slowest
+ * few, so the disclosure stays a handful of nodes instead of hundreds.
+ */
+export function slowestLatencySamples(
+  samples: readonly AnalysisLatencySample[],
+  limit = LATENCY_SAMPLE_BROWSE_LIMIT
+): { rows: AnalysisLatencySample[]; shown: number; total: number } {
+  const rows = [...samples]
+    .sort((left, right) => right.latency_ms - left.latency_ms)
+    .slice(0, Math.max(0, limit));
+  return { rows, shown: rows.length, total: samples.length };
 }
 
 export type HeatmapMatrixCell = {
@@ -223,6 +278,21 @@ export function buildHeatmapMatrix(matrix: AnalysisKeyModelMatrix): HeatmapMatri
       (maximum, cell) => Math.max(maximum, nonNegative(cell.total_tokens)),
       0
     ),
+  };
+}
+
+export function selectHeatmapModels(matrix: HeatmapMatrix, limit: number) {
+  const totals = new Map(matrix.models.map((model) => [model, 0]));
+  for (const row of matrix.rows) {
+    for (const cell of row.cells) {
+      totals.set(cell.model, (totals.get(cell.model) ?? 0) + (cell.value?.total_tokens ?? 0));
+    }
+  }
+  return {
+    models: [...matrix.models]
+      .sort((left, right) => (totals.get(right) ?? 0) - (totals.get(left) ?? 0))
+      .slice(0, Math.max(1, limit)),
+    totalModels: matrix.models.length,
   };
 }
 

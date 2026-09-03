@@ -180,6 +180,42 @@
   }
 }
 
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eventCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  button {
+    align-self: flex-start;
+  }
+}
+
+.eventCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.eventCardModel {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.eventCardKey {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
 @media (max-width: 768px) {
   .tableActions {
     width: 100%;

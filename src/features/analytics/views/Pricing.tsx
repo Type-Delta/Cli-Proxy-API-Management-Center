@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -18,16 +18,19 @@ import {
 import { analyticsApi } from '@/services/api';
 import type { AnalyticsJob, AnalyticsRepriceRequest, PricingRule } from '@/types';
 import { useNotificationStore } from '@/stores';
+import { useAnalyticsFilters } from '../AnalyticsFilterContext';
 import { AsyncState } from '../components/AnalyticsShared';
 import {
   formatAnalyticsEnum,
   formatDateTime,
   formatNumber,
 } from '../components/analyticsFormatting';
+import { analyticsRangeLabel } from '../query';
 import { useAnalyticsLoad as useLoad } from '../useAnalyticsLoad';
 import {
-  buildRepriceRequest,
+  buildRepriceRequestFromRange,
   draftToPricingRule,
+  pricingSyncOutcome,
   duplicatePricingMatch,
   pricingRuleToDraft,
   type PricingRuleDraft,
@@ -163,29 +166,26 @@ export function Pricing() {
 
   const sync = async () => {
     setSyncing(true);
+    let succeeded = true;
     try {
-      await result.refresh();
-      notify(
-        t(
-          'analytics.pricing_refresh_complete',
-          text('analytics.pricing_refresh_complete', 'Pricing catalog refreshed.')
-        ),
-        'success'
-      );
-    } catch (error) {
-      notify(
-        error instanceof Error
-          ? error.message
-          : t('common.error', text('common.error', 'Request failed')),
-        'error'
-      );
+      await result.refreshOrThrow();
+    } catch {
+      // The in-page AsyncState already shows result.error with the detailed message;
+      // the toast only needs to stop claiming success.
+      succeeded = false;
     } finally {
       setSyncing(false);
     }
+    const outcome = pricingSyncOutcome(succeeded);
+    notify(t(outcome.key, text(outcome.key, outcome.fallback)), outcome.type);
   };
 
   return (
-    <AsyncState loading={result.loading} error={result.error}>
+    <AsyncState
+      loading={result.loading}
+      error={result.error}
+      onRetry={() => void result.refresh()}
+    >
       {result.data && (
         <div className={styles.detailStack}>
           <Card
@@ -620,25 +620,11 @@ function RepricePanel({
   notify: (message: string, type: 'success' | 'error' | 'info') => void;
 }) {
   const { t } = useTranslation();
-  const [range, setRange] = useState<'24h' | '7d' | '30d'>('7d');
+  const { range, resolvedRange } = useAnalyticsFilters();
   const [dryRun, setDryRun] = useState(true);
   const [job, setJob] = useState<AnalyticsJob | null>(null);
   const [submittedRequest, setSubmittedRequest] = useState<AnalyticsRepriceRequest | null>(null);
   const [starting, setStarting] = useState(false);
-  const rangeOptions = useMemo(
-    () => [
-      {
-        value: '24h',
-        label: t('analytics.range_24h', text('analytics.range_24h', 'Last 24 hours')),
-      },
-      { value: '7d', label: t('analytics.range_7d', text('analytics.range_7d', 'Last 7 days')) },
-      {
-        value: '30d',
-        label: t('analytics.range_30d', text('analytics.range_30d', 'Last 30 days')),
-      },
-    ],
-    [t]
-  );
   useEffect(() => {
     if (!job || ['succeeded', 'failed', 'canceled'].includes(job.state)) return;
     const timer = window.setInterval(() => {
@@ -653,7 +639,7 @@ function RepricePanel({
     const request =
       resume && submittedRequest
         ? { ...submittedRequest, resume: true }
-        : buildRepriceRequest(range, dryRun);
+        : buildRepriceRequestFromRange(resolvedRange, dryRun);
     setStarting(true);
     try {
       const next = await analyticsApi.reprice(request);
@@ -691,15 +677,20 @@ function RepricePanel({
         )}
       </p>
       <div className={styles.detailStack}>
-        <label>
-          <span>{t('analytics.reprice_range', text('analytics.reprice_range', 'Range'))}</span>
-          <Select
-            value={range}
-            onChange={(value) => setRange(value as '24h' | '7d' | '30d')}
-            options={rangeOptions}
-            ariaLabel={t('analytics.reprice_range', text('analytics.reprice_range', 'Range'))}
-          />
-        </label>
+        <p className={styles.repriceRange}>
+          {t(
+            'analytics.reprice_active_range',
+            text(
+              'analytics.reprice_active_range',
+              'Range: {{range}} ({{start}} → {{end}}). Change it from the range control on Overview, Analysis, Keys, or Events.',
+              {
+                range: analyticsRangeLabel(t, range),
+                start: resolvedRange.start,
+                end: resolvedRange.end,
+              }
+            )
+          )}
+        </p>
         <ToggleSwitch
           checked={dryRun}
           onChange={setDryRun}

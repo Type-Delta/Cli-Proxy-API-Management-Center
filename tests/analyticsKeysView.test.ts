@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { joinKeyRanking, sortKeyRanking } from '@/features/analytics/views/keys/keyRanking';
+import {
+  joinKeyRanking,
+  shouldShowPricingDisclosure,
+  sortKeyRanking,
+} from '@/features/analytics/views/keys/keyRanking';
 import type { AnalyticsKey, LeaderboardRow, TokenUsage } from '@/types';
 
 const tokens = (total: number): TokenUsage => ({
@@ -79,5 +83,12 @@ describe('Keys ranking model', () => {
       'key-a',
     ]);
     expect(sortKeyRanking(rows, 'key', 'asc').map((row) => row.key_id)).toEqual(['key-a', 'key-b']);
+  });
+});
+
+describe('Pricing disclosure gating', () => {
+  test('shows only when the table is ranked by cost', () => {
+    expect(shouldShowPricingDisclosure('cost')).toBe(true);
+    expect(shouldShowPricingDisclosure('tokens')).toBe(false);
   });
 });

@@ -4,6 +4,77 @@
   position: relative;
   min-width: 0;
   border-bottom: 1px solid var(--border-color);
+
+  // Overflow affordance. `data-overflow` is maintained by AnalyticsTabs from a scroll/resize
+  // listener and holds a space-separated list of the edges that still have hidden tabs.
+  // The fades dissolve the clipped tab against the page well (--bg-secondary), which is what
+  // sits behind the strip; using --bg-primary here would tint against the wrong backdrop.
+  // The bottom offset clears the 5px scrollbar gutter so the fade never covers the thumb.
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    bottom: 6px;
+    width: 42px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+  }
+
+  &::before {
+    left: 0;
+    background: linear-gradient(
+      to left,
+      transparent,
+      color-mix(in srgb, var(--bg-secondary) 70%, transparent) 45%,
+      var(--bg-secondary)
+    );
+  }
+
+  &::after {
+    right: 0;
+    background: linear-gradient(
+      to right,
+      transparent,
+      color-mix(in srgb, var(--bg-secondary) 70%, transparent) 45%,
+      var(--bg-secondary)
+    );
+  }
+
+  &[data-overflow~='start']::before,
+  &[data-overflow~='end']::after {
+    opacity: 1;
+  }
+}
+
+// Edge chevrons ride on top of the fades so the cue survives a backdrop that matches the
+// fade colour (the white theme, where --bg-secondary is #fff and the gradient is invisible).
+.edgeHint {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  display: none;
+  // --text-secondary, not --text-tertiary: this is a non-text affordance and must clear the
+  // 3:1 graphical minimum (tertiary measures 2.58:1 on the light page well).
+  color: var(--text-secondary);
+  pointer-events: none;
+  transform: translateY(-50%);
+
+  .tabs[data-overflow~='start'] &[data-edge='start'],
+  .tabs[data-overflow~='end'] &[data-edge='end'] {
+    display: block;
+  }
+
+  &[data-edge='start'] {
+    left: 1px;
+  }
+
+  &[data-edge='end'] {
+    right: 1px;
+    transform: translateY(-50%) rotate(180deg);
+  }
 }
 
 .scroller {
@@ -36,8 +107,8 @@
 .groupLabel {
   align-self: center;
   padding-inline: 8px 4px;
-  color: var(--text-tertiary);
-  font-size: 10px;
+  color: var(--text-secondary);
+  font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -91,17 +162,9 @@
 }
 
 @include mobile {
-  .tabs::after {
-    content: '';
-    position: absolute;
-    inset: 0 0 5px auto;
-    width: 30px;
-    pointer-events: none;
-    background: linear-gradient(to right, transparent, var(--bg-primary));
-  }
-
+  // Keep the first/last tab's label clear of the chevrons while still scrollable to the edge.
   .scroller {
-    padding-inline-end: 24px;
+    scroll-padding-inline: 20px;
   }
 
   .group {
@@ -144,7 +207,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .tab,
-  .tab::after {
+  .tab::after,
+  .tabs::before,
+  .tabs::after {
     transition: none;
   }
 

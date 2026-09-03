@@ -1,14 +1,34 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AnalysisKeyModelMatrix } from '@/types';
+import { heatmapStrength } from '../../components/analyticsAffordances';
 import {
   formatCompactTokens,
   formatCostValue,
   formatNumber,
 } from '../../components/analyticsFormatting';
 import { AnalysisCard } from './AnalysisCard';
-import { buildHeatmapMatrix, compactKeyId, type HeatmapMatrixCell } from './analysisModel';
+import {
+  buildHeatmapMatrix,
+  compactKeyId,
+  selectHeatmapModels,
+  type HeatmapMatrixCell,
+} from './analysisModel';
 import styles from './Analysis.module.scss';
+
+const columnLimit = () => {
+  if (typeof window === 'undefined') return Number.POSITIVE_INFINITY;
+  if (window.matchMedia('(max-width: 720px)').matches) return 3;
+  if (window.matchMedia('(max-width: 1280px)').matches) return 7;
+  return Number.POSITIVE_INFINITY;
+};
 
 export function KeyModelHeatmap({
   section,
@@ -25,26 +45,58 @@ export function KeyModelHeatmap({
 }) {
   const { t } = useTranslation();
   const [active, setActive] = useState<HeatmapMatrixCell | null>(null);
+  const [limit, setLimit] = useState(columnLimit);
+  const [focusIndex, setFocusIndex] = useState(0);
+  const cellRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const matrix = useMemo(() => (section ? buildHeatmapMatrix(section) : null), [section]);
-  const columns = matrix?.models.length ?? 0;
+  const selection = useMemo(
+    () => (matrix ? selectHeatmapModels(matrix, limit) : { models: [], totalModels: 0 }),
+    [limit, matrix]
+  );
+  const visibleModels = selection.models;
+  const columns = visibleModels.length;
+  const visibleRows =
+    matrix?.rows.map((row) => ({
+      ...row,
+      cells: visibleModels.map((model) => row.cells.find((cell) => cell.model === model)!),
+    })) ?? [];
   const gridStyle = {
     '--analysis-heatmap-columns': columns,
-    '--analysis-heatmap-width': `${Math.max(680, 176 + columns * 104)}px`,
+    '--analysis-heatmap-width': `${Math.max(560, 160 + columns * 96)}px`,
   } as CSSProperties;
+
+  useEffect(() => {
+    const update = () => setLimit(columnLimit());
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  useEffect(() => setFocusIndex(0), [columns, visibleRows.length]);
 
   const cellLabel = (cell: HeatmapMatrixCell) => {
     const value = cell.value;
-    return [
-      `${compactKeyId(cell.keyId)} / ${cell.model}`,
-      `${t('analytics.total_tokens', { defaultValue: 'Total tokens' })}: ${formatNumber(value?.total_tokens ?? 0, locale)}`,
-      `${t('analytics.proxy_requests', { defaultValue: 'Proxy requests' })}: ${formatNumber(value?.requests ?? 0, locale)}`,
-      `${t('analytics.known_cost', { defaultValue: 'Known cost' })}: ${formatCostValue(value?.known_cost_usd ?? 0, locale).text}`,
-      `${t('analytics.input_tokens', { defaultValue: 'Input' })}: ${formatNumber(value?.input_tokens ?? 0, locale)}`,
-      `${t('analytics.output_tokens', { defaultValue: 'Output' })}: ${formatNumber(value?.output_tokens ?? 0, locale)}`,
-      `${t('analytics.analysis.cache_read', { defaultValue: 'Cache read' })}: ${formatNumber(value?.cache_read_tokens ?? 0, locale)}`,
-      `${t('analytics.analysis.cache_write', { defaultValue: 'Cache write' })}: ${formatNumber(value?.cache_creation_tokens ?? 0, locale)}`,
-      `${t('analytics.reasoning_tokens', { defaultValue: 'Reasoning' })}: ${formatNumber(value?.reasoning_tokens ?? 0, locale)}`,
-    ].join(', ');
+    const model = cell.model.length > 48 ? `${cell.model.slice(0, 45)}...` : cell.model;
+    return `${compactKeyId(cell.keyId)} / ${model}, ${formatNumber(value?.total_tokens ?? 0, locale)} ${t('analytics.total_tokens', { defaultValue: 'tokens' })}, ${formatNumber(value?.requests ?? 0, locale)} ${t('analytics.proxy_requests', { defaultValue: 'requests' })}, ${formatCostValue(value?.known_cost_usd ?? 0, locale).text}`.slice(
+      0,
+      199
+    );
+  };
+
+  const moveCell = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const row = Math.floor(index / columns);
+    const column = index % columns;
+    let next: number;
+    if (event.key === 'ArrowRight') next = row * columns + ((column + 1) % columns);
+    else if (event.key === 'ArrowLeft') next = row * columns + ((column - 1 + columns) % columns);
+    else if (event.key === 'ArrowDown') next = ((row + 1) % visibleRows.length) * columns + column;
+    else if (event.key === 'ArrowUp')
+      next = ((row - 1 + visibleRows.length) % visibleRows.length) * columns + column;
+    else if (event.key === 'Home') next = row * columns;
+    else if (event.key === 'End') next = row * columns + columns - 1;
+    else return;
+    event.preventDefault();
+    setFocusIndex(next);
+    cellRefs.current[next]?.focus();
   };
 
   return (
@@ -70,45 +122,68 @@ export function KeyModelHeatmap({
     >
       {matrix && (
         <>
+          {visibleModels.length < selection.totalModels && (
+            <p className={styles.heatmapLimit}>
+              {t('analytics.analysis.heatmap_showing', {
+                defaultValue: 'Showing {{visible}} of {{total}} models by token volume.',
+                visible: visibleModels.length,
+                total: selection.totalModels,
+              })}
+            </p>
+          )}
           <div className={styles.heatmapScroller}>
-            <div className={styles.heatmapGrid} style={gridStyle}>
-              <div className={styles.heatmapCorner}>
+            <div
+              className={styles.heatmapGrid}
+              style={gridStyle}
+              role="grid"
+              aria-label={t('analytics.analysis.heatmap_title', {
+                defaultValue: 'Key × Model Heatmap',
+              })}
+              aria-rowcount={visibleRows.length}
+              aria-colcount={columns}
+            >
+              <div className={styles.heatmapCorner} aria-hidden="true">
                 {t('analytics.analysis.key_model', { defaultValue: 'Key / model' })}
               </div>
-              {matrix.models.map((model) => (
-                <div key={model} className={styles.heatmapHeader} title={model}>
+              {visibleModels.map((model) => (
+                <div key={model} role="columnheader" className={styles.heatmapHeader} title={model}>
                   {model}
                 </div>
               ))}
-              {matrix.rows.map((row) => (
-                <div className={styles.heatmapRow} key={row.keyId}>
-                  <div className={styles.heatmapRowLabel}>{compactKeyId(row.keyId)}</div>
-                  {row.cells.map((cell) => {
+              {visibleRows.map((row, rowIndex) => (
+                <div className={styles.heatmapRow} role="row" key={row.keyId}>
+                  <div role="rowheader" className={styles.heatmapRowLabel}>
+                    {compactKeyId(row.keyId)}
+                  </div>
+                  {row.cells.map((cell, columnIndex) => {
+                    const index = rowIndex * columns + columnIndex;
                     const tokens = cell.value?.total_tokens ?? 0;
                     const intensity = matrix.maxTokens > 0 ? tokens / matrix.maxTokens : 0;
+                    const strength = heatmapStrength(intensity);
                     return (
                       <button
+                        ref={(node) => {
+                          cellRefs.current[index] = node;
+                        }}
                         type="button"
+                        role="gridcell"
                         key={cell.model}
+                        tabIndex={focusIndex === index ? 0 : -1}
                         aria-label={cellLabel(cell)}
-                        aria-pressed={active?.keyId === cell.keyId && active?.model === cell.model}
+                        aria-selected={active?.keyId === cell.keyId && active?.model === cell.model}
                         className={styles.heatmapCell}
-                        style={
-                          {
-                            '--cell-strength': `${10 + Math.sqrt(Math.max(0, intensity)) * 90}%`,
-                          } as CSSProperties
-                        }
-                        onClick={() =>
-                          setActive((current) =>
-                            current?.keyId === cell.keyId && current.model === cell.model
-                              ? null
-                              : cell
-                          )
-                        }
-                        onFocus={() => setActive(cell)}
+                        style={{ '--cell-strength': `${strength}%` } as CSSProperties}
+                        onClick={() => setActive(cell)}
+                        onFocus={() => {
+                          setFocusIndex(index);
+                          setActive(cell);
+                        }}
                         onMouseEnter={() => setActive(cell)}
+                        onKeyDown={(event) => moveCell(event, index)}
                       >
-                        {formatCompactTokens(tokens, locale).text}
+                        <span title={formatCompactTokens(tokens, locale).title}>
+                          {formatCompactTokens(tokens, locale).text}
+                        </span>
                       </button>
                     );
                   })}

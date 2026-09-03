@@ -1,5 +1,6 @@
 import type {
   AnalyticsCapabilities,
+  ActivityWindow,
   AnalyticsNamedRange,
   AnalyticsOperation,
   AnalyticsQuery,
@@ -31,12 +32,32 @@ export type AnalyticsRange =
 export const MAX_ANALYTICS_KEY_FILTERS = 100;
 export const MAX_ANALYTICS_RANGE_DAYS = 400;
 export type AnalyticsLeaderboardSort = 'tokens' | 'cost';
-export const DEFAULT_ANALYTICS_SORT: AnalyticsLeaderboardSort = 'tokens';
+export const DEFAULT_ANALYTICS_SORT: AnalyticsLeaderboardSort = 'cost';
+export type AnalyticsEventFilters = {
+  provider: string;
+  model: string;
+  source: string;
+  result: '' | 'success' | 'failure';
+  errorClass: string;
+};
+export type AnalyticsDistribution = 'key' | 'model' | 'credential' | 'provider';
+export const DEFAULT_ANALYTICS_EVENT_FILTERS: AnalyticsEventFilters = {
+  provider: '',
+  model: '',
+  source: '',
+  result: '',
+  errorClass: '',
+};
+export const DEFAULT_ANALYTICS_ACTIVITY_WINDOW: ActivityWindow = 'week';
+export const DEFAULT_ANALYTICS_DISTRIBUTION: AnalyticsDistribution = 'key';
 
 export type AnalyticsUrlState = {
   range: AnalyticsRange;
   keyRefs: string[];
   sort: AnalyticsLeaderboardSort;
+  eventFilters: AnalyticsEventFilters;
+  activityWindow: ActivityWindow;
+  distribution: AnalyticsDistribution;
 };
 
 export type AnalyticsAvailability =
@@ -65,6 +86,13 @@ const ANALYTICS_PRESETS = new Set<AnalyticsRange['preset']>([
 ]);
 const ANALYTICS_SORTS = new Set<AnalyticsLeaderboardSort>(['tokens', 'cost']);
 const ANALYTICS_GRAINS = new Set<AnalyticsRangeGrain>(['1h', '1d']);
+const ANALYTICS_ACTIVITY_WINDOWS = new Set<ActivityWindow>(['day', 'week', 'month', 'year']);
+const ANALYTICS_DISTRIBUTIONS = new Set<AnalyticsDistribution>([
+  'key',
+  'model',
+  'credential',
+  'provider',
+]);
 const SAFE_KEY_REF = /^[a-zA-Z0-9_-]{1,32}$/;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -73,6 +101,14 @@ const validDate = (value: string | null) => {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+const validFilterValue = (value: string | null) => {
+  // Reject control characters so hash-state filters cannot smuggle terminal/log escapes.
+  // eslint-disable-next-line no-control-regex
+  if (!value || value.length > 200 || value.trim() !== value || /[\u0000-\u001f\u007f]/.test(value)) {
+    return '';
+  }
+  return value;
 };
 
 export function resolvedAnalyticsTimeZone() {
@@ -297,11 +333,29 @@ export function parseAnalyticsUrlState(search: string): AnalyticsUrlState {
       .map((value) => value.trim())
       .filter((value) => SAFE_KEY_REF.test(value))
   ).slice(0, MAX_ANALYTICS_KEY_FILTERS);
+  const result = params.get('result');
+  const activityWindow = params.get('activity') as ActivityWindow | null;
+  const distribution = params.get('distribution') as AnalyticsDistribution | null;
 
   return {
     range,
     keyRefs,
     sort: sortValue && ANALYTICS_SORTS.has(sortValue) ? sortValue : DEFAULT_ANALYTICS_SORT,
+    eventFilters: {
+      provider: validFilterValue(params.get('provider')),
+      model: validFilterValue(params.get('model')),
+      source: validFilterValue(params.get('source')),
+      result: result === 'success' || result === 'failure' ? result : '',
+      errorClass: validFilterValue(params.get('error_class')),
+    },
+    activityWindow:
+      activityWindow && ANALYTICS_ACTIVITY_WINDOWS.has(activityWindow)
+        ? activityWindow
+        : DEFAULT_ANALYTICS_ACTIVITY_WINDOW,
+    distribution:
+      distribution && ANALYTICS_DISTRIBUTIONS.has(distribution)
+        ? distribution
+        : DEFAULT_ANALYTICS_DISTRIBUTION,
   };
 }
 
@@ -324,6 +378,26 @@ export function serializeAnalyticsUrlState(state: AnalyticsUrlState): string {
   );
   if (keyRefs.length) params.set('keys', keyRefs.join(','));
   if (state.sort !== DEFAULT_ANALYTICS_SORT) params.set('sort', state.sort);
+  const eventFilters: AnalyticsEventFilters = {
+    ...DEFAULT_ANALYTICS_EVENT_FILTERS,
+    ...state.eventFilters,
+  };
+  for (const [name, value] of [
+    ['provider', eventFilters.provider],
+    ['model', eventFilters.model],
+    ['source', eventFilters.source],
+    ['result', eventFilters.result],
+    ['error_class', eventFilters.errorClass],
+  ] as const) {
+    const safeValue = validFilterValue(value);
+    if (safeValue) params.set(name, safeValue);
+  }
+  if (state.activityWindow !== DEFAULT_ANALYTICS_ACTIVITY_WINDOW) {
+    params.set('activity', state.activityWindow);
+  }
+  if (state.distribution !== DEFAULT_ANALYTICS_DISTRIBUTION) {
+    params.set('distribution', state.distribution);
+  }
   return `?${params.toString()}`;
 }
 

@@ -1,4 +1,5 @@
 import type { ProviderCredential, ProviderQuota } from '@/types';
+import type { MeterTone } from '@/features/dashboard/utils';
 
 export type QuotaProgress = {
   percent: number | null;
@@ -34,6 +35,14 @@ export function calculateQuotaProgress(quota: ProviderQuota | null | undefined):
     remaining,
     limit,
   };
+}
+
+/** Quota usage severity: unlike a success rate, a high used-percent is bad, not good. */
+export function quotaTone(percent: number | null): MeterTone {
+  if (percent === null) return 'idle';
+  if (percent >= 95) return 'critical';
+  if (percent >= 80) return 'warning';
+  return 'good';
 }
 
 /** Returns a short non-reversible identity for display; raw credential IDs never reach the UI. */

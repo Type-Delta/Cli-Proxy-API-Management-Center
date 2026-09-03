@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -17,6 +17,7 @@ import {
   formatAnalyticsEnum,
   formatDateTime,
   formatNumber,
+  formatRelativeDate,
 } from '../components/analyticsFormatting';
 import { useAnalyticsLoad as useLoad, type AnalyticsLoadResult } from '../useAnalyticsLoad';
 import {
@@ -25,11 +26,7 @@ import {
   isTerminalAnalyticsJob,
   purgeConfirmationPhrase,
 } from './manage/maintenanceModel';
-
-const stack = { display: 'grid', gap: 20 } as const;
-const form = { display: 'grid', gap: 12 } as const;
-const actions = { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' } as const;
-const inputHeight = { minHeight: 40 };
+import styles from '../Analytics.module.scss';
 
 export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
   const { t } = useTranslation();
@@ -137,10 +134,10 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
   };
 
   return (
-    <div style={stack}>
+    <div className={styles.manageStack}>
       <HealthCard health={health} />
       <Card title={copy('analytics.maintenance.backup_title', 'Backup and restore')}>
-        <div style={form}>
+        <div className={styles.manageForm}>
           <p>
             {copy('analytics.maintenance.backup_copy', 'Create a backup before destructive work.')}
           </p>
@@ -148,9 +145,9 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
             label={copy('analytics.backup_path', 'Backup destination path')}
             value={backupPath}
             onChange={(event) => setBackupPath(event.target.value)}
-            style={inputHeight}
+            className={styles.manageInput}
           />
-          <div style={actions}>
+          <div className={styles.manageActions}>
             <Button
               onClick={() =>
                 void (async () => {
@@ -174,7 +171,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
             label={copy('analytics.maintenance.backup_id', 'Backup ID')}
             value={restore.id}
             onChange={(event) => setRestore((current) => ({ ...current, id: event.target.value }))}
-            style={inputHeight}
+            className={styles.manageInput}
           />
           <Input
             label={copy('analytics.maintenance.restore_path', 'Backup path')}
@@ -182,7 +179,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
             onChange={(event) =>
               setRestore((current) => ({ ...current, path: event.target.value }))
             }
-            style={inputHeight}
+            className={styles.manageInput}
           />
           <Input
             label={copy('analytics.maintenance.restore_manifest', 'Backup manifest')}
@@ -190,9 +187,9 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
             onChange={(event) =>
               setRestore((current) => ({ ...current, manifest: event.target.value }))
             }
-            style={inputHeight}
+            className={styles.manageInput}
           />
-          <div style={actions}>
+          <div className={styles.manageActions}>
             <Button
               variant="secondary"
               onClick={() =>
@@ -213,7 +210,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
         </div>
       </Card>
       <Card title={copy('analytics.import_cpauk', 'Import upstream CPAUK')}>
-        <div style={form}>
+        <div className={styles.manageForm}>
           <p>
             {copy(
               'analytics.maintenance.import_copy',
@@ -226,7 +223,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
             onChange={(event) =>
               setImportState((current) => ({ ...current, path: event.target.value }))
             }
-            style={inputHeight}
+            className={styles.manageInput}
           />
           <ToggleSwitch
             checked={importState.dryRun}
@@ -241,7 +238,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
               onChange={(event) =>
                 setImportState((current) => ({ ...current, backup: event.target.value }))
               }
-              style={inputHeight}
+              className={styles.manageInput}
             />
           )}
           <Input
@@ -254,9 +251,9 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
             onChange={(event) =>
               setImportState((current) => ({ ...current, batch: event.target.value }))
             }
-            style={inputHeight}
+            className={styles.manageInput}
           />
-          <div style={actions}>
+          <div className={styles.manageActions}>
             <Button
               onClick={() =>
                 void startJob(
@@ -286,9 +283,9 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
             )}
             value={rollbackBatch}
             onChange={(event) => setRollbackBatch(event.target.value)}
-            style={inputHeight}
+            className={styles.manageInput}
           />
-          <div style={actions}>
+          <div className={styles.manageActions}>
             <Button
               variant="secondary"
               onClick={() => void startJob(analyticsApi.rollbackImport(rollbackBatch))}
@@ -300,14 +297,14 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
         </div>
       </Card>
       <Card title={copy('analytics.maintenance.repair_title', 'Repair')}>
-        <div style={form}>
+        <div className={styles.manageForm}>
           <p>
             {copy(
               'analytics.maintenance.repair_copy',
               'These operations run as resumable jobs and do not alter API keys.'
             )}
           </p>
-          <div style={actions}>
+          <div className={styles.manageActions}>
             {(
               [
                 ['integrity_check', 'Verify database integrity without changing data.'],
@@ -329,7 +326,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
         </div>
       </Card>
       <Card title={copy('analytics.maintenance.danger_title', 'Danger zone')}>
-        <div style={form}>
+        <div className={styles.manageForm}>
           <p>
             {copy(
               'analytics.maintenance.purge_copy',
@@ -363,7 +360,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
               />
             </label>
           )}
-          <div style={actions}>
+          <div className={styles.manageActions}>
             <Button
               variant="secondary"
               onClick={() => {
@@ -390,7 +387,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
                 label={copy('analytics.maintenance.verified_backup', 'Verified backup path')}
                 value={purgeBackup}
                 onChange={(event) => setPurgeBackup(event.target.value)}
-                style={inputHeight}
+                className={styles.manageInput}
               />
               <Input
                 label={copy(
@@ -400,9 +397,9 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
                 hint={purgeConfirmationPhrase(keyIdentity)}
                 value={confirmation}
                 onChange={(event) => setConfirmation(event.target.value)}
-                style={inputHeight}
+                className={styles.manageInput}
               />
-              <div style={actions}>
+              <div className={styles.manageActions}>
                 <Button
                   variant="danger"
                   onClick={() => setConfirmOpen(true)}
@@ -491,6 +488,13 @@ function HealthCard({ health }: { health: AnalyticsLoadResult<AnalyticsHealth> }
   );
 }
 
+/** A relative timestamp with the exact instant kept in the `title` for screen readers and hover. */
+function RelativeTimestamp({ value, locale }: { value: string; locale?: string }) {
+  return (
+    <span title={formatDateTime(value, locale)}>{formatRelativeDate(value, locale)}</span>
+  );
+}
+
 function HealthDetails({
   health,
   locale,
@@ -500,8 +504,9 @@ function HealthDetails({
   locale?: string;
   copy: (key: string, defaultValue: string) => string;
 }) {
-  const fields: Array<[string, string]> = [
-    [copy('common.status', 'Status'), health.state],
+  const { t } = useTranslation();
+  const fields: Array<[string, ReactNode]> = [
+    [copy('common.status', 'Status'), formatAnalyticsEnum(t, 'state', health.state)],
     [copy('analytics.maintenance.category', 'Category'), health.category ?? '—'],
     [copy('analytics.maintenance.message', 'Message'), health.message ?? '—'],
     [
@@ -515,15 +520,22 @@ function HealthDetails({
     [copy('analytics.dropped', 'Dropped events'), formatNumber(health.queue.dropped, locale)],
     [
       copy('analytics.maintenance.last_write', 'Last successful write'),
-      health.last_successful_write_at
-        ? formatDateTime(health.last_successful_write_at, locale)
-        : '—',
+      health.last_successful_write_at ? (
+        <RelativeTimestamp value={health.last_successful_write_at} locale={locale} />
+      ) : (
+        '—'
+      ),
     ],
     [
       copy('analytics.maintenance.last_panic', 'Last panic'),
-      health.last_panic_at
-        ? `${health.last_panic_category ?? copy('analytics.maintenance.unknown', 'Unknown')} · ${formatDateTime(health.last_panic_at, locale)}`
-        : '—',
+      health.last_panic_at ? (
+        <>
+          {health.last_panic_category ?? copy('analytics.maintenance.unknown', 'Unknown')} ·{' '}
+          <RelativeTimestamp value={health.last_panic_at} locale={locale} />
+        </>
+      ) : (
+        '—'
+      ),
     ],
     [
       copy('analytics.maintenance.restarts', 'Restarts'),
@@ -543,22 +555,19 @@ function HealthDetails({
     ],
     [
       copy('analytics.retention', 'Retention cutoff'),
-      health.retention_cutoff ? formatDateTime(health.retention_cutoff, locale) : '—',
+      health.retention_cutoff ? (
+        <RelativeTimestamp value={health.retention_cutoff} locale={locale} />
+      ) : (
+        '—'
+      ),
     ],
   ];
   return (
-    <dl
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: 12,
-        margin: 0,
-      }}
-    >
+    <dl className={styles.healthGrid}>
       {fields.map(([label, value]) => (
         <div key={label}>
           <dt>{label}</dt>
-          <dd style={{ margin: '4px 0 0' }}>{value}</dd>
+          <dd>{value}</dd>
         </div>
       ))}
     </dl>
@@ -585,7 +594,7 @@ function JobCard({
         <span className="status-badge muted">{formatAnalyticsEnum(t, 'job_state', job.state)}</span>
       }
     >
-      <div style={form} role="status">
+      <div className={styles.manageForm} role="status">
         <div>
           <strong>{formatAnalyticsEnum(t, 'job_kind', job.kind)}</strong>
           <p>
@@ -600,18 +609,22 @@ function JobCard({
         )}
         {job.error && <div className="error-box">{job.error.message}</div>}
         {job.result && Object.keys(job.result).length > 0 && (
-          <dl style={{ display: 'grid', gap: 4, margin: 0 }}>
+          <dl className={styles.jobResultList}>
             {Object.entries(job.result)
               .filter(([, value]) => ['string', 'number', 'boolean'].includes(typeof value))
               .map(([key, value]) => (
                 <div key={key}>
-                  <dt>{key.replace(/_/g, ' ')}</dt>
-                  <dd style={{ margin: 0 }}>{String(value)}</dd>
+                  <dt>
+                    {t(`analytics.job_result.${key}`, {
+                      defaultValue: key.replace(/_/g, ' '),
+                    })}
+                  </dt>
+                  <dd>{String(value)}</dd>
                 </div>
               ))}
           </dl>
         )}
-        <div style={actions}>
+        <div className={styles.manageActions}>
           <Button
             variant="secondary"
             onClick={onRefresh}

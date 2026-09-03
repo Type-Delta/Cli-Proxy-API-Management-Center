@@ -34,6 +34,7 @@ import {
   formatNumber,
 } from './analyticsFormatting';
 import { resolveAnalyticsAsyncState } from './analyticsAsyncState';
+import { analyticsErrorCopy } from './analyticsErrorCopy';
 import {
   analyticsRangeInputToIso,
   analyticsRangeInputValue,
@@ -50,22 +51,37 @@ export function AsyncState({
   loading,
   error,
   stale,
+  onRetry,
   children,
 }: {
   loading: boolean;
   error: string;
   stale?: boolean;
+  onRetry?: () => void;
   children: ReactNode;
 }) {
   const { t } = useTranslation();
   const hasContent = Children.toArray(children).length > 0;
   const state = resolveAnalyticsAsyncState(loading, error, hasContent);
+  // The raw transport text ("Network Error") is diagnostic, not an instruction — show the
+  // actionable sentence and keep the original in a tooltip.
+  const failure = analyticsErrorCopy(t, error);
   if (state === 'initial-loading') return <AnalyticsSkeleton />;
   if (state === 'error')
     return (
       <Card>
-        <div role="alert">
-          <EmptyState title={t('analytics.load_failed')} description={error} />
+        <div role="alert" title={failure.detail}>
+          <EmptyState
+            title={t('analytics.load_failed')}
+            description={failure.text}
+            action={
+              onRetry ? (
+                <Button variant="secondary" onClick={onRetry}>
+                  {t('common.retry')}
+                </Button>
+              ) : undefined
+            }
+          />
         </div>
       </Card>
     );
@@ -81,8 +97,8 @@ export function AsyncState({
         </div>
       )}
       {error && (
-        <div className="error-box" role="alert">
-          {error}
+        <div className="error-box" role="alert" title={failure.detail}>
+          {failure.text}
         </div>
       )}
       {stale && (

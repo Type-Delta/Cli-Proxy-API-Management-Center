@@ -1,5 +1,7 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { buildSmoothLinePath } from '@/features/dashboard/components/curve';
+import { axisMax } from '@/features/dashboard/utils';
 import type { AnalysisModelByTime, AnalysisSeriesByCategory } from '@/types';
 import {
   formatCompactTokens,
@@ -10,7 +12,11 @@ import {
 } from '../../components/analyticsFormatting';
 import { AnalysisCard } from './AnalysisCard';
 import {
+  ANALYSIS_CHART_HEIGHT,
+  ANALYSIS_PLOT_HEIGHT,
+  ANALYSIS_PLOT_INSET,
   analysisChartWidth,
+  analysisPlotWidth,
   buildTokenSeries,
   buildTopModelSeries,
   TOKEN_CATEGORY_KEYS,
@@ -18,9 +24,9 @@ import {
 } from './analysisModel';
 import styles from './Analysis.module.scss';
 
-const HEIGHT = 280;
-const PLOT = { left: 54, right: 18, top: 16, bottom: 36 };
-const PLOT_HEIGHT = HEIGHT - PLOT.top - PLOT.bottom;
+const HEIGHT = ANALYSIS_CHART_HEIGHT;
+const PLOT = ANALYSIS_PLOT_INSET;
+const PLOT_HEIGHT = ANALYSIS_PLOT_HEIGHT;
 
 const CATEGORY_COLORS: Record<TokenCategoryKey, string> = {
   input: 'var(--analysis-input)',
@@ -40,13 +46,15 @@ const MODEL_COLORS = [
 ];
 
 const pointsPath = (values: number[], maximum: number, plotWidth: number) =>
-  values
-    .map((value, index) => {
+  buildSmoothLinePath(
+    values.map((value, index) => {
       const x = PLOT.left + ((index + 0.5) / Math.max(1, values.length)) * plotWidth;
       const y = PLOT.top + PLOT_HEIGHT - (value / Math.max(1, maximum)) * PLOT_HEIGHT;
-      return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(' ');
+      return { x, y };
+    }),
+    PLOT.top,
+    PLOT.top + PLOT_HEIGHT
+  );
 
 const chartWidthStyle = (width: number) =>
   ({ '--analysis-chart-width': `${width}px` }) as CSSProperties;
@@ -77,11 +85,11 @@ export function TokenUsageChart({
   const stackTotals = points.map((point) =>
     TOKEN_CATEGORY_KEYS.reduce((sum, key) => sum + point.categories[key], 0)
   );
-  const tokenMax = Math.max(1, ...stackTotals);
-  const requestMax = Math.max(1, ...points.map((point) => point.requests));
+  const tokenMax = axisMax(Math.max(1, ...stackTotals), 4);
+  const requestMax = axisMax(Math.max(1, ...points.map((point) => point.requests)), 4);
   const costMax = Math.max(1e-12, ...points.map((point) => point.knownCost));
   const width = analysisChartWidth(points.length);
-  const plotWidth = width - PLOT.left - PLOT.right;
+  const plotWidth = analysisPlotWidth(width);
   const barSlot = plotWidth / Math.max(1, points.length);
   const barWidth = Math.max(5, Math.min(26, barSlot * 0.68));
   const labels: Record<TokenCategoryKey, string> = {
@@ -140,6 +148,7 @@ export function TokenUsageChart({
             viewBox={`0 0 ${width} ${HEIGHT}`}
             preserveAspectRatio="xMinYMid meet"
             role="img"
+            tabIndex={0}
             aria-label={t('analytics.analysis.token_chart_summary', {
               defaultValue: '{{count}} time buckets of token usage, requests, and known cost',
               count: points.length,
@@ -157,6 +166,7 @@ export function TokenUsageChart({
                     className={styles.gridline}
                   />
                   <text x={PLOT.left - 8} y={y + 4} className={styles.axisLabel} textAnchor="end">
+                    <title>{formatNumber(Math.round(tokenMax * (1 - ratio)), locale)}</title>
                     {formatCompactTokens(Math.round(tokenMax * (1 - ratio)), locale).text}
                   </text>
                 </g>
@@ -257,7 +267,9 @@ export function TokenUsageChart({
                 <button
                   key={point.start}
                   type="button"
-                  aria-label={detail}
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  title={detail}
                   className={styles.chartTarget}
                   onFocus={() => setActiveIndex(index)}
                   onBlur={() => setActiveIndex(null)}
@@ -272,7 +284,7 @@ export function TokenUsageChart({
       {active && (
         <div className={styles.chartReadout} role="status">
           <strong>{formatDateTime(active.start, locale)}</strong>
-          <span>
+          <span title={formatNumber(active.total, locale)}>
             {formatCompactTokens(active.total, locale).text}{' '}
             {t('analytics.total_tokens', { defaultValue: 'tokens' })}
           </span>
@@ -305,16 +317,29 @@ export function TopModelsChart({
   const { t } = useTranslation();
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const [activeBucket, setActiveBucket] = useState<number | null>(null);
+  const [rankFocus, setRankFocus] = useState(0);
+  const rankRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const ranked = useMemo(() => (section ? buildTopModelSeries(section) : []), [section]);
   const buckets = section?.buckets ?? [];
   const bucketTotals = buckets.map((_, index) =>
     ranked.reduce((sum, model) => sum + (model.values[index] ?? 0), 0)
   );
-  const maximum = Math.max(1, ...bucketTotals);
+  const maximum = axisMax(Math.max(1, ...bucketTotals), 4);
   const width = analysisChartWidth(buckets.length);
-  const plotWidth = width - PLOT.left - PLOT.right;
+  const plotWidth = analysisPlotWidth(width);
   const slot = plotWidth / Math.max(1, buckets.length);
   const barWidth = Math.max(7, Math.min(34, slot * 0.72));
+  const moveRank = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let next: number;
+    if (event.key === 'ArrowDown') next = (index + 1) % ranked.length;
+    else if (event.key === 'ArrowUp') next = (index - 1 + ranked.length) % ranked.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = ranked.length - 1;
+    else return;
+    event.preventDefault();
+    setRankFocus(next);
+    rankRefs.current[next]?.focus();
+  };
 
   return (
     <AnalysisCard
@@ -345,6 +370,7 @@ export function TopModelsChart({
               viewBox={`0 0 ${width} ${HEIGHT}`}
               preserveAspectRatio="xMinYMid meet"
               role="img"
+              tabIndex={0}
               aria-label={t('analytics.analysis.top_models_chart_summary', {
                 defaultValue: '{{count}} models ranked across {{buckets}} time buckets',
                 count: ranked.length,
@@ -363,6 +389,7 @@ export function TopModelsChart({
                       className={styles.gridline}
                     />
                     <text x={PLOT.left - 8} y={y + 4} className={styles.axisLabel} textAnchor="end">
+                      <title>{formatNumber(Math.round(maximum * (1 - ratio)), locale)}</title>
                       {formatCompactTokens(Math.round(maximum * (1 - ratio)), locale).text}
                     </text>
                   </g>
@@ -416,8 +443,10 @@ export function TopModelsChart({
                 <button
                   key={bucket.start}
                   type="button"
+                  tabIndex={-1}
                   className={styles.chartTarget}
-                  aria-label={`${formatDateTime(bucket.start, locale)}, ${formatNumber(bucketTotals[index], locale)} ${t('analytics.total_tokens', { defaultValue: 'tokens' })}`}
+                  aria-hidden="true"
+                  title={`${formatDateTime(bucket.start, locale)}, ${formatNumber(bucketTotals[index], locale)} ${t('analytics.total_tokens', { defaultValue: 'tokens' })}`}
                   onFocus={() => setActiveBucket(index)}
                   onBlur={() => setActiveBucket(null)}
                   onMouseEnter={() => setActiveBucket(index)}
@@ -434,17 +463,30 @@ export function TopModelsChart({
           {ranked.map((model, index) => {
             const color = MODEL_COLORS[index % MODEL_COLORS.length];
             const activeValue = activeBucket === null ? null : model.values[activeBucket];
+            const accessibleModel =
+              model.model.length > 72 ? `${model.model.slice(0, 69)}...` : model.model;
             return (
               <li key={model.model}>
                 <button
+                  ref={(node) => {
+                    rankRefs.current[index] = node;
+                  }}
                   type="button"
                   className={styles.rankButton}
-                  aria-label={`${index + 1}. ${model.model}, ${formatNumber(model.totalTokens, locale)} ${t('analytics.total_tokens', { defaultValue: 'tokens' })}, ${formatPercent(model.share, locale)}`}
+                  tabIndex={rankFocus === index ? 0 : -1}
+                  aria-label={`${index + 1}. ${accessibleModel}, ${formatNumber(model.totalTokens, locale)} ${t('analytics.total_tokens', { defaultValue: 'tokens' })}, ${formatPercent(model.share, locale)}`.slice(
+                    0,
+                    199
+                  )}
                   aria-pressed={highlighted === model.model}
                   onClick={() =>
                     setHighlighted((current) => (current === model.model ? null : model.model))
                   }
-                  onFocus={() => setHighlighted(model.model)}
+                  onFocus={() => {
+                    setRankFocus(index);
+                    setHighlighted(model.model);
+                  }}
+                  onKeyDown={(event) => moveRank(event, index)}
                   onMouseEnter={() => setHighlighted(model.model)}
                   onMouseLeave={() => setHighlighted(null)}
                 >
@@ -453,7 +495,7 @@ export function TopModelsChart({
                   <span className={styles.rankName} title={model.model}>
                     {model.model}
                   </span>
-                  <strong>
+                  <strong title={formatNumber(activeValue ?? model.totalTokens, locale)}>
                     {formatCompactTokens(activeValue ?? model.totalTokens, locale).text}
                   </strong>
                   <span>{formatPercent(model.share, locale)}</span>

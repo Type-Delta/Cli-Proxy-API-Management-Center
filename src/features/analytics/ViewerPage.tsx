@@ -29,6 +29,14 @@ import {
   serializeAnalyticsUrlState,
 } from './query';
 import { useAnalyticsLoad } from './useAnalyticsLoad';
+import { DetailValue, MetricDetail, MetricTiles } from './views/overview/OverviewKpis';
+import {
+  TONE_ACCENTS,
+  exactNumber,
+  trendAriaLabel,
+  type FormattedValue,
+  type MetricCard,
+} from './views/overview/overviewModel';
 import { consumeViewerCredential, exchangeViewerCredential } from './viewerSecurity';
 import {
   buildViewerRange,
@@ -41,16 +49,26 @@ import {
 } from './views/viewer/viewerApi';
 import styles from './views/viewer/ViewerPage.module.scss';
 
-let capturedViewerCredential: string | undefined;
+/**
+ * Keyed by the link the credential came from, so opening a second viewer link
+ * in the same SPA lifetime never replays the first link's credential.
+ */
+let capturedViewerCredential: { link: string; credential: string } | undefined;
+
+function viewerLinkId() {
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
 
 function takeViewerCredential(): string {
-  if (capturedViewerCredential !== undefined) return capturedViewerCredential;
-  capturedViewerCredential = consumeViewerCredential(
+  const link = viewerLinkId();
+  if (capturedViewerCredential?.link === link) return capturedViewerCredential.credential;
+  const credential = consumeViewerCredential(
     window.location.hash,
     (url) => window.history.replaceState(null, '', url),
     `${window.location.pathname}${window.location.search}#/viewer`
   );
-  return capturedViewerCredential;
+  capturedViewerCredential = { link, credential };
+  return credential;
 }
 
 function RegionError({
@@ -78,51 +96,77 @@ function RegionError({
   );
 }
 
+/** The Overview KPI tiles, scoped to the viewer's keys and its narrower DTO. */
 function ViewerTotals({ summary }: { summary: ViewerSummary }) {
   const { t, i18n } = useTranslation();
-  const cards = [
-    [t('analytics.proxy_requests'), formatNumber(summary.proxy_requests, i18n.resolvedLanguage)],
-    [
-      t('analytics.upstream_attempts'),
-      formatNumber(summary.upstream_attempts, i18n.resolvedLanguage),
-    ],
-    [t('analytics.total_tokens'), formatCompactTokens(summary.tokens.total, i18n.resolvedLanguage)],
-    [t('analytics.known_cost'), formatCostValue(summary.known_cost_usd, i18n.resolvedLanguage)],
-    [t('analytics.input_tokens'), formatCompactTokens(summary.tokens.input, i18n.resolvedLanguage)],
-    [
-      t('analytics.output_tokens'),
-      formatCompactTokens(summary.tokens.output, i18n.resolvedLanguage),
-    ],
-    [
-      t('analytics.reasoning_tokens'),
-      formatCompactTokens(summary.tokens.reasoning, i18n.resolvedLanguage),
-    ],
-    [
-      t('analytics.cache_tokens'),
-      formatCompactTokens(
-        summary.tokens.cache_read + summary.tokens.cache_creation,
-        i18n.resolvedLanguage
+  const locale = i18n.resolvedLanguage;
+  const compact = (value: number): FormattedValue => ({
+    ...formatCompactTokens(value, locale),
+    title: String(value),
+  });
+  const compactText = (value: number) => compact(value).text;
+  const cost = formatCostValue(summary.known_cost_usd, locale);
+  const priced = summary.unpriced_tokens <= 0;
+  const requestsLabel = t('analytics.proxy_requests', { defaultValue: 'Proxy requests' });
+  const attemptsLabel = t('analytics.upstream_attempts', { defaultValue: 'Upstream attempts' });
+  const tokensLabel = t('analytics.total_tokens', { defaultValue: 'Total tokens' });
+  const inputLabel = t('analytics.input_tokens', { defaultValue: 'Input tokens' });
+  const outputLabel = t('analytics.output_tokens', { defaultValue: 'Output tokens' });
+  const reasoningLabel = t('analytics.reasoning_tokens', { defaultValue: 'Reasoning tokens' });
+  const cacheLabel = t('analytics.cache_tokens', { defaultValue: 'Cache tokens' });
+  const costLabel = t('analytics.known_cost', { defaultValue: 'Known cost' });
+  const cacheTokens = summary.tokens.cache_read + summary.tokens.cache_creation;
+  const costBasis = priced
+    ? t('analytics.overview.known_cost', { defaultValue: 'Known API cost' })
+    : t('analytics.overview.unpriced_tokens', {
+        defaultValue: '{{count}} unpriced tokens',
+        count: formatNumber(summary.unpriced_tokens, locale),
+      });
+  const cards: MetricCard[] = [
+    {
+      key: 'requests',
+      label: requestsLabel,
+      value: exactNumber(summary.proxy_requests, locale),
+      ariaLabel: `${requestsLabel}: ${formatNumber(summary.proxy_requests, locale)}. ${attemptsLabel}: ${formatNumber(summary.upstream_attempts, locale)}.`,
+      accent: TONE_ACCENTS.idle,
+      detail: (
+        <MetricDetail>
+          <DetailValue
+            label={attemptsLabel}
+            value={exactNumber(summary.upstream_attempts, locale)}
+          />
+        </MetricDetail>
       ),
-    ],
-  ] as const;
-  return (
-    <section className={styles.totals} aria-label={t('analytics.totals')}>
-      {cards.map(([label, value]) => (
-        <Card key={label}>
-          <span>{label}</span>
-          <strong title={typeof value === 'string' ? undefined : value.title}>
-            {typeof value === 'string' ? value : value.text}
-          </strong>
-        </Card>
-      ))}
-      {summary.unpriced_tokens > 0 && (
-        <Card>
-          <span>{t('analytics.unpriced_tokens')}</span>
-          <strong>{formatNumber(summary.unpriced_tokens, i18n.resolvedLanguage)}</strong>
-        </Card>
-      )}
-    </section>
-  );
+    },
+    {
+      key: 'tokens',
+      label: tokensLabel,
+      value: compact(summary.tokens.total),
+      ariaLabel: `${tokensLabel}: ${compactText(summary.tokens.total)}. ${inputLabel}: ${compactText(summary.tokens.input)}. ${outputLabel}: ${compactText(summary.tokens.output)}. ${reasoningLabel}: ${compactText(summary.tokens.reasoning)}. ${cacheLabel}: ${compactText(cacheTokens)}.`,
+      accent: TONE_ACCENTS.idle,
+      detail: (
+        <MetricDetail>
+          <DetailValue label={inputLabel} value={compact(summary.tokens.input)} />
+          <DetailValue label={outputLabel} value={compact(summary.tokens.output)} />
+          <DetailValue label={reasoningLabel} value={compact(summary.tokens.reasoning)} />
+          <DetailValue label={cacheLabel} value={compact(cacheTokens)} />
+        </MetricDetail>
+      ),
+    },
+    {
+      key: 'cost',
+      label: costLabel,
+      value: cost,
+      ariaLabel: `${costLabel}: ${cost.text}. ${costBasis}.`,
+      accent: TONE_ACCENTS[priced ? 'idle' : 'warning'],
+      detail: (
+        <MetricDetail>
+          <span>{costBasis}</span>
+        </MetricDetail>
+      ),
+    },
+  ];
+  return <MetricTiles cards={cards} label={t('analytics.totals')} />;
 }
 
 export function ViewerPage() {
@@ -258,7 +302,11 @@ export function ViewerPage() {
         />
       </header>
 
-      <AsyncState loading={capabilities.loading} error="">
+      <AsyncState
+        loading={capabilities.loading}
+        error=""
+        onRetry={() => void capabilities.refresh()}
+      >
         {capabilities.data && (
           <Card title={label || t('analytics.shared_view')}>
             <div className={styles.scope}>
@@ -294,7 +342,12 @@ export function ViewerPage() {
         />
       )}
 
-      <AsyncState loading={summary.loading} error="" stale={summary.data?.meta.degraded}>
+      <AsyncState
+        loading={summary.loading}
+        error=""
+        stale={summary.data?.meta.degraded}
+        onRetry={() => void summary.refresh()}
+      >
         {summary.data && <ViewerTotals summary={summary.data} />}
       </AsyncState>
       {summary.error && (
@@ -307,7 +360,12 @@ export function ViewerPage() {
         />
       )}
 
-      <AsyncState loading={series.loading} error="" stale={series.data?.meta.degraded}>
+      <AsyncState
+        loading={series.loading}
+        error=""
+        stale={series.data?.meta.degraded}
+        onRetry={() => void series.refresh()}
+      >
         {series.data && (
           <Card title={t('analytics.activity')}>
             {series.data.points.length === 0 ? (
@@ -319,7 +377,15 @@ export function ViewerPage() {
               <Sparkline
                 className={styles.sparkline}
                 points={series.data.points.map((point) => point.tokens.total)}
-                ariaLabel={t('analytics.chart_summary', { count: series.data.points.length })}
+                ariaLabel={trendAriaLabel(
+                  t,
+                  t('analytics.overview.trend', {
+                    defaultValue: '{{metric}} trend',
+                    metric: t('analytics.total_tokens', { defaultValue: 'Total tokens' }),
+                  }),
+                  series.data.points.map((point) => point.tokens.total),
+                  (value) => formatCompactTokens(value, i18n.resolvedLanguage).text
+                )}
               />
             )}
           </Card>
@@ -335,7 +401,12 @@ export function ViewerPage() {
         />
       )}
 
-      <AsyncState loading={events.loading} error="" stale={events.data?.meta.degraded}>
+      <AsyncState
+        loading={events.loading}
+        error=""
+        stale={events.data?.meta.degraded}
+        onRetry={() => void events.refresh()}
+      >
         {events.data && (
           <Card title={t('analytics.events')}>
             {events.data.events.length === 0 ? (

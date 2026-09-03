@@ -9,6 +9,8 @@ import {
   resolveAnalyticsRange,
   serializeAnalyticsUrlState,
   type AnalyticsLeaderboardSort,
+  type AnalyticsDistribution,
+  type AnalyticsEventFilters,
   type AnalyticsRange,
   type AnalyticsUrlState,
 } from './query';
@@ -108,6 +110,18 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
     [keysById, updateUrl]
   );
   const setSort = useCallback((sort: AnalyticsLeaderboardSort) => updateUrl({ sort }), [updateUrl]);
+  const setEventFilters = useCallback(
+    (eventFilters: AnalyticsEventFilters) => updateUrl({ eventFilters }),
+    [updateUrl]
+  );
+  const setActivityWindow = useCallback(
+    (activityWindow: AnalyticsUrlState['activityWindow']) => updateUrl({ activityWindow }),
+    [updateUrl]
+  );
+  const setDistribution = useCallback(
+    (distribution: AnalyticsDistribution) => updateUrl({ distribution }),
+    [updateUrl]
+  );
   const value = useMemo(
     () => ({
       range: urlState.range,
@@ -118,6 +132,12 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
       setSelectedKeyIds,
       sort: urlState.sort,
       setSort,
+      eventFilters: urlState.eventFilters,
+      setEventFilters,
+      activityWindow: urlState.activityWindow,
+      setActivityWindow,
+      distribution: urlState.distribution,
+      setDistribution,
       keys,
       keysLoading: keyCatalog.loading,
       keysError: keyCatalog.error,
@@ -134,6 +154,12 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
       setRange,
       setSelectedKeyIds,
       setSort,
+      setEventFilters,
+      setActivityWindow,
+      setDistribution,
+      urlState.activityWindow,
+      urlState.distribution,
+      urlState.eventFilters,
       urlState.range,
       urlState.sort,
     ]

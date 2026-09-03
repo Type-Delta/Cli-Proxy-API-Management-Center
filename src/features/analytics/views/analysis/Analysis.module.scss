@@ -14,7 +14,7 @@
   --analysis-model-4: var(--viz-failure);
   --analysis-model-5: color-mix(in srgb, var(--primary-active) 58%, var(--viz-success));
   --analysis-model-6: color-mix(in srgb, var(--amber-color) 55%, var(--viz-failure));
-  --analysis-heatmap: var(--viz-failure);
+  --analysis-heatmap: var(--primary-active);
 
   display: flex;
   min-width: 0;
@@ -143,6 +143,17 @@
   width: 100%;
   height: 100%;
   overflow: visible;
+
+  // A focusable plot is not clickable: only the hover-readout overlay gets a
+  // pointer idiom (crosshair), everything else keeps the default cursor.
+  &[tabindex='0'] {
+    border-radius: $radius-md;
+
+    &:focus-visible {
+      outline: 2px solid var(--primary-active);
+      outline-offset: 2px;
+    }
+  }
 }
 
 .gridline {
@@ -153,8 +164,8 @@
 
 .axisLabel,
 .axisTitle {
-  fill: var(--text-tertiary);
-  font-size: 10px;
+  fill: var(--text-secondary);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -201,6 +212,7 @@
   border-radius: 4px;
   outline-offset: -3px;
   background: transparent;
+  // The only chart cursor: these overlays are the plots that carry a readout.
   cursor: crosshair;
 
   &:hover {
@@ -294,8 +306,8 @@
 }
 
 .rankNumber {
-  color: var(--text-tertiary);
-  font-size: 11px;
+  color: var(--text-secondary);
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -348,12 +360,10 @@
   }
 }
 
-.latencyStage {
-  width: 760px;
-  max-width: 100%;
-  min-width: 0;
-  height: auto;
-  aspect-ratio: 760 / 330;
+.latencyPlot {
+  width: 100%;
+  max-width: 960px;
+  aspect-ratio: 960 / 280;
   margin: 0 auto;
 }
 
@@ -386,22 +396,63 @@
   fill: var(--analysis-cache-write);
 }
 
-.scatterTarget {
-  cursor: crosshair;
-  outline: none;
-
-  &:focus-visible circle:last-child {
-    stroke: var(--text-primary);
-    stroke-width: 2;
-  }
-}
-
 .scatterSuccess {
   fill: var(--viz-success);
 }
 
 .scatterFailure {
   fill: var(--viz-failure);
+}
+
+.latencyMobileSummary {
+  display: none;
+}
+
+.sampleBrowser {
+  margin-top: $spacing-sm;
+  color: var(--text-secondary);
+  font-size: 12px;
+
+  summary {
+    width: fit-content;
+    min-height: 40px;
+    padding: 10px 2px;
+    color: var(--text-primary);
+    font-weight: 650;
+    cursor: pointer;
+  }
+
+  ol {
+    display: grid;
+    max-height: 280px;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  .sampleBrowserCount {
+    margin: 0 0 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) repeat(3, auto);
+    gap: 8px 16px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border-color);
+    font-variant-numeric: tabular-nums;
+  }
+
+  strong {
+    overflow: hidden;
+    color: var(--text-primary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .distributionTabs {
@@ -627,24 +678,9 @@
 
 .efficiencyMeasure {
   display: grid;
-  grid-template-columns: minmax(44px, 1fr) auto;
+  grid-template-columns: minmax(100px, 1fr) auto;
   align-items: center;
   gap: 8px;
-
-  > span {
-    display: block;
-    height: 6px;
-    overflow: hidden;
-    border-radius: $radius-full;
-    background: var(--muted-bg);
-  }
-
-  > span i {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--analysis-cost);
-  }
 
   strong {
     color: var(--text-primary);
@@ -658,11 +694,47 @@
   }
 }
 
+.efficiencyVolume {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 3px 8px;
+  color: var(--text-secondary);
+  font-size: 10px;
+
+  > strong {
+    justify-self: end;
+    color: var(--text-secondary);
+    font-size: 11px;
+  }
+
+  > i {
+    display: block;
+    height: 6px;
+    grid-column: 1 / -1;
+    overflow: hidden;
+    border-radius: $radius-full;
+    background: var(--muted-bg);
+  }
+
+  b {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--primary-active);
+  }
+}
+
+.heatmapLimit {
+  margin: 0 0 $spacing-sm;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
 .heatmapGrid {
   display: grid;
   width: var(--analysis-heatmap-width);
   min-width: 100%;
-  grid-template-columns: 176px repeat(var(--analysis-heatmap-columns), minmax(104px, 1fr));
+  grid-template-columns: 160px repeat(var(--analysis-heatmap-columns), minmax(96px, 1fr));
   gap: 4px;
 }
 
@@ -690,7 +762,7 @@
 .heatmapRow {
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: 176px repeat(var(--analysis-heatmap-columns), minmax(104px, 1fr));
+  grid-template-columns: 160px repeat(var(--analysis-heatmap-columns), minmax(96px, 1fr));
   gap: 4px;
 }
 
@@ -702,14 +774,17 @@
   white-space: nowrap;
 }
 
+// The ramp is capped at --analysis-heatmap-ceiling (see heatmapStrength() in
+// KeyModelHeatmap.tsx) so --text-primary clears 4.5:1 on every cell in every theme; the
+// label colour therefore never switches.
 .heatmapCell {
   min-width: 40px;
   min-height: 44px;
   padding: 5px;
   border: 1px solid color-mix(in srgb, var(--analysis-heatmap) 18%, var(--border-color));
   border-radius: 5px;
-  background: color-mix(in srgb, var(--analysis-heatmap) var(--cell-strength), var(--bg-tertiary));
-  color: color-mix(in srgb, var(--text-primary) 88%, var(--bg-primary));
+  background: color-mix(in srgb, var(--analysis-heatmap) var(--cell-strength, 6%), var(--bg-tertiary));
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -736,11 +811,12 @@
     width: 96px;
     height: 7px;
     border-radius: $radius-full;
+    // Mirrors the capped cell ramp (6% -> 55%) so the legend reads the same as the grid.
     background: linear-gradient(
       90deg,
-      var(--bg-tertiary),
-      color-mix(in srgb, var(--analysis-heatmap) 55%, var(--bg-tertiary)),
-      var(--analysis-heatmap)
+      color-mix(in srgb, var(--analysis-heatmap) 6%, var(--bg-tertiary)),
+      color-mix(in srgb, var(--analysis-heatmap) 30%, var(--bg-tertiary)),
+      color-mix(in srgb, var(--analysis-heatmap) 55%, var(--bg-tertiary))
     );
   }
 }
@@ -757,7 +833,41 @@
   }
 
   .latencyMetrics {
+    display: none;
+  }
+
+  .latencyPlot {
+    display: none;
+  }
+
+  .latencyMobileSummary {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+
+    > div {
+      padding: 9px 10px;
+      border-radius: $radius-md;
+      background: var(--muted-bg);
+    }
+
+    dt {
+      color: var(--text-secondary);
+      font-size: 11px;
+    }
+
+    dd {
+      margin: 3px 0 0;
+      color: var(--text-primary);
+      font-size: 16px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .sampleBrowser li {
+    grid-template-columns: 1fr;
   }
 
   .chartReadout,

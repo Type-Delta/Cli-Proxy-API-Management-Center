@@ -1,4 +1,10 @@
 import type { AnalyticsKey, LeaderboardRow } from '@/types';
+import type { AnalyticsLeaderboardSort } from '../../query';
+
+// The cost disclosure sentence only applies when the table is actually ranked by cost.
+export function shouldShowPricingDisclosure(sort: AnalyticsLeaderboardSort): boolean {
+  return sort === 'cost';
+}
 
 export type KeyColumnSort =
   | 'server'

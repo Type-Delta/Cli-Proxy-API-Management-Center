@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/Table';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { analyticsApi } from '@/services/api';
 import type {
   AnalyticsEventPage,
@@ -21,6 +22,7 @@ import type {
 import { useAnalyticsFilters } from '../AnalyticsFilterContext';
 import { analyticsKeyIdentity } from '../analyticsKeyFilterModel';
 import { AnalyticsStatusBadge, AsyncState, EventTable } from '../components/AnalyticsShared';
+import { analyticsErrorCopy } from '../components/analyticsErrorCopy';
 import {
   formatCompactTokens,
   formatCostValue,
@@ -39,6 +41,7 @@ import { Analysis } from './Analysis';
 import { Overview } from './Overview';
 import {
   joinKeyRanking,
+  shouldShowPricingDisclosure,
   sortKeyRanking,
   type KeyColumnSort,
   type KeySortDirection,
@@ -99,6 +102,7 @@ export function KeysView({
   const { sort, setSort, reportResolvedRange } = useAnalyticsFilters();
   const [columnSort, setColumnSort] = useState<KeyColumnSort>('server');
   const [direction, setDirection] = useState<KeySortDirection>('asc');
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const rankingRequest = useMemo(
     () => buildAnalyticsQuery('leaderboard', range, [], { sort_by: sort, page_size: 500 }),
     [range, sort]
@@ -123,6 +127,7 @@ export function KeysView({
     } while (cursor);
     return { ...page, rows };
   }, JSON.stringify(rankingRequest));
+  const rankingFailure = analyticsErrorCopy(t, ranking.error);
   const rows = useMemo(
     () => sortKeyRanking(joinKeyRanking(keys, ranking.data?.rows ?? []), columnSort, direction),
     [columnSort, direction, keys, ranking.data?.rows]
@@ -167,14 +172,19 @@ export function KeysView({
 
   return (
     <>
-      <AsyncState loading={ranking.loading} error="" stale={ranking.data?.meta.degraded}>
+      <AsyncState
+        loading={ranking.loading}
+        error=""
+        stale={ranking.data?.meta.degraded}
+        onRetry={() => void ranking.refresh()}
+      >
         <Card
           title={t('analytics.keys_catalog')}
           extra={<span className={styles.rangeNote}>{analyticsRangeLabel(t, range)}</span>}
         >
           {ranking.error && (
-            <div className="error-box" role="alert">
-              <span>{ranking.error}</span>
+            <div className="error-box" role="alert" title={rankingFailure.detail}>
+              <span>{rankingFailure.text}</span>
               <Button
                 className={styles.retryButton}
                 variant="secondary"
@@ -184,7 +194,9 @@ export function KeysView({
               </Button>
             </div>
           )}
-          <p className={styles.disclosure}>{t('analytics.pricing_disclosure')}</p>
+          {shouldShowPricingDisclosure(sort) && (
+            <p className={styles.disclosure}>{t('analytics.pricing_disclosure')}</p>
+          )}
           {rows.length === 0 && !ranking.loading ? (
             <EmptyState
               title={t('analytics.no_data_title')}
@@ -192,6 +204,44 @@ export function KeysView({
                 defaultValue: 'Key activity and configured keys will appear here.',
               })}
             />
+          ) : isMobile ? (
+            <div className={styles.cardList}>
+              {rows.map((row) => {
+                const tokens = formatCompactTokens(row.total_tokens, i18n.resolvedLanguage);
+                const cost = formatCostValue(row.known_cost_usd, i18n.resolvedLanguage);
+                const active = selectedKey?.key_id === row.key_id;
+                return (
+                  <Card key={row.key_id} className={styles.keyCard}>
+                    <div className={styles.keyCardHead}>
+                      <span title={row.short_key_id}>{analyticsKeyIdentity(row)}</span>
+                      <AnalyticsStatusBadge category="key_status" value={row.status} />
+                    </div>
+                    <dl className={styles.keyCardMetrics}>
+                      <div>
+                        <dt>{t('analytics.proxy_requests')}</dt>
+                        <dd>{formatNumber(row.proxy_requests, i18n.resolvedLanguage)}</dd>
+                      </div>
+                      <div>
+                        <dt>{t('analytics.total_tokens')}</dt>
+                        <dd title={tokens.title}>{tokens.text}</dd>
+                      </div>
+                      <div>
+                        <dt>{t('analytics.known_cost')}</dt>
+                        <dd title={cost.title}>{cost.text}</dd>
+                      </div>
+                    </dl>
+                    <Button
+                      variant={active ? 'primary' : 'secondary'}
+                      onClick={() => setSelected([row.key_id])}
+                    >
+                      {active
+                        ? t('analytics.viewing_key', { defaultValue: 'Viewing' })
+                        : t('analytics.view_key', { defaultValue: 'View details' })}
+                    </Button>
+                  </Card>
+                );
+              })}
+            </div>
           ) : (
             <Table aria-label={t('analytics.keys_catalog')}>
               <TableHeader>
@@ -229,7 +279,7 @@ export function KeysView({
                   return (
                     <TableRow key={row.key_id} selected={active}>
                       <TableCell>{row.rank ?? '—'}</TableCell>
-                      <TableCell title={row.key_id}>{analyticsKeyIdentity(row)}</TableCell>
+                      <TableCell title={row.short_key_id}>{analyticsKeyIdentity(row)}</TableCell>
                       <TableCell>
                         <AnalyticsStatusBadge category="key_status" value={row.status} />
                       </TableCell>
@@ -336,7 +386,12 @@ export function KeysView({
               />
             </Card>
           ) : (
-            <AsyncState loading={recent.loading} error="" stale={recent.data?.meta.degraded}>
+            <AsyncState
+              loading={recent.loading}
+              error=""
+              stale={recent.data?.meta.degraded}
+              onRetry={() => void recent.refresh()}
+            >
               {recent.data && (
                 <>
                   {recent.error && (

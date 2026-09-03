@@ -1,4 +1,8 @@
-import type { AnalyticsRepriceRequest, PricingRule } from '@/types';
+import type {
+  AnalyticsRange as AnalyticsResolvedRange,
+  AnalyticsRepriceRequest,
+  PricingRule,
+} from '@/types';
 
 export type PricingRuleDraft = Omit<PricingRule, 'rule_id' | 'match' | 'updated_at'> & {
   rule_id: string;
@@ -99,6 +103,49 @@ export function buildRepriceRequest(
     dry_run: dryRun,
     resume,
   };
+}
+
+/**
+ * Build a reprice request from the analytics workspace's active range (see
+ * useAnalyticsFilters/AnalyticsFilterContext) instead of a fixed 24h/7d/30d choice.
+ */
+export function buildRepriceRequestFromRange(
+  resolvedRange: Pick<AnalyticsResolvedRange, 'start' | 'end' | 'time_zone'>,
+  dryRun: boolean,
+  resume = false
+): AnalyticsRepriceRequest {
+  return {
+    start: resolvedRange.start,
+    end: resolvedRange.end,
+    time_zone: resolvedRange.time_zone,
+    dry_run: dryRun,
+    resume,
+  };
+}
+
+export type PricingSyncOutcome = {
+  key: string;
+  fallback: string;
+  type: 'success' | 'error';
+};
+
+/**
+ * Maps a pricing catalog refresh outcome to its notification. Kept pure and separate from
+ * Pricing.tsx's sync() so a failed `refresh` (e.g. useAnalyticsLoad.refreshOrThrow rejecting)
+ * can never be mapped to a success toast.
+ */
+export function pricingSyncOutcome(succeeded: boolean): PricingSyncOutcome {
+  return succeeded
+    ? {
+        key: 'analytics.pricing_refresh_complete',
+        fallback: 'Pricing catalog refreshed.',
+        type: 'success',
+      }
+    : {
+        key: 'analytics.pricing_refresh_failed',
+        fallback: 'Could not refresh the pricing catalog. Try again.',
+        type: 'error',
+      };
 }
 
 export function duplicatePricingMatch(

@@ -395,3 +395,65 @@
   flex-direction: column;
   gap: 20px;
 }
+
+/* --- Manage surfaces (Pricing / Maintenance / Providers) --- */
+
+.repriceRange {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.manageStack {
+  display: grid;
+  gap: 20px;
+}
+
+.manageForm {
+  display: grid;
+  gap: 12px;
+}
+
+.manageActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.manageInput {
+  min-height: 40px;
+}
+
+.healthGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.healthGrid dd {
+  margin: 4px 0 0;
+}
+
+.jobResultList {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.jobResultList dd {
+  margin: 0;
+}
+
+.quotaCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+
+.quotaMeter {
+  width: 72px;
+}

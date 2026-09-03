@@ -67,3 +67,48 @@
   flex-direction: column;
   gap: 20px;
 }
+
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.keyCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  button {
+    align-self: flex-start;
+    min-height: 40px;
+  }
+}
+
+.keyCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.keyCardMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 0;
+
+  dt {
+    color: var(--text-secondary);
+    font-size: 11px;
+  }
+
+  dd {
+    margin: 3px 0 0;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+}

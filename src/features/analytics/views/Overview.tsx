@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { analyticsApi } from '@/services/api';
-import type { ActivityWindow } from '@/types';
 import type { AnalyticsRange } from '../query';
 import { useAnalyticsFilters } from '../AnalyticsFilterContext';
 import { AsyncState } from '../components/AnalyticsShared';
@@ -11,17 +10,13 @@ import { analyticsRangeBucketWidth, buildAnalyticsQuery } from '../query';
 import { useAnalyticsLoad as useLoad } from '../useAnalyticsLoad';
 import { ActivityHeatmaps } from './overview/ActivityHeatmaps';
 import { OverviewKpis } from './overview/OverviewKpis';
-import {
-  buildActivityQuery,
-  DEFAULT_ACTIVITY_WINDOW,
-  overviewSparklines,
-} from './overview/overviewModel';
+import { buildOverviewActivityQuery, overviewSparklines } from './overview/overviewModel';
 import styles from './overview/Overview.module.scss';
 
 export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: string[] }) {
   const { t } = useTranslation();
-  const { reportResolvedRange } = useAnalyticsFilters();
-  const [activityWindow, setActivityWindow] = useState<ActivityWindow>(DEFAULT_ACTIVITY_WINDOW);
+  // The activity window round-trips through the hash query, like range and keys.
+  const { reportResolvedRange, activityWindow, setActivityWindow } = useAnalyticsFilters();
   const request = useMemo(() => buildAnalyticsQuery('summary', range, keyIds), [range, keyIds]);
   const seriesRequest = useMemo(
     () =>
@@ -31,8 +26,8 @@ export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: str
     [range, keyIds]
   );
   const activityRequest = useMemo(
-    () => buildActivityQuery(activityWindow, keyIds),
-    [activityWindow, keyIds]
+    () => buildOverviewActivityQuery(activityWindow, keyIds, range),
+    [activityWindow, keyIds, range]
   );
   const summary = useLoad(() => analyticsApi.summary(request), JSON.stringify(request));
   const timeseries = useLoad(
@@ -58,6 +53,7 @@ export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: str
         loading={timeseries.loading}
         error={timeseries.error}
         stale={timeseries.data?.meta.degraded}
+        onRetry={() => void timeseries.refresh()}
       >
         <span className={styles.srOnly}>
           {t('analytics.overview.timeseries_status', { defaultValue: 'Time-series status' })}
@@ -79,6 +75,7 @@ export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: str
         loading={summary.loading}
         error={summary.error}
         stale={summary.data?.meta.degraded}
+        onRetry={() => void summary.refresh()}
       >
         {summary.data && (
           <OverviewKpis

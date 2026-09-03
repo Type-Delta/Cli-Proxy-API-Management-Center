@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { analyticsErrorCopy } from '../../components/analyticsErrorCopy';
 import styles from './Analysis.module.scss';
 
 type AnalysisCardProps = {
@@ -33,6 +34,7 @@ export function AnalysisCard({
   className,
 }: AnalysisCardProps) {
   const { t } = useTranslation();
+  const failure = analyticsErrorCopy(t, error);
   const titleNode = (
     <div className={styles.cardHeading}>
       <span>{title}</span>
@@ -84,8 +86,8 @@ export function AnalysisCard({
       className={className}
     >
       {error && (
-        <div className="error-box" role="alert">
-          {error}
+        <div className="error-box" role="alert" title={failure.detail}>
+          {failure.text}
         </div>
       )}
       {hasData ? (
