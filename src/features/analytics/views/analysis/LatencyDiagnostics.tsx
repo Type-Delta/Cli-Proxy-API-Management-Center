@@ -5,10 +5,13 @@ import type { AnalysisLatency } from '@/types';
 import { formatDateTime, formatDuration, formatNumber } from '../../components/analyticsFormatting';
 import { AnalysisCard } from './AnalysisCard';
 import {
+  ANALYSIS_CAPTION_BASELINE,
+  ANALYSIS_CAPTION_INLINE,
   ANALYSIS_CHART_BASE_WIDTH,
   ANALYSIS_CHART_HEIGHT,
   ANALYSIS_PLOT_HEIGHT,
   ANALYSIS_PLOT_INSET,
+  ANALYSIS_TICK_BASELINE,
   analysisPlotWidth,
   buildLogAxis,
   logAxisRatio,
@@ -181,7 +184,12 @@ export function LatencyDiagnostics({
                           y2={PLOT.top + PLOT_HEIGHT}
                           className={styles.gridline}
                         />
-                        <text x={x} y={HEIGHT - 8} className={styles.axisLabel} textAnchor="middle">
+                        <text
+                          x={x}
+                          y={ANALYSIS_TICK_BASELINE}
+                          className={styles.axisLabel}
+                          textAnchor="middle"
+                        >
                           {formatDuration(tick, locale)}
                         </text>
                       </g>
@@ -224,18 +232,18 @@ export function LatencyDiagnostics({
                   })}
                   <text
                     x={PLOT.left + PLOT_WIDTH / 2}
-                    y={HEIGHT - 8}
+                    y={ANALYSIS_CAPTION_BASELINE}
                     className={styles.axisTitle}
                     textAnchor="middle"
                   >
                     {t('analytics.analysis.ttft', { defaultValue: 'TTFT' })} · log10
                   </text>
                   <text
-                    x={14}
+                    x={ANALYSIS_CAPTION_INLINE}
                     y={PLOT.top + PLOT_HEIGHT / 2}
                     className={styles.axisTitle}
                     textAnchor="middle"
-                    transform={`rotate(-90 14 ${PLOT.top + PLOT_HEIGHT / 2})`}
+                    transform={`rotate(-90 ${ANALYSIS_CAPTION_INLINE} ${PLOT.top + PLOT_HEIGHT / 2})`}
                   >
                     {t('analytics.latency', { defaultValue: 'Latency' })} · log10
                   </text>

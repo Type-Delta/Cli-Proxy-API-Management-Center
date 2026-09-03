@@ -263,7 +263,6 @@
     "choose_one_key": "Choose one key for details",
     "choose_one_key_description": "The key viewer shows Overview, Analysis, and recent events for one key at a time.",
     "clear_filters": "Clear filters",
-    "client_ip": "Client IP",
     "columns": "Columns",
     "config_indexes": "Config indexes",
     "copy_link": "Copy link",
@@ -282,7 +281,6 @@
     "event_detail_eyebrow": "Analytics event",
     "event_detail_failed": "Event details could not load",
     "event_detail_title": "Event details",
-    "event_field_unavailable": "CPA does not provide this field.",
     "event_filters": "Event filters",
     "event_request": "Request",
     "event_result": "Result and timing",
@@ -312,7 +310,6 @@
     "no_keys_in_range": "Key activity and configured keys will appear here.",
     "no_matching_events": "No events match the active range and filters.",
     "observed": "Observed",
-    "open_event_details": "Open {{result}} event details",
     "price_source": "Price source",
     "pricing": "Pricing",
     "pricing_add_rule": "Add pricing rule",
@@ -355,7 +352,6 @@
     "quota_reset": "Quota reset",
     "quota_unknown": "Not observed",
     "quota_used_label": "Quota used: {{percent}} ({{used}} of {{limit}})",
-    "reasoning_effort": "Reasoning effort",
     "reprice_active_range": "Range: {{range}} ({{start}} → {{end}}). Change it from the range control on Overview, Analysis, Keys, or Events.",
     "reprice_checkpoint": "Checkpoint",
     "reprice_description": "Run an explicit, resumable reprice job after changing rules or finding missing prices. Dry run reports the affected range without writing costs.",
@@ -391,7 +387,6 @@
     "unknown_key": "Unknown key",
     "unnamed_view": "Unnamed view",
     "used_tier": "Used tier",
-    "user_agent": "User agent",
     "view_details": "View details",
     "view_event": "View event details",
     "view_key": "View details",
@@ -401,7 +396,6 @@
     "viewer_copy_failed": "Copy failed. The credential is still available. Try again.",
     "viewer_credential_title": "New shared view",
     "viewer_events_failed": "Events could not load",
-    "viewer_expiry_explanation": "Access expires {{date}}.",
     "viewer_label_placeholder": "For example, finance read-only",
     "viewer_link": "Shared view link",
     "viewer_scope_explanation": "This read-only view is limited to {{label}}. It cannot change CPA configuration or credentials.",
@@ -410,7 +404,6 @@
     "viewer_series_failed": "Usage activity could not load",
     "viewer_summary_failed": "Usage totals could not load",
     "viewing_key": "Viewing",
-    "x_forwarded_for": "X-Forwarded-For",
     "overview": {
       "activity_description": "Compare token volume with request health for the selected window.",
       "activity_patterns": "Activity patterns",
@@ -455,7 +448,14 @@
       "tokens_per_minute": "Tokens per minute",
       "tpm": "TPM",
       "trend": "{{metric}} trend",
-      "unpriced_tokens": "{{count}} unpriced tokens"
+      "unpriced_tokens": "{{count}} unpriced tokens",
+      "rpm_description": "Requests per minute",
+      "tpm_description": "Tokens per minute",
+      "window_day": "Day",
+      "window_week": "Week",
+      "window_month": "Month",
+      "window_year": "Year",
+      "heatmap_readout_hint": "Hover or focus a cell to read its bucket."
     },
     "analysis": {
       "blended_rate": "Blended rate",
@@ -522,7 +522,9 @@
       "total_known_spend": "Total known spend",
       "ttft": "TTFT",
       "uncached_input": "Input",
-      "volume": "Volume"
+      "volume": "Volume",
+      "ttft_description": "Time to first token",
+      "heatmap_readout_hint": "Hover or focus a cell to read its totals."
     },
     "maintenance": {
       "abandoned": "Abandoned events",
@@ -667,8 +669,74 @@
         "disabled": "Disabled",
         "stopping": "Stopping",
         "circuit_open": "Circuit open"
+      },
+      "source": {
+        "native": "Native",
+        "import": "Imported"
+      },
+      "service_tier": {
+        "auto": "Auto",
+        "default": "Default",
+        "flex": "Flex",
+        "priority": "Priority",
+        "scale": "Scale"
+      },
+      "endpoint": {
+        "responses": "Responses",
+        "messages": "Messages",
+        "chat_completions": "Chat completions",
+        "generate_content": "Generate content",
+        "embeddings": "Embeddings",
+        "images": "Images",
+        "videos": "Videos",
+        "audio": "Audio",
+        "unknown": "Unknown"
       }
-    }
+    },
+    "ttft_description": "Time to first token",
+    "job_result": {
+      "action": "Action",
+      "archived_database": "Archived database",
+      "archived_identity_key": "Archived identity key",
+      "backup_id": "Backup ID",
+      "batch_id": "Batch ID",
+      "checkpoint": "Checkpoint",
+      "completed": "Completed",
+      "daily_rolled_up_rows": "Daily rolled-up rows",
+      "database_sha256": "Database SHA-256",
+      "deleted_hourly_rows": "Deleted hourly rows",
+      "deleted_rows": "Deleted rows",
+      "dry_run": "Dry run",
+      "effective_start": "Effective start",
+      "history_complete": "History complete",
+      "identity_epoch": "Identity epoch",
+      "inserted": "Inserted",
+      "integrity": "Integrity",
+      "matched": "Matched",
+      "preview": "Preview",
+      "reconciled": "Reconciled",
+      "reindex": "Reindex",
+      "rejected": "Rejected",
+      "removed_rows": "Removed rows",
+      "repaired": "Repaired",
+      "restored": "Restored",
+      "retained_cutoff": "Retained cutoff",
+      "rolled_up_rows": "Rolled-up rows",
+      "rows": "Rows",
+      "rows_read": "Rows read",
+      "skipped": "Skipped",
+      "transformed": "Transformed",
+      "updated": "Updated"
+    },
+    "retry_in": "Retry in {{seconds}} s",
+    "viewer_link_valid_until": "This link is valid until {{time}}.",
+    "viewer_session_ends_at": "This session ends at {{time}}; reopen the link to continue.",
+    "event_row_label": "{{time}}, {{model}}, {{result}}. Open event details",
+    "unknown_model": "Unknown model",
+    "events_retention_compacted": "Events older than {{cutoff}} were compacted; narrow the range.",
+    "observed_requests": "Observed requests",
+    "observed_failures": "Observed failures",
+    "observed_counters_note": "Observed counts come from the current credential health snapshot, so they restart with CPA and will not match analytics usage totals."
   },
   "dashboard": {
     "hero_verdict_good": "All systems steady",
@@ -1473,7 +1541,10 @@
           "trusted_proxy_cidrs_hint": "Trust forwarded HTTPS only from the narrow network of the proxy that connects directly to CPA. Leave empty when TLS terminates in CPA or shared views are unused. Changes require a CPA restart.",
           "trusted_proxy_cidrs_placeholder": "172.30.0.0/24",
           "allow_loopback_http": "Allow loopback HTTP viewers",
-          "allow_loopback_http_desc": "Development only. Permit viewer credential exchange over plain HTTP from a direct loopback peer. Changes require a CPA restart."
+          "allow_loopback_http_desc": "Development only. Permit viewer credential exchange over plain HTTP from a direct loopback peer. Changes require a CPA restart.",
+          "storage_time_zone": "Storage time zone (analytics.storage-time-zone)",
+          "storage_time_zone_hint": "IANA time zone used for retained rollups. Changing this after retention has run requires an analytics reset.",
+          "storage_time_zone_placeholder": "UTC"
         },
         "advanced": {
           "title": "Advanced & Experimental",
@@ -1754,7 +1825,8 @@
         "analytics_proxy_cidrs_invalid": "Enter at most 64 unique, network-masked IPv4 or IPv6 CIDRs",
         "payload_invalid_number": "Enter a valid number",
         "payload_invalid_boolean": "Choose true or false",
-        "payload_invalid_json": "Enter valid JSON"
+        "payload_invalid_json": "Enter valid JSON",
+        "analytics_storage_time_zone_invalid": "Enter a valid IANA time zone name, for example UTC or Asia/Kolkata"
       },
       "common": {
         "edit": "Edit",

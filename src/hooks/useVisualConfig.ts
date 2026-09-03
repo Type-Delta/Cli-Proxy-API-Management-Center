@@ -152,11 +152,7 @@ function setIntFromStringInDoc(doc: YamlDocument, path: YamlPath, value: unknown
   doc.setIn(path, parsed);
 }
 
-function getIntegerScalarText(
-  doc: YamlDocument,
-  path: YamlPath,
-  fallback: unknown
-): string {
+function getIntegerScalarText(doc: YamlDocument, path: YamlPath, fallback: unknown): string {
   const node = doc.getIn(path, true) as { source?: unknown } | null | undefined;
   const source = typeof node?.source === 'string' ? node.source : '';
   return /^-?\d+$/.test(source) ? source : String(fallback);
@@ -274,12 +270,26 @@ function getAnalyticsDurationError(value: string): 'analytics_duration_range' | 
 
 const MAX_INT64 = 9223372036854775807n;
 
-function getAnalyticsStorageBytesError(
-  value: string
-): 'analytics_storage_bytes_range' | undefined {
+function getAnalyticsStorageBytesError(value: string): 'analytics_storage_bytes_range' | undefined {
   const trimmed = value.trim();
   if (!/^\d+$/.test(trimmed)) return 'analytics_storage_bytes_range';
   return BigInt(trimmed) <= MAX_INT64 ? undefined : 'analytics_storage_bytes_range';
+}
+
+// Intl.supportedValuesOf('timeZone') lists only canonical-legacy names (Asia/Calcutta, no
+// Asia/Kolkata, no UTC), so validate the way Go's time.LoadLocation will: ask the runtime
+// to resolve the zone and treat a RangeError as invalid.
+function getAnalyticsTimeZoneError(
+  value: string
+): 'analytics_storage_time_zone_invalid' | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return 'analytics_storage_time_zone_invalid';
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: trimmed });
+    return undefined;
+  } catch {
+    return 'analytics_storage_time_zone_invalid';
+  }
 }
 
 function parseIPv4Address(value: string): bigint | undefined {
@@ -352,9 +362,7 @@ function parseCanonicalCIDR(value: string): string | undefined {
   return `${bits}:${prefix}:${address}`;
 }
 
-function getAnalyticsProxyCIDRError(
-  values: string[]
-): 'analytics_proxy_cidrs_invalid' | undefined {
+function getAnalyticsProxyCIDRError(values: string[]): 'analytics_proxy_cidrs_invalid' | undefined {
   if (values.length > 64) return 'analytics_proxy_cidrs_invalid';
   const seen = new Set<string>();
   for (const value of values) {
@@ -391,6 +399,7 @@ export function getVisualConfigValidationErrors(
         ? 'analytics_storage_budget_required'
         : undefined),
     analyticsMinFreeBytes: getAnalyticsStorageBytesError(values.analyticsMinFreeBytes),
+    analyticsStorageTimeZone: getAnalyticsTimeZoneError(values.analyticsStorageTimeZone),
     analyticsViewerTrustedProxyCidrs: getAnalyticsProxyCIDRError(
       values.analyticsViewerTrustedProxyCidrs
     ),
@@ -1079,6 +1088,7 @@ function getNextDirtyFields(
       'analyticsCircuitFailureThreshold',
       'analyticsMaxStorageBytes',
       'analyticsMinFreeBytes',
+      'analyticsStorageTimeZone',
       'analyticsStoreCredentialId',
       'analyticsViewerAllowLoopbackHttp',
       'pluginsEnabled',
@@ -1337,13 +1347,9 @@ export function useVisualConfig() {
         analyticsQueueCapacity: String(analytics?.['queue-capacity'] ?? '8192'),
         analyticsBatchSize: String(analytics?.['batch-size'] ?? '256'),
         analyticsFlushInterval:
-          typeof analytics?.['flush-interval'] === 'string'
-            ? analytics['flush-interval']
-            : '250ms',
+          typeof analytics?.['flush-interval'] === 'string' ? analytics['flush-interval'] : '250ms',
         analyticsHotRetentionDays: String(analytics?.['hot-retention-days'] ?? '90'),
-        analyticsCircuitFailureThreshold: String(
-          analytics?.['circuit-failure-threshold'] ?? '5'
-        ),
+        analyticsCircuitFailureThreshold: String(analytics?.['circuit-failure-threshold'] ?? '5'),
         analyticsMaxStorageBytes: getIntegerScalarText(
           document,
           ['analytics', 'max-storage-bytes'],
@@ -1354,12 +1360,12 @@ export function useVisualConfig() {
           ['analytics', 'min-free-bytes'],
           analytics?.['min-free-bytes'] ?? '536870912'
         ),
-        analyticsStoreCredentialId: Boolean(
-          analyticsPrivacy?.['store-credential-id'] ?? true
-        ),
-        analyticsViewerTrustedProxyCidrs: parseStringList(
-          analyticsViewer?.['trusted-proxy-cidrs']
-        ),
+        analyticsStorageTimeZone:
+          typeof analytics?.['storage-time-zone'] === 'string'
+            ? analytics['storage-time-zone']
+            : 'UTC',
+        analyticsStoreCredentialId: Boolean(analyticsPrivacy?.['store-credential-id'] ?? true),
+        analyticsViewerTrustedProxyCidrs: parseStringList(analyticsViewer?.['trusted-proxy-cidrs']),
         analyticsViewerAllowLoopbackHttp: Boolean(analyticsViewer?.['allow-loopback-http']),
 
         proxyUrl: typeof parsed['proxy-url'] === 'string' ? parsed['proxy-url'] : '',
@@ -1470,6 +1476,7 @@ export function useVisualConfig() {
           'analyticsCircuitFailureThreshold',
           'analyticsMaxStorageBytes',
           'analyticsMinFreeBytes',
+          'analyticsStorageTimeZone',
           'analyticsStoreCredentialId',
           'analyticsViewerTrustedProxyCidrs',
           'analyticsViewerAllowLoopbackHttp',
@@ -1608,18 +1615,10 @@ export function useVisualConfig() {
             );
           }
           if (dirtyFields.has('analyticsBatchSize')) {
-            setIntFromStringInDoc(
-              doc,
-              ['analytics', 'batch-size'],
-              values.analyticsBatchSize
-            );
+            setIntFromStringInDoc(doc, ['analytics', 'batch-size'], values.analyticsBatchSize);
           }
           if (dirtyFields.has('analyticsFlushInterval')) {
-            setStringInDoc(
-              doc,
-              ['analytics', 'flush-interval'],
-              values.analyticsFlushInterval
-            );
+            setStringInDoc(doc, ['analytics', 'flush-interval'], values.analyticsFlushInterval);
           }
           if (dirtyFields.has('analyticsHotRetentionDays')) {
             setIntFromStringInDoc(
@@ -1647,6 +1646,13 @@ export function useVisualConfig() {
               doc,
               ['analytics', 'min-free-bytes'],
               values.analyticsMinFreeBytes
+            );
+          }
+          if (dirtyFields.has('analyticsStorageTimeZone')) {
+            setStringInDoc(
+              doc,
+              ['analytics', 'storage-time-zone'],
+              values.analyticsStorageTimeZone
             );
           }
           if (dirtyFields.has('analyticsStoreCredentialId')) {

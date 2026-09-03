@@ -19,9 +19,9 @@ import en from '../src/i18n/locales/en.json';
 // color-mix(--analysis-heatmap <strength>%, --bg-tertiary) with a --text-primary label,
 // so these are the exact triples the ramp has to stay legible against.
 const THEMES = {
-  light: { ramp: '#726d67', base: '#e9e6df', text: '#2d2a26' },
-  white: { ramp: '#726d67', base: '#f6f6f6', text: '#2d2a26' },
-  dark: { ramp: '#a6a099', base: '#262320', text: '#f6f4f1' },
+  light: { ramp: '#3f6493', base: '#e9e6df', text: '#2d2a26' },
+  white: { ramp: '#3f6493', base: '#f6f6f6', text: '#2d2a26' },
+  dark: { ramp: '#88b0dc', base: '#262320', text: '#f6f4f1' },
 } as const;
 
 const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));

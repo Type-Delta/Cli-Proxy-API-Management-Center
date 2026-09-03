@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { analyticsErrorCopy } from '../../components/analyticsErrorCopy';
+import { useAnalyticsRetryCountdown } from '../../useAnalyticsLoad';
 import styles from './Analysis.module.scss';
 
 type AnalysisCardProps = {
@@ -13,6 +14,8 @@ type AnalysisCardProps = {
   description: string;
   loading: boolean;
   error: string;
+  errorStatus?: number;
+  retryAt?: number;
   hasData: boolean;
   partial?: boolean;
   emptyDescription: string;
@@ -26,6 +29,8 @@ export function AnalysisCard({
   description,
   loading,
   error,
+  errorStatus,
+  retryAt,
   hasData,
   partial,
   emptyDescription,
@@ -34,7 +39,9 @@ export function AnalysisCard({
   className,
 }: AnalysisCardProps) {
   const { t } = useTranslation();
-  const failure = analyticsErrorCopy(t, error);
+  const failure = analyticsErrorCopy(t, error, errorStatus);
+  // Retrying before the server's Retry-After elapses only earns another 429.
+  const retryIn = useAnalyticsRetryCountdown(retryAt);
   const titleNode = (
     <div className={styles.cardHeading}>
       <span>{title}</span>
@@ -63,8 +70,13 @@ export function AnalysisCard({
             })}
             description={error}
             action={
-              <Button variant="secondary" onClick={onRetry}>
-                {t('analytics.analysis.retry', { defaultValue: 'Retry' })}
+              <Button variant="secondary" onClick={onRetry} disabled={retryIn > 0}>
+                {retryIn > 0
+                  ? t('analytics.retry_in', {
+                      defaultValue: 'Retry in {{seconds}} s',
+                      seconds: retryIn,
+                    })
+                  : t('analytics.analysis.retry', { defaultValue: 'Retry' })}
               </Button>
             }
           />

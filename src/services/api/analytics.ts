@@ -48,8 +48,43 @@ type QueryResult =
 
 export const analyticsCollection = <T>(value: T[] | null | undefined): T[] => value ?? [];
 
-const query = <T extends QueryResult>(request: AnalyticsQuery) =>
-  apiClient.post<T>('/analytics/query', request);
+/**
+ * Stable serialization: object keys are emitted in sorted order so two requests that differ
+ * only in property order produce the same key. Arrays keep their order (it is meaningful).
+ */
+export function analyticsRequestKey(request: unknown): string {
+  if (Array.isArray(request)) return `[${request.map(analyticsRequestKey).join(',')}]`;
+  if (request && typeof request === 'object') {
+    const entries = Object.entries(request as Record<string, unknown>)
+      .filter(([, value]) => value !== undefined)
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+      .map(([name, value]) => `${JSON.stringify(name)}:${analyticsRequestKey(value)}`);
+    return `{${entries.join(',')}}`;
+  }
+  return JSON.stringify(request ?? null);
+}
+
+/**
+ * In-flight dedupe for `/analytics/query`. One analytics page mounts many cards that ask for
+ * the same payload (and React StrictMode mounts each twice), so concurrent identical POSTs
+ * share a single request. The entry is dropped as soon as the promise settles, which keeps
+ * per-card Retry honest: a retry issued after the shared load finished starts a new request.
+ */
+const inFlightQueries = new Map<string, Promise<unknown>>();
+
+/** Test seam: the number of `/analytics/query` POSTs currently shared. */
+export const analyticsInFlightQueryCount = () => inFlightQueries.size;
+
+const query = <T extends QueryResult>(request: AnalyticsQuery): Promise<T> => {
+  const key = analyticsRequestKey(request);
+  const shared = inFlightQueries.get(key);
+  if (shared) return shared as Promise<T>;
+  const pending = apiClient.post<T>('/analytics/query', request).finally(() => {
+    if (inFlightQueries.get(key) === pending) inFlightQueries.delete(key);
+  });
+  inFlightQueries.set(key, pending);
+  return pending;
+};
 
 export function keyCatalogParams(range: AnalyticsKeyCatalogRange): URLSearchParams {
   return new URLSearchParams({

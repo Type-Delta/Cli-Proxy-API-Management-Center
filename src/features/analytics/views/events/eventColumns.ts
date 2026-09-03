@@ -1,9 +1,11 @@
+// Only columns CPA actually records. `reasoning_effort`, `client_ip`, `x_forwarded_for` and
+// `user_agent` were selectable but could never carry a value, so they are gone; a stored
+// preference that still names them is migrated by dropping them (see `normalizeIds`).
 export const EVENT_COLUMN_IDS = [
   'timestamp',
   'api_key',
   'source',
   'model',
-  'reasoning_effort',
   'service_tier',
   'result',
   'request_type',
@@ -13,9 +15,6 @@ export const EVENT_COLUMN_IDS = [
   'cache_read_rate',
   'total_cost',
   'executor_type',
-  'client_ip',
-  'x_forwarded_for',
-  'user_agent',
 ] as const;
 
 export type EventColumnId = (typeof EVENT_COLUMN_IDS)[number];

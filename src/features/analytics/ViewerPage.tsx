@@ -41,6 +41,7 @@ import { consumeViewerCredential, exchangeViewerCredential } from './viewerSecur
 import {
   buildViewerRange,
   fetchViewerJSON,
+  viewerExpiryTimes,
   viewerQuery,
   type ViewerCapabilities,
   type ViewerEventPage,
@@ -93,6 +94,55 @@ function RegionError({
         }
       />
     </Card>
+  );
+}
+
+/**
+ * The two expiries are distinct: the link stays usable until the creator's
+ * chosen date, while the browser session lapses much sooner and is renewed by
+ * reopening the link.
+ */
+export function ViewerScope({
+  capabilities,
+  label,
+  allowedViews,
+}: {
+  capabilities: ViewerCapabilities;
+  label?: string;
+  allowedViews: string[];
+}) {
+  const { t, i18n } = useTranslation();
+  const expiry = viewerExpiryTimes(capabilities);
+  return (
+    <div className={styles.scope}>
+      <p>
+        {t('analytics.viewer_scope_explanation', {
+          label: label || t('analytics.viewer_scoped_key', { defaultValue: 'the shared key' }),
+          defaultValue:
+            'This read-only view is limited to {{label}}. It cannot change CPA configuration or credentials.',
+        })}
+      </p>
+      {expiry.view && (
+        <p>
+          {t('analytics.viewer_link_valid_until', {
+            time: formatDateTime(expiry.view, i18n.resolvedLanguage),
+            defaultValue: 'This link is valid until {{time}}.',
+          })}
+        </p>
+      )}
+      <p>
+        {t('analytics.viewer_session_ends_at', {
+          time: formatDateTime(expiry.session, i18n.resolvedLanguage),
+          defaultValue: 'This session ends at {{time}}; reopen the link to continue.',
+        })}
+      </p>
+      <p>
+        {t('analytics.viewer_allowed_views', {
+          views: allowedViews.join(', '),
+          defaultValue: 'Available data: {{views}}',
+        })}
+      </p>
+    </div>
   );
 }
 
@@ -309,28 +359,11 @@ export function ViewerPage() {
       >
         {capabilities.data && (
           <Card title={label || t('analytics.shared_view')}>
-            <div className={styles.scope}>
-              <p>
-                {t('analytics.viewer_scope_explanation', {
-                  label:
-                    label || t('analytics.viewer_scoped_key', { defaultValue: 'the shared key' }),
-                  defaultValue:
-                    'This read-only view is limited to {{label}}. It cannot change CPA configuration or credentials.',
-                })}
-              </p>
-              <p>
-                {t('analytics.viewer_expiry_explanation', {
-                  date: formatDateTime(capabilities.data.expires_at, i18n.resolvedLanguage),
-                  defaultValue: 'Access expires {{date}}.',
-                })}
-              </p>
-              <p>
-                {t('analytics.viewer_allowed_views', {
-                  views: allowedViews.join(', '),
-                  defaultValue: 'Available data: {{views}}',
-                })}
-              </p>
-            </div>
+            <ViewerScope
+              capabilities={capabilities.data}
+              label={label}
+              allowedViews={allowedViews}
+            />
           </Card>
         )}
       </AsyncState>

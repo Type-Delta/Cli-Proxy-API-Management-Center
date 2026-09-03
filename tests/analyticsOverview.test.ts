@@ -292,7 +292,7 @@ describe('analytics overview model', () => {
     expect(labels.every((label) => label.length < 200)).toBe(true);
   });
 
-  test('renders heatmap totals and a focus-visible tooltip instead of native titles', () => {
+  test('renders heatmap totals and a live readout instead of native titles', () => {
     const activity: AnalyticsActivity = {
       meta: summary().meta,
       grain: '1h',
@@ -333,7 +333,11 @@ describe('analytics overview model', () => {
     expect(markup).toContain('1,800');
     expect(markup).toContain(i18n.t('analytics.overview.success_rate'));
     expect(markup).toContain('80.0%');
-    expect(markup.match(/role="tooltip"/g)).toHaveLength(2);
+    // R3-2: one shared readout per grid, a polite live region rather than an aria-hidden
+    // tooltip, and every cell answers pointer as well as focus.
+    expect(markup).not.toContain('role="tooltip"');
+    expect(markup.match(/role="status" aria-live="polite"/g)).toHaveLength(2);
+    expect(markup).toContain('Hover or focus a cell to read its bucket.');
     expect(markup).not.toContain(' title=');
   });
 });

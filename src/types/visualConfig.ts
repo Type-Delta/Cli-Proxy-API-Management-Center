@@ -16,6 +16,7 @@ export type VisualConfigFieldPath =
   | 'analyticsCircuitFailureThreshold'
   | 'analyticsMaxStorageBytes'
   | 'analyticsMinFreeBytes'
+  | 'analyticsStorageTimeZone'
   | 'analyticsViewerTrustedProxyCidrs'
   | 'errorLogsMaxFiles'
   | 'logsMaxTotalSizeMb'
@@ -39,6 +40,7 @@ export type VisualConfigValidationErrorCode =
   | 'analytics_path_whitespace'
   | 'analytics_storage_budget_required'
   | 'analytics_storage_bytes_range'
+  | 'analytics_storage_time_zone_invalid'
   | 'analytics_proxy_cidrs_invalid';
 
 export type VisualConfigValidationErrors = Partial<
@@ -133,6 +135,7 @@ export type VisualConfigValues = {
   analyticsCircuitFailureThreshold: string;
   analyticsMaxStorageBytes: string;
   analyticsMinFreeBytes: string;
+  analyticsStorageTimeZone: string;
   analyticsStoreCredentialId: boolean;
   analyticsViewerTrustedProxyCidrs: string[];
   analyticsViewerAllowLoopbackHttp: boolean;
@@ -209,6 +212,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   analyticsCircuitFailureThreshold: '5',
   analyticsMaxStorageBytes: '5368709120',
   analyticsMinFreeBytes: '536870912',
+  analyticsStorageTimeZone: 'UTC',
   analyticsStoreCredentialId: true,
   analyticsViewerTrustedProxyCidrs: [],
   analyticsViewerAllowLoopbackHttp: false,

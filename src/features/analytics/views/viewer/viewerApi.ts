@@ -5,7 +5,12 @@ export type ViewerCapabilities = {
   api_schema_version: number;
   allowed_views: string[];
   label?: string;
+  /** Alias of session_expires_at, kept for older CPA builds. */
   expires_at: string;
+  /** When the shared link itself stops working. */
+  view_expires_at?: string;
+  /** When this browser session ends; reopening the link starts a new one. */
+  session_expires_at?: string;
 };
 
 export type ViewerSummary = Pick<
@@ -31,10 +36,23 @@ export type ViewerEvent = Pick<
 >;
 export type ViewerEventPage = {
   meta: AnalyticsMeta;
-  total_count: number;
+  /** CPA omits this on viewer event pages; treat it as optional. */
+  total_count?: number;
   label?: string;
   events: ViewerEvent[];
 };
+
+/**
+ * Splits the two expiries the viewer page shows. `expires_at` is the session
+ * expiry on every CPA build, so it is the fallback when a build predates
+ * `session_expires_at`; the link expiry is absent on those builds.
+ */
+export function viewerExpiryTimes(capabilities: ViewerCapabilities) {
+  return {
+    view: capabilities.view_expires_at,
+    session: capabilities.session_expires_at ?? capabilities.expires_at,
+  };
+}
 
 export function buildViewerRange(range: AnalyticsRange, now = new Date()) {
   return resolveAnalyticsRange(range, now);

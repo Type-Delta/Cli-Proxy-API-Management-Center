@@ -19,7 +19,15 @@ const kindForStatus = (status: number): AnalyticsErrorKind | null => {
   return null;
 };
 
-export function classifyAnalyticsError(error: string): AnalyticsErrorKind {
+export function classifyAnalyticsError(
+  error: string,
+  errorStatus?: number
+): AnalyticsErrorKind {
+  // A status reported by the transport is authoritative; the message text is only a fallback
+  // for callers that have not threaded one through (and for localized server sentences).
+  const byReportedStatus = errorStatus === undefined ? null : kindForStatus(errorStatus);
+  if (byReportedStatus) return byReportedStatus;
+
   const message = error.trim();
   if (!message) return 'server';
 
@@ -54,9 +62,9 @@ const COPY: Record<AnalyticsErrorKind, string> = {
 };
 
 /** Localized headline plus the raw message, which callers hang off a `title` for diagnosis. */
-export function analyticsErrorCopy(t: TFunction, error: string) {
+export function analyticsErrorCopy(t: TFunction, error: string, errorStatus?: number) {
   const detail = error.trim();
-  const kind = classifyAnalyticsError(detail);
+  const kind = classifyAnalyticsError(detail, errorStatus);
   return {
     kind,
     text: t(`analytics.errors.${kind}`, { defaultValue: COPY[kind] }),

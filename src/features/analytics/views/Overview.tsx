@@ -92,6 +92,7 @@ export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: str
         error={activity.error}
         window={activityWindow}
         onWindowChange={setActivityWindow}
+        onRetry={() => void activity.refresh()}
       />
     </div>
   );

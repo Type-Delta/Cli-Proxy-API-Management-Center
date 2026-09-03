@@ -212,8 +212,12 @@ function CredentialTable({
           <TableHead>{t('analytics.provider', { defaultValue: 'Provider' })}</TableHead>
           <TableHead>{t('analytics.auth_type', { defaultValue: 'Auth type' })}</TableHead>
           <TableHead>{t('analytics.health', { defaultValue: 'Health' })}</TableHead>
-          <TableHead>{t('analytics.requests', { defaultValue: 'Requests' })}</TableHead>
-          <TableHead>{t('analytics.failures', { defaultValue: 'Failures' })}</TableHead>
+          <TableHead>
+            {t('analytics.observed_requests', { defaultValue: 'Observed requests' })}
+          </TableHead>
+          <TableHead>
+            {t('analytics.observed_failures', { defaultValue: 'Observed failures' })}
+          </TableHead>
           <TableHead>{t('analytics.quota', { defaultValue: 'Quota' })}</TableHead>
           <TableHead>{t('common.action', { defaultValue: 'Action' })}</TableHead>
         </TableRow>
@@ -254,6 +258,19 @@ function CredentialTable({
   );
 }
 
+/** The counters come from CPA's live credential health snapshot, not from analytics history. */
+function CredentialCountersNote() {
+  const { t } = useTranslation();
+  return (
+    <p className={styles.subtitle}>
+      {t('analytics.observed_counters_note', {
+        defaultValue:
+          'Observed counts come from the current credential health snapshot, so they restart with CPA and will not match analytics usage totals.',
+      })}
+    </p>
+  );
+}
+
 function CredentialDetail({ row }: { row: ProviderCredential }) {
   const { t, i18n } = useTranslation();
   const progress = calculateQuotaProgress(row.quota);
@@ -281,11 +298,15 @@ function CredentialDetail({ row }: { row: ProviderCredential }) {
           <TableCell>{localizedValue(t, 'provider_health', row.status)}</TableCell>
         </TableRow>
         <TableRow>
-          <TableHead>{t('analytics.requests', { defaultValue: 'Requests' })}</TableHead>
+          <TableHead>
+            {t('analytics.observed_requests', { defaultValue: 'Observed requests' })}
+          </TableHead>
           <TableCell>{formatNumber(row.requests, i18n.resolvedLanguage)}</TableCell>
         </TableRow>
         <TableRow>
-          <TableHead>{t('analytics.failures', { defaultValue: 'Failures' })}</TableHead>
+          <TableHead>
+            {t('analytics.observed_failures', { defaultValue: 'Observed failures' })}
+          </TableHead>
           <TableCell>{formatNumber(row.failed, i18n.resolvedLanguage)}</TableCell>
         </TableRow>
         <TableRow>
@@ -371,7 +392,10 @@ export function Providers() {
             'Credential-level health and quota observations will appear here when the server provides them.',
         })}
       >
-        <CredentialTable rows={credentials} onSelect={setSelected} />
+        <div className={styles.detailStack}>
+          <CredentialTable rows={credentials} onSelect={setSelected} />
+          <CredentialCountersNote />
+        </div>
       </ProviderLoadCard>
 
       <Modal

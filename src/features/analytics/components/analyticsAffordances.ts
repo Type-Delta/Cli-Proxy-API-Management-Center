@@ -9,9 +9,9 @@
  * `color-mix(in srgb, var(--analysis-heatmap) <strength>%, var(--bg-tertiary))` and labels the
  * cell with `--text-primary`.
  *
- * The ceiling is the binding constraint: `--text-primary` over a 100% `--primary-active` mix
- * measures only 2.79:1 in light and 2.36:1 in dark, while a 55% mix still measures 5.72:1
- * (light) / 6.22:1 (white) / 5.05:1 (dark). Capping there lets one label colour serve every
+ * The ceiling is the binding constraint: `--text-primary` over a 100% `--viz-neutral` mix
+ * measures only 2.35:1 in light and 2.06:1 in dark, while a 55% mix still measures 5.24:1
+ * (light) / 5.71:1 (white) / 4.61:1 (dark). Capping there lets one label colour serve every
  * strength in every theme, which is why the old `strength >= 55` inverted-label switch is gone
  * — in the light themes white text never reached 4.5:1 at any strength, so no switch point
  * could have worked.

@@ -70,12 +70,14 @@
   }
 }
 
-.resultButton {
-  min-height: 40px;
-  padding: 5px 0;
-  border: 0;
-  background: transparent;
+// The row is the interactive target: one tab stop for the whole body via roving tabIndex.
+.eventRow {
   cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+  }
 }
 
 .detailButton {

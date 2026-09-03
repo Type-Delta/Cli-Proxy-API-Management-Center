@@ -2,10 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { createElement, useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { parse as parseYaml } from 'yaml';
-import {
-  getVisualConfigValidationErrors,
-  useVisualConfig,
-} from '../src/hooks/useVisualConfig';
+import { getVisualConfigValidationErrors, useVisualConfig } from '../src/hooks/useVisualConfig';
 import { DEFAULT_VISUAL_VALUES } from '../src/types/visualConfig';
 
 const analyticsYaml = `analytics:
@@ -63,9 +60,7 @@ describe('visual analytics configuration', () => {
     }
 
     const markup = renderToStaticMarkup(createElement(Harness));
-    const values = JSON.parse(
-      decodeURIComponent(markup.slice('<pre>'.length, -'</pre>'.length))
-    );
+    const values = JSON.parse(decodeURIComponent(markup.slice('<pre>'.length, -'</pre>'.length)));
 
     expect(values).toEqual({
       enabled: true,
@@ -167,6 +162,29 @@ describe('visual analytics configuration', () => {
     const markup = renderToStaticMarkup(createElement(Harness));
     const output = decodeURIComponent(markup.slice('<pre>'.length, -'</pre>'.length));
     expect(output).toContain('max-storage-bytes: 9223372036854775806');
+  });
+
+  test('accepts every zone Go time.LoadLocation accepts, including aliases and UTC', () => {
+    for (const zone of [
+      'UTC',
+      'Asia/Kolkata',
+      'Asia/Calcutta',
+      'Europe/Kyiv',
+      'America/St_Johns',
+    ]) {
+      const errors = getVisualConfigValidationErrors({
+        ...DEFAULT_VISUAL_VALUES,
+        analyticsStorageTimeZone: zone,
+      });
+      expect(errors.analyticsStorageTimeZone).toBeUndefined();
+    }
+    for (const zone of ['', '   ', 'Not/AZone', 'GMT+7 ish']) {
+      const errors = getVisualConfigValidationErrors({
+        ...DEFAULT_VISUAL_VALUES,
+        analyticsStorageTimeZone: zone,
+      });
+      expect(errors.analyticsStorageTimeZone).toBe('analytics_storage_time_zone_invalid');
+    }
   });
 
   test('matches CPA validation for storage bytes and trusted proxy CIDRs', () => {

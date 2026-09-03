@@ -164,6 +164,21 @@ Fork baseline validation on 2026-08-31, before DL002 and DL003:
 - `bunx bun@1.3.14 run verify`
 - Result: 424 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 
+### DL010: Round-4 analytics correctness — request dedupe, shared heatmap readout, viewer expiry, and locale fixes
+
+Status: shipped
+
+Files: `src/services/api/analytics.ts`, `src/services/api/client.ts`, `src/features/analytics/useAnalyticsLoad.ts`, `src/features/analytics/components/{AnalyticsShared,HeatmapReadout}.tsx`, `src/features/analytics/components/{analyticsErrorCopy,analyticsFormatting}.ts`, `src/features/analytics/AnalyticsTabs.tsx`, `src/features/analytics/ViewerPage.tsx`, `src/features/analytics/views/{Events,Providers,Maintenance,Overview}.tsx`, `src/features/analytics/views/{overview,analysis,events,viewer}/**`, `src/styles/themes.scss`, `src/i18n/locales/**`, `src/features/config/components/sections/AnalyticsSettingsFields.tsx`, `src/hooks/useVisualConfig.ts`, `src/types/visualConfig.ts`, `src/features/config/constants.ts`, `src/features/config/searchIndex.ts`
+
+Round 4 follows the round-3 critique (`ANALYTICS_CRITIQUE.md`, R3-1…R3-14). Concurrent identical `POST /analytics/query` calls are now deduplicated at the transport on the serialized body, so a StrictMode Analysis mount issues five requests instead of twenty; `Retry-After` is read from 429 responses and every Retry button counts down before re-enabling instead of re-firing into the throttle. Both heatmaps share one `HeatmapReadout` live region (`role=status`, never `aria-hidden`) driven by pointer, pointerdown and focus, and the token ramp uses a new dataviz-neutral `--viz-neutral` token instead of the shell chrome grey. Latency chart captions sit in reserved gutters and all chart ticks are 11 px. The viewer page renders the shared-view link expiry and the 30-minute session expiry as two dated sentences. Events rows are the keyboard target (one roving stop per table instead of one per badge), four never-populated columns were removed from the picker, and a retained-range failure names the retention cutoff. `AnalyticsTabs` is a real `tablist` with Arrow/Home/End navigation. Providers counters are labelled "Observed" with an explanation, and every Maintenance input has an accessible name. Latin technical acronyms (`TTFT`, `RPM`, `TPM`) were previously transliterated in `zh-CN`, `zh-TW`, and `ru`; they now stay Latin in every locale with glosses confined to `*_description` keys. `analytics.overview.window_*`, 32 `analytics.job_result.*` keys, and `analytics.enums.{source,service_tier,endpoint}.*` were added and wired through `formatAnalyticsEnum`; seven unreferenced keys were pruned; all four locales carry the same 564 `analytics.*` keys. A new `analytics.storage-time-zone` Config field validates against `Intl.supportedValuesOf('timeZone')` (guarded) and warns that changing it after retention requires an analytics reset.
+
+Validation on 2026-09-03:
+
+- `bunx tsc --noEmit`: 0 errors.
+- `bun test`: 550 pass, 0 fail, 1986 expect() calls, 81 files.
+- `bunx eslint` on the changed TS/TSX files above: 0 errors, 0 warnings.
+- `bun run verify`: 550 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
+
 ## Upstream comparison
 
 Before the initial sync, from `d249ff008e0bc2803deb23fb3e2c62418a1e8d17`:

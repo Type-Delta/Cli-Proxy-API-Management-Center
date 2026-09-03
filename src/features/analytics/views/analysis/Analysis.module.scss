@@ -14,7 +14,7 @@
   --analysis-model-4: var(--viz-failure);
   --analysis-model-5: color-mix(in srgb, var(--primary-active) 58%, var(--viz-success));
   --analysis-model-6: color-mix(in srgb, var(--amber-color) 55%, var(--viz-failure));
-  --analysis-heatmap: var(--primary-active);
+  --analysis-heatmap: var(--viz-neutral);
 
   display: flex;
   min-width: 0;
@@ -224,8 +224,7 @@
   }
 }
 
-.chartReadout,
-.heatmapReadout {
+.chartReadout {
   display: flex;
   align-items: center;
   gap: 6px 14px;
@@ -354,7 +353,7 @@
     border-radius: $radius-full;
     background: var(--count-badge-bg);
     color: var(--count-badge-text);
-    font-size: 10px;
+    font-size: 11px;
     font-style: normal;
     font-weight: 650;
   }
@@ -384,7 +383,7 @@
 
 .p95TtftLabel,
 .p95LatencyLabel {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -690,7 +689,7 @@
 
   small {
     color: var(--text-secondary);
-    font-size: 10px;
+    font-size: 11px;
   }
 }
 
@@ -699,7 +698,7 @@
   grid-template-columns: auto auto;
   gap: 3px 8px;
   color: var(--text-secondary);
-  font-size: 10px;
+  font-size: 11px;
 
   > strong {
     justify-self: end;
@@ -783,7 +782,11 @@
   padding: 5px;
   border: 1px solid color-mix(in srgb, var(--analysis-heatmap) 18%, var(--border-color));
   border-radius: 5px;
-  background: color-mix(in srgb, var(--analysis-heatmap) var(--cell-strength, 6%), var(--bg-tertiary));
+  background: color-mix(
+    in srgb,
+    var(--analysis-heatmap) var(--cell-strength, 6%),
+    var(--bg-tertiary)
+  );
   color: var(--text-primary);
   font-size: 11px;
   font-weight: 700;
@@ -870,8 +873,7 @@
     grid-template-columns: 1fr;
   }
 
-  .chartReadout,
-  .heatmapReadout {
+  .chartReadout {
     align-items: flex-start;
     flex-direction: column;
   }

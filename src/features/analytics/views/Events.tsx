@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -45,7 +52,11 @@ import {
   type EventColumnId,
   type EventColumnPreferences,
 } from './events/eventColumns';
-import { eventExportRequest, loadEventDimensionRows } from './events/eventRequests';
+import {
+  eventExportRequest,
+  loadEventDimensionRows,
+  retentionCutoffFromError,
+} from './events/eventRequests';
 import styles from './events/Events.module.scss';
 
 const eventSource = (event: AnalyticsEvent) => event.source?.trim() ?? '';
@@ -83,6 +94,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     loadEventColumnPreferences
   );
   const [selectedAttemptId, setSelectedAttemptId] = useState('');
+  const [activeRow, setActiveRow] = useState(0);
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   const dimensionRequest = (dimension: string) =>
@@ -137,12 +149,32 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
   );
   const scope = JSON.stringify(request);
   const scopeRef = useRef(scope);
-  const result = useAnalyticsLoad(() => analyticsApi.events(request), scope);
+  // `useAnalyticsLoad` reduces a failure to its message, so the retention cutoff CPA reports in
+  // the error envelope is captured here while the ApiError is still in hand.
+  const [retentionCutoff, setRetentionCutoff] = useState('');
+  const result = useAnalyticsLoad(async () => {
+    try {
+      const page = await analyticsApi.events(request);
+      setRetentionCutoff('');
+      return page;
+    } catch (caught) {
+      setRetentionCutoff(retentionCutoffFromError(caught));
+      throw caught;
+    }
+  }, scope);
+  const retentionMessage = retentionCutoff
+    ? t('analytics.events_retention_compacted', {
+        cutoff: formatDateTime(retentionCutoff, i18n.resolvedLanguage),
+        defaultValue: 'Events older than {{cutoff}} were compacted; narrow the range.',
+      })
+    : '';
 
   useEffect(() => {
     scopeRef.current = scope;
     setLoadingMore(false);
     setLoadMoreError('');
+    setRetentionCutoff('');
+    setActiveRow(0);
   }, [scope]);
 
   useEffect(() => {
@@ -204,7 +236,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
       ),
     ].map((value) => ({
       value,
-      label: formatAnalyticsEnum(t, 'state', value),
+      label: formatAnalyticsEnum(t, 'source', value),
     })),
   ];
   const resultOptions = [
@@ -231,7 +263,6 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     ['api_key', t('analytics.key')],
     ['source', t('analytics.source', { defaultValue: 'Source' })],
     ['model', t('analytics.model')],
-    ['reasoning_effort', t('analytics.reasoning_effort', { defaultValue: 'Reasoning effort' })],
     ['service_tier', t('analytics.service_tier', { defaultValue: 'Service tier' })],
     ['result', t('analytics.result', { defaultValue: 'Result' })],
     ['request_type', t('analytics.request', { defaultValue: 'Request' })],
@@ -241,9 +272,6 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     ['cache_read_rate', t('analytics.cache_read_rate', { defaultValue: 'Cache read rate' })],
     ['total_cost', t('analytics.known_cost')],
     ['executor_type', t('analytics.executor', { defaultValue: 'Executor' })],
-    ['client_ip', t('analytics.client_ip', { defaultValue: 'Client IP' })],
-    ['x_forwarded_for', t('analytics.x_forwarded_for', { defaultValue: 'X-Forwarded-For' })],
-    ['user_agent', t('analytics.user_agent', { defaultValue: 'User agent' })],
   ].map(([id, label]) => ({ id: id as EventColumnId, label }));
   const labelByColumn = new Map(columnOptions.map((column) => [column.id, column.label]));
   const visibleColumns = columnPreferences.order.filter((id) =>
@@ -321,7 +349,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
         return <span title={shortIdentifier(event.key_id)}>{keyIdentity(event)}</span>;
       case 'source':
         return eventSource(event)
-          ? formatAnalyticsEnum(t, 'state', eventSource(event))
+          ? formatAnalyticsEnum(t, 'source', eventSource(event))
           : event.import_batch_id
             ? t('analytics.imported_event', { defaultValue: 'Imported' })
             : '—';
@@ -332,44 +360,24 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
             <small>{event.requested_alias || '—'}</small>
           </span>
         );
-      case 'reasoning_effort':
-        return (
-          <span
-            title={t('analytics.event_field_unavailable', {
-              defaultValue: 'CPA does not provide this field.',
-            })}
-          >
-            —
-          </span>
-        );
       case 'service_tier':
         return (
           <span className={styles.stackedCell}>
-            <span>{formatAnalyticsEnum(t, 'state', event.service_tier_used)}</span>
+            <span>{formatAnalyticsEnum(t, 'service_tier', event.service_tier_used)}</span>
             <small>
               {t('analytics.requested_tier_short', { defaultValue: 'Requested' })}:{' '}
-              {formatAnalyticsEnum(t, 'state', event.service_tier_requested)}
+              {formatAnalyticsEnum(t, 'service_tier', event.service_tier_requested)}
             </small>
           </span>
         );
       case 'result':
         return (
-          <button
-            type="button"
-            className={styles.resultButton}
-            onClick={() => setSelectedAttemptId(event.attempt_id)}
-            aria-label={t('analytics.open_event_details', {
-              result: event.succeeded ? t('common.success') : t('common.failure'),
-              defaultValue: 'Open {{result}} event details',
-            })}
-          >
-            <span className={event.succeeded ? styles.successBadge : styles.failureBadge}>
-              {event.succeeded ? t('common.success') : t('common.failure')}
-            </span>
-          </button>
+          <span className={event.succeeded ? styles.successBadge : styles.failureBadge}>
+            {event.succeeded ? t('common.success') : t('common.failure')}
+          </span>
         );
       case 'request_type':
-        return formatAnalyticsEnum(t, 'state', event.endpoint_class);
+        return formatAnalyticsEnum(t, 'endpoint', event.endpoint_class);
       case 'latency':
         return (
           <span className={styles.stackedCell}>
@@ -404,19 +412,38 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
         return <span title={cost.title}>{cost.text}</span>;
       case 'executor_type':
         return formatAnalyticsEnum(t, 'state', event.executor_type);
-      case 'client_ip':
-      case 'x_forwarded_for':
-      case 'user_agent':
-        return (
-          <span
-            title={t('analytics.event_field_unavailable', {
-              defaultValue: 'CPA does not provide this field.',
-            })}
-          >
-            —
-          </span>
-        );
     }
+  };
+
+  // One accessible name per row: the row is the interactive target, not the cells inside it.
+  const rowLabel = (event: AnalyticsEvent) =>
+    t('analytics.event_row_label', {
+      time: formatDateTime(event.requested_at, i18n.resolvedLanguage),
+      model: event.model || t('analytics.unknown_model', { defaultValue: 'Unknown model' }),
+      result: event.succeeded ? t('common.success') : t('common.failure'),
+      defaultValue: '{{time}}, {{model}}, {{result}}. Open event details',
+    });
+
+  const moveRow = (
+    keyEvent: ReactKeyboardEvent<HTMLTableRowElement>,
+    index: number,
+    attemptId: string
+  ) => {
+    if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+      keyEvent.preventDefault();
+      setSelectedAttemptId(attemptId);
+      return;
+    }
+    let next: number;
+    if (keyEvent.key === 'ArrowDown') next = Math.min(events.length - 1, index + 1);
+    else if (keyEvent.key === 'ArrowUp') next = Math.max(0, index - 1);
+    else if (keyEvent.key === 'Home') next = 0;
+    else if (keyEvent.key === 'End') next = events.length - 1;
+    else return;
+    keyEvent.preventDefault();
+    setActiveRow(next);
+    const rows = keyEvent.currentTarget.parentElement?.children;
+    (rows?.[next] as HTMLTableRowElement | undefined)?.focus();
   };
 
   return (
@@ -509,7 +536,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
         <Card>
           <EmptyState
             title={t('analytics.load_failed')}
-            description={result.error}
+            description={retentionMessage || result.error}
             action={
               <Button variant="secondary" onClick={() => void result.refresh()}>
                 {t('common.retry')}
@@ -561,7 +588,9 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
             >
               {result.error && (
                 <div className="error-box" role="alert">
-                  <span>{result.error}</span>
+                  <span title={retentionMessage ? result.error : undefined}>
+                    {retentionMessage || result.error}
+                  </span>
                   <Button variant="secondary" onClick={() => void result.refresh()}>
                     {t('common.retry')}
                   </Button>
@@ -614,7 +643,9 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                 </div>
               ) : (
                 <Table
+                  role="grid"
                   className={styles.eventsTable}
+                  aria-label={t('analytics.events')}
                   aria-rowcount={totalCount === undefined ? undefined : totalCount + 1}
                 >
                   <TableHeader>
@@ -626,19 +657,29 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {events.map((event) => (
-                      <TableRow key={event.attempt_id}>
+                    {events.map((event, index) => (
+                      <TableRow
+                        key={event.attempt_id}
+                        className={styles.eventRow}
+                        // Roving tabIndex: the body is a single tab stop whatever the row count.
+                        tabIndex={index === Math.min(activeRow, events.length - 1) ? 0 : -1}
+                        aria-label={rowLabel(event)}
+                        onFocus={() => setActiveRow(index)}
+                        onClick={() => setSelectedAttemptId(event.attempt_id)}
+                        onKeyDown={(keyEvent) => moveRow(keyEvent, index, event.attempt_id)}
+                      >
                         {visibleColumns.map((column) => (
                           <TableCell key={column}>{renderCell(column, event)}</TableCell>
                         ))}
                         <TableCell>
+                          {/* The row carries the keyboard interaction; this affordance stays
+                              visible for the mouse but adds no tab stop. */}
                           <Button
                             variant="ghost"
                             size="sm"
                             className={styles.detailButton}
-                            aria-label={t('analytics.view_event', {
-                              defaultValue: 'View event details',
-                            })}
+                            tabIndex={-1}
+                            aria-hidden="true"
                             onClick={() => setSelectedAttemptId(event.attempt_id)}
                           >
                             <IconEye size={16} />

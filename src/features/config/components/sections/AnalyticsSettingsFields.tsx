@@ -21,6 +21,13 @@ export function AnalyticsSettingsFields({
   const { t } = useTranslation();
   const validation = (field: keyof NonNullable<ConfigSectionProps['validationErrors']>) =>
     getValidationMessage(t, validationErrors?.[field]);
+  // Intl.supportedValuesOf is not guaranteed to exist in every runtime (or TS lib target); guard it.
+  const supportedValuesOf = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] })
+    .supportedValuesOf;
+  // supportedValuesOf lists canonical-legacy names only; prepend UTC so the default is offered.
+  const timeZoneOptions: string[] = supportedValuesOf
+    ? ['UTC', ...supportedValuesOf('timeZone')]
+    : [];
 
   return (
     <FieldStack>
@@ -109,9 +116,7 @@ export function AnalyticsSettingsFields({
                 onChange({ analyticsCircuitFailureThreshold: event.target.value })
               }
               disabled={disabled}
-              hint={t(
-                'config_management.visual.sections.analytics.circuit_failure_threshold_hint'
-              )}
+              hint={t('config_management.visual.sections.analytics.circuit_failure_threshold_hint')}
               error={validation('analyticsCircuitFailureThreshold')}
             />
           </FieldAnchor>
@@ -138,6 +143,27 @@ export function AnalyticsSettingsFields({
               hint={t('config_management.visual.sections.analytics.min_free_bytes_hint')}
               error={validation('analyticsMinFreeBytes')}
             />
+          </FieldAnchor>
+          <FieldAnchor fieldId="analyticsStorageTimeZone">
+            <Input
+              label={t('config_management.visual.sections.analytics.storage_time_zone')}
+              list="analytics-storage-time-zone-options"
+              placeholder={t(
+                'config_management.visual.sections.analytics.storage_time_zone_placeholder'
+              )}
+              value={values.analyticsStorageTimeZone}
+              onChange={(event) => onChange({ analyticsStorageTimeZone: event.target.value })}
+              disabled={disabled}
+              hint={t('config_management.visual.sections.analytics.storage_time_zone_hint')}
+              error={validation('analyticsStorageTimeZone')}
+            />
+            {timeZoneOptions.length > 0 && (
+              <datalist id="analytics-storage-time-zone-options">
+                {timeZoneOptions.map((zone) => (
+                  <option key={zone} value={zone} />
+                ))}
+              </datalist>
+            )}
           </FieldAnchor>
         </FieldGrid>
       </FieldGroup>
@@ -173,9 +199,7 @@ export function AnalyticsSettingsFields({
               placeholder={t(
                 'config_management.visual.sections.analytics.trusted_proxy_cidrs_placeholder'
               )}
-              inputAriaLabel={t(
-                'config_management.visual.sections.analytics.trusted_proxy_cidrs'
-              )}
+              inputAriaLabel={t('config_management.visual.sections.analytics.trusted_proxy_cidrs')}
               onChange={(analyticsViewerTrustedProxyCidrs) =>
                 onChange({ analyticsViewerTrustedProxyCidrs })
               }
@@ -185,9 +209,7 @@ export function AnalyticsSettingsFields({
         <FieldAnchor fieldId="analyticsViewerAllowLoopbackHttp">
           <ToggleRow
             title={t('config_management.visual.sections.analytics.allow_loopback_http')}
-            description={t(
-              'config_management.visual.sections.analytics.allow_loopback_http_desc'
-            )}
+            description={t('config_management.visual.sections.analytics.allow_loopback_http_desc')}
             checked={values.analyticsViewerAllowLoopbackHttp}
             disabled={disabled}
             onChange={(analyticsViewerAllowLoopbackHttp) =>

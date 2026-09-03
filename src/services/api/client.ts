@@ -16,6 +16,22 @@ import {
 import { computeApiUrl } from '@/utils/connection';
 import { parseApiErrorResponse } from './apiError';
 
+/** `Retry-After` (seconds) attached by the client whenever the server throttles a request. */
+export type ApiErrorWithRetry = ApiError & { retryAfterSeconds?: number };
+
+/** Accepts both `Retry-After` forms: delta-seconds and an HTTP date. */
+export function parseRetryAfterSeconds(
+  value: string | null | undefined,
+  now: number = Date.now()
+): number | null {
+  const text = (value ?? '').trim();
+  if (!text) return null;
+  if (/^\d+$/.test(text)) return Number(text);
+  const at = Date.parse(text);
+  if (Number.isNaN(at)) return null;
+  return Math.max(0, Math.ceil((at - now) / 1000));
+}
+
 class ApiClient {
   private instance: AxiosInstance;
   private apiBase: string = '';
@@ -156,9 +172,16 @@ class ApiClient {
     if (axios.isAxiosError(error)) {
       const responseData: unknown = error.response?.data;
       const parsedError = parseApiErrorResponse(responseData, error.message);
-      const apiError = new Error(parsedError.message) as ApiError;
+      const apiError = new Error(parsedError.message) as ApiErrorWithRetry;
       apiError.name = 'ApiError';
       apiError.status = error.response?.status;
+      if (error.response?.status === 429) {
+        const header = this.readHeader(
+          error.response.headers as Record<string, unknown> | undefined,
+          ['Retry-After']
+        );
+        apiError.retryAfterSeconds = parseRetryAfterSeconds(header) ?? 60;
+      }
       apiError.code = error.code;
       apiError.apiCode = parsedError.apiCode;
       apiError.details = responseData;

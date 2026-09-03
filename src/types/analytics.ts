@@ -48,6 +48,8 @@ export type AnalyticsHealth = {
   truncated_fields: number;
   abandoned_events: number;
   retention_cutoff?: string;
+  /** Set when the store refused to open because its retained zone differs. */
+  zone_mismatch?: { stored: string; configured: string };
 };
 
 export type TokenQuality = 'exact' | 'estimated' | 'missing';
@@ -489,6 +491,8 @@ export type QuotaStatus = {
 export type AnalyticsQuotasResponse = {
   quotas: QuotaStatus[] | null;
   shared_enforcement: boolean;
+  /** True when the rows come from durable analytics storage. */
+  durable?: boolean;
 };
 
 export type ViewerCreateResponse = {
@@ -524,6 +528,8 @@ export type AnalyticsError = {
   message: string;
   request_id?: string;
   details?: AnalyticsErrorDetail[];
+  /** RFC3339 retention cutoff on retention-related query rejections. */
+  retention_cutoff?: string;
 };
 
 export type AnalyticsJobResult = Record<string, unknown> & {

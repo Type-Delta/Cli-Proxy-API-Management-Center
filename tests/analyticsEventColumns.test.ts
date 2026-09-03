@@ -12,11 +12,12 @@ import {
 import {
   eventExportRequest,
   loadEventDimensionRows,
+  retentionCutoffFromError,
 } from '@/features/analytics/views/events/eventRequests';
 
 describe('Events column preferences', () => {
-  test('keeps CPAUK-compatible 17-column order and repairs stale preferences', () => {
-    expect(EVENT_COLUMN_IDS).toHaveLength(17);
+  test('offers only columns CPA records and repairs stale preferences', () => {
+    expect(EVENT_COLUMN_IDS).toHaveLength(13);
     const preferences = normalizeEventColumnPreferences({
       version: 1,
       visible: ['result', 'model', 'result', 'removed'],
@@ -25,8 +26,23 @@ describe('Events column preferences', () => {
 
     expect(preferences.visible).toEqual(['result', 'model']);
     expect(preferences.order.slice(0, 2)).toEqual(['model', 'result']);
-    expect(preferences.order).toHaveLength(17);
-    expect(new Set(preferences.order).size).toBe(17);
+    expect(preferences.order).toHaveLength(13);
+    expect(new Set(preferences.order).size).toBe(13);
+  });
+
+  test('drops columns CPA can never populate, including from a persisted preference', () => {
+    const impossible = ['reasoning_effort', 'client_ip', 'x_forwarded_for', 'user_agent'];
+    for (const column of impossible) expect(EVENT_COLUMN_IDS).not.toContain(column);
+
+    const migrated = normalizeEventColumnPreferences({
+      version: 1,
+      visible: ['timestamp', ...impossible],
+      order: [...impossible, 'timestamp'],
+    });
+
+    expect(migrated.visible).toEqual(['timestamp']);
+    expect(migrated.order[0]).toBe('timestamp');
+    expect(migrated.order.some((id) => impossible.includes(id))).toBe(false);
   });
 
   test('persists visibility and keyboard-style order changes', () => {
@@ -153,5 +169,26 @@ describe('Event filters reset', () => {
       result: '',
       errorClass: '',
     });
+  });
+});
+
+describe('retentionCutoffFromError', () => {
+  test('reads the cutoff wherever the error envelope carries it', () => {
+    const cutoff = '2026-08-04T00:00:00Z';
+    const nested = Object.assign(new Error('invalid query'), {
+      details: { error: { code: 'analytics_invalid_query', details: { retention_cutoff: cutoff } } },
+    });
+    const flat = Object.assign(new Error('invalid query'), {
+      details: { details: { retained_cutoff: cutoff } },
+    });
+
+    expect(retentionCutoffFromError(nested)).toBe(cutoff);
+    expect(retentionCutoffFromError(flat)).toBe(cutoff);
+  });
+
+  test('falls back to empty so the view keeps the generic mapped copy', () => {
+    expect(retentionCutoffFromError(new Error('boom'))).toBe('');
+    expect(retentionCutoffFromError(Object.assign(new Error('x'), { details: { error: 'nope' } }))).toBe('');
+    expect(retentionCutoffFromError(null)).toBe('');
   });
 });

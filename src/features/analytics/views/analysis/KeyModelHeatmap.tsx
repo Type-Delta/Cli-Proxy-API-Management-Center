@@ -9,6 +9,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { AnalysisKeyModelMatrix } from '@/types';
 import { heatmapStrength } from '../../components/analyticsAffordances';
+import { HeatmapReadout } from '../../components/HeatmapReadout';
 import {
   formatCompactTokens,
   formatCostValue,
@@ -73,6 +74,11 @@ export function KeyModelHeatmap({
 
   useEffect(() => setFocusIndex(0), [columns, visibleRows.length]);
 
+  const clearActive = (cell: HeatmapMatrixCell) =>
+    setActive((current) =>
+      current?.keyId === cell.keyId && current?.model === cell.model ? null : current
+    );
+
   const cellLabel = (cell: HeatmapMatrixCell) => {
     const value = cell.value;
     const model = cell.model.length > 48 ? `${cell.model.slice(0, 45)}...` : cell.model;
@@ -80,6 +86,22 @@ export function KeyModelHeatmap({
       0,
       199
     );
+  };
+
+  const readoutItems = (cell: HeatmapMatrixCell) => {
+    const tokens = formatCompactTokens(cell.value?.total_tokens ?? 0, locale);
+    const cost = formatCostValue(cell.value?.known_cost_usd ?? 0, locale);
+    return [
+      { text: `${compactKeyId(cell.keyId)} / ${cell.model}`, strong: true },
+      {
+        text: `${tokens.text} ${t('analytics.total_tokens', { defaultValue: 'tokens' })}`,
+        title: tokens.title,
+      },
+      {
+        text: `${formatNumber(cell.value?.requests ?? 0, locale)} ${t('analytics.proxy_requests', { defaultValue: 'proxy requests' })}`,
+      },
+      { text: cost.text, title: cost.title },
+    ];
   };
 
   const moveCell = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -173,12 +195,14 @@ export function KeyModelHeatmap({
                         aria-selected={active?.keyId === cell.keyId && active?.model === cell.model}
                         className={styles.heatmapCell}
                         style={{ '--cell-strength': `${strength}%` } as CSSProperties}
-                        onClick={() => setActive(cell)}
                         onFocus={() => {
                           setFocusIndex(index);
                           setActive(cell);
                         }}
-                        onMouseEnter={() => setActive(cell)}
+                        onBlur={() => clearActive(cell)}
+                        onPointerEnter={() => setActive(cell)}
+                        onPointerDown={() => setActive(cell)}
+                        onPointerLeave={() => clearActive(cell)}
                         onKeyDown={(event) => moveCell(event, index)}
                       >
                         <span title={formatCompactTokens(tokens, locale).title}>
@@ -196,24 +220,12 @@ export function KeyModelHeatmap({
             <i aria-hidden="true" />
             <span>{t('analytics.analysis.heatmap_high', { defaultValue: 'High' })}</span>
           </div>
-          {active && (
-            <div className={styles.heatmapReadout} role="status">
-              <strong>
-                {compactKeyId(active.keyId)} / {active.model}
-              </strong>
-              <span title={formatCompactTokens(active.value?.total_tokens ?? 0, locale).title}>
-                {formatCompactTokens(active.value?.total_tokens ?? 0, locale).text}{' '}
-                {t('analytics.total_tokens', { defaultValue: 'tokens' })}
-              </span>
-              <span>
-                {formatNumber(active.value?.requests ?? 0, locale)}{' '}
-                {t('analytics.proxy_requests', { defaultValue: 'proxy requests' })}
-              </span>
-              <span title={formatCostValue(active.value?.known_cost_usd ?? 0, locale).title}>
-                {formatCostValue(active.value?.known_cost_usd ?? 0, locale).text}
-              </span>
-            </div>
-          )}
+          <HeatmapReadout
+            items={active ? readoutItems(active) : []}
+            placeholder={t('analytics.analysis.heatmap_readout_hint', {
+              defaultValue: 'Hover or focus a cell to read its totals.',
+            })}
+          />
         </>
       )}
     </AnalysisCard>

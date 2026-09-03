@@ -118,7 +118,16 @@ const readableEnumFallback = (value: string) => {
 
 export function formatAnalyticsEnum(
   t: TFunction,
-  category: 'key_status' | 'job_kind' | 'job_state' | 'sync_state' | 'rounding' | 'state',
+  category:
+    | 'key_status'
+    | 'job_kind'
+    | 'job_state'
+    | 'sync_state'
+    | 'rounding'
+    | 'state'
+    | 'source'
+    | 'service_tier'
+    | 'endpoint',
   value: string | null | undefined
 ) {
   if (!value) return DASH;

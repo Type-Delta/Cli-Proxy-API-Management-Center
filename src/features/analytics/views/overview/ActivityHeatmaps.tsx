@@ -1,10 +1,11 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Select } from '@/components/ui/Select';
 import type { ActivityBucket, ActivityWindow, AnalyticsActivity } from '@/types';
 import { AsyncState } from '../../components/AnalyticsShared';
+import { HeatmapReadout } from '../../components/HeatmapReadout';
 import { formatDateTime, formatNumber, formatPercent } from '../../components/analyticsFormatting';
 import {
   ACTIVITY_WINDOWS,
@@ -78,13 +79,16 @@ function HeatmapGrid({
   /** Rendered above the grid; both cards pass their totals strip here. */
   header: ReactNode;
 }) {
+  const { t } = useTranslation();
   const [activeIndex, setActiveIndex] = useState(0);
-  const [tooltip, setTooltip] = useState('');
-  const tooltipId = useId();
+  // The readout is driven by an explicit active cell so pointer, touch and keyboard all
+  // resolve to the same text; `null` means "nothing is being inspected".
+  const [readIndex, setReadIndex] = useState<number | null>(null);
   const cells = useRef<Array<HTMLSpanElement | null>>([]);
 
   useEffect(() => {
     setActiveIndex((current) => Math.min(current, Math.max(0, buckets.length - 1)));
+    setReadIndex(null);
   }, [buckets.length]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLSpanElement>, index: number) => {
@@ -95,12 +99,17 @@ function HeatmapGrid({
     cells.current[next]?.focus();
   };
 
+  const readBucket = readIndex === null ? null : buckets[readIndex];
+
   return (
     <div className={styles.heatmapPanel}>
       {header}
-      <div id={tooltipId} role="tooltip" className={styles.heatmapTooltip} aria-hidden="true">
-        {tooltip}
-      </div>
+      <HeatmapReadout
+        items={readBucket ? [{ text: cellLabel(readBucket) }] : []}
+        placeholder={t('analytics.overview.heatmap_readout_hint', {
+          defaultValue: 'Hover or focus a cell to read its bucket.',
+        })}
+      />
       <div className={styles.heatmapScroller}>
         <div
           className={styles.heatmapGrid}
@@ -123,11 +132,18 @@ function HeatmapGrid({
                 aria-rowindex={(index % 7) + 1}
                 aria-colindex={Math.floor(index / 7) + 1}
                 data-strength={levels[index] ?? 0}
+                data-active={readIndex === index ? '' : undefined}
                 tabIndex={index === activeIndex ? 0 : -1}
                 onFocus={() => {
                   setActiveIndex(index);
-                  setTooltip(description);
+                  setReadIndex(index);
                 }}
+                onBlur={() => setReadIndex((current) => (current === index ? null : current))}
+                onPointerEnter={() => setReadIndex(index)}
+                onPointerDown={() => setReadIndex(index)}
+                onPointerLeave={() =>
+                  setReadIndex((current) => (current === index ? null : current))
+                }
                 onKeyDown={(event) => onKeyDown(event, index)}
               />
             );
@@ -144,12 +160,14 @@ export function ActivityHeatmaps({
   error,
   window,
   onWindowChange,
+  onRetry,
 }: {
   activity: AnalyticsActivity | null;
   loading: boolean;
   error: string;
   window: ActivityWindow;
   onWindowChange: (window: ActivityWindow) => void;
+  onRetry?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage;
@@ -230,7 +248,7 @@ export function ActivityHeatmaps({
         </label>
       </header>
 
-      <AsyncState loading={loading} error={error} stale={activity?.meta.degraded}>
+      <AsyncState loading={loading} error={error} stale={activity?.meta.degraded} onRetry={onRetry}>
         {activity &&
           (buckets.length === 0 ? (
             <Card>

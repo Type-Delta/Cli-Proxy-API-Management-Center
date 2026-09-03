@@ -20,8 +20,12 @@ import {
   resolveLatencyPresentation,
   selectHeatmapModels,
   slowestLatencySamples,
+  ANALYSIS_CAPTION_BASELINE,
+  ANALYSIS_CAPTION_INLINE,
+  ANALYSIS_CHART_HEIGHT,
   ANALYSIS_PLOT_HEIGHT,
   ANALYSIS_PLOT_INSET,
+  ANALYSIS_TICK_BASELINE,
   LATENCY_SAMPLE_BROWSE_LIMIT,
 } from '@/features/analytics/views/analysis/analysisModel';
 import { parseAnalyticsUrlState, serializeAnalyticsUrlState } from '@/features/analytics/query';
@@ -326,8 +330,19 @@ describe('analytics Analysis models', () => {
   });
 
   test('shares one plot box across the analysis charts', () => {
-    expect(ANALYSIS_PLOT_INSET).toEqual({ left: 54, right: 18, top: 16, bottom: 36 });
-    expect(ANALYSIS_PLOT_HEIGHT).toBe(228);
+    expect(ANALYSIS_PLOT_INSET).toEqual({ left: 72, right: 18, top: 16, bottom: 46 });
+    expect(ANALYSIS_PLOT_HEIGHT).toBe(218);
+  });
+
+  // R3-9: the caption used to share the tick baseline and the plot's left edge, printing
+  // "TTFT s log10" over the corner tick. Both bands now sit outside the plot.
+  test('reserves gutters so axis captions never share a baseline with ticks', () => {
+    expect(ANALYSIS_TICK_BASELINE).toBeGreaterThan(
+      ANALYSIS_CHART_HEIGHT - ANALYSIS_PLOT_INSET.bottom
+    );
+    expect(ANALYSIS_CAPTION_BASELINE - ANALYSIS_TICK_BASELINE).toBeGreaterThanOrEqual(11);
+    expect(ANALYSIS_CAPTION_BASELINE).toBeLessThanOrEqual(ANALYSIS_CHART_HEIGHT);
+    expect(ANALYSIS_CAPTION_INLINE).toBeLessThan(ANALYSIS_PLOT_INSET.left - 11);
   });
 
   test('caps the browsable sample list at the slowest N and reports the total', () => {
@@ -443,5 +458,8 @@ describe('analytics Analysis models', () => {
     expect(markup).toContain('role="grid"');
     expect((markup.match(/tabindex="0"/g) ?? []).length).toBe(1);
     expect((markup.match(/tabindex="-1"/g) ?? []).length).toBe(1);
+    // R3-2: the same shared readout component as the Overview grids, always present.
+    expect(markup).toContain('role="status" aria-live="polite"');
+    expect(markup).toContain('Hover or focus a cell to read its totals.');
   });
 });

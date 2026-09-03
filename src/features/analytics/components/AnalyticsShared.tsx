@@ -45,17 +45,22 @@ import {
   type AnalyticsRange,
   type AnalyticsRangeGrain,
 } from '../query';
+import { useAnalyticsRetryCountdown } from '../useAnalyticsLoad';
 import styles from '../Analytics.module.scss';
 
 export function AsyncState({
   loading,
   error,
+  errorStatus,
+  retryAt,
   stale,
   onRetry,
   children,
 }: {
   loading: boolean;
   error: string;
+  errorStatus?: number;
+  retryAt?: number;
   stale?: boolean;
   onRetry?: () => void;
   children: ReactNode;
@@ -65,7 +70,9 @@ export function AsyncState({
   const state = resolveAnalyticsAsyncState(loading, error, hasContent);
   // The raw transport text ("Network Error") is diagnostic, not an instruction — show the
   // actionable sentence and keep the original in a tooltip.
-  const failure = analyticsErrorCopy(t, error);
+  const failure = analyticsErrorCopy(t, error, errorStatus);
+  // Retrying before the server's Retry-After elapses only earns another 429.
+  const retryIn = useAnalyticsRetryCountdown(retryAt);
   if (state === 'initial-loading') return <AnalyticsSkeleton />;
   if (state === 'error')
     return (
@@ -76,8 +83,13 @@ export function AsyncState({
             description={failure.text}
             action={
               onRetry ? (
-                <Button variant="secondary" onClick={onRetry}>
-                  {t('common.retry')}
+                <Button variant="secondary" onClick={onRetry} disabled={retryIn > 0}>
+                  {retryIn > 0
+                    ? t('analytics.retry_in', {
+                        defaultValue: 'Retry in {{seconds}} s',
+                        seconds: retryIn,
+                      })
+                    : t('common.retry')}
                 </Button>
               ) : undefined
             }

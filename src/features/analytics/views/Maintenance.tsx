@@ -143,6 +143,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
           </p>
           <Input
             label={copy('analytics.backup_path', 'Backup destination path')}
+            aria-label={copy('analytics.backup_path', 'Backup destination path')}
             value={backupPath}
             onChange={(event) => setBackupPath(event.target.value)}
             className={styles.manageInput}
@@ -169,12 +170,14 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
           </p>
           <Input
             label={copy('analytics.maintenance.backup_id', 'Backup ID')}
+            aria-label={copy('analytics.maintenance.backup_id', 'Backup ID')}
             value={restore.id}
             onChange={(event) => setRestore((current) => ({ ...current, id: event.target.value }))}
             className={styles.manageInput}
           />
           <Input
             label={copy('analytics.maintenance.restore_path', 'Backup path')}
+            aria-label={copy('analytics.maintenance.restore_path', 'Backup path')}
             value={restore.path}
             onChange={(event) =>
               setRestore((current) => ({ ...current, path: event.target.value }))
@@ -183,6 +186,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
           />
           <Input
             label={copy('analytics.maintenance.restore_manifest', 'Backup manifest')}
+            aria-label={copy('analytics.maintenance.restore_manifest', 'Backup manifest')}
             value={restore.manifest}
             onChange={(event) =>
               setRestore((current) => ({ ...current, manifest: event.target.value }))
@@ -219,6 +223,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
           </p>
           <Input
             label={copy('analytics.import_source', 'Source database path')}
+            aria-label={copy('analytics.import_source', 'Source database path')}
             value={importState.path}
             onChange={(event) =>
               setImportState((current) => ({ ...current, path: event.target.value }))
@@ -234,6 +239,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
           {!importState.dryRun && (
             <Input
               label={copy('analytics.import_backup', 'Destination backup path')}
+              aria-label={copy('analytics.import_backup', 'Destination backup path')}
               value={importState.backup}
               onChange={(event) =>
                 setImportState((current) => ({ ...current, backup: event.target.value }))
@@ -243,6 +249,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
           )}
           <Input
             label={copy('analytics.maintenance.resume_batch', 'Resume batch ID')}
+            aria-label={copy('analytics.maintenance.resume_batch', 'Resume batch ID')}
             hint={copy(
               'analytics.maintenance.resume_hint',
               'Leave empty for a new import. Use a saved batch ID to resume.'
@@ -277,6 +284,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
           </div>
           <Input
             label={copy('analytics.maintenance.rollback_batch', 'Rollback batch ID')}
+            aria-label={copy('analytics.maintenance.rollback_batch', 'Rollback batch ID')}
             hint={copy(
               'analytics.maintenance.rollback_hint',
               'Rollback removes the imported batch. Keep the backup until this job succeeds.'
@@ -385,12 +393,17 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
               </p>
               <Input
                 label={copy('analytics.maintenance.verified_backup', 'Verified backup path')}
+                aria-label={copy('analytics.maintenance.verified_backup', 'Verified backup path')}
                 value={purgeBackup}
                 onChange={(event) => setPurgeBackup(event.target.value)}
                 className={styles.manageInput}
               />
               <Input
                 label={copy(
+                  'analytics.maintenance.purge_confirmation',
+                  'Type the confirmation phrase'
+                )}
+                aria-label={copy(
                   'analytics.maintenance.purge_confirmation',
                   'Type the confirmation phrase'
                 )}

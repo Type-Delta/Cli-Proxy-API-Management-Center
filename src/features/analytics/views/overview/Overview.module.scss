@@ -247,28 +247,6 @@
   }
 }
 
-.heatmapTooltip {
-  min-height: 34px;
-  box-sizing: border-box;
-  padding: 7px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--floating-surface);
-  box-shadow: var(--shadow);
-  color: var(--text-primary);
-  font-size: 12px;
-  line-height: 1.5;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--dur-hover) var(--ease-out-strong);
-  visibility: hidden;
-}
-
-.heatmapPanel:has(.heatmapCell:focus-visible) .heatmapTooltip {
-  opacity: 1;
-  visibility: visible;
-}
-
 .heatmapScroller {
   max-width: 100%;
   overflow-x: auto;
@@ -298,7 +276,9 @@
     box-shadow var(--dur-hover) var(--ease-out-strong),
     transform var(--dur-press) var(--ease-out-strong);
 
-  &:hover {
+  // Driven by the active-cell state, not :has(), so pointer, touch and keyboard mark the
+  // same cell as the one the readout is describing.
+  &[data-active] {
     border-color: var(--text-secondary);
     transform: translateY(-1px);
   }
@@ -315,30 +295,33 @@
   background: var(--bg-tertiary);
 }
 
+// Dataviz-neutral ramp: the shell's --primary-active is muted chrome grey and read as
+// disabled next to Request Health. --viz-neutral is a desaturated blue reserved for data,
+// stepped so level 3 upwards clears 3:1 against the card background in all three themes.
 .tokenLevel1 {
-  --cell-strength: 16%;
-  background: color-mix(in srgb, var(--primary-active) 16%, var(--bg-primary));
+  --cell-strength: 20%;
+  background: color-mix(in srgb, var(--viz-neutral) 20%, var(--bg-primary));
 }
 
 .tokenLevel2 {
-  --cell-strength: 30%;
-  background: color-mix(in srgb, var(--primary-active) 30%, var(--bg-primary));
+  --cell-strength: 40%;
+  background: color-mix(in srgb, var(--viz-neutral) 40%, var(--bg-primary));
 }
 
 .tokenLevel3 {
-  --cell-strength: 46%;
-  background: color-mix(in srgb, var(--primary-active) 46%, var(--bg-primary));
+  --cell-strength: 72%;
+  background: color-mix(in srgb, var(--viz-neutral) 72%, var(--bg-primary));
 }
 
 .tokenLevel4 {
-  --cell-strength: 62%;
-  background: color-mix(in srgb, var(--primary-active) 62%, var(--bg-primary));
+  --cell-strength: 86%;
+  background: color-mix(in srgb, var(--viz-neutral) 86%, var(--bg-primary));
   color: var(--text-primary);
 }
 
 .tokenLevel5 {
   --cell-strength: 100%;
-  background: var(--primary-active);
+  background: var(--viz-neutral);
   color: var(--floating-surface);
 }
 
@@ -417,8 +400,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .heatmapCell,
-  .heatmapTooltip {
+  .heatmapCell {
     transition: none;
   }
 }

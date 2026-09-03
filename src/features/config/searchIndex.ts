@@ -328,6 +328,14 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     yamlKeys: ['analytics', 'min-free-bytes'],
   },
   {
+    fieldId: 'analyticsStorageTimeZone',
+    sectionId: 'logging',
+    labelKey: L('sections.analytics.storage_time_zone'),
+    hintKey: L('sections.analytics.storage_time_zone_hint'),
+    yamlKeys: ['analytics', 'storage-time-zone'],
+    keywords: ['timezone', 'iana', 'retention'],
+  },
+  {
     fieldId: 'analyticsStoreCredentialId',
     sectionId: 'logging',
     labelKey: L('sections.analytics.store_credential_id'),

@@ -15,6 +15,7 @@ import {
   ANALYSIS_CHART_HEIGHT,
   ANALYSIS_PLOT_HEIGHT,
   ANALYSIS_PLOT_INSET,
+  ANALYSIS_TICK_BASELINE,
   analysisChartWidth,
   analysisPlotWidth,
   buildTokenSeries,
@@ -230,7 +231,7 @@ export function TokenUsageChart({
                 <text
                   key={point.start}
                   x={PLOT.left + ((index + 0.5) / points.length) * plotWidth}
-                  y={HEIGHT - 8}
+                  y={ANALYSIS_TICK_BASELINE}
                   className={styles.axisLabel}
                   textAnchor="middle"
                 >
@@ -424,7 +425,7 @@ export function TopModelsChart({
                 <text
                   key={buckets[index].start}
                   x={PLOT.left + ((index + 0.5) / buckets.length) * plotWidth}
-                  y={HEIGHT - 8}
+                  y={ANALYSIS_TICK_BASELINE}
                   className={styles.axisLabel}
                   textAnchor="middle"
                 >

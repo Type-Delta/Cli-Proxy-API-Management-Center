@@ -28,11 +28,22 @@ const ANALYSIS_CHART_BUCKET_WIDTH = 40;
 /**
  * One plot box for every analysis SVG chart, so ticks, gridlines and hover
  * targets line up across cards instead of drifting per file.
+ *
+ * The insets reserve two bands outside the plot: an inline band wide enough for the y tick
+ * labels plus a rotated axis caption, and a block band split between the x tick baseline and
+ * the x caption baseline. Captions and ticks therefore never share a baseline.
  */
 export const ANALYSIS_CHART_HEIGHT = 280;
-export const ANALYSIS_PLOT_INSET = { left: 54, right: 18, top: 16, bottom: 36 } as const;
+export const ANALYSIS_PLOT_INSET = { left: 72, right: 18, top: 16, bottom: 46 } as const;
 export const ANALYSIS_PLOT_HEIGHT =
   ANALYSIS_CHART_HEIGHT - ANALYSIS_PLOT_INSET.top - ANALYSIS_PLOT_INSET.bottom;
+
+/** Baseline for x-axis tick labels; sits inside the reserved bottom band. */
+export const ANALYSIS_TICK_BASELINE = ANALYSIS_CHART_HEIGHT - ANALYSIS_PLOT_INSET.bottom + 21;
+/** Baseline for the x-axis caption, one text line below the ticks. */
+export const ANALYSIS_CAPTION_BASELINE = ANALYSIS_CHART_HEIGHT - 5;
+/** x of the rotated y-axis caption, left of the y tick labels. */
+export const ANALYSIS_CAPTION_INLINE = 13;
 
 export const analysisPlotWidth = (chartWidth: number) =>
   chartWidth - ANALYSIS_PLOT_INSET.left - ANALYSIS_PLOT_INSET.right;
