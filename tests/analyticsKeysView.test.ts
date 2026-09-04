@@ -1,10 +1,20 @@
 import { describe, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
 import {
   joinKeyRanking,
   shouldShowPricingDisclosure,
   sortKeyRanking,
 } from '@/features/analytics/views/keys/keyRanking';
 import type { AnalyticsKey, LeaderboardRow, TokenUsage } from '@/types';
+
+const keysViewSource = readFileSync(
+  new URL('../src/features/analytics/views/KeysView.tsx', import.meta.url),
+  'utf8'
+);
+const sortableHeaderSource = readFileSync(
+  new URL('../src/features/analytics/components/SortableHeader.tsx', import.meta.url),
+  'utf8'
+);
 
 const tokens = (total: number): TokenUsage => ({
   input: total,
@@ -90,5 +100,21 @@ describe('Pricing disclosure gating', () => {
   test('shows only when the table is ranked by cost', () => {
     expect(shouldShowPricingDisclosure('cost')).toBe(true);
     expect(shouldShowPricingDisclosure('tokens')).toBe(false);
+  });
+});
+
+describe('SortableHeader contract', () => {
+  test('maps active direction to aria-sort and directional icons', () => {
+    expect(sortableHeaderSource).toContain(
+      'aria-sort={getSortableHeaderAriaSort(active, direction)}'
+    );
+    expect(sortableHeaderSource).toContain("icon === 'up'");
+    expect(sortableHeaderSource).toContain("icon === 'down'");
+    expect(sortableHeaderSource).toContain('<IconArrowUpDown size={14} />');
+  });
+
+  test('keeps the Keys Action column sticky in both header and body markup', () => {
+    expect(keysViewSource).toContain('className={styles.actionHeader}');
+    expect(keysViewSource).toContain('className={styles.actionCell}');
   });
 });

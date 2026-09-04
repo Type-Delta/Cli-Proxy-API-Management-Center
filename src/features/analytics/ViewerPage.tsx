@@ -5,6 +5,7 @@ import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { apiClient } from '@/services/api/client';
 import {
   Table,
   TableBody,
@@ -13,7 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/Table';
-import { Sparkline } from '@/features/dashboard/components/Sparkline';
+import { AnalyticsChart } from './components/AnalyticsChart';
+import { axisTooltipFormatter, snapAxisPointer } from './components/chartTheme';
 import { AnalyticsSkeleton } from './AnalyticsSkeleton';
 import { AsyncState, TimeRangeControl } from './components/AnalyticsShared';
 import {
@@ -40,12 +42,15 @@ import {
 import {
   consumeViewerCredential,
   exchangeViewerCredential,
+  isViewerApiOriginTrusted,
+  trustViewerApiOrigin,
   type ViewerCredential,
 } from './viewerSecurity';
 import {
   buildViewerRange,
   fetchViewerJSON,
   resolveViewerApiBase,
+  viewerApiOrigin,
   viewerExpiryTimes,
   viewerQuery,
   type ViewerCapabilities,
@@ -73,9 +78,53 @@ function takeViewerCredential(): ViewerCredential {
     (url) => window.history.replaceState(null, '', url),
     `${window.location.pathname}${window.location.search}#/viewer`
   );
-  const viewer = { ...consumed, apiBase: resolveViewerApiBase(consumed.apiBase) };
+  const viewer = {
+    ...consumed,
+    apiBase: resolveViewerApiBase(consumed.apiBase),
+    linkApiBase: consumed.apiBase,
+  };
   capturedViewerCredential = { link, viewer };
   return viewer;
+}
+
+export function ViewerConsent({
+  origin,
+  onContinue,
+  onCancel,
+}: {
+  origin: string;
+  onContinue: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useTranslation();
+  const body = t('analytics.viewer_consent_body', {
+    origin,
+    defaultValue:
+      'This shared view will contact {{origin}} to load analytics. Continue only if you trust this address.',
+  });
+  const [before, after = ''] = body.split(origin);
+  return (
+    <Card
+      className={styles.consent}
+      title={t('analytics.viewer_consent_title', {
+        defaultValue: 'Trust this analytics address?',
+      })}
+    >
+      <p>
+        {before}
+        <strong className={styles.consentOrigin}>{origin}</strong>
+        {after}
+      </p>
+      <div className={styles.consentActions}>
+        <Button type="button" onClick={onContinue}>
+          {t('analytics.viewer_consent_continue', { defaultValue: 'Continue' })}
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>
+          {t('analytics.viewer_consent_cancel', { defaultValue: 'Cancel' })}
+        </Button>
+      </div>
+    </Card>
+  );
 }
 
 function RegionError({
@@ -244,10 +293,19 @@ export function ViewerPage() {
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionError, setSessionError] = useState('');
   const [exchangeAttempt, setExchangeAttempt] = useState(0);
+  const [consentGranted, setConsentGranted] = useState(false);
   const exchangeRef = useRef<Promise<void> | null>(null);
+  const consentOrigin = viewerCredential.linkApiBase ?? '';
+  const consentRequired = Boolean(
+    consentOrigin &&
+    !isViewerApiOriginTrusted(consentOrigin, {
+      configuredApiOrigin: viewerApiOrigin(apiClient.getApiBase()),
+    })
+  );
 
   useEffect(() => {
     let active = true;
+    if (consentRequired && !consentGranted) return undefined;
     if (!exchangeRef.current) {
       exchangeRef.current = viewerCredential.credential
         ? exchangeViewerCredential(viewerCredential.credential, viewerCredential.apiBase)
@@ -268,7 +326,14 @@ export function ViewerPage() {
     return () => {
       active = false;
     };
-  }, [viewerCredential, exchangeAttempt, t]);
+  }, [consentGranted, consentRequired, exchangeAttempt, t, viewerCredential]);
+
+  const continueWithViewerOrigin = () => {
+    trustViewerApiOrigin(consentOrigin);
+    setConsentGranted(true);
+  };
+
+  const cancelViewerConsent = () => setSessionError(t('analytics.viewer_unavailable'));
 
   const retryExchange = () => {
     exchangeRef.current = null;
@@ -310,8 +375,71 @@ export function ViewerPage() {
   );
   const resolvedRange =
     summary.data?.meta.range ?? series.data?.meta.range ?? events.data?.meta.range ?? bounds;
+  const viewerTrendLabel = t('analytics.overview.trend', {
+    defaultValue: '{{metric}} trend',
+    metric: t('analytics.total_tokens', { defaultValue: 'Total tokens' }),
+  });
+  const viewerTrendPoints = useMemo(() => series.data?.points ?? [], [series.data?.points]);
+  const viewerTrendAriaLabel = trendAriaLabel(
+    t,
+    viewerTrendLabel,
+    viewerTrendPoints.map((point) => point.tokens.total),
+    (value) => formatCompactTokens(value, i18n.resolvedLanguage).text
+  );
+  const viewerTrendOption = useMemo(
+    () => ({
+      grid: { left: 0, right: 0, top: 4, bottom: 0 },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: viewerTrendPoints.map((point) => point.start),
+        show: false,
+      },
+      yAxis: { type: 'value', min: 0, show: false },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: snapAxisPointer,
+        formatter: axisTooltipFormatter({
+          format: (value) => formatCompactTokens(value, i18n.resolvedLanguage).text,
+          header: (value) => formatDateTime(value, i18n.resolvedLanguage),
+        }),
+      },
+      series: [
+        {
+          type: 'line',
+          name: t('analytics.total_tokens', { defaultValue: 'Total tokens' }),
+          data: viewerTrendPoints.map((point) => point.tokens.total),
+          showSymbol: false,
+          smooth: true,
+          lineStyle: { width: 2 },
+          areaStyle: { opacity: 0.16 },
+        },
+      ],
+    }),
+    [i18n.resolvedLanguage, t, viewerTrendPoints]
+  );
 
   if (!sessionReady && !sessionError) {
+    if (consentRequired && !consentGranted) {
+      return (
+        <main className={styles.page}>
+          <header className={styles.header}>
+            <div className={styles.identity}>
+              <img src={INLINE_LOGO_JPEG} alt="" />
+              <div>
+                <h1>{t('analytics.shared_view')}</h1>
+                <p>CLI Proxy API Management Center</p>
+              </div>
+            </div>
+          </header>
+          <ViewerConsent
+            origin={consentOrigin}
+            onContinue={continueWithViewerOrigin}
+            onCancel={cancelViewerConsent}
+          />
+        </main>
+      );
+    }
     return (
       <main className={styles.page}>
         <AnalyticsSkeleton />
@@ -425,18 +553,12 @@ export function ViewerPage() {
                 description={t('analytics.no_activity_description')}
               />
             ) : (
-              <Sparkline
+              <AnalyticsChart
                 className={styles.sparkline}
-                points={series.data.points.map((point) => point.tokens.total)}
-                ariaLabel={trendAriaLabel(
-                  t,
-                  t('analytics.overview.trend', {
-                    defaultValue: '{{metric}} trend',
-                    metric: t('analytics.total_tokens', { defaultValue: 'Total tokens' }),
-                  }),
-                  series.data.points.map((point) => point.tokens.total),
-                  (value) => formatCompactTokens(value, i18n.resolvedLanguage).text
-                )}
+                option={viewerTrendOption}
+                height={72}
+                ariaLabel={viewerTrendAriaLabel}
+                description={viewerTrendAriaLabel}
               />
             )}
           </Card>

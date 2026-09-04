@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -23,6 +23,7 @@ import { useAnalyticsFilters } from '../AnalyticsFilterContext';
 import { analyticsKeyIdentity } from '../analyticsKeyFilterModel';
 import { AnalyticsStatusBadge, AsyncState, EventTable } from '../components/AnalyticsShared';
 import { analyticsErrorCopy } from '../components/analyticsErrorCopy';
+import { SortableHeader } from '../components/SortableHeader';
 import {
   formatCompactTokens,
   formatCostValue,
@@ -132,6 +133,10 @@ export function KeysView({
     () => sortKeyRanking(joinKeyRanking(keys, ranking.data?.rows ?? []), columnSort, direction),
     [columnSort, direction, keys, ranking.data?.rows]
   );
+  const activeColumnSort =
+    columnSort === 'server' && (sort === 'tokens' || sort === 'cost') ? sort : columnSort;
+  const activeDirection =
+    columnSort === 'server' && (sort === 'tokens' || sort === 'cost') ? 'desc' : direction;
   const selectedKey =
     selected.length === 1 ? (keys.find((key) => key.key_id === selected[0]) ?? null) : null;
   const recentRequest = useMemo(
@@ -153,8 +158,8 @@ export function KeysView({
   const chooseColumnSort = (next: KeyColumnSort) => {
     if (next === 'tokens' || next === 'cost') {
       setSort(next);
-      setColumnSort('server');
-      setDirection('asc');
+      setColumnSort(next);
+      setDirection('desc');
       return;
     }
     if (next === 'server') {
@@ -245,31 +250,21 @@ export function KeysView({
               })}
             </div>
           ) : (
-            <Table aria-label={t('analytics.keys_catalog')}>
+            <Table className={styles.keysTable} aria-label={t('analytics.keys_catalog')}>
               <TableHeader>
                 <TableRow>
                   {SORTABLE_COLUMNS.map((column) => (
-                    <TableHead
+                    <SortableHeader
                       key={column.id}
-                      aria-sort={
-                        columnSort === column.id
-                          ? direction === 'asc'
-                            ? 'ascending'
-                            : 'descending'
-                          : 'none'
-                      }
+                      active={activeColumnSort === column.id}
+                      direction={activeDirection}
+                      onClick={() => chooseColumnSort(column.id)}
+                      className={styles.sortButton}
                     >
-                      <button
-                        type="button"
-                        className={styles.sortButton}
-                        onClick={() => chooseColumnSort(column.id)}
-                      >
-                        {t(column.labelKey, { defaultValue: column.defaultValue })}
-                        {columnSort === column.id ? (direction === 'asc' ? ' ↑' : ' ↓') : ''}
-                      </button>
-                    </TableHead>
+                      {t(column.labelKey, { defaultValue: column.defaultValue })}
+                    </SortableHeader>
                   ))}
-                  <TableHead>{t('common.action')}</TableHead>
+                  <TableHead className={styles.actionHeader}>{t('common.action')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -318,12 +313,12 @@ export function KeysView({
                       <TableCell>
                         <span className={styles.shareValue}>
                           <span className={styles.shareTrack} aria-hidden="true">
-                            <span style={{ width: `${share}%` }} />
+                            <span style={{ '--share-width': `${share}%` } as CSSProperties} />
                           </span>
                           {formatPercent(row.percent_of_total, i18n.resolvedLanguage)}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={styles.actionCell}>
                         <Button
                           size="sm"
                           variant={active ? 'primary' : 'secondary'}

@@ -15,8 +15,7 @@ import styles from './overview/Overview.module.scss';
 
 export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: string[] }) {
   const { t } = useTranslation();
-  // The activity window round-trips through the hash query, like range and keys.
-  const { reportResolvedRange, activityWindow, setActivityWindow } = useAnalyticsFilters();
+  const { reportResolvedRange } = useAnalyticsFilters();
   const request = useMemo(() => buildAnalyticsQuery('summary', range, keyIds), [range, keyIds]);
   const seriesRequest = useMemo(
     () =>
@@ -25,10 +24,8 @@ export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: str
       }),
     [range, keyIds]
   );
-  const activityRequest = useMemo(
-    () => buildOverviewActivityQuery(activityWindow, keyIds, range),
-    [activityWindow, keyIds, range]
-  );
+  // R6-3: activity is a fixed rolling year, so only the key filter and the range's zone reach it.
+  const activityRequest = useMemo(() => buildOverviewActivityQuery(keyIds, range), [keyIds, range]);
   const summary = useLoad(() => analyticsApi.summary(request), JSON.stringify(request));
   const timeseries = useLoad(
     () => analyticsApi.timeseries(seriesRequest),
@@ -96,8 +93,6 @@ export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: str
         error={activity.error}
         errorStatus={activity.errorStatus}
         retryAt={activity.retryAt}
-        window={activityWindow}
-        onWindowChange={setActivityWindow}
         onRetry={() => void activity.refresh()}
       />
     </div>

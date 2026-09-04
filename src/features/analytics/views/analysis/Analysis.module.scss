@@ -1,31 +1,6 @@
 @use '../../../../styles/variables' as *;
 
 .analysis {
-  // One category, one hue, everywhere: Token Usage, Cost Breakdown and Usage Distribution all
-  // read these five, in stack order, from the nominal --viz-cat-* palette in themes.scss.
-  // Deriving them from semantic tokens (the previous scheme) left adjacent stack segments
-  // 1.10-1.18:1 apart, which is not a boundary anyone can see.
-  --analysis-input: var(--viz-cat-1);
-  --analysis-output: var(--viz-cat-2);
-  --analysis-cache-read: var(--viz-cat-3);
-  --analysis-cache-write: var(--viz-cat-4);
-  --analysis-reasoning: var(--viz-cat-5);
-  // Line overlays. The request line is achromatic and dashed so it never competes with a
-  // category hue; the cost line takes a reserved hue that no fill uses.
-  --analysis-request: color-mix(in srgb, var(--text-primary) 76%, var(--bg-primary));
-  --analysis-cost: var(--viz-line-cost);
-  // Top Models is capped at six ranks plus an "Other" band, so six swatches is the whole
-  // ranking: --viz-cat-6..10 continue the alternating luminance bands after the five
-  // category hues, and Other is the achromatic band.
-  --analysis-model-1: var(--viz-cat-6);
-  --analysis-model-2: var(--viz-cat-7);
-  --analysis-model-3: var(--viz-cat-8);
-  --analysis-model-4: var(--viz-cat-9);
-  --analysis-model-5: var(--viz-cat-10);
-  --analysis-model-6: var(--viz-cat-1);
-  --analysis-model-other: var(--viz-cat-other);
-  --analysis-heatmap: var(--viz-neutral);
-
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -95,172 +70,10 @@
   font-size: 12px;
 }
 
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  margin-bottom: $spacing-md;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.legendItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-
-  i {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    flex: none;
-    border-radius: 3px;
-  }
-}
-
-.requestSwatch,
-.costSwatch {
-  height: 2px !important;
-  border-radius: $radius-full !important;
-  background: var(--analysis-request);
-}
-
-.requestSwatch {
-  background: repeating-linear-gradient(90deg, var(--analysis-request) 0 4px, transparent 4px 7px);
-}
-
-.costSwatch {
-  background: var(--analysis-cost);
-}
-
-.chartScroller,
-.heatmapScroller {
-  max-width: 100%;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
-  scrollbar-gutter: stable;
-}
-
-.chartStage {
-  position: relative;
-  width: var(--analysis-chart-width);
-  min-width: 100%;
-  height: 280px;
-}
-
-.chartSvg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-
-  // A focusable plot is not clickable: only the hover-readout overlay gets a
-  // pointer idiom (crosshair), everything else keeps the default cursor.
-  &[tabindex='0'] {
-    border-radius: $radius-md;
-
-    &:focus-visible {
-      outline: 2px solid var(--primary-active);
-      outline-offset: 2px;
-    }
-  }
-}
-
-.gridline {
-  stroke: var(--border-color);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
-
-.axisLabel,
-.axisTitle {
-  fill: var(--text-secondary);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-
-.axisTitle {
-  fill: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 650;
-}
-
-.requestLine,
-.costLine {
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-
-.requestLine {
-  stroke: var(--analysis-request);
-  stroke-dasharray: 6 5;
-}
-
-.costLine {
-  stroke: var(--analysis-cost);
-}
-
-.costPoint {
-  fill: var(--analysis-cost);
-}
-
-.chartTargets {
-  position: absolute;
-  inset-block: 0;
-  display: flex;
-}
-
-.chartTarget {
-  min-width: 40px;
-  min-height: 40px;
-  flex: 1 0 40px;
-  padding: 0;
-  border: 0;
-  border-radius: 4px;
-  outline-offset: -3px;
-  background: transparent;
-  // The only chart cursor: these overlays are the plots that carry a readout.
-  cursor: crosshair;
-
-  &:hover {
-    background: color-mix(in srgb, var(--text-primary) 4%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--primary-active);
-  }
-}
-
-.chartReadout {
-  display: flex;
-  align-items: center;
-  gap: 6px 14px;
-  min-height: 40px;
-  margin-top: $spacing-sm;
-  padding: 7px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: $radius-md;
-  background: var(--muted-bg);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-
-  strong {
-    color: var(--text-primary);
-  }
-}
-
 .topModelsLayout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(230px, 0.34fr);
   gap: $spacing-lg;
-}
-
-.modelSegment {
-  transition: opacity var(--dur-hover) ease-out;
 }
 
 .ranking,
@@ -372,45 +185,7 @@
 .latencyPlot {
   width: 100%;
   max-width: 960px;
-  aspect-ratio: 960 / 280;
   margin: 0 auto;
-}
-
-.p95TtftLine,
-.p95LatencyLine {
-  stroke-width: 1.5;
-  stroke-dasharray: 6 4;
-  vector-effect: non-scaling-stroke;
-}
-
-.p95TtftLine {
-  stroke: var(--analysis-input);
-}
-
-.p95LatencyLine {
-  stroke: var(--analysis-cache-write);
-}
-
-.p95TtftLabel,
-.p95LatencyLabel {
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.p95TtftLabel {
-  fill: var(--analysis-input);
-}
-
-.p95LatencyLabel {
-  fill: var(--analysis-cache-write);
-}
-
-.scatterSuccess {
-  fill: var(--viz-success);
-}
-
-.scatterFailure {
-  fill: var(--viz-failure);
 }
 
 .latencyMobileSummary {
@@ -501,75 +276,6 @@
   background: var(--primary-active);
 }
 
-.distributionList {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px $spacing-lg;
-}
-
-.distributionRow {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 7px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.distributionTopline {
-  display: flex;
-  min-width: 0;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-
-  strong {
-    min-width: 0;
-    overflow: hidden;
-    color: var(--text-primary);
-    font-size: 13px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  span {
-    flex: none;
-    color: var(--text-secondary);
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.shareTrack,
-.categoryMix {
-  display: flex;
-  width: 100%;
-  height: 6px;
-  overflow: hidden;
-  border-radius: $radius-full;
-  background: var(--muted-bg);
-}
-
-.shareTrack span {
-  border-radius: inherit;
-  background: var(--primary-active);
-}
-
-.distributionMeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-
-.insightGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: $spacing-lg;
-}
-
 .costTotal,
 .blendedRate {
   display: flex;
@@ -583,24 +289,6 @@
     color: var(--text-primary);
     font-size: 20px;
     font-variant-numeric: tabular-nums;
-  }
-}
-
-.costBar {
-  display: flex;
-  width: 100%;
-  min-height: 40px;
-  align-items: center;
-  gap: 2px;
-  margin: $spacing-md 0;
-  overflow: hidden;
-  border-radius: $radius-md;
-  background: var(--muted-bg);
-
-  span {
-    display: block;
-    height: 18px;
-    min-width: 2px;
   }
 }
 
@@ -739,78 +427,6 @@
   font-size: 12px;
 }
 
-.heatmapGrid {
-  display: grid;
-  width: var(--analysis-heatmap-width);
-  min-width: 100%;
-  grid-template-columns: 160px repeat(var(--analysis-heatmap-columns), minmax(96px, 1fr));
-  gap: 4px;
-}
-
-.heatmapCorner,
-.heatmapHeader,
-.heatmapRowLabel {
-  display: flex;
-  min-height: 44px;
-  align-items: center;
-  padding: 6px 9px;
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 650;
-}
-
-.heatmapHeader {
-  min-width: 0;
-  overflow: hidden;
-  justify-content: center;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.heatmapRow {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: 160px repeat(var(--analysis-heatmap-columns), minmax(96px, 1fr));
-  gap: 4px;
-}
-
-.heatmapRowLabel {
-  overflow: hidden;
-  border-bottom: 1px solid var(--border-color);
-  color: var(--text-primary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-// The ramp is capped at --analysis-heatmap-ceiling (see heatmapStrength() in
-// KeyModelHeatmap.tsx) so --text-primary clears 4.5:1 on every cell in every theme; the
-// label colour therefore never switches.
-.heatmapCell {
-  min-width: 40px;
-  min-height: 44px;
-  padding: 5px;
-  border: 1px solid color-mix(in srgb, var(--analysis-heatmap) 18%, var(--border-color));
-  border-radius: 5px;
-  background: color-mix(
-    in srgb,
-    var(--analysis-heatmap) var(--cell-strength, 6%),
-    var(--bg-tertiary)
-  );
-  color: var(--text-primary);
-  font-size: 11px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-
-  &:hover,
-  &:focus-visible,
-  &[aria-pressed='true'] {
-    border-color: var(--text-primary);
-    outline-offset: 2px;
-  }
-}
-
 .heatmapLegend {
   display: flex;
   align-items: center;
@@ -824,12 +440,12 @@
     width: 96px;
     height: 7px;
     border-radius: $radius-full;
-    // Mirrors the capped cell ramp (6% -> 55%) so the legend reads the same as the grid.
+    // The same ramp the chart's visualMap spreads over the cells, so the key reads the grid.
     background: linear-gradient(
       90deg,
-      color-mix(in srgb, var(--analysis-heatmap) 6%, var(--bg-tertiary)),
-      color-mix(in srgb, var(--analysis-heatmap) 30%, var(--bg-tertiary)),
-      color-mix(in srgb, var(--analysis-heatmap) 55%, var(--bg-tertiary))
+      var(--viz-neutral-1),
+      var(--viz-neutral-3),
+      var(--viz-neutral-5)
     );
   }
 }
@@ -839,9 +455,7 @@
     gap: $spacing-md;
   }
 
-  .topModelsLayout,
-  .insightGrid,
-  .distributionList {
+  .topModelsLayout {
     grid-template-columns: 1fr;
   }
 
@@ -883,11 +497,6 @@
     grid-template-columns: 1fr;
   }
 
-  .chartReadout {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
   .costList {
     grid-template-columns: 1fr;
   }
@@ -898,8 +507,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .refreshing,
-  .modelSegment {
+  .refreshing {
     transition: none;
   }
 }
@@ -909,13 +517,4 @@
   min-width: 0;
   flex-direction: column;
   gap: $spacing-lg;
-}
-
-.analysisSectionLabel {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }

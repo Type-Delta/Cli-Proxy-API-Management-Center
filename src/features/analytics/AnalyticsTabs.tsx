@@ -12,9 +12,9 @@ import { IconChevronLeft } from '@/components/ui/icons';
 import { prefersReducedMotion } from '@/hooks/motion';
 import { tabOverflowEdges } from './components/analyticsAffordances';
 import {
-  ANALYTICS_GROUPS,
   ANALYTICS_PAGE_DEFINITIONS,
-  ANALYTICS_PAGES,
+  analyticsKindsForPage,
+  analyticsPageForKind,
   type AnalyticsPageKind,
 } from './navigation';
 import styles from './AnalyticsTabs.module.scss';
@@ -25,12 +25,14 @@ import styles from './AnalyticsTabs.module.scss';
  */
 // eslint-disable-next-line react-refresh/only-export-components
 export function nextAnalyticsTab(active: AnalyticsPageKind, key: string): AnalyticsPageKind | null {
-  const count = ANALYTICS_PAGES.length;
-  const current = ANALYTICS_PAGES.indexOf(active);
-  if (key === 'ArrowRight') return ANALYTICS_PAGES[(current + 1) % count];
-  if (key === 'ArrowLeft') return ANALYTICS_PAGES[(current - 1 + count) % count];
-  if (key === 'Home') return ANALYTICS_PAGES[0];
-  if (key === 'End') return ANALYTICS_PAGES[count - 1];
+  const page = analyticsPageForKind(active);
+  const tabs = analyticsKindsForPage(page);
+  const count = tabs.length;
+  const current = tabs.indexOf(active);
+  if (key === 'ArrowRight') return tabs[(current + 1) % count];
+  if (key === 'ArrowLeft') return tabs[(current - 1 + count) % count];
+  if (key === 'Home') return tabs[0];
+  if (key === 'End') return tabs[count - 1];
   return null;
 }
 
@@ -85,6 +87,11 @@ export function AnalyticsTabs({ active }: { active: AnalyticsPageKind }) {
     linkRefs.current[page]?.focus();
   };
 
+  const page = analyticsPageForKind(active);
+  const tabDefinitions = ANALYTICS_PAGE_DEFINITIONS.filter(
+    (definition) => definition.page === page
+  );
+
   return (
     <nav
       className={styles.tabs}
@@ -95,38 +102,23 @@ export function AnalyticsTabs({ active }: { active: AnalyticsPageKind }) {
     >
       <IconChevronLeft size={14} className={styles.edgeHint} data-edge="start" aria-hidden="true" />
       <IconChevronLeft size={14} className={styles.edgeHint} data-edge="end" aria-hidden="true" />
-      {/* The group wrappers are layout only; `presentation` keeps the tabs as the tablist's
-          own children while the visible group labels stay in the DOM. */}
       <div className={styles.scroller} ref={listRef} role="presentation">
-        {ANALYTICS_GROUPS.map((group) => (
-          <div className={styles.group} key={group} role="presentation">
-            <span className={styles.groupLabel} data-analytics-tab-group={group}>
-              {t(`analytics.groups.${group}`)}
-            </span>
-            <div className={styles.groupLinks} role="presentation">
-              {ANALYTICS_PAGE_DEFINITIONS.filter((page) => page.group === group).map(
-                ({ kind: page, icon: Icon }) => (
-                  <NavLink
-                    key={page}
-                    ref={(node) => {
-                      linkRefs.current[page] = node;
-                    }}
-                    role="tab"
-                    aria-selected={page === active}
-                    tabIndex={page === active ? 0 : -1}
-                    onKeyDown={moveTab}
-                    className={({ isActive }) =>
-                      `${styles.tab} ${isActive ? styles.tabActive : ''}`
-                    }
-                    to={{ pathname: `/analytics/${page}`, search: location.search }}
-                  >
-                    <Icon size={15} className={styles.tabGlyph} />
-                    <span className={styles.tabLabel}>{t(`analytics.pages.${page}`)}</span>
-                  </NavLink>
-                )
-              )}
-            </div>
-          </div>
+        {tabDefinitions.map(({ kind: tab, icon: Icon }) => (
+          <NavLink
+            key={tab}
+            ref={(node) => {
+              linkRefs.current[tab] = node;
+            }}
+            role="tab"
+            aria-selected={tab === active}
+            tabIndex={tab === active ? 0 : -1}
+            onKeyDown={moveTab}
+            className={({ isActive }) => `${styles.tab} ${isActive ? styles.tabActive : ''}`}
+            to={{ pathname: `/analytics/${tab}`, search: location.search }}
+          >
+            <Icon size={15} className={styles.tabGlyph} />
+            <span className={styles.tabLabel}>{t(`analytics.pages.${tab}`)}</span>
+          </NavLink>
         ))}
       </div>
     </nav>

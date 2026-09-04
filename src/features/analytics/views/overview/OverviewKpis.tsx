@@ -1,20 +1,24 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Sparkline } from '@/features/dashboard/components/Sparkline';
 import { toneForSuccessRate } from '@/features/dashboard/utils';
 import type { AnalyticsSummary } from '@/types';
+import { AnalyticsChart } from '../../components/AnalyticsChart';
+import { axisTooltipFormatter, snapAxisPointer } from '../../components/chartTheme';
 import {
   formatCompactTokens,
   formatCostValue,
+  formatDateTime,
   formatNumber,
   formatPercent,
 } from '../../components/analyticsFormatting';
 import {
   buildOverviewMetrics,
   exactNumber,
+  METRIC_ICONS,
   roundToTenth,
+  sparklineOption,
   toneForCacheRate,
   TONE_ACCENTS,
   trendAriaLabel,
@@ -29,6 +33,40 @@ const exactPercent = (value: number | null, locale?: string): FormattedValue => 
   text: formatPercent(value, locale),
   title: value === null ? undefined : `${String(value)}%`,
 });
+
+/** The KPI sparkline: 32px of line and soft area, no axes, and never its own tab stop. */
+function MetricTrend({ card, label }: { card: MetricCard; label: string }) {
+  const { i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage;
+  const trend = card.trend;
+  const option = useMemo(() => {
+    if (!trend) return null;
+    const times = trend.times ?? [];
+    return sparklineOption({
+      data: trend.points.map((value, index) => [times[index] ?? String(index), value]),
+      seriesName: card.label,
+      color: card.accent,
+      // The card owns the value formatter, so the tooltip prints exactly what the tile prints.
+      tooltipFormatter: axisTooltipFormatter({
+        format: trend.formatter,
+        header: (axisValue) =>
+          times.length ? formatDateTime(axisValue, locale) : String(axisValue),
+      }) as (params: unknown) => string,
+      axisPointer: snapAxisPointer,
+    });
+  }, [card.accent, card.label, locale, trend]);
+
+  if (!trend) return null;
+  return (
+    <div className={styles.sparklineSlot}>
+      {trend.loading || !option ? (
+        <Skeleton width="100%" height={32} rounded={6} />
+      ) : (
+        <AnalyticsChart option={option} height={32} ariaLabel={label} focusable={false} />
+      )}
+    </div>
+  );
+}
 
 export function MetricDetail({ children }: { children: ReactNode }) {
   return <div className={styles.metricDetail}>{children}</div>;
@@ -60,35 +98,30 @@ export function MetricTiles({ cards, label }: { cards: MetricCard[]; label: stri
           aria-label={card.ariaLabel}
         >
           <Card className={styles.metricCard}>
-            <div
-              className={styles.metricAccent}
+            <span
+              className={styles.metricLabel}
               style={{ '--metric-accent': card.accent } as CSSProperties}
-            />
-            <span className={styles.metricLabel}>{card.label}</span>
+            >
+              {card.icon && <card.icon size={15} className={styles.metricIcon} />}
+              {card.label}
+            </span>
             <strong className={styles.metricValue} title={card.value.title}>
               {card.value.text}
             </strong>
             {card.detail}
             {card.trend && (
-              <div className={styles.sparklineSlot} aria-hidden="true">
-                {card.trend.loading ? (
-                  <Skeleton width="100%" height={32} rounded={6} />
-                ) : (
-                  <Sparkline
-                    points={card.trend.points}
-                    color={card.accent}
-                    ariaLabel={trendAriaLabel(
-                      t,
-                      t('analytics.overview.trend', {
-                        defaultValue: '{{metric}} trend',
-                        metric: card.label,
-                      }),
-                      card.trend.points,
-                      card.trend.formatter
-                    )}
-                  />
+              <MetricTrend
+                card={card}
+                label={trendAriaLabel(
+                  t,
+                  t('analytics.overview.trend', {
+                    defaultValue: '{{metric}} trend',
+                    metric: card.label,
+                  }),
+                  card.trend.points,
+                  card.trend.formatter
                 )}
-              </div>
+              />
             )}
           </Card>
         </div>
@@ -121,6 +154,7 @@ export function OverviewKpis({
   const cacheTone = toneForCacheRate(metrics.cacheReadRate);
   const trend = (points: number[], formatter: (value: number) => string) => ({
     points,
+    times: sparklines.times,
     formatter,
     loading: trendsLoading,
   });
@@ -131,6 +165,7 @@ export function OverviewKpis({
       value: exactNumber(metrics.requests, locale),
       ariaLabel: `${t('analytics.overview.requests', { defaultValue: 'Requests' })}: ${numberText(metrics.requests)}. ${t('analytics.overview.succeeded', { defaultValue: 'Succeeded' })}: ${numberText(metrics.succeeded)}. ${t('analytics.overview.failed', { defaultValue: 'Failed' })}: ${numberText(metrics.failed)}. ${t('analytics.overview.success_rate', { defaultValue: 'Success rate' })}: ${percentText(metrics.successRate)}.`,
       accent: TONE_ACCENTS[requestTone],
+      icon: METRIC_ICONS.requests,
       trend: trend(sparklines.requests, numberText),
       detail: (
         <MetricDetail>
@@ -155,6 +190,7 @@ export function OverviewKpis({
       value: compact(metrics.totalTokens),
       ariaLabel: `${t('analytics.overview.tokens', { defaultValue: 'Tokens' })}: ${compactText(metrics.totalTokens)}. ${t('analytics.overview.cache_read', { defaultValue: 'Cache read' })}: ${compactText(metrics.cacheReadTokens)}. ${t('analytics.overview.cache_write', { defaultValue: 'Cache write' })}: ${compactText(metrics.cacheCreationTokens)}. ${t('analytics.overview.reasoning', { defaultValue: 'Reasoning' })}: ${compactText(metrics.reasoningTokens)}.`,
       accent: TONE_ACCENTS.idle,
+      icon: METRIC_ICONS.tokens,
       trend: trend(sparklines.tokens, compactText),
       detail: (
         <MetricDetail>
@@ -179,6 +215,7 @@ export function OverviewKpis({
       value: exactNumber(metrics.requestsPerMinute, locale),
       ariaLabel: `${t('analytics.overview.rpm', { defaultValue: 'RPM' })}: ${numberText(metrics.requestsPerMinute)}. ${t('analytics.overview.requests_per_minute', { defaultValue: 'Requests per minute' })}.`,
       accent: TONE_ACCENTS.idle,
+      icon: METRIC_ICONS.rpm,
       trend: trend(sparklines.rpm, numberText),
       detail: (
         <MetricDetail>
@@ -196,6 +233,7 @@ export function OverviewKpis({
       value: compact(metrics.tokensPerMinute),
       ariaLabel: `${t('analytics.overview.tpm', { defaultValue: 'TPM' })}: ${compactText(metrics.tokensPerMinute)}. ${t('analytics.overview.tokens_per_minute', { defaultValue: 'Tokens per minute' })}.`,
       accent: TONE_ACCENTS.idle,
+      icon: METRIC_ICONS.tpm,
       trend: trend(sparklines.tpm, compactText),
       detail: (
         <MetricDetail>
@@ -211,6 +249,7 @@ export function OverviewKpis({
       value: exactPercent(metrics.cacheReadRate, locale),
       ariaLabel: `${t('analytics.overview.cache_rate', { defaultValue: 'Cache rate' })}: ${percentText(metrics.cacheReadRate)}. ${t('analytics.overview.cache_rate_basis', { defaultValue: 'Cache reads as a share of input tokens' })}.`,
       accent: TONE_ACCENTS[cacheTone],
+      icon: METRIC_ICONS.cache_rate,
       trend: trend(sparklines.cache_rate, percentText),
       detail: (
         <MetricDetail>
@@ -235,6 +274,7 @@ export function OverviewKpis({
             })
       }.`,
       accent: TONE_ACCENTS[metrics.priceCoverageComplete ? 'idle' : 'warning'],
+      icon: METRIC_ICONS.cost,
       trend: trend(sparklines.cost, costText),
       detail: (
         <MetricDetail>

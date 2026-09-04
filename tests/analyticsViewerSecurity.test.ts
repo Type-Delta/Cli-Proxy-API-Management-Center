@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { consumeViewerCredential } from '@/features/analytics/viewerSecurity';
+import {
+  consumeViewerCredential,
+  exchangeViewerCredential,
+  isViewerApiOriginTrusted,
+  readViewerTrustedOrigins,
+  trustViewerApiOrigin,
+} from '@/features/analytics/viewerSecurity';
 import {
   buildViewerLink,
   buildViewerURL,
@@ -9,6 +15,14 @@ import {
 import { apiClient } from '@/services/api/client';
 
 describe('analytics viewer URLs', () => {
+  const storage = () => {
+    const values = new Map<string, string>();
+    return {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+    };
+  };
+
   test('uses the configured API origin for viewer requests', () => {
     apiClient.setConfig({ apiBase: 'https://api.example.test', managementKey: '' });
 
@@ -61,6 +75,60 @@ describe('analytics viewer URLs', () => {
         () => {}
       )
     ).toEqual({ credential: 'credential', apiBase: '' });
+    expect(
+      consumeViewerCredential('#/viewer?api=http%3A%2F%2Fapi.example.test#credential', () => {})
+    ).toEqual({ credential: 'credential', apiBase: '' });
+  });
+
+  test('checks viewer origins in page, configured, then trusted-list order', () => {
+    const origin = 'https://api.example.test';
+    expect(isViewerApiOriginTrusted(origin, { pageOrigin: origin })).toBe(true);
+    expect(
+      isViewerApiOriginTrusted(origin, { configuredApiOrigin: 'https://api.example.test:443' })
+    ).toBe(true);
+    expect(isViewerApiOriginTrusted(origin, { trustedOrigins: [origin] })).toBe(true);
+    expect(
+      isViewerApiOriginTrusted(origin, {
+        pageOrigin: 'https://console.example.test',
+        configuredApiOrigin: 'https://configured.example.test',
+        trustedOrigins: [],
+      })
+    ).toBe(false);
+  });
+
+  test('persists a consented origin without storing credential material', () => {
+    const browserStorage = storage();
+    trustViewerApiOrigin('https://api.example.test', browserStorage);
+    expect(readViewerTrustedOrigins(browserStorage)).toEqual(['https://api.example.test']);
+    expect(JSON.stringify(browserStorage)).not.toContain('credential');
+  });
+
+  test('does not fetch an untrusted destination before consent', async () => {
+    apiClient.setConfig({ apiBase: 'https://configured.example.test', managementKey: '' });
+    let requests = 0;
+    const request = (async () => {
+      requests += 1;
+      return new Response(null, { status: 204 });
+    }) as typeof fetch;
+
+    await expect(
+      exchangeViewerCredential('credential', request, 'https://untrusted.example.test')
+    ).rejects.toThrow('viewer exchange requires consent');
+    expect(requests).toBe(0);
+  });
+
+  test('fetches after consent and keeps the trusted origin persisted', async () => {
+    const browserStorage = storage();
+    trustViewerApiOrigin('https://api.example.test', browserStorage);
+    apiClient.setConfig({ apiBase: 'https://api.example.test', managementKey: '' });
+    let requestedURL = '';
+    const request = (async (input: RequestInfo | URL) => {
+      requestedURL = String(input);
+      return new Response(null, { status: 204 });
+    }) as typeof fetch;
+    await exchangeViewerCredential('credential', request, 'https://api.example.test');
+    expect(requestedURL).toBe('https://api.example.test/v0/analytics/viewer/session');
+    expect(readViewerTrustedOrigins(browserStorage)).toEqual(['https://api.example.test']);
   });
 
   test('resolves a link API before configured API and relative fallback', () => {

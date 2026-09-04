@@ -120,6 +120,29 @@
   --viz-health-4: #176338;
   --viz-health-5: #084a2b;
 
+  // Sequential volume ramp for heatmap cells, banded off --viz-neutral's hue. Contrast against
+  // --bg-primary rises 1.34 / 1.91 / 2.95 / 4.72 / 8.00 with every step >= 1.4x, so "busier"
+  // always reads as "denser". A sequential ramp deliberately starts near the card: the 3:1
+  // graphical floor governs categorical fills, which must separate from each other, not an
+  // ordered ramp whose lowest level means "almost nothing happened".
+  --viz-neutral-1: #c3d1e2;
+  --viz-neutral-2: #9ab0cd;
+  --viz-neutral-3: #6f8db4;
+  --viz-neutral-4: #4a6b96;
+  --viz-neutral-5: #2b4870;
+  // A day with no traffic at all: the card's own hover tint, so an empty grid reads as a grid
+  // rather than as data.
+  --viz-empty-cell: #e9e6df;
+
+  // Chart tooltip panel. Dark and translucent in every theme (the owner's reference), because it
+  // is a transient pointer-follower that must separate from a plot of any colour underneath it.
+  // Resolved over the lightest possible backdrop it still gives 12.7:1 / 5.1:1 for its two text
+  // tones, so the light themes do not need their own values.
+  --viz-tooltip-bg: rgba(28, 26, 23, 0.93);
+  --viz-tooltip-border: rgba(246, 244, 241, 0.14);
+  --viz-tooltip-text: #f6f4f1;
+  --viz-tooltip-text-dim: #a29c95;
+
   // 动效词汇表：内置 ease 太弱，交互反馈统一用强减速曲线。
   // 按压 160ms / 悬停 200ms，UI 动效不超过 300ms。
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
@@ -297,6 +320,21 @@
   --viz-health-3: #b46f09;
   --viz-health-4: #2ab265;
   --viz-health-5: #18d77e;
+
+  // Same ramp inverted for the dark card: 1.35 / 2.05 / 3.64 / 5.96 / 9.89 against --bg-primary.
+  --viz-neutral-1: #1f3350;
+  --viz-neutral-2: #2f4f78;
+  --viz-neutral-3: #4a76a8;
+  --viz-neutral-4: #6f9cca;
+  --viz-neutral-5: #a8c8e8;
+  --viz-empty-cell: #262320;
+
+  // Lifted off #1c1a17 so the panel still separates from the #1d1b18 card behind it (1.29:1)
+  // while keeping 12.1:1 / 4.9:1 for its two text tones.
+  --viz-tooltip-bg: rgba(52, 48, 43, 0.94);
+  --viz-tooltip-border: rgba(246, 244, 241, 0.16);
+  --viz-tooltip-text: #f6f4f1;
+  --viz-tooltip-text-dim: #a29c95;
 }
 
 @media (max-width: 768px),

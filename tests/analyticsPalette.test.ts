@@ -86,6 +86,32 @@ describe('request health ramp', () => {
   });
 });
 
+describe('sequential volume ramp', () => {
+  // A sequential ramp encodes "how much", so its lowest level is allowed to sit near the card —
+  // the 3:1 graphical floor governs categorical fills that must separate from each other.
+  test.each(THEMES)(
+    '%s: contrast against the card rises strictly, in resolvable steps',
+    (theme) => {
+      const ratios = [1, 2, 3, 4, 5].map((level) =>
+        contrast(resolve(theme, `--viz-neutral-${level}`), BACKGROUNDS[theme])
+      );
+      for (let index = 1; index < ratios.length; index += 1) {
+        expect(ratios[index]).toBeGreaterThan(ratios[index - 1]);
+        expect(ratios[index] / ratios[index - 1]).toBeGreaterThan(1.25);
+      }
+      // The busiest cell has to carry a label, so it must clear text contrast against the card.
+      expect(ratios[4]).toBeGreaterThanOrEqual(4.5);
+    }
+  );
+
+  test.each(THEMES)('%s: an empty day is distinguishable from the quietest one', (theme) => {
+    const empty = resolve(theme, '--viz-empty-cell');
+    const quietest = resolve(theme, '--viz-neutral-1');
+    expect(empty).not.toBe(quietest);
+    expect(contrast(empty, quietest)).toBeGreaterThan(1.15);
+  });
+});
+
 describe('token category palette', () => {
   // Stack order in TimeSeriesCharts/UsageDistribution, mapped in Analysis.module.scss:
   // input -> output -> cache_read -> cache_creation -> reasoning.
@@ -190,5 +216,38 @@ describe('top model ranking cap', () => {
     const ranked = buildTopModelSeries(section(TOP_MODEL_LIMIT));
     expect(ranked).toHaveLength(TOP_MODEL_LIMIT);
     expect(ranked.some((item) => item.other)).toBe(false);
+  });
+});
+
+describe('chart tooltip panel', () => {
+  /** Composites a `rgba(r, g, b, a)` panel over an opaque backdrop, the way the browser does. */
+  const flatten = (rgba: string, backdrop: string) => {
+    const parts = rgba.match(/[\d.]+/g);
+    if (!parts) throw new Error(`not an rgba() colour: ${rgba}`);
+    const [r, g, b, alpha] = parts.map(Number);
+    const under = [1, 3, 5].map((index) => parseInt(backdrop.slice(index, index + 2), 16));
+    return `#${[r, g, b]
+      .map((channel, index) =>
+        Math.round(channel * alpha + under[index] * (1 - alpha))
+          .toString(16)
+          .padStart(2, '0')
+      )
+      .join('')}`;
+  };
+  const readRaw = (theme: 'light' | 'white' | 'dark', name: string) => {
+    const block = BLOCKS.get(theme === 'dark' ? 'dark' : 'root') ?? '';
+    const match = block.match(new RegExp(`${name}:\\s*([^;]+);`));
+    if (!match) throw new Error(`themes.scss declares no ${name}`);
+    return match[1].trim();
+  };
+
+  // The panel is dark and translucent in every theme (the owner's reference): it is a transient
+  // pointer-follower that has to separate from a plot of any colour underneath it.
+  test.each(THEMES)('%s: both text tones stay readable on the resolved panel', (theme) => {
+    const panel = flatten(readRaw(theme, '--viz-tooltip-bg'), BACKGROUNDS[theme]);
+    expect(contrast(resolve(theme, '--viz-tooltip-text'), panel)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(resolve(theme, '--viz-tooltip-text-dim'), panel)).toBeGreaterThanOrEqual(4.5);
+    // It also has to read as a panel, not as a hole in the card.
+    expect(contrast(panel, BACKGROUNDS[theme])).toBeGreaterThanOrEqual(1.2);
   });
 });

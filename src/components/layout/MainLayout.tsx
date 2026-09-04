@@ -46,7 +46,10 @@ import {
   type PluginResourceEntry,
 } from '@/features/plugins/pluginResources';
 import { APIKEY_FUN_DISPLAY_NAME, hasApiKeyFunConfig } from '@/features/providers/sponsor';
-import { ANALYTICS_WORKSPACE_ICON } from '@/features/analytics/navigation';
+import {
+  analyticsPageFromPathname,
+  ANALYTICS_WORKSPACE_ICON,
+} from '@/features/analytics/navigation';
 import { AnalyticsFilterProvider } from '@/features/analytics/AnalyticsFilterProvider';
 import { AnalyticsShell } from '@/features/analytics/AnalyticsShell';
 import { triggerHeaderRefresh } from '@/hooks/useHeaderRefresh';
@@ -75,7 +78,9 @@ interface SidebarNavLinkItem {
   labelKey?: string;
   metaKey?: string;
   label?: string;
+  labelDefault?: string;
   meta?: string;
+  metaDefault?: string;
   badge?: number;
   badgeLabel?: string;
   icon: ReactNode;
@@ -98,6 +103,7 @@ const NAV_TOOLTIP_VIEWPORT_MARGIN = 8;
 interface SidebarNavGroup {
   id: string;
   labelKey: string;
+  labelDefault?: string;
   items: SidebarNavItem[];
 }
 
@@ -625,19 +631,36 @@ export function MainLayout() {
           metaKey: 'nav_meta.dashboard',
           icon: sidebarIcons.dashboard,
         },
-        ...(supportsAnalytics
-          ? [
-              {
-                path: '/analytics',
-                labelKey: 'nav.analytics',
-                metaKey: 'nav_meta.analytics',
-                icon: sidebarIcons.analytics,
-              },
-            ]
-          : []),
         ...(!isApiKeyFunConfigured ? [quickStartNavItem] : []),
       ],
     },
+    ...(supportsAnalytics
+      ? [
+          {
+            id: 'analytics',
+            labelKey: 'nav_groups.analytics',
+            labelDefault: 'Analytics',
+            items: [
+              {
+                path: '/analytics/usage',
+                labelKey: 'nav.analytics_usage',
+                labelDefault: 'Usage',
+                metaKey: 'nav_meta.analytics_usage',
+                metaDefault: 'Usage metrics and activity',
+                icon: sidebarIcons.analytics,
+              },
+              {
+                path: '/analytics/management',
+                labelKey: 'nav.analytics_management',
+                labelDefault: 'Analytics Management',
+                metaKey: 'nav_meta.analytics_management',
+                metaDefault: 'Pricing, providers, and maintenance',
+                icon: sidebarIcons.analytics,
+              },
+            ],
+          },
+        ]
+      : []),
     {
       id: 'gateway',
       labelKey: 'nav_groups.gateway',
@@ -745,6 +768,12 @@ export function MainLayout() {
         if (normalizedPath.startsWith('/auth-files/oauth-model-alias')) return authFilesIndex + 0.2;
         return authFilesIndex + 0.05;
       }
+    }
+
+    if (normalizedPath === '/analytics' || normalizedPath.startsWith('/analytics/')) {
+      const analyticsPagePath = `/analytics/${analyticsPageFromPathname(normalizedPath)}`;
+      const analyticsPageIndex = navOrder.indexOf(analyticsPagePath);
+      if (analyticsPageIndex !== -1) return analyticsPageIndex;
     }
 
     const exactIndex = navOrder.indexOf(normalizedPath);
@@ -858,15 +887,25 @@ export function MainLayout() {
     ) : null;
 
   const renderNavLink = (item: SidebarNavLinkItem, className = 'nav-item') => {
-    const itemLabel = item.label ?? (item.labelKey ? t(item.labelKey) : '');
-    const itemMeta = item.meta ?? (item.metaKey ? t(item.metaKey) : '');
+    const itemLabel =
+      item.label ?? (item.labelKey ? t(item.labelKey, { defaultValue: item.labelDefault }) : '');
+    const itemMeta =
+      item.meta ?? (item.metaKey ? t(item.metaKey, { defaultValue: item.metaDefault }) : '');
     const accessibleLabel = item.badgeLabel ? `${itemLabel}, ${item.badgeLabel}` : itemLabel;
+    const analyticsPagePath = item.path.startsWith('/analytics/')
+      ? item.path.slice('/analytics/'.length)
+      : null;
+    const isAnalyticsPageActive =
+      analyticsPagePath !== null &&
+      analyticsPageFromPathname(location.pathname) === analyticsPagePath;
 
     return (
       <NavLink
         key={item.path}
         to={item.path}
-        className={({ isActive }) => `${className} ${isActive ? 'active' : ''}`}
+        className={({ isActive }) =>
+          `${className} ${isActive || isAnalyticsPageActive ? 'active' : ''}`
+        }
         onClick={() => {
           focusedRailItemRef.current = null;
           setSidebarOpen(false);
@@ -1161,7 +1200,9 @@ export function MainLayout() {
             {navGroups.map((group, idx) => (
               <div className="nav-group" key={group.id}>
                 {showSidebarLabels ? (
-                  <div className="nav-group-label">{t(group.labelKey)}</div>
+                  <div className="nav-group-label">
+                    {t(group.labelKey, { defaultValue: group.labelDefault })}
+                  </div>
                 ) : (
                   idx > 0 && <div className="nav-group-divider" aria-hidden="true" />
                 )}

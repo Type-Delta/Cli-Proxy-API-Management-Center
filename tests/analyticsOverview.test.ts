@@ -8,9 +8,12 @@ import i18n from '@/i18n';
 import {
   buildOverviewActivityQuery,
   buildOverviewMetrics,
-  heatmapNeighbour,
+  calendarDay,
+  calendarHeatmapOption,
+  METRIC_ICONS,
   overviewSparklines,
   requestHealthLevel,
+  summarizeActivityYear,
   summarizeTrend,
   toneForCacheRate,
   tokenActivityLevels,
@@ -85,7 +88,8 @@ describe('analytics overview model', () => {
     expect(resolveAnalyticsAsyncState(true, '', false)).toBe('initial-loading');
   });
 
-  test('builds v2 named activity ranges from the selected window and its range zone', () => {
+  // R6-3: the grid is a fixed rolling year, so the request no longer varies with a control.
+  test('always asks for the rolling year at daily grain in the range zone', () => {
     const bangkok: AnalyticsRange = {
       preset: 'last_n_days',
       n: 7,
@@ -93,15 +97,16 @@ describe('analytics overview model', () => {
       grain: '1d',
     };
 
-    expect(buildOverviewActivityQuery('day', ['key-a'], bangkok)).toEqual({
+    expect(buildOverviewActivityQuery(['key-a'], bangkok)).toEqual({
       schema_version: 2,
       operation: 'activity',
-      range: { preset: 'last_n_hours', n: 24, time_zone: 'Asia/Bangkok' },
-      window: 'day',
+      range: { preset: 'last_n_days', n: 365, time_zone: 'Asia/Bangkok' },
+      window: 'year',
       key_ids: ['key-a'],
     });
-    expect(buildOverviewActivityQuery('year', [], { ...bangkok, timeZone: 'UTC' })).toMatchObject({
+    expect(buildOverviewActivityQuery([], { ...bangkok, timeZone: 'UTC' })).toEqual({
       schema_version: 2,
+      operation: 'activity',
       range: { preset: 'last_n_days', n: 365, time_zone: 'UTC' },
       window: 'year',
     });
@@ -115,10 +120,10 @@ describe('analytics overview model', () => {
       grain: '1h',
     };
 
-    expect(buildOverviewActivityQuery('week', ['key-a'], range)).toMatchObject({
+    expect(buildOverviewActivityQuery(['key-a'], range)).toMatchObject({
       range: { time_zone: 'America/St_Johns' },
     });
-    expect(buildOverviewActivityQuery.length).toBe(3);
+    expect(buildOverviewActivityQuery.length).toBe(2);
     expect(overviewModel).not.toHaveProperty('buildActivityQuery');
     expect(overviewModel).not.toHaveProperty('resolvedTimeZone');
   });
@@ -173,6 +178,7 @@ describe('analytics overview model', () => {
     };
 
     expect(overviewSparklines([point])).toEqual({
+      times: ['2026-09-03T10:00:00Z'],
       requests: [60],
       tokens: [3_000],
       rpm: [2],
@@ -221,13 +227,109 @@ describe('analytics overview model', () => {
     expect(requestHealthLevel(990, 10)).toBe(5);
   });
 
-  test('moves keyboard focus through the seven-row heatmap grid', () => {
-    expect(heatmapNeighbour(8, 'ArrowUp', 15)).toBe(7);
-    expect(heatmapNeighbour(8, 'ArrowDown', 15)).toBe(9);
-    expect(heatmapNeighbour(8, 'ArrowLeft', 15)).toBe(1);
-    expect(heatmapNeighbour(8, 'ArrowRight', 15)).toBeNull();
-    expect(heatmapNeighbour(8, 'Home', 15)).toBe(0);
-    expect(heatmapNeighbour(8, 'End', 15)).toBe(14);
+  // R6-3: the calendar option is the whole grid contract now — 365 [day, level] points, the
+  // Mon/Wed/Fri day labels, and one visualMap piece per level including "no data".
+  test('builds a 365-day calendar option with the GitHub label set', () => {
+    const data = Array.from({ length: 365 }, (_, index): [string, number] => [
+      new Date(Date.UTC(2025, 8, 5) + index * 86_400_000).toISOString().slice(0, 10),
+      index % 6,
+    ]);
+    const option = calendarHeatmapOption({
+      data,
+      levelColors: ['var(--viz-empty-cell)', 'a', 'b', 'c', 'd', 'e'],
+      dayNames: ['', 'MON', '', 'WED', '', 'FRI', ''],
+      monthNames: Array.from({ length: 12 }, (_, month) => `M${month}`),
+      tooltip: (day) => day,
+      // The option is an opaque ECharts bag; the test reads the fields the ports depend on.
+    }) as {
+      series: Array<{ type: string; coordinateSystem: string; data: unknown[] }>;
+      calendar: Record<string, unknown> & {
+        dayLabel: Record<string, unknown>;
+        monthLabel: { nameMap: string[] };
+      };
+      visualMap: Record<string, unknown> & { pieces: unknown[] };
+      tooltip: { trigger: string };
+    };
+
+    expect(option.series[0]).toMatchObject({ type: 'heatmap', coordinateSystem: 'calendar' });
+    expect(option.series[0].data).toHaveLength(365);
+    expect(option.series[0].data[0]).toEqual(['2025-09-05', 0]);
+    expect(option.calendar).toMatchObject({
+      cellSize: [10, 10],
+      range: ['2025-09-05', '2026-09-04'],
+      itemStyle: { borderWidth: 3 },
+      yearLabel: { show: false },
+    });
+    expect(option.calendar.dayLabel).toMatchObject({
+      firstDay: 1,
+      nameMap: ['', 'MON', '', 'WED', '', 'FRI', ''],
+    });
+    expect(option.calendar.monthLabel.nameMap).toHaveLength(12);
+    expect(option.visualMap).toMatchObject({ show: false, type: 'piecewise' });
+    expect(option.visualMap.pieces).toEqual([
+      { value: 0, color: 'var(--viz-empty-cell)' },
+      { value: 1, color: 'a' },
+      { value: 2, color: 'b' },
+      { value: 3, color: 'c' },
+      { value: 4, color: 'd' },
+      { value: 5, color: 'e' },
+    ]);
+    expect(option.tooltip.trigger).toBe('item');
+  });
+
+  test('reads each bucket back as a calendar day in the response zone', () => {
+    // 17:00 UTC is already the next local day in Bangkok; the label must follow the response.
+    expect(calendarDay({ start: '2026-09-03T17:00:00Z' }, 'Asia/Bangkok')).toBe('2026-09-04');
+    expect(calendarDay({ start: '2026-09-03T17:00:00Z' }, 'UTC')).toBe('2026-09-03');
+    expect(calendarDay({ start: 'not-a-date' }, 'UTC')).toBe('');
+  });
+
+  test('summarizes a year as total, best, worst and per-month rows for AT', () => {
+    const day = (start: string, requests: number, total: number) => ({
+      start,
+      end: start,
+      requests,
+      succeeded: requests,
+      failed: 0,
+      input_tokens: 0,
+      output_tokens: 0,
+      cached_tokens: 0,
+      cache_read_tokens: 0,
+      cache_creation_tokens: 0,
+      reasoning_tokens: 0,
+      total_tokens: total,
+      known_cost_usd: '0',
+    });
+    const summary = summarizeActivityYear(
+      [
+        day('2026-08-30T00:00:00Z', 3, 30),
+        day('2026-08-31T00:00:00Z', 0, 0),
+        day('2026-09-01T00:00:00Z', 9, 90),
+      ],
+      (bucket) => bucket.total_tokens,
+      'UTC'
+    );
+
+    expect(summary.total).toBe(120);
+    expect(summary.best).toEqual({ day: '2026-09-01', value: 90 });
+    // An empty day is missing data, not a record low.
+    expect(summary.worst).toEqual({ day: '2026-08-30', value: 30 });
+    expect(summary.months).toEqual([
+      { month: '2026-08', requests: 3, tokens: 30 },
+      { month: '2026-09', requests: 9, tokens: 90 },
+    ]);
+  });
+
+  test('gives every KPI an icon so the tone reads without the removed accent rule', () => {
+    expect(Object.keys(METRIC_ICONS)).toEqual([
+      'requests',
+      'tokens',
+      'rpm',
+      'tpm',
+      'cache_rate',
+      'cost',
+    ]);
+    expect(Object.values(METRIC_ICONS).every((icon) => typeof icon === 'function')).toBe(true);
   });
 
   test('renders each KPI as one named keyboard stop with hidden sparklines', () => {
@@ -238,6 +340,7 @@ describe('analytics overview model', () => {
         createElement(OverviewKpis, {
           summary: summary(),
           sparklines: {
+            times: ['2026-09-03T10:00:00Z', '2026-09-03T11:00:00Z', '2026-09-03T12:00:00Z'],
             requests: [1, 2, 3],
             tokens: [100, 200, 150],
             rpm: [0.09513888888888888, 0.2, 0.1],
@@ -254,18 +357,22 @@ describe('analytics overview model', () => {
     expect(markup.match(/tabindex="0"/g)).toHaveLength(7);
     expect(markup.match(/aria-hidden="true"/g)?.length).toBeGreaterThanOrEqual(6);
     expect(markup).not.toContain('0.09513888888888888');
-    expect(markup).toContain('--metric-accent:var(--text-quaternary)');
+    // R6-8: the tone now tints the label icon; the 28x3 accent rule is gone.
+    expect(markup).toContain('--metric-accent:var(--text-tertiary)');
     expect(markup).toContain('--metric-accent:var(--amber-color)');
+    // One tone-tinted icon per card. CSS-module class names are stubbed under bun test, so the
+    // icon is counted by its rendered SVG rather than by its class.
+    expect(markup.match(/<svg /g)).toHaveLength(6);
     expect(
       [...markup.matchAll(/aria-label="([^"]+)"/g)].every((match) => match[1].length < 200)
     ).toBe(true);
   });
 
-  test('round-trips the activity window through the hash query so the view can consume it', () => {
+  // R6-3 removed the control but left the URL parameter tolerated, so old deep links still load.
+  test('still parses a legacy activity window from the hash query without rendering a control', () => {
     const state = parseAnalyticsUrlState('?range=last_n_days&n=7&time_zone=UTC&activity=month');
     expect(state.activityWindow).toBe('month');
     expect(serializeAnalyticsUrlState(state)).toContain('activity=month');
-    expect(parseAnalyticsUrlState(serializeAnalyticsUrlState(state)).activityWindow).toBe('month');
     expect(parseAnalyticsUrlState('?activity=nonsense').activityWindow).toBe('week');
   });
 
@@ -282,7 +389,7 @@ describe('analytics overview model', () => {
               label: 'Total tokens',
               value: { text: '1.8K', title: '1800' },
               ariaLabel: 'Total tokens: 1.8K.',
-              accent: 'var(--text-quaternary)',
+              accent: 'var(--text-tertiary)',
               detail: null,
               trend: {
                 points: Array.from({ length: 40 }, (_, index) => index / 3),
@@ -302,52 +409,56 @@ describe('analytics overview model', () => {
     expect(labels.every((label) => label.length < 200)).toBe(true);
   });
 
-  test('renders heatmap totals and a live readout instead of native titles', () => {
+  test('renders both year heatmaps as one chart each with a hidden month table', () => {
+    const day = (start: string): AnalyticsActivity['buckets'][number] => ({
+      start,
+      end: start,
+      requests: 5,
+      succeeded: 4,
+      failed: 1,
+      input_tokens: 1_000,
+      output_tokens: 400,
+      cached_tokens: 0,
+      cache_read_tokens: 250,
+      cache_creation_tokens: 50,
+      reasoning_tokens: 100,
+      total_tokens: 1_800,
+      known_cost_usd: '0.10',
+    });
     const activity: AnalyticsActivity = {
       meta: summary().meta,
-      grain: '1h',
-      zone: 'Asia/Bangkok',
-      buckets: [
-        {
-          start: '2026-09-03T10:00:00Z',
-          end: '2026-09-03T11:00:00Z',
-          requests: 5,
-          succeeded: 4,
-          failed: 1,
-          input_tokens: 1_000,
-          output_tokens: 400,
-          cached_tokens: 0,
-          cache_read_tokens: 250,
-          cache_creation_tokens: 50,
-          reasoning_tokens: 100,
-          total_tokens: 1_800,
-          known_cost_usd: '0.10',
-        },
-      ],
+      grain: '1d',
+      zone: 'UTC',
+      buckets: [day('2026-08-31T00:00:00Z'), day('2026-09-01T00:00:00Z')],
     };
     const markup = renderToStaticMarkup(
       createElement(
         I18nextProvider,
         { i18n },
-        createElement(ActivityHeatmaps, {
-          activity,
-          loading: false,
-          error: '',
-          window: 'week',
-          onWindowChange: () => {},
-        })
+        createElement(ActivityHeatmaps, { activity, loading: false, error: '' })
       )
     );
 
     expect(markup).toContain(i18n.t('analytics.total_tokens'));
-    expect(markup).toContain('1,800');
+    expect(markup).toContain('3,600');
     expect(markup).toContain(i18n.t('analytics.overview.success_rate'));
     expect(markup).toContain('80.0%');
-    // R3-2: one shared readout per grid, a polite live region rather than an aria-hidden
-    // tooltip, and every cell answers pointer as well as focus.
+    // R6-3: the pointer readout is gone; the tooltip lives on the cell and AT gets a table.
     expect(markup).not.toContain('role="tooltip"');
-    expect(markup.match(/role="status" aria-live="polite"/g)).toHaveLength(2);
-    expect(markup).toContain('Hover or focus a cell to read its bucket.');
-    expect(markup).not.toContain(' title=');
+    expect(markup).not.toContain('Hover or focus a cell to read its bucket.');
+    expect(markup).not.toContain('role="grid"');
+    // Two charts, each a single `role=img` stop, each with its per-month table beside it.
+    expect(markup.match(/role="img"/g)).toHaveLength(2);
+    expect(markup.match(/<caption>/g)).toHaveLength(2);
+    expect(markup).toContain('<caption>Token activity by month</caption>');
+    expect(markup).toContain('<caption>Request health by month</caption>');
+    expect(markup).toContain('2026-08');
+    expect(markup).toContain('2026-09');
+    // R6-3: the window Select is gone from the section header.
+    expect(markup).not.toContain(i18n.t('analytics.overview.activity_window'));
+    expect(markup).not.toContain('<button');
+    expect(
+      [...markup.matchAll(/aria-label="([^"]+)"/g)].every((match) => match[1].length < 200)
+    ).toBe(true);
   });
 });

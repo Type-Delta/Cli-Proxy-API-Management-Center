@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AnalysisCostComponents, AnalysisModelByTime } from '@/types';
+import { AnalyticsChart } from '../../components/AnalyticsChart';
 import {
   formatCompactTokens,
   formatCostValue,
@@ -8,8 +9,19 @@ import {
   formatPercent,
 } from '../../components/analyticsFormatting';
 import { AnalysisCard } from './AnalysisCard';
-import { buildModelEfficiency } from './analysisModel';
+import { buildModelEfficiency, costBreakdownOption } from './analysisModel';
+import { useAnalysisPalette } from './useAnalysisPalette';
 import styles from './Analysis.module.scss';
+
+/**
+ * Cost segments borrow the token-category hues so a category means the same colour across
+ * Token Usage, Cost Breakdown and Usage Distribution: uncached input, cache read, cache write,
+ * output — indices 0, 2, 3, 1 of the categorical palette.
+ */
+const COST_SEGMENT_HUES = [0, 2, 3, 1] as const;
+
+/** Four rows at the shared band height, plus the x axis. */
+const COST_CHART_HEIGHT = 148;
 
 export function CostBreakdown({
   section,
@@ -29,36 +41,45 @@ export function CostBreakdown({
   locale?: string;
 }) {
   const { t } = useTranslation();
-  const segments = [
+  const palette = useAnalysisPalette();
+  const amounts = [
     {
       key: 'input',
       label: t('analytics.analysis.cost_uncached_input', { defaultValue: 'Uncached input' }),
       value: Number(section?.uncached_input_usd ?? 0),
-      color: 'var(--analysis-input)',
     },
     {
       key: 'cache-read',
       label: t('analytics.analysis.cost_cache_read', { defaultValue: 'Cache read' }),
       value: Number(section?.cache_read_usd ?? 0),
-      color: 'var(--analysis-cache-read)',
     },
     {
       key: 'cache-write',
       label: t('analytics.analysis.cost_cache_write', { defaultValue: 'Cache write' }),
       value: Number(section?.cache_creation_usd ?? 0),
-      color: 'var(--analysis-cache-write)',
     },
     {
       key: 'output',
       label: t('analytics.analysis.cost_output', { defaultValue: 'Output' }),
       value: Number(section?.output_usd ?? 0),
-      color: 'var(--analysis-output)',
     },
   ];
-  const total = segments.reduce(
-    (sum, segment) => sum + (Number.isFinite(segment.value) ? Math.max(0, segment.value) : 0),
+  const total = amounts.reduce(
+    (sum, amount) => sum + (Number.isFinite(amount.value) ? Math.max(0, amount.value) : 0),
     0
   );
+  const segments = amounts.map((amount, index) => ({
+    ...amount,
+    color: palette.categorical[COST_SEGMENT_HUES[index]],
+    percent: total > 0 ? (Math.max(0, amount.value) / total) * 100 : 0,
+  }));
+  const option = costBreakdownOption({
+    segments,
+    palette,
+    shareLabel: t('analytics.analysis.token_share', { defaultValue: 'token share' }),
+    formatCost: (value) => formatCostValue(value, locale).text,
+    formatPercent: (value) => formatPercent(value, locale),
+  });
 
   return (
     <AnalysisCard
@@ -91,38 +112,37 @@ export function CostBreakdown({
           {formatCostValue(total, locale).text}
         </strong>
       </div>
-      <div
-        className={styles.costBar}
-        aria-label={t('analytics.analysis.cost_breakdown_title', {
-          defaultValue: 'Cost Breakdown',
+      <AnalyticsChart
+        option={option}
+        height={COST_CHART_HEIGHT}
+        ariaLabel={t('analytics.analysis.cost_chart_summary', {
+          defaultValue: '{{count}} billed token categories by known spend',
+          count: segments.length,
         })}
       >
-        {segments.map((segment) => (
-          <span
-            key={segment.key}
-            style={{
-              width: `${total > 0 ? (Math.max(0, segment.value) / total) * 100 : 25}%`,
-              background: segment.color,
-            }}
-            title={`${segment.label}: ${formatCostValue(segment.value, locale).title}`}
-          />
-        ))}
-      </div>
+        <ul>
+          {segments.map((segment) => (
+            <li key={segment.key}>
+              {segment.label}: {formatCostValue(segment.value, locale).text},{' '}
+              {formatPercent(segment.percent, locale)}
+            </li>
+          ))}
+        </ul>
+      </AnalyticsChart>
       <dl className={styles.costList}>
-        {segments.map((segment) => {
-          const percentage = total > 0 ? (Math.max(0, segment.value) / total) * 100 : 0;
-          return (
-            <div key={segment.key}>
-              <dt>
-                <i style={{ background: segment.color }} aria-hidden="true" />
-                {segment.label}
-              </dt>
-              <dd title={formatCostValue(segment.value, locale).title}>
-                {formatCostValue(segment.value, locale).text} · {formatPercent(percentage, locale)}
-              </dd>
-            </div>
-          );
-        })}
+        {segments.map((segment) => (
+          <div key={segment.key}>
+            <dt>
+              {/* Data-driven fill: the swatch reads the resolved hue of its own bar. */}
+              <i style={{ background: segment.color }} aria-hidden="true" />
+              {segment.label}
+            </dt>
+            <dd title={formatCostValue(segment.value, locale).title}>
+              {formatCostValue(segment.value, locale).text} ·{' '}
+              {formatPercent(segment.percent, locale)}
+            </dd>
+          </div>
+        ))}
       </dl>
       <div className={styles.blendedRate}>
         <span>{t('analytics.analysis.blended_rate', { defaultValue: 'Blended rate' })}</span>

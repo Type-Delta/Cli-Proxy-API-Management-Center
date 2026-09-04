@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { IconLoader2, IconPlus, IconRefreshCw } from '@/components/ui/icons';
+import { RefreshButton } from '@/components/ui/RefreshButton';
+import { IconPlus } from '@/components/ui/icons';
 import styles from './ProviderHeaderCard.module.scss';
 
 interface ProviderHeaderCardProps {
@@ -45,22 +46,14 @@ export function ProviderHeaderCard({
           <h1 className={styles.title}>{title ?? t('providersPage.header.title')}</h1>
         </div>
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={`${styles.btn} ${styles.btnOutline}`}
+          <RefreshButton
+            refreshing={isFetching}
             onClick={onRefresh}
             disabled={isFetching}
-            aria-label={
+            label={
               isFetching ? t('providersPage.actions.syncing') : t('providersPage.actions.refresh')
             }
-          >
-            <span className={`${styles.btnIcon} ${isFetching ? styles.spin : ''}`.trim()}>
-              {isFetching ? <IconLoader2 size={16} /> : <IconRefreshCw size={16} />}
-            </span>
-            <span>
-              {isFetching ? t('providersPage.actions.syncing') : t('providersPage.actions.refresh')}
-            </span>
-          </button>
+          />
           {showNewAction ? (
             <button
               type="button"

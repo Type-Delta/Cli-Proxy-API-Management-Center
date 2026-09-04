@@ -2,10 +2,9 @@ import { Children, useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { DateRangePicker } from '@/components/ui/DateRangePicker';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Input } from '@/components/ui/Input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import {
   Table,
@@ -35,16 +34,7 @@ import {
 } from './analyticsFormatting';
 import { resolveAnalyticsAsyncState } from './analyticsAsyncState';
 import { analyticsErrorCopy } from './analyticsErrorCopy';
-import {
-  analyticsRangeInputToIso,
-  analyticsRangeInputValue,
-  analyticsRangeLabel,
-  MAX_ANALYTICS_RANGE_DAYS,
-  resolveAnalyticsRange,
-  type AnalyticsLeaderboardSort,
-  type AnalyticsRange,
-  type AnalyticsRangeGrain,
-} from '../query';
+import type { AnalyticsLeaderboardSort, AnalyticsRange } from '../query';
 import { useAnalyticsRetryCountdown } from '../useAnalyticsLoad';
 import styles from '../Analytics.module.scss';
 
@@ -194,8 +184,6 @@ export function Filters({
   );
 }
 
-type RangeEditor = 'last_n_hours' | 'last_n_days' | 'custom';
-
 export function TimeRangeControl({
   range,
   resolvedRange,
@@ -207,201 +195,18 @@ export function TimeRangeControl({
   setRange: (range: AnalyticsRange) => void;
   className?: string;
 }) {
-  const { t, i18n } = useTranslation();
-  const [editor, setEditor] = useState<RangeEditor | null>(null);
-  const [amount, setAmount] = useState('7');
-  const [start, setStart] = useState('');
-  const [end, setEnd] = useState('');
-  const [grain, setGrain] = useState<AnalyticsRangeGrain>('1d');
-  const [error, setError] = useState('');
-  const dateFormatter = new Intl.DateTimeFormat(i18n.resolvedLanguage, {
-    timeZone: resolvedRange.time_zone,
-    dateStyle: 'medium',
-    timeStyle: 'medium',
-  });
-  const openEditor = (next: RangeEditor) => {
-    const bounds = resolveAnalyticsRange(range);
-    setEditor(next);
-    setError('');
-    setAmount(
-      String(
-        (range.preset === 'last_n_hours' || range.preset === 'last_n_days') && range.preset === next
-          ? range.n
-          : next === 'last_n_hours'
-            ? 24
-            : 7
-      )
-    );
-    setStart(analyticsRangeInputValue(bounds.start, range.timeZone));
-    setEnd(analyticsRangeInputValue(bounds.end, range.timeZone));
-    setGrain(range.grain);
-  };
-  const selectRange = (preset: string) => {
-    if (preset === 'last_n_hours' || preset === 'last_n_days' || preset === 'custom') {
-      openEditor(preset);
-      return;
-    }
-    if (preset === 'today' || preset === 'yesterday') {
-      setRange({ preset, timeZone: range.timeZone, grain: '1h' });
-      return;
-    }
-    if (preset === 'this_week' || preset === 'this_month') {
-      setRange({ preset, timeZone: range.timeZone, grain: '1d' });
-    }
-  };
-  const apply = () => {
-    if (editor === 'last_n_hours' || editor === 'last_n_days') {
-      const n = Number(amount);
-      const max =
-        editor === 'last_n_hours' ? MAX_ANALYTICS_RANGE_DAYS * 24 : MAX_ANALYTICS_RANGE_DAYS;
-      if (!Number.isInteger(n) || n < 1 || n > max) {
-        setError(t('analytics.range_amount_error', { max }));
-        return;
-      }
-      setRange({
-        preset: editor,
-        n,
-        timeZone: range.timeZone,
-        grain: editor === 'last_n_hours' ? '1h' : '1d',
-      });
-      setEditor(null);
-      return;
-    }
-    if (editor !== 'custom') return;
-    const startIso = analyticsRangeInputToIso(start, range.timeZone);
-    const endIso = analyticsRangeInputToIso(end, range.timeZone);
-    if (!startIso || !endIso || new Date(startIso) >= new Date(endIso)) {
-      setError(t('analytics.range_custom_order_error'));
-      return;
-    }
-    if (
-      new Date(endIso).getTime() - new Date(startIso).getTime() >
-      MAX_ANALYTICS_RANGE_DAYS * 86_400_000
-    ) {
-      setError(t('analytics.range_custom_length_error', { count: MAX_ANALYTICS_RANGE_DAYS }));
-      return;
-    }
-    setRange({
-      preset: 'custom',
-      start: startIso,
-      end: endIso,
-      timeZone: range.timeZone,
-      grain,
-    });
-    setEditor(null);
-  };
-  const options = [
-    { value: 'today', label: t('analytics.range_today') },
-    { value: 'yesterday', label: t('analytics.range_yesterday') },
-    {
-      value: 'last_n_hours',
-      label:
-        range.preset === 'last_n_hours'
-          ? analyticsRangeLabel(t, range)
-          : t('analytics.range_rolling_hours'),
-    },
-    {
-      value: 'last_n_days',
-      label:
-        range.preset === 'last_n_days'
-          ? analyticsRangeLabel(t, range)
-          : t('analytics.range_rolling_days'),
-    },
-    { value: 'this_week', label: t('analytics.range_this_week') },
-    { value: 'this_month', label: t('analytics.range_this_month') },
-    {
-      value: 'custom',
-      label:
-        range.preset === 'custom' ? analyticsRangeLabel(t, range) : t('analytics.range_custom'),
-    },
-  ];
-
+  const { t } = useTranslation();
   return (
     <div className={`${styles.rangeFilter}${className ? ` ${className}` : ''}`}>
       <label className={styles.filterField}>
-        <span>{t('analytics.range')}</span>
-        <Select
-          value={range.preset}
-          onChange={selectRange}
-          options={options}
-          ariaLabel={t('analytics.range')}
+        <span>{t('analytics.range_label')}</span>
+        <DateRangePicker
+          value={range}
+          onChange={setRange}
+          ariaLabel={t('analytics.range_label')}
+          resolvedBounds={resolvedRange}
         />
       </label>
-      <p className={styles.rangeBounds} title={`${resolvedRange.start} → ${resolvedRange.end}`}>
-        {t('analytics.range_bounds', {
-          start: dateFormatter.format(new Date(resolvedRange.start)),
-          end: dateFormatter.format(new Date(resolvedRange.end)),
-          zone: resolvedRange.time_zone,
-        })}
-      </p>
-      <Modal
-        open={editor !== null}
-        title={
-          editor === 'custom'
-            ? t('analytics.range_custom_title')
-            : t('analytics.range_rolling_title')
-        }
-        onClose={() => setEditor(null)}
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setEditor(null)}>
-              {t('common.cancel')}
-            </Button>
-            <Button onClick={apply}>{t('common.apply')}</Button>
-          </>
-        }
-      >
-        <div className={styles.rangeModalFields}>
-          {editor === 'custom' ? (
-            <>
-              <Input
-                label={t('analytics.range_start')}
-                type="datetime-local"
-                value={start}
-                onChange={(event) => setStart(event.target.value)}
-              />
-              <Input
-                label={t('analytics.range_end')}
-                type="datetime-local"
-                value={end}
-                onChange={(event) => setEnd(event.target.value)}
-              />
-              <label className={styles.filterField}>
-                <span>{t('analytics.range_grain')}</span>
-                <Select
-                  value={grain}
-                  onChange={(value) => setGrain(value as AnalyticsRangeGrain)}
-                  options={[
-                    { value: '1h', label: t('analytics.range_grain_1h') },
-                    { value: '1d', label: t('analytics.range_grain_1d') },
-                  ]}
-                  ariaLabel={t('analytics.range_grain')}
-                />
-              </label>
-            </>
-          ) : (
-            <Input
-              label={
-                editor === 'last_n_hours' ? t('analytics.range_hours') : t('analytics.range_days')
-              }
-              type="number"
-              min="1"
-              max={
-                editor === 'last_n_hours' ? MAX_ANALYTICS_RANGE_DAYS * 24 : MAX_ANALYTICS_RANGE_DAYS
-              }
-              step="1"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-            />
-          )}
-          <p className={styles.rangeZone}>{t('analytics.range_zone', { zone: range.timeZone })}</p>
-          {error && (
-            <div className="error-box" role="alert">
-              {error}
-            </div>
-          )}
-        </div>
-      </Modal>
     </div>
   );
 }

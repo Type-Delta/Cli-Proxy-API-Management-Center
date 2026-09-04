@@ -2,10 +2,8 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
-import { Button } from '@/components/ui/Button';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { IconRefreshCw } from '@/components/ui/icons';
 import { capabilitiesApi } from '@/services/api';
 import type { ManagementCapabilities } from '@/types';
 import { useAnalyticsFilters } from './AnalyticsFilterContext';
@@ -17,13 +15,18 @@ import { AnalyticsShellContext, useAnalyticsContentHost } from './AnalyticsShell
 import { Filters } from './components/AnalyticsShared';
 import { formatTime } from './components/analyticsFormatting';
 import { canClaimAnalyticsContent } from './analyticsShellState';
-import { analyticsPageKindFromPathname, type AnalyticsPageKind } from './navigation';
+import {
+  analyticsPageFromPathname,
+  analyticsPageKindFromPathname,
+  type AnalyticsPageKind,
+} from './navigation';
 import { useAnalyticsLoad } from './useAnalyticsLoad';
 import styles from './Analytics.module.scss';
 
 export function AnalyticsShell({ pathname, children }: { pathname: string; children: ReactNode }) {
   const { t, i18n } = useTranslation();
   const kind = analyticsPageKindFromPathname(pathname);
+  const page = analyticsPageFromPathname(pathname);
   const isAnalyticsPath = pathname === '/analytics' || pathname.startsWith('/analytics/');
   const filters = useAnalyticsFilters();
   const capabilities = useAnalyticsLoad<ManagementCapabilities>(
@@ -109,9 +112,18 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
             <header className={styles.header} data-analytics-header>
               <div className={styles.headerCopy}>
                 <h1 id="analytics-page-title" data-analytics-title>
-                  {t(`analytics.pages.${kind}`)}
+                  {t(`analytics.page_title_${page}`, {
+                    defaultValue: page === 'usage' ? 'Usage' : 'Analytics Management',
+                  })}
                 </h1>
-                <p className={styles.subtitle}>{t(`analytics.page_meta.${kind}`)}</p>
+                <p className={styles.subtitle}>
+                  {t(`nav_meta.analytics_${page}`, {
+                    defaultValue:
+                      page === 'usage'
+                        ? 'Usage metrics and activity'
+                        : 'Pricing, providers, and maintenance',
+                  })}
+                </p>
               </div>
               <div className={styles.headerActions}>
                 {capabilities.loading ? (
@@ -128,16 +140,12 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
                   </span>
                 )}
                 {refreshCount > 0 && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
+                  <RefreshButton
+                    refreshing={refreshing}
                     onClick={() => void refreshPage()}
                     disabled={refreshing}
-                    aria-label={t('common.refresh')}
-                  >
-                    {refreshing ? <LoadingSpinner size={14} /> : <IconRefreshCw size={14} />}
-                    <span className={styles.refreshLabel}>{t('common.refresh')}</span>
-                  </Button>
+                    label={t('common.refresh')}
+                  />
                 )}
                 <span className={styles.updated} aria-live="polite">
                   {updatedAt

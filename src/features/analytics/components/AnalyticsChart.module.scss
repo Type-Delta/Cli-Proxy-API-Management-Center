@@ -1,0 +1,86 @@
+.host {
+  position: relative;
+  width: 100%;
+  /* Reserved before the first frame so a chart never shifts the card it lands in. */
+  min-height: var(--analytics-chart-height);
+}
+
+.canvas {
+  width: 100%;
+  height: var(--analytics-chart-height);
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: $radius-sm;
+  }
+}
+
+/* Sits over the last painted frame during a refresh; the frame stays readable underneath. */
+.loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg-primary) 55%, transparent);
+  pointer-events: none;
+}
+
+/* The numbers behind the picture, for assistive technology only. */
+.alternative {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/*
+ * ECharts renders the tooltip into document.body, outside React. The theme carries the panel
+ * (colour, radius, border) and hands ECharts this generated class name, so the rows inside it are
+ * still styled from this module rather than from a global sheet.
+ */
+.tooltip {
+  [data-tt='panel'] {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 148px;
+  }
+
+  [data-tt='head'] {
+    margin-bottom: 2px;
+    font-weight: 650;
+    color: var(--viz-tooltip-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  [data-tt='row'] {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+  }
+
+  [data-tt='name'] {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--viz-tooltip-text-dim);
+    white-space: nowrap;
+  }
+
+  [data-tt='value'] {
+    margin-left: auto;
+    color: var(--viz-tooltip-text);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* The stacked Total is separated by a rule, as in the reference. */
+  [data-tt-total='true'] {
+    margin-top: 3px;
+    padding-top: 5px;
+    border-top: 1px solid var(--viz-tooltip-border);
+  }
+}

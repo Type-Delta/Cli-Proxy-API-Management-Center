@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Eyebrow } from '@/components/ui/Eyebrow';
 import { analyticsApi } from '@/services/api';
 import type {
   AnalyticsAnalysisQuery,
@@ -97,9 +98,9 @@ export function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: str
   return (
     <div className={styles.analysis}>
       <section className={styles.analysisSection} aria-labelledby="analytics-analysis-consumption">
-        <h2 id="analytics-analysis-consumption" className={styles.analysisSectionLabel}>
+        <Eyebrow as="h2" id="analytics-analysis-consumption">
           {t('analytics.analysis.section_consumption', { defaultValue: 'Consumption' })}
-        </h2>
+        </Eyebrow>
         <TokenUsageChart
           section={tokenUsage.data?.series_by_category}
           loading={tokenUsage.loading}
@@ -121,9 +122,9 @@ export function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: str
         <UsageDistribution results={distributions} locale={locale} />
       </section>
       <section className={styles.analysisSection} aria-labelledby="analytics-analysis-behaviour">
-        <h2 id="analytics-analysis-behaviour" className={styles.analysisSectionLabel}>
+        <Eyebrow as="h2" id="analytics-analysis-behaviour">
           {t('analytics.analysis.section_behaviour', { defaultValue: 'Behaviour' })}
-        </h2>
+        </Eyebrow>
         <ModelEfficiency
           section={modelEfficiency.data?.model_by_time}
           loading={modelEfficiency.loading}

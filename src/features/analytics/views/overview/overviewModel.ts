@@ -1,52 +1,46 @@
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import type { TFunction } from 'i18next';
+import type { EChartsCoreOption } from 'echarts/core';
 import type {
   ActivityBucket,
-  ActivityWindow,
   AnalyticsActivityQuery,
   AnalyticsSummary,
   TimeseriesPoint,
 } from '@/types';
+import {
+  IconBadgeDollarSign,
+  IconDownload,
+  IconModelCluster,
+  IconSatellite,
+  IconTimer,
+  type IconProps,
+} from '@/components/ui/icons';
 import type { MeterTone } from '@/features/dashboard/utils';
 import { formatNumber } from '../../components/analyticsFormatting';
 import { MAX_ANALYTICS_KEY_FILTERS, type AnalyticsRange } from '../../query';
 
-export const ACTIVITY_WINDOWS: readonly ActivityWindow[] = ['day', 'week', 'month', 'year'];
-
-/** Fixed calendar-style grid: seven rows filled column by column, as CPAUK draws it. */
+/** Fixed calendar grid: seven day rows, one column per ISO week, as GitHub draws it. */
 export const HEATMAP_ROWS = 7;
 export const HEATMAP_LEVELS = 5;
 
-/**
- * The activity window is its own named range, independent of the page filter:
- * the operator compares "the last week of traffic" against whatever range the
- * KPI tiles are summarizing.
- */
-const WINDOW_RANGES: Record<ActivityWindow, { preset: 'last_n_hours' | 'last_n_days'; n: number }> =
-  {
-    day: { preset: 'last_n_hours', n: 24 },
-    week: { preset: 'last_n_days', n: 7 },
-    month: { preset: 'last_n_days', n: 30 },
-    year: { preset: 'last_n_days', n: 365 },
-  };
+/** The rolling contribution window: one year of daily buckets, always. */
+export const ACTIVITY_YEAR_DAYS = 365;
 
 /**
- * The zone always comes from the selected range: there is no browser-zone
- * default and no exported raw form, so the activity request cannot silently
- * disagree with the KPI tiles again.
+ * Activity is a fixed rolling year at daily grain — the operator reads seasonality here, not the
+ * page range. The zone still comes from the selected range, so the day boundaries the grid draws
+ * are the ones the KPI tiles counted against.
  */
 export function buildOverviewActivityQuery(
-  window: ActivityWindow,
   keyIds: string[],
   range: AnalyticsRange
 ): AnalyticsActivityQuery {
-  const { preset, n } = WINDOW_RANGES[window];
   const uniqueKeyIds = [...new Set(keyIds)].slice(0, MAX_ANALYTICS_KEY_FILTERS);
   return {
     schema_version: 2,
     operation: 'activity',
-    range: { preset, n, time_zone: range.timeZone },
-    window,
+    range: { preset: 'last_n_days', n: ACTIVITY_YEAR_DAYS, time_zone: range.timeZone },
+    window: 'year',
     ...(uniqueKeyIds.length ? { key_ids: uniqueKeyIds } : {}),
   };
 }
@@ -109,35 +103,10 @@ export function requestHealthLevel(succeeded: number, failed: number): number {
 export const requestHealthLevels = (buckets: readonly ActivityBucket[]): number[] =>
   buckets.map((bucket) => requestHealthLevel(bucket.succeeded, bucket.failed));
 
-export const heatmapColumns = (count: number) =>
-  Math.max(1, Math.ceil(Math.max(0, count) / HEATMAP_ROWS));
-
-export const heatmapIndexAt = (row: number, column: number) => column * HEATMAP_ROWS + row;
-
-/** Arrow keys move within the drawn grid; Home/End jump to the range bounds. */
-export function heatmapNeighbour(index: number, key: string, count: number): number | null {
-  const row = index % HEATMAP_ROWS;
-  switch (key) {
-    case 'ArrowUp':
-      return row > 0 ? index - 1 : null;
-    case 'ArrowDown':
-      return row < HEATMAP_ROWS - 1 && index + 1 < count ? index + 1 : null;
-    case 'ArrowLeft':
-      return index >= HEATMAP_ROWS ? index - HEATMAP_ROWS : null;
-    case 'ArrowRight':
-      return index + HEATMAP_ROWS < count ? index + HEATMAP_ROWS : null;
-    case 'Home':
-      return 0;
-    case 'End':
-      return Math.max(0, count - 1);
-    default:
-      return null;
-  }
-}
-
 export type OverviewMetricKey = 'requests' | 'tokens' | 'rpm' | 'tpm' | 'cache_rate' | 'cost';
 
-export type OverviewSparklines = Record<OverviewMetricKey, number[]>;
+/** The six trend series plus the bucket starts they share, so tooltips can name the bucket. */
+export type OverviewSparklines = Record<OverviewMetricKey, number[]> & { times: string[] };
 
 export type TrendSummary = {
   first: string;
@@ -156,14 +125,35 @@ export type MetricCard<Key extends string = string> = {
   detail: ReactNode;
   ariaLabel: string;
   accent: string;
-  trend?: { points: number[]; formatter: (value: number) => string; loading: boolean };
+  /** Sits inline with the label, tinted by `accent`; see METRIC_ICONS. */
+  icon?: ComponentType<IconProps>;
+  trend?: {
+    points: number[];
+    /** Bucket starts, parallel to `points`; the tooltip names the bucket the cursor snapped to. */
+    times?: string[];
+    formatter: (value: number) => string;
+    loading: boolean;
+  };
+};
+
+/**
+ * R6-8: the metric's identity is carried by an icon beside its label rather than by a coloured
+ * rule above it, so the tone is still legible without spending a row of the card on it.
+ */
+export const METRIC_ICONS: Record<OverviewMetricKey, ComponentType<IconProps>> = {
+  requests: IconSatellite,
+  tokens: IconModelCluster,
+  rpm: IconTimer,
+  tpm: IconTimer,
+  cache_rate: IconDownload,
+  cost: IconBadgeDollarSign,
 };
 
 export const TONE_ACCENTS: Record<MeterTone, string> = {
   good: 'var(--viz-success)',
   warning: 'var(--amber-color)',
   critical: 'var(--viz-failure)',
-  idle: 'var(--text-quaternary)',
+  idle: 'var(--text-tertiary)',
 };
 
 export const exactNumber = (value: number, locale?: string): FormattedValue => ({
@@ -223,6 +213,7 @@ const bucketMinutes = (point: TimeseriesPoint) => {
 /** Sparkline series are per-bucket rates, so RPM/TPM trends read as rates, not volumes. */
 export function overviewSparklines(points: readonly TimeseriesPoint[]): OverviewSparklines {
   return {
+    times: points.map((point) => point.start),
     requests: points.map((point) => point.proxy_requests),
     tokens: points.map((point) => point.tokens.total),
     rpm: points.map((point) => {
@@ -310,3 +301,150 @@ export function buildOverviewMetrics(summary: AnalyticsSummary): OverviewMetrics
 
 /** One decimal is enough to make a partial day visible without pretending to precision. */
 export const roundToTenth = (value: number) => Math.round(value * 10) / 10;
+
+/* ------------------------------------------------------------------ chart options */
+
+/** One heatmap cell in ECharts' calendar form: the local day, and the quantized level. */
+export type CalendarDatum = [string, number];
+
+/** A local YYYY-MM-DD key; the calendar coordinate matches cells to days by this string. */
+export const calendarDay = (bucket: Pick<ActivityBucket, 'start'>, zone?: string): string => {
+  const date = new Date(bucket.start);
+  if (Number.isNaN(date.getTime())) return '';
+  // The server already emits bucket starts at local midnight, so reading the parts back in the
+  // response zone recovers the calendar day the operator is looking at.
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: zone || 'UTC',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+  return parts;
+};
+
+/**
+ * The calendar-heatmap option both activity cards share; only the ramp and the tooltip text
+ * differ, so the geometry lives here once.
+ */
+export function calendarHeatmapOption(input: {
+  data: CalendarDatum[];
+  /** Colour per level, index 0 = "no data"; supplied as CSS custom-property references. */
+  levelColors: string[];
+  /** Left-hand day names, seven entries starting at Sunday; blanks hide a row's label. */
+  dayNames: string[];
+  /** Twelve month names across the top. */
+  monthNames: string[];
+  /** Cell tooltip body, keyed by the calendar day. */
+  tooltip: (day: string) => string;
+}): EChartsCoreOption {
+  const days = input.data.map(([day]) => day).filter(Boolean);
+  const range = days.length ? [days[0], days[days.length - 1]] : undefined;
+  return {
+    tooltip: {
+      trigger: 'item',
+      // The card scrolls horizontally, so a panel parented to the chart would be clipped by that
+      // overflow; the body is the only ancestor that cannot cut it off.
+      appendToBody: true,
+      // The cell is the target, so the panel hugs the pointer rather than the plot edge.
+      formatter: (params: unknown) => {
+        const value = (params as { value?: CalendarDatum }).value;
+        return Array.isArray(value) ? input.tooltip(String(value[0])) : '';
+      },
+    },
+    visualMap: {
+      show: false,
+      type: 'piecewise',
+      // Levels are already quantized by the model, so the map is an exact lookup, not a scale.
+      pieces: input.levelColors.map((color, level) => ({ value: level, color })),
+    },
+    calendar: {
+      top: 26,
+      left: 34,
+      // No `right`: pinning both edges makes ECharts derive the width and ignore cellSize, which
+      // stretches the cells into rectangles. The card scrolls instead, as GitHub's grid does.
+      bottom: 4,
+      cellSize: [10, 10],
+      range,
+      // 3px of the card's own background is drawn as the cell border, which is how GitHub's
+      // gap is made: no gutter geometry, just a thick same-colour stroke.
+      itemStyle: { borderWidth: 3 },
+      splitLine: { show: false },
+      yearLabel: { show: false },
+      dayLabel: { firstDay: 1, nameMap: input.dayNames, margin: 6 },
+      monthLabel: { nameMap: input.monthNames, margin: 8 },
+    },
+    series: [{ type: 'heatmap', coordinateSystem: 'calendar', data: input.data }],
+  };
+}
+
+/** The sparkline option shared by every KPI tile: line, soft area, no chrome. */
+export function sparklineOption(input: {
+  /** [bucket start ISO, value] so the tooltip can name the bucket the cursor snapped to. */
+  data: Array<[string, number]>;
+  seriesName: string;
+  color: string;
+  tooltipFormatter: (params: unknown) => string;
+  axisPointer: unknown;
+}): EChartsCoreOption {
+  return {
+    grid: { top: 2, right: 1, bottom: 2, left: 1, containLabel: false },
+    tooltip: { trigger: 'axis', formatter: input.tooltipFormatter, axisPointer: input.axisPointer },
+    xAxis: { type: 'category', show: false, boundaryGap: false, data: input.data.map(([x]) => x) },
+    yAxis: { type: 'value', show: false, scale: true },
+    series: [
+      {
+        type: 'line',
+        name: input.seriesName,
+        data: input.data.map(([, y]) => y),
+        showSymbol: false,
+        smooth: 0.25,
+        lineStyle: { width: 1.5, color: input.color },
+        itemStyle: { color: input.color },
+        areaStyle: { color: input.color, opacity: 0.16 },
+      },
+    ],
+  };
+}
+
+/** Per-month totals for the visually-hidden table that stands in for the grid. */
+export type MonthTotal = { month: string; requests: number; tokens: number };
+
+/** Year summary the heatmap's aria-label and hidden table are built from. */
+export type YearSummary = {
+  total: number;
+  best: { day: string; value: number } | null;
+  worst: { day: string; value: number } | null;
+  months: MonthTotal[];
+};
+
+/**
+ * Reduces a year of daily buckets to what assistive technology gets instead of 365 cells:
+ * the total, the busiest and quietest recorded days, and one row per calendar month.
+ */
+export function summarizeActivityYear(
+  buckets: readonly ActivityBucket[],
+  value: (bucket: ActivityBucket) => number,
+  zone?: string
+): YearSummary {
+  const months = new Map<string, MonthTotal>();
+  let total = 0;
+  let best: YearSummary['best'] = null;
+  let worst: YearSummary['worst'] = null;
+  for (const bucket of buckets) {
+    const day = calendarDay(bucket, zone);
+    if (!day) continue;
+    const amount = finite(value(bucket));
+    total += amount;
+    const month = day.slice(0, 7);
+    const row = months.get(month) ?? { month, requests: 0, tokens: 0 };
+    row.requests += finite(bucket.requests);
+    row.tokens += finite(bucket.total_tokens);
+    months.set(month, row);
+    // "Best" and "worst" only mean something among days that recorded traffic; an empty day is
+    // absence of data, not a record low.
+    if (amount <= 0) continue;
+    if (!best || amount > best.value) best = { day, value: amount };
+    if (!worst || amount < worst.value) worst = { day, value: amount };
+  }
+  return { total, best, worst, months: [...months.values()] };
+}

@@ -63,10 +63,6 @@
   gap: 8px;
   min-height: 40px;
   flex-wrap: wrap;
-
-  button {
-    min-height: 40px;
-  }
 }
 
 .updated {
@@ -161,27 +157,6 @@
 .rangeFilter .filterField {
   width: min(100%, 240px);
   flex: none;
-}
-.rangeBounds,
-.rangeZone {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.45;
-}
-.rangeBounds {
-  overflow-wrap: anywhere;
-}
-.rangeModalFields {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-
-  input,
-  button {
-    min-height: 40px;
-  }
 }
 .kpis {
   display: grid;
@@ -466,8 +441,7 @@
     background: transparent;
   }
 
-  .statusLabel,
-  .refreshLabel {
+  .statusLabel {
     position: absolute;
     width: 1px;
     height: 1px;

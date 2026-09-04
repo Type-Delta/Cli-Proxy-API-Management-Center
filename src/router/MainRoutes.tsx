@@ -17,7 +17,7 @@ import { useAuthStore } from '@/stores';
 import { AnalyticsErrorBoundary } from '@/features/analytics/AnalyticsErrorBoundary';
 import { AnalyticsSkeleton } from '@/features/analytics/AnalyticsSkeleton';
 import { AnalyticsContentPortal } from '@/features/analytics/AnalyticsShell';
-import { ANALYTICS_PAGES } from '@/features/analytics/navigation';
+import { ANALYTICS_PAGES, analyticsPageRedirectTarget } from '@/features/analytics/navigation';
 import { leaderboardRedirectTarget } from '@/features/analytics/query';
 
 const analyticsPage = (kind: import('@/features/analytics/AnalyticsPage').AnalyticsPageKind) =>
@@ -47,6 +47,24 @@ function LeaderboardRedirect() {
   return <Navigate to={leaderboardRedirectTarget(location.search)} replace />;
 }
 
+function AnalyticsPageRedirect({
+  page,
+}: {
+  page: import('@/features/analytics/navigation').AnalyticsPage;
+}) {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={{
+        pathname: analyticsPageRedirectTarget(page),
+        search: location.search,
+        hash: location.hash,
+      }}
+      replace
+    />
+  );
+}
+
 const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/', element: <DashboardPage /> },
   { path: '/dashboard', element: <DashboardPage /> },
@@ -61,7 +79,15 @@ const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/auth-files/oauth-model-alias', element: <AuthFilesOAuthModelAliasEditPage /> },
   { path: '/oauth', element: <OAuthPage /> },
   { path: '/quota', element: <QuotaPage /> },
-  { path: '/analytics', element: <Navigate to="/analytics/overview" replace /> },
+  { path: '/analytics', element: <AnalyticsPageRedirect page="usage" /> },
+  {
+    path: '/analytics/usage',
+    element: <AnalyticsPageRedirect page="usage" />,
+  },
+  {
+    path: '/analytics/management',
+    element: <AnalyticsPageRedirect page="management" />,
+  },
   { path: '/analytics/leaderboard', element: <LeaderboardRedirect /> },
   ...analyticsRoutes.map(([path, Page]) => ({
     path: `/analytics/${path}`,

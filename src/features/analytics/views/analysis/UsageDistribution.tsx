@@ -1,9 +1,9 @@
 import { useMemo, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { EmptyState } from '@/components/ui/EmptyState';
 import type { AnalyticsDimensionPage } from '@/types';
 import { useAnalyticsFilters } from '../../AnalyticsFilterContext';
 import type { AnalyticsLoadResult } from '../../useAnalyticsLoad';
+import { AnalyticsChart } from '../../components/AnalyticsChart';
 import {
   formatCompactTokens,
   formatCostValue,
@@ -15,22 +15,23 @@ import {
   ANALYSIS_DISTRIBUTIONS,
   buildDistributionRows,
   compactKeyId,
+  distributionChartHeight,
+  distributionOption,
+  TOKEN_CATEGORY_KEYS,
   type AnalysisDistribution,
+  type DistributionRow,
 } from './analysisModel';
+import { useAnalysisPalette } from './useAnalysisPalette';
 import styles from './Analysis.module.scss';
 
-const categoryMix = (row: AnalyticsDimensionPage['rows'][number]) =>
-  [
-    [
-      'input',
-      Math.max(0, row.tokens.input - row.tokens.cache_read - row.tokens.cache_creation),
-      'var(--analysis-input)',
-    ],
-    ['output', Math.max(0, row.tokens.output - row.tokens.reasoning), 'var(--analysis-output)'],
-    ['cache_read', row.tokens.cache_read, 'var(--analysis-cache-read)'],
-    ['cache_creation', row.tokens.cache_creation, 'var(--analysis-cache-write)'],
-    ['reasoning', row.tokens.reasoning, 'var(--analysis-reasoning)'],
-  ] as const;
+/** Token counts in `TOKEN_CATEGORY_KEYS` order, made mutually exclusive as elsewhere. */
+const categoryMix = (row: DistributionRow) => [
+  Math.max(0, row.tokens.input - row.tokens.cache_read - row.tokens.cache_creation),
+  Math.max(0, row.tokens.output - row.tokens.reasoning),
+  row.tokens.cache_read,
+  row.tokens.cache_creation,
+  row.tokens.reasoning,
+];
 
 const safeDimensionValue = (dimension: AnalysisDistribution, value: string) =>
   dimension === 'key' || dimension === 'credential' ? compactKeyId(value) : value || '—';
@@ -43,10 +44,46 @@ export function UsageDistribution({
   locale?: string;
 }) {
   const { t } = useTranslation();
+  const palette = useAnalysisPalette();
   // The active dimension lives in the hash query so a shared link reopens on it.
   const { distribution: active, setDistribution: setActive } = useAnalyticsFilters();
   const result = results[active];
   const rows = useMemo(() => buildDistributionRows(result.data?.rows ?? []), [result.data]);
+  const tokensLabel = t('analytics.total_tokens', { defaultValue: 'tokens' });
+  const requestsLabel = t('analytics.proxy_requests', { defaultValue: 'proxy requests' });
+  const shareLabel = t('analytics.analysis.token_share', { defaultValue: 'token share' });
+  const categoryLabels = TOKEN_CATEGORY_KEYS.map((key) =>
+    t(`analytics.analysis.category_${key}`, { defaultValue: key.replace('_', ' ') })
+  );
+  const option = useMemo(
+    () =>
+      distributionOption({
+        rows: rows.map((row) => ({
+          label: safeDimensionValue(active, row.value),
+          categories: categoryMix(row),
+        })),
+        categoryLabels,
+        palette,
+        formatTokens: (value) => formatCompactTokens(value, locale).text,
+        tooltip: (index) => {
+          const row = rows[index];
+          return {
+            header: safeDimensionValue(active, row.value),
+            rows: [
+              { name: shareLabel, text: formatPercent(row.percent, locale) },
+              { name: tokensLabel, text: formatNumber(row.tokens.total, locale) },
+              {
+                name: t('analytics.known_cost', { defaultValue: 'Known cost' }),
+                text: formatCostValue(row.known_cost_usd, locale).text,
+              },
+              { name: requestsLabel, text: formatNumber(row.proxy_requests, locale) },
+            ],
+          };
+        },
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- labels derive from t/locale.
+    [active, locale, palette, requestsLabel, rows, shareLabel, t, tokensLabel]
+  );
   const labels: Record<AnalysisDistribution, string> = {
     key: t('analytics.analysis.distribution_key', { defaultValue: 'Key' }),
     model: t('analytics.analysis.distribution_model', { defaultValue: 'Model' }),
@@ -119,79 +156,38 @@ export function UsageDistribution({
         id={`analysis-distribution-panel-${active}`}
         role="tabpanel"
         aria-labelledby={`analysis-distribution-${active}`}
-        className={styles.distributionList}
       >
-        {rows.length === 0 ? (
-          <EmptyState
-            title={t('analytics.no_data_title', { defaultValue: 'No data' })}
-            description={t('analytics.analysis.no_distribution', {
-              defaultValue: 'No usage was attributed to this dimension in the selected range.',
-            })}
-          />
-        ) : (
-          rows.map((row) => {
-            const mix = categoryMix(row);
-            const mixTotal = mix.reduce((sum, [, value]) => sum + value, 0);
-            const value = safeDimensionValue(active, row.value);
-            return (
-              <article key={row.value} className={styles.distributionRow}>
-                <div className={styles.distributionTopline}>
-                  <strong
-                    title={active === 'key' || active === 'credential' ? undefined : row.value}
-                  >
-                    {value}
-                  </strong>
-                  <span>{formatPercent(row.percent, locale)}</span>
-                </div>
-                <div
-                  className={styles.shareTrack}
-                  role="img"
-                  aria-label={`${value}, ${formatPercent(row.percent, locale)} ${t('analytics.analysis.token_share', { defaultValue: 'token share' })}`.slice(
-                    0,
-                    199
-                  )}
-                >
-                  <span style={{ width: `${Math.min(100, Math.max(0, row.percent))}%` }} />
-                </div>
-                <div className={styles.distributionMeta}>
-                  <span title={formatCompactTokens(row.tokens.total, locale).title}>
-                    {formatCompactTokens(row.tokens.total, locale).text}{' '}
-                    {t('analytics.total_tokens', { defaultValue: 'tokens' })}
-                  </span>
-                  <span title={formatCostValue(row.known_cost_usd, locale).title}>
-                    {formatCostValue(row.known_cost_usd, locale).text}
-                  </span>
-                  <span>
-                    {formatNumber(row.proxy_requests, locale)}{' '}
-                    {t('analytics.proxy_requests', { defaultValue: 'proxy requests' })}
-                  </span>
-                </div>
-                <div
-                  className={styles.categoryMix}
-                  role="img"
-                  aria-label={mix
-                    .map(
-                      ([key, count]) =>
-                        `${t(`analytics.analysis.category_${key}`, { defaultValue: key.replace('_', ' ') })} ${formatNumber(count, locale)}`
-                    )
-                    .join(', ')
-                    .slice(0, 199)}
-                >
-                  {mix.map(([key, count, color]) => (
-                    <span
-                      key={key}
-                      style={{
-                        width: `${mixTotal > 0 ? (count / mixTotal) * 100 : 0}%`,
-                        background: color,
-                      }}
-                      title={`${t(`analytics.analysis.category_${key}`, { defaultValue: key.replace('_', ' ') })}: ${formatNumber(count, locale)}`}
-                    />
-                  ))}
-                </div>
-              </article>
-            );
-          })
-        )}
+        <AnalyticsChart
+          option={option}
+          height={distributionChartHeight(rows.length)}
+          ariaLabel={t('analytics.analysis.distribution_chart_summary', {
+            defaultValue: '{{count}} {{dimension}} rows by token volume',
+            count: rows.length,
+            dimension: labels[active].toLocaleLowerCase(locale),
+          })}
+          empty={
+            rows.length === 0
+              ? {
+                  title: t('analytics.no_data_title', { defaultValue: 'No data' }),
+                  description: t('analytics.analysis.no_distribution', {
+                    defaultValue:
+                      'No usage was attributed to this dimension in the selected range.',
+                  }),
+                }
+              : undefined
+          }
+        >
+          <ul>
+            {rows.map((row) => (
+              <li key={row.value}>
+                {safeDimensionValue(active, row.value)}: {formatPercent(row.percent, locale)}{' '}
+                {shareLabel}, {formatNumber(row.tokens.total, locale)} {tokensLabel},{' '}
+                {formatCostValue(row.known_cost_usd, locale).text},{' '}
+                {formatNumber(row.proxy_requests, locale)} {requestsLabel}
+              </li>
+            ))}
+          </ul>
+        </AnalyticsChart>
       </div>
     </AnalysisCard>
   );

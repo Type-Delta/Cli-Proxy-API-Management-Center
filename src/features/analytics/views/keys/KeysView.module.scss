@@ -5,21 +5,38 @@
 }
 
 .disclosure {
-  margin: 0 0 14px;
+  margin: 0;
 }
 
 .sortButton {
-  display: inline-flex;
-  min-width: 40px;
+  width: 100%;
   min-height: 40px;
-  align-items: center;
-  padding: 0 6px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  white-space: nowrap;
+  padding-inline: 0;
+}
+
+.keysTable {
+  min-width: 1180px;
+}
+
+.actionHeader,
+.actionCell {
+  position: sticky;
+  right: 0;
+  background: var(--bg-primary);
+  box-shadow: -8px 0 8px -8px rgba(0, 0, 0, 0.15);
+}
+
+.actionHeader {
+  z-index: 2;
+}
+
+.actionCell {
+  z-index: 1;
+}
+
+.row:hover .actionCell,
+.row.selected .actionCell {
+  background: var(--bg-primary);
 }
 
 .retryButton {
@@ -59,6 +76,7 @@
     height: 100%;
     border-radius: inherit;
     background: var(--primary-color);
+    width: var(--share-width);
   }
 }
 

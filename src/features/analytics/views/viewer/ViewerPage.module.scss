@@ -72,6 +72,30 @@
   }
 }
 
+.consent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  p {
+    max-width: 68ch;
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+}
+
+.consentOrigin {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.consentActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .sparkline {
   height: 72px;
   margin-top: 12px;

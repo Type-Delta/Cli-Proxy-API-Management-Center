@@ -2,30 +2,18 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '@/components/ui/EmptyState';
 import type { AnalysisLatency } from '@/types';
+import { AnalyticsChart } from '../../components/AnalyticsChart';
 import { formatDateTime, formatDuration, formatNumber } from '../../components/analyticsFormatting';
 import { AnalysisCard } from './AnalysisCard';
 import {
-  ANALYSIS_CAPTION_BASELINE,
-  ANALYSIS_CAPTION_INLINE,
-  ANALYSIS_CHART_BASE_WIDTH,
   ANALYSIS_CHART_HEIGHT,
-  ANALYSIS_PLOT_HEIGHT,
-  ANALYSIS_PLOT_INSET,
-  ANALYSIS_TICK_BASELINE,
-  analysisPlotWidth,
-  buildLogAxis,
-  logAxisRatio,
+  latencyOption,
   percentile,
   resolveLatencyPresentation,
   slowestLatencySamples,
 } from './analysisModel';
+import { useAnalysisPalette } from './useAnalysisPalette';
 import styles from './Analysis.module.scss';
-
-const WIDTH = ANALYSIS_CHART_BASE_WIDTH;
-const HEIGHT = ANALYSIS_CHART_HEIGHT;
-const PLOT = ANALYSIS_PLOT_INSET;
-const PLOT_WIDTH = analysisPlotWidth(WIDTH);
-const PLOT_HEIGHT = ANALYSIS_PLOT_HEIGHT;
 
 export function LatencyDiagnostics({
   section,
@@ -45,21 +33,32 @@ export function LatencyDiagnostics({
   locale?: string;
 }) {
   const { t } = useTranslation();
+  const palette = useAnalysisPalette();
   const presentation = useMemo(() => resolveLatencyPresentation(section ?? null), [section]);
   const samples = presentation.samples;
   const ttftValues = samples.map((sample) => sample.ttft_ms ?? 0);
   const latencyValues = samples.map((sample) => sample.latency_ms);
-  const ttftAxis = buildLogAxis([...ttftValues, section?.p95_ttft_ms ?? 0]);
-  const latencyAxis = buildLogAxis([...latencyValues, section?.p95_latency_ms ?? 0]);
-  const p95X =
-    section?.p95_ttft_ms == null
-      ? null
-      : PLOT.left + logAxisRatio(section.p95_ttft_ms, ttftAxis) * PLOT_WIDTH;
-  const p95Y =
-    section?.p95_latency_ms == null
-      ? null
-      : PLOT.top + (1 - logAxisRatio(section.p95_latency_ms, latencyAxis)) * PLOT_HEIGHT;
   const browsable = useMemo(() => slowestLatencySamples(samples), [samples]);
+  const ttftLabel = t('analytics.analysis.ttft', { defaultValue: 'TTFT' });
+  const latencyLabel = t('analytics.latency', { defaultValue: 'Latency' });
+  const option = useMemo(
+    () =>
+      latencyOption({
+        samples,
+        p95Ttft: section?.p95_ttft_ms,
+        p95Latency: section?.p95_latency_ms,
+        palette,
+        succeededLabel: t('analytics.overview.succeeded', { defaultValue: 'Succeeded' }),
+        failedLabel: t('analytics.failures', { defaultValue: 'Failures' }),
+        ttftLabel,
+        latencyLabel,
+        p95TtftLabel: t('analytics.analysis.p95_ttft', { defaultValue: 'p95 TTFT' }),
+        p95LatencyLabel: t('analytics.analysis.p95_latency', { defaultValue: 'p95 latency' }),
+        formatDuration: (value) => formatDuration(value, locale),
+        formatTimestamp: (value) => formatDateTime(value, locale),
+      }),
+    [latencyLabel, locale, palette, samples, section, t, ttftLabel]
+  );
   const hasSpecialState = presentation.state === 'unsupported' || presentation.state === 'missing';
   const chartLabel = t('analytics.analysis.latency_chart_summary', {
     defaultValue: '{{count}} latency samples on logarithmic TTFT and latency axes with p95 lines',
@@ -150,110 +149,23 @@ export function LatencyDiagnostics({
           {presentation.state === 'ready' && (
             <>
               <div className={styles.latencyPlot}>
-                <svg
-                  className={styles.chartSvg}
-                  viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-                  role="img"
-                  tabIndex={0}
-                  aria-label={chartLabel}
-                >
-                  {latencyAxis.ticks.map((tick) => {
-                    const y = PLOT.top + (1 - logAxisRatio(tick, latencyAxis)) * PLOT_HEIGHT;
-                    return (
-                      <g key={`y-${tick}`} aria-hidden="true">
-                        <line
-                          x1={PLOT.left}
-                          y1={y}
-                          x2={WIDTH - PLOT.right}
-                          y2={y}
-                          className={styles.gridline}
-                        />
-                        <text
-                          x={PLOT.left - 8}
-                          y={y + 4}
-                          className={styles.axisLabel}
-                          textAnchor="end"
-                        >
-                          {formatDuration(tick, locale)}
-                        </text>
-                      </g>
-                    );
-                  })}
-                  {ttftAxis.ticks.map((tick) => {
-                    const x = PLOT.left + logAxisRatio(tick, ttftAxis) * PLOT_WIDTH;
-                    return (
-                      <g key={`x-${tick}`} aria-hidden="true">
-                        <line
-                          x1={x}
-                          y1={PLOT.top}
-                          x2={x}
-                          y2={PLOT.top + PLOT_HEIGHT}
-                          className={styles.gridline}
-                        />
-                        <text
-                          x={x}
-                          y={ANALYSIS_TICK_BASELINE}
-                          className={styles.axisLabel}
-                          textAnchor="middle"
-                        >
-                          {formatDuration(tick, locale)}
-                        </text>
-                      </g>
-                    );
-                  })}
-                  {p95X !== null && (
-                    <line
-                      aria-hidden="true"
-                      x1={p95X}
-                      y1={PLOT.top}
-                      x2={p95X}
-                      y2={PLOT.top + PLOT_HEIGHT}
-                      className={styles.p95TtftLine}
-                    />
-                  )}
-                  {p95Y !== null && (
-                    <line
-                      aria-hidden="true"
-                      x1={PLOT.left}
-                      y1={p95Y}
-                      x2={WIDTH - PLOT.right}
-                      y2={p95Y}
-                      className={styles.p95LatencyLine}
-                    />
-                  )}
-                  {samples.map((sample, index) => {
-                    const x = PLOT.left + logAxisRatio(sample.ttft_ms ?? 0, ttftAxis) * PLOT_WIDTH;
-                    const y =
-                      PLOT.top + (1 - logAxisRatio(sample.latency_ms, latencyAxis)) * PLOT_HEIGHT;
-                    return (
-                      <circle
-                        key={`${sample.requested_at}-${index}`}
-                        cx={x}
-                        cy={y}
-                        r={4}
-                        aria-hidden="true"
-                        className={sample.succeeded ? styles.scatterSuccess : styles.scatterFailure}
-                      />
-                    );
-                  })}
-                  <text
-                    x={PLOT.left + PLOT_WIDTH / 2}
-                    y={ANALYSIS_CAPTION_BASELINE}
-                    className={styles.axisTitle}
-                    textAnchor="middle"
-                  >
-                    {t('analytics.analysis.ttft', { defaultValue: 'TTFT' })} · log10
-                  </text>
-                  <text
-                    x={ANALYSIS_CAPTION_INLINE}
-                    y={PLOT.top + PLOT_HEIGHT / 2}
-                    className={styles.axisTitle}
-                    textAnchor="middle"
-                    transform={`rotate(-90 ${ANALYSIS_CAPTION_INLINE} ${PLOT.top + PLOT_HEIGHT / 2})`}
-                  >
-                    {t('analytics.latency', { defaultValue: 'Latency' })} · log10
-                  </text>
-                </svg>
+                <AnalyticsChart
+                  option={option}
+                  height={ANALYSIS_CHART_HEIGHT}
+                  ariaLabel={chartLabel}
+                  // The scatter's numbers are already in the page twice — the percentile tiles
+                  // above and the sample browser below — so a third copy would only add noise.
+                  description={
+                    <p>
+                      {stats
+                        .map(
+                          (stat) =>
+                            `${stat.label} ${stat.value == null ? '—' : formatDuration(stat.value, locale)}`
+                        )
+                        .join(', ')}
+                    </p>
+                  }
+                />
               </div>
               <dl className={styles.latencyMobileSummary} aria-label={chartLabel}>
                 {stats.map((stat) => (
@@ -280,12 +192,10 @@ export function LatencyDiagnostics({
                       <strong>{sample.model}</strong>
                       <span>{formatDateTime(sample.requested_at, locale)}</span>
                       <span>
-                        {t('analytics.analysis.ttft', { defaultValue: 'TTFT' })}{' '}
-                        {formatDuration(sample.ttft_ms ?? 0, locale)}
+                        {ttftLabel} {formatDuration(sample.ttft_ms ?? 0, locale)}
                       </span>
                       <span>
-                        {t('analytics.latency', { defaultValue: 'Latency' })}{' '}
-                        {formatDuration(sample.latency_ms, locale)}
+                        {latencyLabel} {formatDuration(sample.latency_ms, locale)}
                       </span>
                     </li>
                   ))}

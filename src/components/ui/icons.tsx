@@ -285,6 +285,35 @@ export function IconChevronDown({ size = 20, ...props }: IconProps) {
   );
 }
 
+export function IconArrowUp({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="m5 12 7-7 7 7" />
+      <path d="M12 19V5" />
+    </svg>
+  );
+}
+
+export function IconArrowDown({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="m19 12-7 7-7-7" />
+      <path d="M12 5v14" />
+    </svg>
+  );
+}
+
+export function IconArrowUpDown({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="m8 7 4-4 4 4" />
+      <path d="M12 3v8" />
+      <path d="m16 17-4 4-4-4" />
+      <path d="M12 13v8" />
+    </svg>
+  );
+}
+
 export function IconChevronLeft({ size = 20, ...props }: IconProps) {
   return (
     <svg {...baseSvgProps} width={size} height={size} {...props}>

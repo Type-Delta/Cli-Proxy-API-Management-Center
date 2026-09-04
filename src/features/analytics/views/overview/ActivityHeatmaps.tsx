@@ -1,20 +1,51 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Select } from '@/components/ui/Select';
-import type { ActivityBucket, ActivityWindow, AnalyticsActivity } from '@/types';
+import type { ActivityBucket, AnalyticsActivity } from '@/types';
+import { AnalyticsChart } from '../../components/AnalyticsChart';
 import { AsyncState } from '../../components/AnalyticsShared';
-import { HeatmapReadout } from '../../components/HeatmapReadout';
-import { formatDateTime, formatNumber, formatPercent } from '../../components/analyticsFormatting';
+import { formatNumber, formatPercent } from '../../components/analyticsFormatting';
 import {
-  ACTIVITY_WINDOWS,
-  heatmapColumns,
-  heatmapNeighbour,
+  calendarDay,
+  calendarHeatmapOption,
   requestHealthLevels,
+  summarizeActivityYear,
   tokenActivityLevels,
+  type CalendarDatum,
+  type YearSummary,
 } from './overviewModel';
 import styles from './Overview.module.scss';
+
+/**
+ * Renders a `YYYY-MM-DD` calendar day. The day is already local to the response zone, so it is
+ * read back as UTC — formatting the bucket's instant in the browser zone would slide the label
+ * onto the neighbouring day for anyone not sitting in the range's zone.
+ */
+const formatDay = (day: string, locale?: string) =>
+  new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(
+    new Date(`${day}T00:00:00Z`)
+  );
+
+// Cell colour per level, index 0 = "no data". The ramps live in themes.scss so the grids
+// re-theme with everything else; ECharts resolves the var() straight out of the SVG attribute.
+const TOKEN_LEVEL_COLORS = [
+  'var(--viz-empty-cell)',
+  'var(--viz-neutral-1)',
+  'var(--viz-neutral-2)',
+  'var(--viz-neutral-3)',
+  'var(--viz-neutral-4)',
+  'var(--viz-neutral-5)',
+];
+
+const HEALTH_LEVEL_COLORS = [
+  'var(--viz-empty-cell)',
+  'var(--viz-health-1)',
+  'var(--viz-health-2)',
+  'var(--viz-health-3)',
+  'var(--viz-health-4)',
+  'var(--viz-health-5)',
+];
 
 const TOKEN_LEVEL_CLASSES = [
   styles.tokenLevel0,
@@ -74,96 +105,128 @@ function HeatmapSummary({ items }: { items: Array<{ label: string; value: string
   );
 }
 
-function HeatmapGrid({
-  buckets,
-  levels,
-  classes,
-  label,
-  cellLabel,
-  header,
+/**
+ * The text alternative to 365 cells. ECharts gives no cell focus and the owner wants one tab
+ * stop per chart, so assistive technology reads a per-month table instead of walking the grid.
+ */
+function MonthTable({
+  caption,
+  summary,
+  locale,
 }: {
-  buckets: ActivityBucket[];
-  levels: number[];
-  classes: string[];
-  label: string;
-  cellLabel: (bucket: ActivityBucket) => string;
-  /** Rendered above the grid; both cards pass their totals strip here. */
-  header: ReactNode;
+  caption: string;
+  summary: YearSummary;
+  locale?: string;
 }) {
   const { t } = useTranslation();
-  const [activeIndex, setActiveIndex] = useState(0);
-  // The readout is driven by an explicit active cell so pointer, touch and keyboard all
-  // resolve to the same text; `null` means "nothing is being inspected".
-  const [readIndex, setReadIndex] = useState<number | null>(null);
-  const cells = useRef<Array<HTMLSpanElement | null>>([]);
+  return (
+    <table>
+      <caption>{caption}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{t('analytics.overview.month', { defaultValue: 'Month' })}</th>
+          <th scope="col">{t('analytics.overview.requests', { defaultValue: 'Requests' })}</th>
+          <th scope="col">{t('analytics.total_tokens', { defaultValue: 'Total tokens' })}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {summary.months.map((row) => (
+          <tr key={row.month}>
+            <th scope="row">{row.month}</th>
+            <td>{formatNumber(row.requests, locale)}</td>
+            <td>{formatNumber(row.tokens, locale)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
 
-  useEffect(() => {
-    setActiveIndex((current) => Math.min(current, Math.max(0, buckets.length - 1)));
-    setReadIndex(null);
-  }, [buckets.length]);
+/** A year of daily cells on a calendar coordinate, plus the AT-only readout beside it. */
+function YearHeatmap({
+  buckets,
+  zone,
+  levels,
+  levelColors,
+  ariaLabel,
+  tooltip,
+  header,
+  summary,
+  tableCaption,
+}: {
+  buckets: ActivityBucket[];
+  zone?: string;
+  levels: number[];
+  levelColors: string[];
+  ariaLabel: string;
+  tooltip: (bucket: ActivityBucket, day: string) => string;
+  /** Rendered above the grid; both cards pass their totals strip here. */
+  header: ReactNode;
+  summary: YearSummary;
+  tableCaption: string;
+}) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage;
+  const option = useMemo(() => {
+    const data: CalendarDatum[] = [];
+    const byDay = new Map<string, ActivityBucket>();
+    buckets.forEach((bucket, index) => {
+      const day = calendarDay(bucket, zone);
+      if (!day) return;
+      data.push([day, levels[index] ?? 0]);
+      byDay.set(day, bucket);
+    });
+    return calendarHeatmapOption({
+      data,
+      levelColors,
+      // Sunday-first, because ECharts indexes nameMap that way even when firstDay is Monday;
+      // GitHub labels Mon/Wed/Fri only, so the rest are blank.
+      dayNames: ['', 'MON', '', 'WED', '', 'FRI', ''],
+      monthNames: MONTH_NAMES,
+      tooltip: (day) => {
+        const bucket = byDay.get(day);
+        return bucket ? tooltip(bucket, day) : '';
+      },
+    });
+  }, [buckets, levelColors, levels, tooltip, zone]);
 
-  const onKeyDown = (event: KeyboardEvent<HTMLSpanElement>, index: number) => {
-    const next = heatmapNeighbour(index, event.key, buckets.length);
-    if (next === null) return;
-    event.preventDefault();
-    setActiveIndex(next);
-    cells.current[next]?.focus();
-  };
-
-  const readBucket = readIndex === null ? null : buckets[readIndex];
+  const empty = t('analytics.overview.no_activity_title', {
+    defaultValue: 'No activity in this window',
+  });
+  const summaryLabel = `${ariaLabel}. ${t('analytics.overview.year_summary', {
+    defaultValue: 'Total {{total}}; busiest {{best}}; quietest {{worst}}.',
+    total: formatNumber(summary.total, locale),
+    best: summary.best
+      ? `${formatDay(summary.best.day, locale)} ${formatNumber(summary.best.value, locale)}`
+      : empty,
+    worst: summary.worst
+      ? `${formatDay(summary.worst.day, locale)} ${formatNumber(summary.worst.value, locale)}`
+      : empty,
+  })}`;
 
   return (
     <div className={styles.heatmapPanel}>
       {header}
-      <HeatmapReadout
-        items={readBucket ? [{ text: cellLabel(readBucket) }] : []}
-        placeholder={t('analytics.overview.heatmap_readout_hint', {
-          defaultValue: 'Hover or focus a cell to read its bucket.',
-        })}
-      />
       <div className={styles.heatmapScroller}>
-        <div
-          className={styles.heatmapGrid}
-          role="grid"
-          aria-label={label}
-          aria-rowcount={Math.min(7, buckets.length)}
-          aria-colcount={heatmapColumns(buckets.length)}
-        >
-          {buckets.map((bucket, index) => {
-            const description = cellLabel(bucket);
-            return (
-              <span
-                ref={(element) => {
-                  cells.current[index] = element;
-                }}
-                className={`${styles.heatmapCell} ${classes[levels[index] ?? 0]}`}
-                key={`${bucket.start}-${index}`}
-                role="gridcell"
-                aria-label={description}
-                aria-rowindex={(index % 7) + 1}
-                aria-colindex={Math.floor(index / 7) + 1}
-                data-strength={levels[index] ?? 0}
-                data-active={readIndex === index ? '' : undefined}
-                tabIndex={index === activeIndex ? 0 : -1}
-                onFocus={() => {
-                  setActiveIndex(index);
-                  setReadIndex(index);
-                }}
-                onBlur={() => setReadIndex((current) => (current === index ? null : current))}
-                onPointerEnter={() => setReadIndex(index)}
-                onPointerDown={() => setReadIndex(index)}
-                onPointerLeave={() =>
-                  setReadIndex((current) => (current === index ? null : current))
-                }
-                onKeyDown={(event) => onKeyDown(event, index)}
-              />
-            );
-          })}
-        </div>
+        <AnalyticsChart
+          className={styles.heatmapChart}
+          option={option}
+          height={140}
+          ariaLabel={summaryLabel.slice(0, 199)}
+          description={<MonthTable caption={tableCaption} summary={summary} locale={locale} />}
+        />
       </div>
     </div>
   );
 }
+
+// Month names are supplied to ECharts rather than left to its English default, so the labels
+// follow the app locale like every other axis.
+const MONTH_NAMES = Array.from({ length: 12 }, (_, month) =>
+  new Intl.DateTimeFormat(undefined, { month: 'short', timeZone: 'UTC' })
+    .format(new Date(Date.UTC(2021, month, 15)))
+    .toLocaleUpperCase()
+);
 
 export function ActivityHeatmaps({
   activity,
@@ -171,8 +234,6 @@ export function ActivityHeatmaps({
   error,
   errorStatus,
   retryAt,
-  window,
-  onWindowChange,
   onRetry,
 }: {
   activity: AnalyticsActivity | null;
@@ -180,13 +241,12 @@ export function ActivityHeatmaps({
   error: string;
   errorStatus?: number;
   retryAt?: number;
-  window: ActivityWindow;
-  onWindowChange: (window: ActivityWindow) => void;
   onRetry?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage;
   const buckets = activity?.buckets ?? [];
+  const zone = activity?.zone;
   const tokenLevels = tokenActivityLevels(buckets.map((bucket) => bucket.total_tokens));
   const healthLevels = requestHealthLevels(buckets);
   const totals = buckets.reduce(
@@ -201,37 +261,64 @@ export function ActivityHeatmaps({
   );
   const attempts = totals.succeeded + totals.failed;
   const successRate = attempts > 0 ? (totals.succeeded / attempts) * 100 : null;
-  const windowOptions = ACTIVITY_WINDOWS.map((value) => ({
-    value,
-    label: t(`analytics.overview.window_${value}`, {
-      defaultValue: value.charAt(0).toLocaleUpperCase() + value.slice(1),
-    }),
-  }));
-  const tokenLabel = (bucket: ActivityBucket) =>
-    t('analytics.overview.token_cell_label', {
-      defaultValue:
-        '{{time}}. Input: {{input}}; output: {{output}}; cached: {{cached}}; cache read: {{cacheRead}}; cache write: {{cacheWrite}}; reasoning: {{reasoning}}; total: {{total}}.',
-      time: formatDateTime(bucket.start, locale),
-      input: formatNumber(bucket.input_tokens, locale),
-      output: formatNumber(bucket.output_tokens, locale),
-      cached: formatNumber(bucket.cached_tokens, locale),
-      cacheRead: formatNumber(bucket.cache_read_tokens, locale),
-      cacheWrite: formatNumber(bucket.cache_creation_tokens, locale),
-      reasoning: formatNumber(bucket.reasoning_tokens, locale),
-      total: formatNumber(bucket.total_tokens, locale),
-    });
-  const requestLabel = (bucket: ActivityBucket) => {
-    const attempts = bucket.succeeded + bucket.failed;
-    const successRate = attempts > 0 ? (bucket.succeeded / attempts) * 100 : null;
-    return t('analytics.overview.request_cell_label', {
-      defaultValue:
-        '{{time}}. Requests: {{requests}}; succeeded: {{succeeded}}; failed: {{failed}}; success rate: {{rate}}.',
-      time: formatDateTime(bucket.start, locale),
-      requests: formatNumber(bucket.requests, locale),
-      succeeded: formatNumber(bucket.succeeded, locale),
-      failed: formatNumber(bucket.failed, locale),
-      rate: formatPercent(successRate, locale),
-    });
+  const tokenSummary = summarizeActivityYear(buckets, (bucket) => bucket.total_tokens, zone);
+  const healthSummary = summarizeActivityYear(buckets, (bucket) => bucket.requests, zone);
+
+  // The tooltip carries the same per-bucket lines the readout used to show, as a panel on the
+  // cell; the row markup matches the shared axis tooltip so both panels read alike.
+  const tooltipPanel = (day: string, rows: Array<[string, string]>) =>
+    `<div data-tt="panel"><div data-tt="head">${day}</div>${rows
+      .map(
+        ([label, value]) =>
+          `<div data-tt="row"><span data-tt="name">${label}</span><span data-tt="value">${value}</span></div>`
+      )
+      .join('')}</div>`;
+
+  const tokenTooltip = (bucket: ActivityBucket, day: string) =>
+    tooltipPanel(formatDay(day, locale), [
+      [
+        t('analytics.total_tokens', { defaultValue: 'Total tokens' }),
+        formatNumber(bucket.total_tokens, locale),
+      ],
+      [
+        t('analytics.input_tokens', { defaultValue: 'Input tokens' }),
+        formatNumber(bucket.input_tokens, locale),
+      ],
+      [
+        t('analytics.output_tokens', { defaultValue: 'Output tokens' }),
+        formatNumber(bucket.output_tokens, locale),
+      ],
+      [
+        t('analytics.overview.cache_read', { defaultValue: 'Cache read' }),
+        formatNumber(bucket.cache_read_tokens, locale),
+      ],
+      [
+        t('analytics.overview.reasoning', { defaultValue: 'Reasoning' }),
+        formatNumber(bucket.reasoning_tokens, locale),
+      ],
+    ]);
+
+  const healthTooltip = (bucket: ActivityBucket, day: string) => {
+    const bucketAttempts = bucket.succeeded + bucket.failed;
+    const rate = bucketAttempts > 0 ? (bucket.succeeded / bucketAttempts) * 100 : null;
+    return tooltipPanel(formatDay(day, locale), [
+      [
+        t('analytics.overview.requests', { defaultValue: 'Requests' }),
+        formatNumber(bucket.requests, locale),
+      ],
+      [
+        t('analytics.overview.succeeded', { defaultValue: 'Succeeded' }),
+        formatNumber(bucket.succeeded, locale),
+      ],
+      [
+        t('analytics.overview.failed', { defaultValue: 'Failed' }),
+        formatNumber(bucket.failed, locale),
+      ],
+      [
+        t('analytics.overview.success_rate', { defaultValue: 'Success rate' }),
+        formatPercent(rate, locale),
+      ],
+    ]);
   };
 
   return (
@@ -242,25 +329,12 @@ export function ActivityHeatmaps({
             {t('analytics.overview.activity_patterns', { defaultValue: 'Activity patterns' })}
           </h2>
           <p>
-            {t('analytics.overview.activity_description', {
-              defaultValue: 'Compare token volume with request health for the selected window.',
+            {t('analytics.overview.activity_year_description', {
+              defaultValue:
+                'Token volume and request health for every day of the last year, in the selected time zone.',
             })}
           </p>
         </div>
-        <label className={styles.windowField}>
-          <span>
-            {t('analytics.overview.activity_window', { defaultValue: 'Activity window' })}
-          </span>
-          <Select
-            value={window}
-            onChange={(value) => onWindowChange(value as ActivityWindow)}
-            options={windowOptions}
-            ariaLabel={t('analytics.overview.activity_window', {
-              defaultValue: 'Activity window',
-            })}
-            size="sm"
-          />
-        </label>
       </header>
 
       <AsyncState
@@ -300,14 +374,19 @@ export function ActivityHeatmaps({
                   />
                 }
               >
-                <HeatmapGrid
+                <YearHeatmap
                   buckets={buckets}
+                  zone={zone}
                   levels={tokenLevels}
-                  classes={TOKEN_LEVEL_CLASSES}
-                  label={t('analytics.overview.token_grid', {
+                  levelColors={TOKEN_LEVEL_COLORS}
+                  ariaLabel={t('analytics.overview.token_grid', {
                     defaultValue: 'Token activity by time bucket',
                   })}
-                  cellLabel={tokenLabel}
+                  tooltip={tokenTooltip}
+                  summary={tokenSummary}
+                  tableCaption={t('analytics.overview.token_month_table', {
+                    defaultValue: 'Token activity by month',
+                  })}
                   header={
                     <HeatmapSummary
                       items={[
@@ -346,14 +425,19 @@ export function ActivityHeatmaps({
                   />
                 }
               >
-                <HeatmapGrid
+                <YearHeatmap
                   buckets={buckets}
+                  zone={zone}
                   levels={healthLevels}
-                  classes={HEALTH_LEVEL_CLASSES}
-                  label={t('analytics.overview.health_grid', {
+                  levelColors={HEALTH_LEVEL_COLORS}
+                  ariaLabel={t('analytics.overview.health_grid', {
                     defaultValue: 'Request health by time bucket',
                   })}
-                  cellLabel={requestLabel}
+                  tooltip={healthTooltip}
+                  summary={healthSummary}
+                  tableCaption={t('analytics.overview.health_month_table', {
+                    defaultValue: 'Request health by month',
+                  })}
                   header={
                     <HeatmapSummary
                       items={[

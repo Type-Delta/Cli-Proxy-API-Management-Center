@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import '@/i18n';
 import i18n from '@/i18n';
-import { ViewerScope } from '@/features/analytics/ViewerPage';
+import { ViewerConsent, ViewerScope } from '@/features/analytics/ViewerPage';
 import {
   viewerExpiryTimes,
   type ViewerCapabilities,
@@ -22,6 +22,19 @@ beforeAll(async () => {
 });
 
 describe('Viewer expiry', () => {
+  test('renders a consent card with the destination and explicit actions', () => {
+    const markup = renderToStaticMarkup(
+      createElement(ViewerConsent, {
+        origin: 'https://api.example.test',
+        onContinue: () => {},
+        onCancel: () => {},
+      })
+    );
+    expect(markup).toContain('https://api.example.test');
+    expect(markup).toContain('Continue');
+    expect(markup).toContain('Cancel');
+  });
+
   test('separates the link expiry from the session expiry', () => {
     expect(viewerExpiryTimes(capabilities)).toEqual({
       view: '2026-09-10T13:31:00Z',

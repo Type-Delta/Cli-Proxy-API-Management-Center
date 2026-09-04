@@ -23,10 +23,12 @@ import {
   toggleAnalyticsKey,
 } from '@/features/analytics/analyticsKeyFilterModel';
 import {
-  ANALYTICS_GROUPS,
   ANALYTICS_PAGE_DEFINITIONS,
   ANALYTICS_PAGES,
+  analyticsKindsForPage,
+  analyticsPageForKind,
   analyticsPageKindFromPathname,
+  analyticsPageRedirectTarget,
 } from '@/features/analytics/navigation';
 import {
   buildAnalyticsQuery,
@@ -217,7 +219,7 @@ describe('analytics client contracts', () => {
     expect(analyticsRangeInputToIso('2026-03-08T02:30', 'America/St_Johns')).toBeNull();
   });
 
-  test('defines one grouped eight-tab analytics workspace', () => {
+  test('maps the eight analytics kinds onto two four-tab pages', () => {
     expect(ANALYTICS_PAGES).toEqual([
       'overview',
       'analysis',
@@ -228,10 +230,18 @@ describe('analytics client contracts', () => {
       'shared',
       'maintenance',
     ]);
-    expect(ANALYTICS_GROUPS).toEqual(['usage', 'manage']);
-    expect(
-      ANALYTICS_PAGE_DEFINITIONS.filter((page) => page.group === 'usage').map((page) => page.kind)
-    ).toEqual(['overview', 'analysis', 'keys', 'events']);
+    expect(ANALYTICS_PAGE_DEFINITIONS.every((page) => 'page' in page)).toBe(true);
+    expect(analyticsPageForKind('overview')).toBe('usage');
+    expect(analyticsPageForKind('pricing')).toBe('management');
+    expect(analyticsKindsForPage('usage')).toEqual(['overview', 'analysis', 'keys', 'events']);
+    expect(analyticsKindsForPage('management')).toEqual([
+      'pricing',
+      'providers',
+      'shared',
+      'maintenance',
+    ]);
+    expect(analyticsPageRedirectTarget('usage')).toBe('/analytics/overview');
+    expect(analyticsPageRedirectTarget('management')).toBe('/analytics/pricing');
     expect(analyticsPageKindFromPathname('/analytics/events')).toBe('events');
     expect(analyticsPageKindFromPathname('/analytics/leaderboard')).toBe('overview');
   });
@@ -398,12 +408,11 @@ describe('analytics client contracts', () => {
     expect(replacements.join('')).not.toContain(credential);
   });
 
-  test('ships the grouped workspace and enum copy in every locale without dead labels', async () => {
+  test('ships the analytics page copy and enum copy in every locale without dead labels', async () => {
     for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru']) {
       const document = (await Bun.file(`src/i18n/locales/${locale}.json`).json()) as {
         analytics?: {
           pages?: Record<string, string>;
-          groups?: Record<string, string>;
           enums?: Record<string, unknown>;
           errors?: Record<string, string>;
           clear_keys?: string;
@@ -411,7 +420,6 @@ describe('analytics client contracts', () => {
         };
       };
       expect(Object.keys(document.analytics?.pages ?? {})).toEqual(ANALYTICS_PAGES);
-      expect(Object.keys(document.analytics?.groups ?? {})).toEqual(ANALYTICS_GROUPS);
       expect(document.analytics?.enums).toBeDefined();
       expect(Object.keys(document.analytics?.errors ?? {}).sort()).toEqual([
         'network',

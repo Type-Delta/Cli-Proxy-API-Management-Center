@@ -9,9 +9,18 @@ import type {
 import type { TFunction } from 'i18next';
 
 export type AnalyticsRangeGrain = '1h' | '1d';
+export type AnalyticsCalendarPreset =
+  | 'today'
+  | 'yesterday'
+  | 'this_week'
+  | 'prev_week'
+  | 'this_month'
+  | 'prev_month'
+  | 'this_year'
+  | 'prev_year';
 export type AnalyticsRange =
   | {
-      preset: 'today' | 'yesterday' | 'this_week' | 'this_month';
+      preset: AnalyticsCalendarPreset;
       timeZone: string;
       grain: AnalyticsRangeGrain;
     }
@@ -81,7 +90,11 @@ const ANALYTICS_PRESETS = new Set<AnalyticsRange['preset']>([
   'last_n_hours',
   'last_n_days',
   'this_week',
+  'prev_week',
   'this_month',
+  'prev_month',
+  'this_year',
+  'prev_year',
   'custom',
 ]);
 const ANALYTICS_SORTS = new Set<AnalyticsLeaderboardSort>(['tokens', 'cost']);
@@ -105,12 +118,8 @@ const validDate = (value: string | null) => {
 const validFilterValue = (value: string | null) => {
   // Reject control characters so hash-state filters cannot smuggle terminal/log escapes.
   // eslint-disable-next-line no-control-regex
-  if (
-    !value ||
-    value.length > 200 ||
-    value.trim() !== value ||
-    /[\u0000-\u001f\u007f]/.test(value)
-  ) {
+  const hasControlCharacters = /[\u0000-\u001f\u007f]/.test(value ?? '');
+  if (!value || value.length > 200 || value.trim() !== value || hasControlCharacters) {
     return '';
   }
   return value;
@@ -150,11 +159,29 @@ export function analyticsRangeLabel(t: TFunction, range: AnalyticsRange) {
       return t('analytics.range_yesterday');
     case 'this_week':
       return t('analytics.range_this_week');
+    case 'prev_week':
+      return t('analytics.range.prev_week', { defaultValue: 'Prev week' });
     case 'this_month':
       return t('analytics.range_this_month');
+    case 'prev_month':
+      return t('analytics.range.prev_month', { defaultValue: 'Prev month' });
+    case 'this_year':
+      return t('analytics.range.this_year', { defaultValue: 'This year' });
+    case 'prev_year':
+      return t('analytics.range.prev_year', { defaultValue: 'Prev year' });
     case 'last_n_hours':
+      if (range.n === 1) return t('analytics.range.past_hour', { defaultValue: 'Past hour' });
+      if (range.n === 6) return t('analytics.range.past_6_hours', { defaultValue: 'Past 6 hours' });
+      if (range.n === 24)
+        return t('analytics.range.past_24_hours', { defaultValue: 'Past 24 hours' });
       return t('analytics.range_last_hours', { count: range.n });
     case 'last_n_days':
+      if (range.n === 7) return t('analytics.range.past_7_days', { defaultValue: 'Past 7 days' });
+      if (range.n === 30)
+        return t('analytics.range.past_30_days', { defaultValue: 'Past 30 days' });
+      if (range.n === 90)
+        return t('analytics.range.past_90_days', { defaultValue: 'Past 90 days' });
+      if (range.n === 365) return t('analytics.range.past_year', { defaultValue: 'Past year' });
       return t('analytics.range_last_days', { count: range.n });
     case 'custom':
       return t('analytics.range_custom_value', {
@@ -163,7 +190,14 @@ export function analyticsRangeLabel(t: TFunction, range: AnalyticsRange) {
   }
 }
 
-export function buildAnalyticsNamedRange(range: AnalyticsRange): AnalyticsNamedRange {
+type AnalyticsRequestRange =
+  | AnalyticsNamedRange
+  | {
+      preset: Exclude<AnalyticsCalendarPreset, 'today' | 'yesterday' | 'this_week' | 'this_month'>;
+      time_zone: string;
+    };
+
+export function buildAnalyticsNamedRange(range: AnalyticsRange): AnalyticsRequestRange {
   const time_zone = range.timeZone;
   switch (range.preset) {
     case 'last_n_hours':
@@ -176,9 +210,15 @@ export function buildAnalyticsNamedRange(range: AnalyticsRange): AnalyticsNamedR
   }
 }
 
-type DateParts = { year: number; month: number; day: number; hour: number; minute: number };
+export type AnalyticsDateParts = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+};
 
-function zonedParts(value: Date, timeZone: string): DateParts {
+export function zonedParts(value: Date, timeZone: string): AnalyticsDateParts {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone,
     year: 'numeric',
@@ -199,7 +239,7 @@ function zonedParts(value: Date, timeZone: string): DateParts {
   };
 }
 
-function zonedDateTimeToIso(parts: DateParts, timeZone: string) {
+function zonedDateTimeToIso(parts: AnalyticsDateParts, timeZone: string) {
   const target = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute);
   let candidate = target;
   for (let iteration = 0; iteration < 3; iteration += 1) {
@@ -216,7 +256,7 @@ function zonedDateTimeToIso(parts: DateParts, timeZone: string) {
   const resolved = zonedParts(new Date(candidate), timeZone);
   if (
     Object.keys(parts).some(
-      (key) => parts[key as keyof DateParts] !== resolved[key as keyof DateParts]
+      (key) => parts[key as keyof AnalyticsDateParts] !== resolved[key as keyof AnalyticsDateParts]
     )
   ) {
     return null;
@@ -224,8 +264,20 @@ function zonedDateTimeToIso(parts: DateParts, timeZone: string) {
   return new Date(candidate).toISOString();
 }
 
-function shiftedDate(parts: Pick<DateParts, 'year' | 'month' | 'day'>, days: number) {
+export function shiftedDate(
+  parts: Pick<AnalyticsDateParts, 'year' | 'month' | 'day'>,
+  days: number
+) {
   const shifted = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days));
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+  };
+}
+
+function shiftedMonth(parts: Pick<AnalyticsDateParts, 'year' | 'month' | 'day'>, months: number) {
+  const shifted = new Date(Date.UTC(parts.year, parts.month - 1 + months, parts.day));
   return {
     year: shifted.getUTCFullYear(),
     month: shifted.getUTCMonth() + 1,
@@ -250,26 +302,69 @@ export function resolveAnalyticsRange(
   }
 
   const local = zonedParts(now, range.timeZone);
-  let date = { year: local.year, month: local.month, day: local.day };
-  if (range.preset === 'yesterday') date = shiftedDate(date, -1);
-  if (range.preset === 'this_week') {
-    const weekday = new Intl.DateTimeFormat('en-US', {
-      timeZone: range.timeZone,
-      weekday: 'short',
-    }).format(now);
-    const daysSinceMonday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(weekday);
-    date = shiftedDate(date, -Math.max(0, daysSinceMonday));
+  const currentDate = { year: local.year, month: local.month, day: local.day };
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    timeZone: range.timeZone,
+    weekday: 'short',
+  }).format(now);
+  const daysSinceMonday = Math.max(
+    0,
+    ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(weekday)
+  );
+  const thisWeek = shiftedDate(currentDate, -daysSinceMonday);
+  let date = currentDate;
+  let endDate: { year: number; month: number; day: number } | null = null;
+  if (range.preset === 'yesterday') date = shiftedDate(currentDate, -1);
+  if (range.preset === 'this_week') date = thisWeek;
+  if (range.preset === 'prev_week') {
+    date = shiftedDate(thisWeek, -7);
+    endDate = thisWeek;
   }
-  if (range.preset === 'this_month') date.day = 1;
+  if (range.preset === 'this_month') date = { ...currentDate, day: 1 };
+  if (range.preset === 'prev_month') {
+    date = shiftedMonth({ ...currentDate, day: 1 }, -1);
+    endDate = { ...currentDate, day: 1 };
+  }
+  if (range.preset === 'this_year') date = { year: currentDate.year, month: 1, day: 1 };
+  if (range.preset === 'prev_year') {
+    date = { year: currentDate.year - 1, month: 1, day: 1 };
+    endDate = { year: currentDate.year, month: 1, day: 1 };
+  }
   const start = zonedDateTimeToIso({ ...date, hour: 0, minute: 0 }, range.timeZone);
   if (!start) throw new Error('Could not resolve the selected analytics range.');
-  if (range.preset !== 'yesterday') {
+  if (!endDate && range.preset === 'yesterday') endDate = shiftedDate(date, 1);
+  if (!endDate) {
     return { start, end: now.toISOString(), time_zone: range.timeZone };
   }
-  const endDate = shiftedDate(date, 1);
   const end = zonedDateTimeToIso({ ...endDate, hour: 0, minute: 0 }, range.timeZone);
   if (!end) throw new Error('Could not resolve the selected analytics range.');
   return { start, end, time_zone: range.timeZone };
+}
+
+export function formatAnalyticsCustomRange(
+  range: Extract<AnalyticsRange, { preset: 'custom' }>,
+  locale = 'en'
+) {
+  const start = new Date(range.start);
+  const end = new Date(range.end);
+  const full = new Intl.DateTimeFormat(locale, {
+    timeZone: range.timeZone,
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const short = new Intl.DateTimeFormat(locale, {
+    timeZone: range.timeZone,
+    month: 'short',
+    day: 'numeric',
+  });
+  const year = new Intl.DateTimeFormat('en-CA', {
+    timeZone: range.timeZone,
+    year: 'numeric',
+  });
+  return year.format(start) === year.format(end)
+    ? `${short.format(start)} – ${full.format(end)}`
+    : `${full.format(start)} – ${full.format(end)}`;
 }
 
 export function analyticsRangeInputValue(value: string, timeZone: string) {
@@ -420,7 +515,7 @@ export function buildAnalyticsQuery(
   return {
     schema_version: 2,
     operation,
-    range: buildAnalyticsNamedRange(range),
+    range: buildAnalyticsNamedRange(range) as AnalyticsNamedRange,
     ...(keyIds.length ? { key_ids: unique(keyIds).slice(0, MAX_ANALYTICS_KEY_FILTERS) } : {}),
     ...fields,
   };

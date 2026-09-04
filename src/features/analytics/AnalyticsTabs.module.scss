@@ -80,7 +80,7 @@
 .scroller {
   display: flex;
   align-items: stretch;
-  gap: 18px;
+  gap: 2px;
   overflow-x: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border-hover) transparent;
@@ -95,30 +95,6 @@
     border-radius: $radius-full;
     background: var(--border-hover);
   }
-}
-
-.group {
-  display: flex;
-  align-items: flex-end;
-  flex: 0 0 auto;
-  gap: 4px;
-}
-
-.groupLabel {
-  align-self: center;
-  padding-inline: 8px 4px;
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.groupLinks {
-  display: flex;
-  align-items: stretch;
-  gap: 2px;
 }
 
 .tab {
@@ -165,14 +141,6 @@
   // Keep the first/last tab's label clear of the chevrons while still scrollable to the edge.
   .scroller {
     scroll-padding-inline: 20px;
-  }
-
-  .group {
-    gap: 2px;
-  }
-
-  .groupLabel {
-    padding-inline-start: 4px;
   }
 }
 
