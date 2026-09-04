@@ -450,6 +450,8 @@ describe('analytics overview model', () => {
     // Two charts, each a single `role=img` stop, each with its per-month table beside it.
     expect(markup.match(/role="img"/g)).toHaveLength(2);
     expect(markup.match(/<caption>/g)).toHaveLength(2);
+    // R6-3(a): the hovered cell is mirrored into one visually hidden live region per grid.
+    expect(markup.match(/role="status" aria-live="polite"/g)).toHaveLength(2);
     expect(markup).toContain('<caption>Token activity by month</caption>');
     expect(markup).toContain('<caption>Request health by month</caption>');
     expect(markup).toContain('2026-08');

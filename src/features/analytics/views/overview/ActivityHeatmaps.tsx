@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -167,14 +167,23 @@ function YearHeatmap({
 }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage;
+  // AT-only per-cell readout: the pointer tooltip is a canvas panel screen readers never see, so
+  // the hovered cell is mirrored into a visually hidden live region (owner R6-3(a)).
+  const [readout, setReadout] = useState('');
+  const byDay = useMemo(() => {
+    const map = new Map<string, ActivityBucket>();
+    buckets.forEach((bucket) => {
+      const day = calendarDay(bucket, zone);
+      if (day) map.set(day, bucket);
+    });
+    return map;
+  }, [buckets, zone]);
   const option = useMemo(() => {
     const data: CalendarDatum[] = [];
-    const byDay = new Map<string, ActivityBucket>();
     buckets.forEach((bucket, index) => {
       const day = calendarDay(bucket, zone);
       if (!day) return;
       data.push([day, levels[index] ?? 0]);
-      byDay.set(day, bucket);
     });
     return calendarHeatmapOption({
       data,
@@ -188,7 +197,7 @@ function YearHeatmap({
         return bucket ? tooltip(bucket, day) : '';
       },
     });
-  }, [buckets, levelColors, levels, tooltip, zone]);
+  }, [buckets, byDay, levelColors, levels, tooltip, zone]);
 
   const empty = t('analytics.overview.no_activity_title', {
     defaultValue: 'No activity in this window',
@@ -214,11 +223,33 @@ function YearHeatmap({
           height={140}
           ariaLabel={summaryLabel.slice(0, 199)}
           description={<MonthTable caption={tableCaption} summary={summary} locale={locale} />}
+          onEvents={{
+            mouseover: (params) => {
+              const value = (params as { value?: unknown }).value;
+              const day = Array.isArray(value) ? String(value[0]) : '';
+              const bucket = byDay.get(day);
+              setReadout(bucket ? stripMarkup(tooltip(bucket, day)) : '');
+            },
+            globalout: () => setReadout(''),
+          }}
         />
       </div>
+      <span className={styles.srOnly} role="status" aria-live="polite">
+        {readout}
+      </span>
     </div>
   );
 }
+
+// The tooltip builders return the panel markup ECharts injects; the live region needs the same
+// facts as plain text, one clause per row.
+const stripMarkup = (html: string) =>
+  html
+    .replace(/<\/div><div data-tt="row">/g, '. ')
+    .replace(/<\/span><span data-tt="value">/g, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 // Month names are supplied to ECharts rather than left to its English default, so the labels
 // follow the app locale like every other axis.
