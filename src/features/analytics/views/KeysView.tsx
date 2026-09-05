@@ -1,27 +1,19 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { AnalyticsCard as Card } from '@/features/analytics/components/AnalyticsCard';
 import { EmptyState } from '@/components/ui/EmptyState';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/Table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/Table';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { analyticsApi } from '@/services/api';
 import type {
-  AnalyticsEventPage,
   AnalyticsKey,
   AnalyticsLeaderboard,
   AnalyticsRange as AnalyticsResolvedRange,
 } from '@/types';
 import { useAnalyticsFilters } from '../AnalyticsFilterContext';
 import { analyticsKeyIdentity } from '../analyticsKeyFilterModel';
-import { AnalyticsStatusBadge, AsyncState, EventTable } from '../components/AnalyticsShared';
+import { AnalyticsStatusBadge, AsyncState } from '../components/AnalyticsShared';
 import { analyticsErrorCopy } from '../components/analyticsErrorCopy';
 import { SortableHeader } from '../components/SortableHeader';
 import {
@@ -38,8 +30,6 @@ import {
   type AnalyticsRange,
 } from '../query';
 import { useAnalyticsLoad } from '../useAnalyticsLoad';
-import { Analysis } from './Analysis';
-import { Overview } from './Overview';
 import {
   joinKeyRanking,
   shouldShowPricingDisclosure,
@@ -88,17 +78,7 @@ function ActivityValue({
   );
 }
 
-export function KeysView({
-  keys,
-  range,
-  selected,
-  setSelected,
-}: {
-  keys: AnalyticsKey[];
-  range: AnalyticsRange;
-  selected: string[];
-  setSelected: (ids: string[]) => void;
-}) {
+export function KeysView({ keys, range }: { keys: AnalyticsKey[]; range: AnalyticsRange }) {
   const { t, i18n } = useTranslation();
   const { sort, setSort, reportResolvedRange } = useAnalyticsFilters();
   const [columnSort, setColumnSort] = useState<KeyColumnSort>('server');
@@ -137,20 +117,6 @@ export function KeysView({
     columnSort === 'server' && (sort === 'tokens' || sort === 'cost') ? sort : columnSort;
   const activeDirection =
     columnSort === 'server' && (sort === 'tokens' || sort === 'cost') ? 'desc' : direction;
-  const selectedKey =
-    selected.length === 1 ? (keys.find((key) => key.key_id === selected[0]) ?? null) : null;
-  const recentRequest = useMemo(
-    () =>
-      buildAnalyticsQuery('events', range, selectedKey ? [selectedKey.key_id] : [], {
-        page_size: 25,
-      }),
-    [range, selectedKey]
-  );
-  const recent = useAnalyticsLoad(
-    () => analyticsApi.events(recentRequest),
-    JSON.stringify(recentRequest),
-    Boolean(selectedKey)
-  );
   useEffect(() => {
     if (ranking.data?.meta.range) reportResolvedRange(range, ranking.data.meta.range);
   }, [range, ranking.data?.meta.range, reportResolvedRange]);
@@ -176,238 +142,143 @@ export function KeysView({
   };
 
   return (
-    <>
-      <AsyncState
-        loading={ranking.loading}
-        error=""
-        errorStatus={ranking.errorStatus}
-        retryAt={ranking.retryAt}
-        stale={ranking.data?.meta.degraded}
-        onRetry={() => void ranking.refresh()}
+    <AsyncState
+      loading={ranking.loading}
+      error=""
+      errorStatus={ranking.errorStatus}
+      retryAt={ranking.retryAt}
+      stale={ranking.data?.meta.degraded}
+      onRetry={() => void ranking.refresh()}
+    >
+      <Card
+        title={t('analytics.keys_catalog')}
+        extra={<span className={styles.rangeNote}>{analyticsRangeLabel(t, range)}</span>}
       >
-        <Card
-          title={t('analytics.keys_catalog')}
-          extra={<span className={styles.rangeNote}>{analyticsRangeLabel(t, range)}</span>}
-        >
-          {ranking.error && (
-            <div className="error-box" role="alert" title={rankingFailure.detail}>
-              <span>{rankingFailure.text}</span>
-              <Button
-                className={styles.retryButton}
-                variant="secondary"
-                onClick={() => void ranking.refresh()}
-              >
-                {t('common.retry')}
-              </Button>
-            </div>
-          )}
-          {shouldShowPricingDisclosure(sort) && (
-            <p className={styles.disclosure}>{t('analytics.pricing_disclosure')}</p>
-          )}
-          {rows.length === 0 && !ranking.loading ? (
-            <EmptyState
-              title={t('analytics.no_data_title')}
-              description={t('analytics.no_keys_in_range', {
-                defaultValue: 'Key activity and configured keys will appear here.',
-              })}
-            />
-          ) : isMobile ? (
-            <div className={styles.cardList}>
+        {ranking.error && (
+          <div className="error-box" role="alert" title={rankingFailure.detail}>
+            <span>{rankingFailure.text}</span>
+            <Button
+              className={styles.retryButton}
+              variant="secondary"
+              onClick={() => void ranking.refresh()}
+            >
+              {t('common.retry')}
+            </Button>
+          </div>
+        )}
+        {shouldShowPricingDisclosure(sort) && (
+          <p className={styles.disclosure}>{t('analytics.pricing_disclosure')}</p>
+        )}
+        {rows.length === 0 && !ranking.loading ? (
+          <EmptyState
+            title={t('analytics.no_data_title')}
+            description={t('analytics.no_keys_in_range', {
+              defaultValue: 'Key activity and configured keys will appear here.',
+            })}
+          />
+        ) : isMobile ? (
+          <div className={styles.cardList}>
+            {rows.map((row) => {
+              const tokens = formatCompactTokens(row.total_tokens, i18n.resolvedLanguage);
+              const cost = formatCostValue(row.known_cost_usd, i18n.resolvedLanguage);
+              return (
+                <Card key={row.key_id} className={styles.keyCard}>
+                  <div className={styles.keyCardHead}>
+                    <span title={row.short_key_id}>{analyticsKeyIdentity(row)}</span>
+                    <AnalyticsStatusBadge category="key_status" value={row.status} />
+                  </div>
+                  <dl className={styles.keyCardMetrics}>
+                    <div>
+                      <dt>{t('analytics.proxy_requests')}</dt>
+                      <dd>{formatNumber(row.proxy_requests, i18n.resolvedLanguage)}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('analytics.total_tokens')}</dt>
+                      <dd title={tokens.title}>{tokens.text}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('analytics.known_cost')}</dt>
+                      <dd title={cost.title}>{cost.text}</dd>
+                    </div>
+                  </dl>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <Table className={styles.keysTable} aria-label={t('analytics.keys_catalog')}>
+            <TableHeader>
+              <TableRow>
+                {SORTABLE_COLUMNS.map((column) => (
+                  <SortableHeader
+                    key={column.id}
+                    active={activeColumnSort === column.id}
+                    direction={activeDirection}
+                    onClick={() => chooseColumnSort(column.id)}
+                    className={styles.sortButton}
+                  >
+                    {t(column.labelKey, { defaultValue: column.defaultValue })}
+                  </SortableHeader>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {rows.map((row) => {
                 const tokens = formatCompactTokens(row.total_tokens, i18n.resolvedLanguage);
                 const cost = formatCostValue(row.known_cost_usd, i18n.resolvedLanguage);
-                const active = selectedKey?.key_id === row.key_id;
+                const share = Math.max(0, Math.min(100, Number(row.percent_of_total) || 0));
                 return (
-                  <Card key={row.key_id} className={styles.keyCard}>
-                    <div className={styles.keyCardHead}>
-                      <span title={row.short_key_id}>{analyticsKeyIdentity(row)}</span>
+                  <TableRow key={row.key_id}>
+                    <TableCell>{row.rank ?? '—'}</TableCell>
+                    <TableCell title={row.short_key_id}>{analyticsKeyIdentity(row)}</TableCell>
+                    <TableCell>
                       <AnalyticsStatusBadge category="key_status" value={row.status} />
-                    </div>
-                    <dl className={styles.keyCardMetrics}>
-                      <div>
-                        <dt>{t('analytics.proxy_requests')}</dt>
-                        <dd>{formatNumber(row.proxy_requests, i18n.resolvedLanguage)}</dd>
-                      </div>
-                      <div>
-                        <dt>{t('analytics.total_tokens')}</dt>
-                        <dd title={tokens.title}>{tokens.text}</dd>
-                      </div>
-                      <div>
-                        <dt>{t('analytics.known_cost')}</dt>
-                        <dd title={cost.title}>{cost.text}</dd>
-                      </div>
-                    </dl>
-                    <Button
-                      variant={active ? 'primary' : 'secondary'}
-                      onClick={() => setSelected([row.key_id])}
-                    >
-                      {active
-                        ? t('analytics.viewing_key', { defaultValue: 'Viewing' })
-                        : t('analytics.view_key', { defaultValue: 'View details' })}
-                    </Button>
-                  </Card>
+                    </TableCell>
+                    <TableCell>
+                      <ActivityValue
+                        rangeValue={row.first_activity_at}
+                        lifetimeValue={row.lifetime_first_activity_at}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <ActivityValue
+                        rangeValue={row.last_activity_at}
+                        lifetimeValue={row.lifetime_last_activity_at}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {row.config_indexes?.length
+                        ? row.config_indexes
+                            .map((index) => formatNumber(index, i18n.resolvedLanguage))
+                            .join(', ')
+                        : '—'}
+                    </TableCell>
+                    <TableCell title={tokens.title}>{tokens.text}</TableCell>
+                    <TableCell title={cost.title}>{cost.text}</TableCell>
+                    <TableCell>
+                      {(() => {
+                        const unpriced = formatCompactTokens(
+                          row.unpriced_tokens,
+                          i18n.resolvedLanguage
+                        );
+                        return <span title={unpriced.title}>{unpriced.text}</span>;
+                      })()}
+                    </TableCell>
+                    <TableCell>
+                      <span className={styles.shareValue}>
+                        <span className={styles.shareTrack} aria-hidden="true">
+                          <span style={{ '--share-width': `${share}%` } as CSSProperties} />
+                        </span>
+                        {formatPercent(row.percent_of_total, i18n.resolvedLanguage)}
+                      </span>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </div>
-          ) : (
-            <Table className={styles.keysTable} aria-label={t('analytics.keys_catalog')}>
-              <TableHeader>
-                <TableRow>
-                  {SORTABLE_COLUMNS.map((column) => (
-                    <SortableHeader
-                      key={column.id}
-                      active={activeColumnSort === column.id}
-                      direction={activeDirection}
-                      onClick={() => chooseColumnSort(column.id)}
-                      className={styles.sortButton}
-                    >
-                      {t(column.labelKey, { defaultValue: column.defaultValue })}
-                    </SortableHeader>
-                  ))}
-                  <TableHead className={styles.actionHeader}>{t('common.action')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => {
-                  const tokens = formatCompactTokens(row.total_tokens, i18n.resolvedLanguage);
-                  const cost = formatCostValue(row.known_cost_usd, i18n.resolvedLanguage);
-                  const share = Math.max(0, Math.min(100, Number(row.percent_of_total) || 0));
-                  const active = selectedKey?.key_id === row.key_id;
-                  return (
-                    <TableRow key={row.key_id} selected={active}>
-                      <TableCell>{row.rank ?? '—'}</TableCell>
-                      <TableCell title={row.short_key_id}>{analyticsKeyIdentity(row)}</TableCell>
-                      <TableCell>
-                        <AnalyticsStatusBadge category="key_status" value={row.status} />
-                      </TableCell>
-                      <TableCell>
-                        <ActivityValue
-                          rangeValue={row.first_activity_at}
-                          lifetimeValue={row.lifetime_first_activity_at}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <ActivityValue
-                          rangeValue={row.last_activity_at}
-                          lifetimeValue={row.lifetime_last_activity_at}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {row.config_indexes?.length
-                          ? row.config_indexes
-                              .map((index) => formatNumber(index, i18n.resolvedLanguage))
-                              .join(', ')
-                          : '—'}
-                      </TableCell>
-                      <TableCell title={tokens.title}>{tokens.text}</TableCell>
-                      <TableCell title={cost.title}>{cost.text}</TableCell>
-                      <TableCell>
-                        {(() => {
-                          const unpriced = formatCompactTokens(
-                            row.unpriced_tokens,
-                            i18n.resolvedLanguage
-                          );
-                          return <span title={unpriced.title}>{unpriced.text}</span>;
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        <span className={styles.shareValue}>
-                          <span className={styles.shareTrack} aria-hidden="true">
-                            <span style={{ '--share-width': `${share}%` } as CSSProperties} />
-                          </span>
-                          {formatPercent(row.percent_of_total, i18n.resolvedLanguage)}
-                        </span>
-                      </TableCell>
-                      <TableCell className={styles.actionCell}>
-                        <Button
-                          size="sm"
-                          variant={active ? 'primary' : 'secondary'}
-                          onClick={() => setSelected([row.key_id])}
-                        >
-                          {active
-                            ? t('analytics.viewing_key', { defaultValue: 'Viewing' })
-                            : t('analytics.view_key', { defaultValue: 'View details' })}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </Card>
-      </AsyncState>
-
-      {selected.length > 1 && (
-        <Card>
-          <EmptyState
-            title={t('analytics.choose_one_key', { defaultValue: 'Choose one key for details' })}
-            description={t('analytics.choose_one_key_description', {
-              defaultValue:
-                'The key viewer shows Overview, Analysis, and recent events for one key at a time.',
-            })}
-          />
-        </Card>
-      )}
-
-      {selectedKey && (
-        <section
-          className={styles.journey}
-          aria-label={t('analytics.key_journey', {
-            defaultValue: 'Key usage details',
-          })}
-        >
-          <Card
-            title={analyticsKeyIdentity(selectedKey)}
-            extra={<AnalyticsStatusBadge category="key_status" value={selectedKey.status} />}
-          >
-            <p className={styles.disclosure}>
-              {t('analytics.key_journey_description', {
-                defaultValue:
-                  'Overview, Analysis, and recent events are scoped to this key and the active range.',
-              })}
-            </p>
-          </Card>
-          <Overview range={range} keyIds={[selectedKey.key_id]} />
-          <Analysis range={range} keyIds={[selectedKey.key_id]} />
-          {recent.error && !recent.data ? (
-            <Card>
-              <EmptyState
-                title={t('analytics.load_failed')}
-                description={recent.error}
-                action={
-                  <Button variant="secondary" onClick={() => void recent.refresh()}>
-                    {t('common.retry')}
-                  </Button>
-                }
-              />
-            </Card>
-          ) : (
-            <AsyncState
-              loading={recent.loading}
-              error=""
-              errorStatus={recent.errorStatus}
-              retryAt={recent.retryAt}
-              stale={recent.data?.meta.degraded}
-              onRetry={() => void recent.refresh()}
-            >
-              {recent.data && (
-                <>
-                  {recent.error && (
-                    <div className="error-box" role="alert">
-                      <span>{recent.error}</span>
-                      <Button variant="secondary" onClick={() => void recent.refresh()}>
-                        {t('common.retry')}
-                      </Button>
-                    </div>
-                  )}
-                  <EventTable data={recent.data as AnalyticsEventPage} />
-                </>
-              )}
-            </AsyncState>
-          )}
-        </section>
-      )}
-    </>
+            </TableBody>
+          </Table>
+        )}
+      </Card>
+    </AsyncState>
   );
 }

@@ -26,9 +26,11 @@ import {
   ANALYTICS_PAGE_DEFINITIONS,
   ANALYTICS_PAGES,
   analyticsKindsForPage,
+  analyticsPageFromPathname,
   analyticsPageForKind,
   analyticsPageKindFromPathname,
   analyticsPageRedirectTarget,
+  isAnalyticsPathname,
 } from '@/features/analytics/navigation';
 import {
   buildAnalyticsQuery,
@@ -244,6 +246,18 @@ describe('analytics client contracts', () => {
     expect(analyticsPageRedirectTarget('management')).toBe('/analytics/pricing');
     expect(analyticsPageKindFromPathname('/analytics/events')).toBe('events');
     expect(analyticsPageKindFromPathname('/analytics/leaderboard')).toBe('overview');
+    expect(analyticsPageFromPathname('/analytics')).toBe('usage');
+    expect(analyticsPageFromPathname('/analytics/usage')).toBe('usage');
+    expect(analyticsPageFromPathname('/analytics/management')).toBe('management');
+  });
+
+  test('limits analytics navigation matching to the analytics route domain', () => {
+    expect(isAnalyticsPathname('/analytics')).toBe(true);
+    expect(isAnalyticsPathname('/analytics/usage')).toBe(true);
+    expect(isAnalyticsPathname('/analytics/management')).toBe(true);
+    expect(isAnalyticsPathname('/analytics/providers')).toBe(true);
+    expect(isAnalyticsPathname('/ai-providers')).toBe(false);
+    expect(isAnalyticsPathname('/config')).toBe(false);
   });
 
   test('restores the complete internal deep link after login', () => {

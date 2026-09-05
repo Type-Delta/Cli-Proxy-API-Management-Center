@@ -51,6 +51,10 @@ export function analyticsPageRedirectTarget(page: AnalyticsPage): string {
   return `/analytics/${analyticsPageDefaultKind(page)}`;
 }
 
+export function isAnalyticsPathname(pathname: string): boolean {
+  return pathname === '/analytics' || pathname.startsWith('/analytics/');
+}
+
 export function analyticsPageFromPathname(pathname: string): AnalyticsPage {
   const segment = pathname.split('/')[2];
   if (segment === 'usage' || segment === 'management') return segment;

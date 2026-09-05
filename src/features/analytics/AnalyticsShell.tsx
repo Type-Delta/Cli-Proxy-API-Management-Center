@@ -2,13 +2,17 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
-import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { capabilitiesApi } from '@/services/api';
 import type { ManagementCapabilities } from '@/types';
 import { useAnalyticsFilters } from './AnalyticsFilterContext';
 import { AnalyticsLoadScope } from './AnalyticsLoadScope';
-import { AnalyticsRefreshContext, type AnalyticsRefreshCoordinator } from './analyticsRefreshState';
+import {
+  AnalyticsRefreshContext,
+  analyticsRefreshFailure,
+  type AnalyticsRefreshCoordinator,
+} from './analyticsRefreshState';
 import { AnalyticsTabs } from './AnalyticsTabs';
 import { AnalyticsSkeleton } from './AnalyticsSkeleton';
 import { AnalyticsShellContext, useAnalyticsContentHost } from './AnalyticsShellContext';
@@ -36,13 +40,10 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
   );
   const [contentHost, setContentHost] = useState<HTMLDivElement | null>(null);
   const [hasPortalPayload, setHasPortalPayload] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshCounts, setRefreshCounts] = useState<Partial<Record<AnalyticsPageKind, number>>>(
-    {}
-  );
   const [updatedByKind, setUpdatedByKind] = useState<Partial<Record<AnalyticsPageKind, Date>>>({});
   const portalPayloadsRef = useRef(new Set<symbol>());
   const refreshersRef = useRef(new Map<AnalyticsPageKind, Map<symbol, () => Promise<void>>>());
+  const refreshingRef = useRef(false);
   const setContentHostRef = useCallback((node: HTMLDivElement | null) => setContentHost(node), []);
   const setPortalPayloadPresent = useCallback((token: symbol, present: boolean) => {
     if (present) portalPayloadsRef.current.add(token);
@@ -54,13 +55,11 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
       const current = refreshersRef.current.get(pageKind) ?? new Map();
       current.set(token, refresh);
       refreshersRef.current.set(pageKind, current);
-      setRefreshCounts((counts) => ({ ...counts, [pageKind]: current.size }));
       return () => {
         const registered = refreshersRef.current.get(pageKind);
         if (registered?.get(token) !== refresh) return;
         registered.delete(token);
         if (registered.size === 0) refreshersRef.current.delete(pageKind);
-        setRefreshCounts((counts) => ({ ...counts, [pageKind]: registered.size }));
       };
     },
     []
@@ -75,17 +74,23 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
     () => ({ register: registerRefresh, markUpdated }),
     [markUpdated, registerRefresh]
   );
-  const refreshCount = refreshCounts[kind] ?? 0;
   const refreshPage = useCallback(async () => {
-    if (refreshing) return;
-    setRefreshing(true);
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
     try {
       const refreshers = [...(refreshersRef.current.get(kind)?.values() ?? [])];
-      await Promise.allSettled([filters.refreshKeys(), ...refreshers.map((refresh) => refresh())]);
+      const results = await Promise.allSettled([
+        capabilities.refreshOrThrow(),
+        filters.refreshKeysOrThrow(),
+        ...refreshers.map((refresh) => refresh()),
+      ]);
+      const failure = analyticsRefreshFailure(results);
+      if (failure) throw failure;
     } finally {
-      setRefreshing(false);
+      refreshingRef.current = false;
     }
-  }, [filters, kind, refreshing]);
+  }, [capabilities, filters, kind]);
+  useHeaderRefresh(refreshPage, isAnalyticsPath);
   const value = useMemo(
     () => ({ capabilities, contentHost, shellKind: kind, setPortalPayloadPresent }),
     [capabilities, contentHost, kind, setPortalPayloadPresent]
@@ -138,14 +143,6 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
                     <i className={styles.readyDot} aria-hidden="true" />
                     <span className={styles.statusLabel}>{stateLabel}</span>
                   </span>
-                )}
-                {refreshCount > 0 && (
-                  <RefreshButton
-                    refreshing={refreshing}
-                    onClick={() => void refreshPage()}
-                    disabled={refreshing}
-                    label={t('common.refresh')}
-                  />
                 )}
                 <span className={styles.updated} aria-live="polite">
                   {updatedAt

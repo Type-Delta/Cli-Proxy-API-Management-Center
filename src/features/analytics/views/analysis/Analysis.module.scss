@@ -40,6 +40,61 @@
   font-weight: 650;
 }
 
+.cardExtra {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+}
+
+.searchWrap {
+  position: relative;
+  min-width: 0;
+
+  @media (min-width: 768px) {
+    width: 280px;
+  }
+}
+
+.searchInput {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px 0 38px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-10);
+  }
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  left: 13px;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  pointer-events: none;
+  display: inline-flex;
+}
+
+.modelSearchEmpty {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
 .initialLoading {
   display: flex;
   flex-direction: column;
@@ -76,12 +131,10 @@
   gap: $spacing-lg;
 }
 
-.ranking,
-.efficiencyList {
+.ranking {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -340,87 +393,6 @@
   }
 }
 
-.efficiencyList li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(140px, 0.75fr);
-  align-items: center;
-  gap: 14px;
-  min-height: 52px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border-color);
-
-  > div:first-child {
-    display: grid;
-    min-width: 0;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 3px 10px;
-  }
-
-  > div:first-child strong {
-    min-width: 0;
-    overflow: hidden;
-    grid-column: 1 / -1;
-    color: var(--text-primary);
-    font-size: 13px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  > div:first-child span {
-    color: var(--text-secondary);
-    font-size: 11px;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.efficiencyMeasure {
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-
-  strong {
-    color: var(--text-primary);
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-  }
-
-  small {
-    color: var(--text-secondary);
-    font-size: 11px;
-  }
-}
-
-.efficiencyVolume {
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: 3px 8px;
-  color: var(--text-secondary);
-  font-size: 11px;
-
-  > strong {
-    justify-self: end;
-    color: var(--text-secondary);
-    font-size: 11px;
-  }
-
-  > i {
-    display: block;
-    height: 6px;
-    grid-column: 1 / -1;
-    overflow: hidden;
-    border-radius: $radius-full;
-    background: var(--muted-bg);
-  }
-
-  b {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--primary-active);
-  }
-}
-
 .heatmapLimit {
   margin: 0 0 $spacing-sm;
   color: var(--text-secondary);
@@ -501,9 +473,15 @@
     grid-template-columns: 1fr;
   }
 
-  .efficiencyList li {
-    grid-template-columns: 1fr;
+  .cardExtra {
+    width: 100%;
+    justify-content: stretch;
   }
+
+  .modelSearch {
+    width: 100%;
+  }
+
 }
 
 @media (prefers-reduced-motion: reduce) {

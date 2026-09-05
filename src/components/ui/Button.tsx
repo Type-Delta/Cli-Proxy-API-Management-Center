@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, PropsWithChildren } from 'react';
+import type { ButtonHTMLAttributes, PropsWithChildren, ReactNode } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'md' | 'sm';
@@ -8,6 +8,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize;
   fullWidth?: boolean;
   loading?: boolean;
+  icon?: ReactNode;
 }
 
 export function Button({
@@ -16,6 +17,7 @@ export function Button({
   size = 'md',
   fullWidth = false,
   loading = false,
+  icon,
   className = '',
   disabled,
   ...rest
@@ -34,6 +36,7 @@ export function Button({
   return (
     <button className={classes} disabled={disabled || loading} {...rest}>
       {loading && <span className="loading-spinner" aria-hidden="true" />}
+      {icon && !loading && <span className="btn-icon" aria-hidden="true">{icon}</span>}
       {hasChildren && <span>{children}</span>}
     </button>
   );

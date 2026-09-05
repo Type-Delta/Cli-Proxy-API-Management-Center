@@ -27,6 +27,7 @@ export type AnalyticsFilterState = {
   keysLoading: boolean;
   keysError: string;
   refreshKeys: () => Promise<void>;
+  refreshKeysOrThrow: () => Promise<void>;
 };
 
 export const AnalyticsFilterContext = createContext<AnalyticsFilterState | null>(null);

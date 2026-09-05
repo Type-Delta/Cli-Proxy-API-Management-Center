@@ -42,6 +42,48 @@
   }
 }
 
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color $transition-fast,
+    border-color $transition-fast,
+    color $transition-fast;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-primary);
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+.btnPrimary {
+  background: var(--primary-color);
+  color: var(--primary-contrast);
+
+  &:hover:not(:disabled) {
+    background: var(--primary-hover);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--primary-active);
+  }
+}
+
 .headerCopy {
   display: flex;
   min-width: 0;
@@ -118,6 +160,15 @@
   flex-direction: column;
   gap: 20px;
 }
+
+.workspace {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .filters {
   min-width: 0;
 }
@@ -125,7 +176,7 @@
 .filtersCard {
   display: flex;
   align-items: end;
-  gap: 12px;
+  gap: 8px 12px;
   flex-wrap: wrap;
 
   button,
@@ -135,10 +186,16 @@
 }
 .rangeFilter {
   display: flex;
-  min-width: min(100%, 320px);
   flex: 0 1 420px;
   flex-direction: column;
   gap: 6px;
+  margin: 0 auto 0 0;
+}
+.filterFields {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: inherit;
 }
 .filterField {
   display: flex;
@@ -154,8 +211,7 @@
     line-height: 1.35;
   }
 }
-.rangeFilter .filterField {
-  width: min(100%, 240px);
+.filterField {
   flex: none;
 }
 .kpis {
@@ -210,7 +266,7 @@
 .segmented,
 .actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: no-wrap;
   gap: 8px;
 }
 
@@ -253,6 +309,50 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+.tablePagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+td.stickyAction {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  min-width: 132px;
+  white-space: nowrap;
+  background: var(--bg-primary);
+  box-shadow: -9px 0 10px -4px var(--bg-primary);
+}
+
+thead .stickyAction {
+  z-index: 2;
+  background: var(--muted-bg);
+}
+
+tbody tr:hover .stickyAction {
+  background: color-mix(in srgb, var(--accent-bg) 50%, var(--bg-primary));
+}
+
+@media (max-width: 639px) {
+  .tablePagination {
+    align-items: stretch;
+    flex-direction: column;
+
+    :global(nav) {
+      justify-content: space-between;
+    }
+  }
+
+  .stickyAction {
+    min-width: 116px;
+  }
 }
 .code {
   min-height: 320px;
@@ -299,6 +399,35 @@
   box-shadow: var(--shadow);
   color: var(--text-secondary);
   font-size: 12px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  & .sharedKeyConfig {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  & .sharedKeyConfig > label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  @media (min-width: 1024px) {
+    & .sharedKeyConfig {
+      flex-direction: row;
+      gap: 12px;
+
+      & > * {
+        width: 100%;
+      }
+    }
+  }
 }
 
 .eventsTable {
@@ -387,7 +516,7 @@
 
 .manageForm {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .manageActions {

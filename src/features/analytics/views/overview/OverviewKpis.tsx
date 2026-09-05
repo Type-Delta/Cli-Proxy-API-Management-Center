@@ -1,6 +1,6 @@
 import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card } from '@/components/ui/Card';
+import { AnalyticsCard as Card } from '@/features/analytics/components/AnalyticsCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { toneForSuccessRate } from '@/features/dashboard/utils';
 import type { AnalyticsSummary } from '@/types';
@@ -35,7 +35,7 @@ const exactPercent = (value: number | null, locale?: string): FormattedValue => 
 });
 
 /** The KPI sparkline: 32px of line and soft area, no axes, and never its own tab stop. */
-function MetricTrend({ card, label }: { card: MetricCard; label: string }) {
+function MetricTrend({ card, label, index }: { card: MetricCard; label: string; index: number }) {
   const { i18n } = useTranslation();
   const locale = i18n.resolvedLanguage;
   const trend = card.trend;
@@ -43,6 +43,7 @@ function MetricTrend({ card, label }: { card: MetricCard; label: string }) {
     if (!trend) return null;
     const times = trend.times ?? [];
     return sparklineOption({
+      animationDelay: index * 100,
       data: trend.points.map((value, index) => [times[index] ?? String(index), value]),
       seriesName: card.label,
       color: card.accent,
@@ -54,7 +55,7 @@ function MetricTrend({ card, label }: { card: MetricCard; label: string }) {
       }) as (params: unknown) => string,
       axisPointer: snapAxisPointer,
     });
-  }, [card.accent, card.label, locale, trend]);
+  }, [card.accent, card.label, index, locale, trend]);
 
   if (!trend) return null;
   return (
@@ -89,7 +90,7 @@ export function MetricTiles({ cards, label }: { cards: MetricCard[]; label: stri
   const { t } = useTranslation();
   return (
     <section className={styles.metricGrid} aria-label={label}>
-      {cards.map((card) => (
+      {cards.map((card, index) => (
         <div
           key={card.key}
           className={styles.metricCardFocus}
@@ -112,6 +113,7 @@ export function MetricTiles({ cards, label }: { cards: MetricCard[]; label: stri
             {card.trend && (
               <MetricTrend
                 card={card}
+                index={index}
                 label={trendAriaLabel(
                   t,
                   t('analytics.overview.trend', {

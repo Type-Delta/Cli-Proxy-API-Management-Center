@@ -14,13 +14,14 @@ import { Overview } from './views/Overview';
 import { Pricing } from './views/Pricing';
 import { Providers } from './views/Providers';
 import { SharedViews } from './views/SharedViews';
+import styles from './Analytics.module.scss';
 
 export type { AnalyticsPageKind } from './navigation';
 
 export function AnalyticsPage({ kind }: { kind: AnalyticsPageKind }) {
   const { t } = useTranslation();
   const capabilities = useAnalyticsCapabilities();
-  if (capabilities.loading) return <AnalyticsSkeleton />;
+  if (capabilities.loading && !capabilities.data) return <AnalyticsSkeleton />;
   if (capabilities.error || !capabilities.data?.analytics.supported)
     return (
       <Card>
@@ -51,23 +52,20 @@ export function AnalyticsPage({ kind }: { kind: AnalyticsPageKind }) {
         />
       </Card>
     );
-  return <AnalyticsWorkspace kind={kind} />;
+  return (
+    <div className={styles.workspace} data-analytics-workspace>
+      <AnalyticsWorkspace kind={kind} />
+    </div>
+  );
 }
 
 function AnalyticsWorkspace({ kind }: { kind: AnalyticsPageKind }) {
-  const {
-    range,
-    selectedKeyIds: selected,
-    setSelectedKeyIds: setSelected,
-    keys,
-  } = useAnalyticsFilters();
+  const { range, selectedKeyIds: selected, keys } = useAnalyticsFilters();
   return (
     <>
       {kind === 'overview' && <Overview range={range} keyIds={selected} />}
       {kind === 'analysis' && <Analysis range={range} keyIds={selected} />}
-      {kind === 'keys' && (
-        <KeysView keys={keys} range={range} selected={selected} setSelected={setSelected} />
-      )}
+      {kind === 'keys' && <KeysView keys={keys} range={range} />}
       {kind === 'events' && <Events range={range} keyIds={selected} />}
       {kind === 'pricing' && <Pricing />}
       {kind === 'providers' && <Providers />}

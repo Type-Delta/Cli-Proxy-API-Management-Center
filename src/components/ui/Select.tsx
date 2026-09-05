@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactNode,
   type CSSProperties,
   type KeyboardEvent,
 } from 'react';
@@ -17,6 +18,7 @@ import styles from './Select.module.scss';
 export interface SelectOption {
   value: string;
   label: string;
+  icon?: ReactNode;
   description?: string;
   badge?: string;
   searchText?: string;
@@ -31,7 +33,7 @@ interface CommonSelectProps {
   ariaLabelledBy?: string;
   ariaDescribedBy?: string;
   fullWidth?: boolean;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
   id?: string;
 }
 
@@ -360,6 +362,7 @@ export function Select(props: SelectProps) {
                 {active && <IconCheck size={14} />}
               </span>
             )}
+            {option.icon}
             <span className={styles.optionText}>
               <strong>{option.label}</strong>
               {option.description && <span>{option.description}</span>}
@@ -451,7 +454,7 @@ export function Select(props: SelectProps) {
           ref={triggerRef}
           id={selectId}
           type="button"
-          className={`${styles.trigger} ${size === 'sm' ? styles.triggerSm : ''}`.trim()}
+          className={`${styles.trigger} ${size === 'sm' ? styles.triggerSm : size === 'lg' ? styles.triggerLg : ''}`.trim()}
           onClick={isDisabled ? undefined : () => (isOpen ? close() : setOpen(true))}
           onKeyDown={handleKeyDown}
           aria-haspopup="listbox"
@@ -466,6 +469,7 @@ export function Select(props: SelectProps) {
           aria-busy={loading || undefined}
           disabled={isDisabled}
         >
+          {!multiple && !loading && selectedOption?.icon}
           <span
             id={valueId}
             className={`${styles.triggerText} ${isPlaceholder ? styles.placeholder : ''}`}

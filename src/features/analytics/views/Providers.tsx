@@ -1,7 +1,7 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { AnalyticsCard as Card } from '@/features/analytics/components/AnalyticsCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Modal } from '@/components/ui/Modal';
@@ -18,6 +18,7 @@ import { Meter } from '@/features/dashboard/components/Meter';
 import { analyticsApi } from '@/services/api';
 import type { ProviderCredential, ProviderQuota, ProviderStatus, QuotaStatus } from '@/types';
 import { formatDateTime, formatNumber } from '../components/analyticsFormatting';
+import { ANALYTICS_TABLE_PAGE_SIZE, TablePagination } from '../components/TablePagination';
 import { useAnalyticsLoad as useLoad } from '../useAnalyticsLoad';
 import {
   calculateQuotaProgress,
@@ -144,53 +145,72 @@ function ProviderSummaryTable({
   quotas: QuotaStatus[];
 }) {
   const { t, i18n } = useTranslation();
+  const [pageState, setPage] = useState(1);
+  const page = Math.min(
+    pageState,
+    Math.max(1, Math.ceil(providers.length / ANALYTICS_TABLE_PAGE_SIZE))
+  );
   const quotaByProvider = new Map(quotas.map((row) => [row.provider, row]));
+  useEffect(() => {
+    setPage((currentPage) =>
+      Math.min(currentPage, Math.max(1, Math.ceil(providers.length / ANALYTICS_TABLE_PAGE_SIZE)))
+    );
+  }, [providers.length]);
+  const visibleProviders = providers.slice(
+    (page - 1) * ANALYTICS_TABLE_PAGE_SIZE,
+    page * ANALYTICS_TABLE_PAGE_SIZE
+  );
   return (
-    <Table aria-label={t('analytics.provider_summary', { defaultValue: 'Provider summary' })}>
-      <TableHeader>
-        <TableRow>
-          <TableHead>{t('analytics.provider', { defaultValue: 'Provider' })}</TableHead>
-          <TableHead>{t('analytics.credentials', { defaultValue: 'Credentials' })}</TableHead>
-          <TableHead>{t('analytics.available', { defaultValue: 'Available' })}</TableHead>
-          <TableHead>{t('analytics.unavailable', { defaultValue: 'Unavailable' })}</TableHead>
-          <TableHead>{t('analytics.quota_exceeded', { defaultValue: 'Quota exceeded' })}</TableHead>
-          <TableHead>{t('analytics.next_reset', { defaultValue: 'Next reset' })}</TableHead>
-          <TableHead>{t('analytics.observed', { defaultValue: 'Observed' })}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {providers.map((row) => {
-          const quota = quotaByProvider.get(row.provider);
-          return (
-            <TableRow key={row.provider}>
-              <TableCell>{providerLabel(t, row.provider)}</TableCell>
-              <TableCell>{formatNumber(row.credentials, i18n.resolvedLanguage)}</TableCell>
-              <TableCell>
-                {formatNumber(row.available_credentials, i18n.resolvedLanguage)}
-              </TableCell>
-              <TableCell>
-                {formatNumber(row.unavailable_credentials, i18n.resolvedLanguage)}
-              </TableCell>
-              <TableCell>
-                {quota ? formatNumber(quota.quota_exceeded, i18n.resolvedLanguage) : '—'}
-              </TableCell>
-              <TableCell>
-                {quota?.next_reset_at
-                  ? formatDateTime(quota.next_reset_at, i18n.resolvedLanguage)
-                  : '—'}
-              </TableCell>
-              <TableCell>
-                {row.last_observed_at
-                  ? formatDateTime(row.last_observed_at, i18n.resolvedLanguage)
-                  : quota?.last_observed_at
-                    ? formatDateTime(quota.last_observed_at, i18n.resolvedLanguage)
+    <>
+      <Table aria-label={t('analytics.provider_summary', { defaultValue: 'Provider summary' })}>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t('analytics.provider', { defaultValue: 'Provider' })}</TableHead>
+            <TableHead>{t('analytics.credentials', { defaultValue: 'Credentials' })}</TableHead>
+            <TableHead>{t('analytics.available', { defaultValue: 'Available' })}</TableHead>
+            <TableHead>{t('analytics.unavailable', { defaultValue: 'Unavailable' })}</TableHead>
+            <TableHead>
+              {t('analytics.quota_exceeded', { defaultValue: 'Quota exceeded' })}
+            </TableHead>
+            <TableHead>{t('analytics.next_reset', { defaultValue: 'Next reset' })}</TableHead>
+            <TableHead>{t('analytics.observed', { defaultValue: 'Observed' })}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {visibleProviders.map((row) => {
+            const quota = quotaByProvider.get(row.provider);
+            return (
+              <TableRow key={row.provider}>
+                <TableCell>{providerLabel(t, row.provider)}</TableCell>
+                <TableCell>{formatNumber(row.credentials, i18n.resolvedLanguage)}</TableCell>
+                <TableCell>
+                  {formatNumber(row.available_credentials, i18n.resolvedLanguage)}
+                </TableCell>
+                <TableCell>
+                  {formatNumber(row.unavailable_credentials, i18n.resolvedLanguage)}
+                </TableCell>
+                <TableCell>
+                  {quota ? formatNumber(quota.quota_exceeded, i18n.resolvedLanguage) : '—'}
+                </TableCell>
+                <TableCell>
+                  {quota?.next_reset_at
+                    ? formatDateTime(quota.next_reset_at, i18n.resolvedLanguage)
                     : '—'}
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+                </TableCell>
+                <TableCell>
+                  {row.last_observed_at
+                    ? formatDateTime(row.last_observed_at, i18n.resolvedLanguage)
+                    : quota?.last_observed_at
+                      ? formatDateTime(quota.last_observed_at, i18n.resolvedLanguage)
+                      : '—'}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+      <TablePagination currentPage={page} totalItems={providers.length} onPageChange={setPage} />
+    </>
   );
 }
 
@@ -202,59 +222,75 @@ function CredentialTable({
   onSelect: (row: ProviderCredential) => void;
 }) {
   const { t, i18n } = useTranslation();
+  const [pageState, setPage] = useState(1);
+  const page = Math.min(pageState, Math.max(1, Math.ceil(rows.length / ANALYTICS_TABLE_PAGE_SIZE)));
+  useEffect(() => {
+    setPage((currentPage) =>
+      Math.min(currentPage, Math.max(1, Math.ceil(rows.length / ANALYTICS_TABLE_PAGE_SIZE)))
+    );
+  }, [rows.length]);
+  const visibleRows = rows.slice(
+    (page - 1) * ANALYTICS_TABLE_PAGE_SIZE,
+    page * ANALYTICS_TABLE_PAGE_SIZE
+  );
   return (
-    <Table aria-label={t('analytics.credential_rows', { defaultValue: 'Credential details' })}>
-      <TableHeader>
-        <TableRow>
-          <TableHead>
-            {t('analytics.credential_identity', { defaultValue: 'Credential' })}
-          </TableHead>
-          <TableHead>{t('analytics.provider', { defaultValue: 'Provider' })}</TableHead>
-          <TableHead>{t('analytics.auth_type', { defaultValue: 'Auth type' })}</TableHead>
-          <TableHead>{t('analytics.health', { defaultValue: 'Health' })}</TableHead>
-          <TableHead>
-            {t('analytics.observed_requests', { defaultValue: 'Observed requests' })}
-          </TableHead>
-          <TableHead>
-            {t('analytics.observed_failures', { defaultValue: 'Observed failures' })}
-          </TableHead>
-          <TableHead>{t('analytics.quota', { defaultValue: 'Quota' })}</TableHead>
-          <TableHead>{t('common.action', { defaultValue: 'Action' })}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((row) => (
-          <TableRow key={`${row.provider}:${shortCredentialIdentity(row.credential_id)}`}>
-            <TableCell>
-              <code
-                title={t('analytics.credential_identity_hint', {
-                  defaultValue: 'Short hashed identity',
-                })}
-              >
-                {shortCredentialIdentity(row.credential_id)}
-              </code>
-            </TableCell>
-            <TableCell>{providerLabel(t, row.provider)}</TableCell>
-            <TableCell>{localizedValue(t, 'auth_type', row.auth_type)}</TableCell>
-            <TableCell>
-              <span className="status-badge">
-                {localizedValue(t, 'provider_health', row.status)}
-              </span>
-            </TableCell>
-            <TableCell>{formatNumber(row.requests, i18n.resolvedLanguage)}</TableCell>
-            <TableCell>{formatNumber(row.failed, i18n.resolvedLanguage)}</TableCell>
-            <TableCell>
-              <QuotaCell quota={row.quota} locale={i18n.resolvedLanguage} />
-            </TableCell>
-            <TableCell>
-              <Button variant="secondary" onClick={() => onSelect(row)}>
-                {t('analytics.view_details', { defaultValue: 'View details' })}
-              </Button>
-            </TableCell>
+    <>
+      <Table aria-label={t('analytics.credential_rows', { defaultValue: 'Credential details' })}>
+        <TableHeader>
+          <TableRow>
+            <TableHead>
+              {t('analytics.credential_identity', { defaultValue: 'Credential' })}
+            </TableHead>
+            <TableHead>{t('analytics.provider', { defaultValue: 'Provider' })}</TableHead>
+            <TableHead>{t('analytics.auth_type', { defaultValue: 'Auth type' })}</TableHead>
+            <TableHead>{t('analytics.health', { defaultValue: 'Health' })}</TableHead>
+            <TableHead>
+              {t('analytics.observed_requests', { defaultValue: 'Observed requests' })}
+            </TableHead>
+            <TableHead>
+              {t('analytics.observed_failures', { defaultValue: 'Observed failures' })}
+            </TableHead>
+            <TableHead>{t('analytics.quota', { defaultValue: 'Quota' })}</TableHead>
+            <TableHead className={styles.stickyAction}>
+              {t('common.action', { defaultValue: 'Action' })}
+            </TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {visibleRows.map((row) => (
+            <TableRow key={`${row.provider}:${shortCredentialIdentity(row.credential_id)}`}>
+              <TableCell>
+                <code
+                  title={t('analytics.credential_identity_hint', {
+                    defaultValue: 'Short hashed identity',
+                  })}
+                >
+                  {shortCredentialIdentity(row.credential_id)}
+                </code>
+              </TableCell>
+              <TableCell>{providerLabel(t, row.provider)}</TableCell>
+              <TableCell>{localizedValue(t, 'auth_type', row.auth_type)}</TableCell>
+              <TableCell>
+                <span className="status-badge">
+                  {localizedValue(t, 'provider_health', row.status)}
+                </span>
+              </TableCell>
+              <TableCell>{formatNumber(row.requests, i18n.resolvedLanguage)}</TableCell>
+              <TableCell>{formatNumber(row.failed, i18n.resolvedLanguage)}</TableCell>
+              <TableCell>
+                <QuotaCell quota={row.quota} locale={i18n.resolvedLanguage} />
+              </TableCell>
+              <TableCell className={styles.stickyAction}>
+                <Button size="sm" variant="secondary" onClick={() => onSelect(row)}>
+                  {t('analytics.view_details', { defaultValue: 'View details' })}
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <TablePagination currentPage={page} totalItems={rows.length} onPageChange={setPage} />
+    </>
   );
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card } from '@/components/ui/Card';
+import { AnalyticsCard as Card } from '@/features/analytics/components/AnalyticsCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { analyticsApi } from '@/services/api';
 import type { AnalyticsRange } from '../query';
@@ -12,6 +12,7 @@ import { ActivityHeatmaps } from './overview/ActivityHeatmaps';
 import { OverviewKpis } from './overview/OverviewKpis';
 import { buildOverviewActivityQuery, overviewSparklines } from './overview/overviewModel';
 import styles from './overview/Overview.module.scss';
+import { Eyebrow } from '@/components/ui/Eyebrow';
 
 export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: string[] }) {
   const { t } = useTranslation();
@@ -24,7 +25,8 @@ export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: str
       }),
     [range, keyIds]
   );
-  // R6-3: activity is a fixed rolling year, so only the key filter and the range's zone reach it.
+
+  // activity is a fixed rolling year, so only the key filter and the range's zone reach it.
   const activityRequest = useMemo(() => buildOverviewActivityQuery(keyIds, range), [keyIds, range]);
   const summary = useLoad(() => analyticsApi.summary(request), JSON.stringify(request));
   const timeseries = useLoad(
@@ -46,18 +48,9 @@ export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: str
 
   return (
     <div className={styles.overview}>
-      <AsyncState
-        loading={timeseries.loading}
-        error={timeseries.error}
-        errorStatus={timeseries.errorStatus}
-        retryAt={timeseries.retryAt}
-        stale={timeseries.data?.meta.degraded}
-        onRetry={() => void timeseries.refresh()}
-      >
-        <span className={styles.srOnly}>
-          {t('analytics.overview.timeseries_status', { defaultValue: 'Time-series status' })}
-        </span>
-      </AsyncState>
+      <Eyebrow as="h2" id="analytics-analysis-quick_stats">
+        {t('analytics.analysis.section_quick_stats', { defaultValue: 'Quick Stats' })}
+      </Eyebrow>
 
       {timeseries.data?.points.length === 0 && (
         <Card>
@@ -86,6 +79,10 @@ export function Overview({ range, keyIds }: { range: AnalyticsRange; keyIds: str
           />
         )}
       </AsyncState>
+
+      <Eyebrow as="h2" id="analytics-overview-activity">
+        {t('analytics.analysis.section_activity', { defaultValue: 'Activity' })}
+      </Eyebrow>
 
       <ActivityHeatmaps
         activity={activity.data}

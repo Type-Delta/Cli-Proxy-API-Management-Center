@@ -2,7 +2,7 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-09-04
+Last updated: 2026-09-05
 
 ## Repository relationship
 
@@ -264,3 +264,117 @@ Result: `1 0`. The merge-forward record was one commit ahead and no commits behi
 5. Update the upstream base, comparison counts, validation evidence, divergence entries, and merge-history table in this file.
 6. Push `main` without rewriting published history.
 7. Update CPA's `web/management-center` gitlink only after this commit is pushed.
+
+
+### DL013: Stable overview hover and Sunday-first activity cells
+
+Overview sparklines keep explicit CSS-variable colors during ECharts emphasis, preventing hover from clearing the SVG line and area. Their cursor stays default because they have no click action. KPI sparkline options request body-level placement, while `AnalyticsChart` adapts that request into a per-chart fixed portal clipped to the viewport. When a port does not supply a custom position, the adapter places the panel 20px above and right of the pointer, translates the viewport-clamped point back to chart-local coordinates for ECharts, and preserves custom positions. This keeps the panel outside the card's rounded `overflow: hidden` boundary without letting a hidden stale tooltip coordinate create page overflow after a resize.
+
+The activity calendars use a CSS grid with Sunday in the first row. Grid cells and legend swatches share the same 12 × 12px border-box size, rounded corners, and color classes, with 3px gaps. Monday, Wednesday, and Friday labels mark their rows while Sunday remains first. Weekday and month labels follow the app locale. Transparent 15 × 15px cell hitboxes meet across the 3px gutters, keeping hover active between neighboring 12px squares. Hover outlines the cell and immediately shows a styled day-detail tooltip through a body portal, outside the scrolling card. The tooltip sits above and to the right of the pointer, clamped inside the viewport. Its persistent panel uses the ECharts 400ms transform and 200ms opacity transitions, disabled for reduced motion. It dismisses on pointer exit, scroll, resize, or Escape. The monthly text alternative and live readout remain available. On narrow screens, each calendar shows the most recent whole week columns that fit beside the fixed weekday labels. A ResizeObserver adjusts the visible window as card width changes; the newest date stays visible without horizontal scrolling. Wider cards reveal older weeks, up to the full year. Yearly totals and the accessible monthly table retain the complete activity range.
+
+Validation: `bun run verify` passes all 626 tests, lint, TypeScript compilation, and the production build. Chrome CDP checks against the running dev server and its mock data at 1440 × 900 and 390 × 844 confirm KPI tooltip panels are visible at desktop and mobile probe points, preserve the existing ECharts motion and placement, and do not add page overflow. The resize regression check records the prior 1,219px scroll width after a desktop hover and 382px after the fix at a 390px viewport. The same checks confirm visible sparklines on hover, default computed cursors, all rendered cells at 12 × 12px, Sunday-first placement, fixed weekday labels beside the responsive date window, and visible hover tooltips and cell outlines on both calendars. Pointer probes in horizontal and vertical gutters reproduce missing tooltips before the hitbox fix and pass afterward. The calendar test covers unsorted dates, missing days, and year boundaries.
+
+### DL014: Free KPI tooltip positioning
+
+Status: working tree
+
+The KPI option removes `confine: true`, which had constrained a 64px tooltip to the 32px sparkline canvas and placed it over the graph. The adapter supplies a typed default position callback only for portaled tooltips without a custom position. It uses the document client width and height so scrollbar space is excluded from the viewport bounds. It clamps the desired viewport coordinates, then converts them through the chart host rectangle back to the coordinates ECharts expects before it translates them into the fixed portal. The portal's `overflow: clip` remains in place for stale coordinates after resize. Heatmap options and behavior are unchanged.
+
+Validation: targeted Bun tests and TypeScript checks pass. The CDP mock check covers desktop/mobile left, middle, and right probes, viewport containment, no console errors, and no document overflow after resize. Full results are in `free-tooltip.md`.
+
+
+Responsive calendar verification (2026-09-05): isolated Chrome CDP at 1440 × 900 shows the full 365-day range in each heatmap. At 390 × 844, each shows the latest 18 week columns, including the newest day, with no horizontal grid or page overflow. Resizing back restores the full year. Independent review confirmed the fixed weekday labels, month labels, square cells, touching hitboxes, and day tooltips.
+
+
+### DL015: Global analytics refresh and scoped sidebar selection
+
+Analytics Usage and Analytics Management register their active-page refresh coordinator with the existing global header refresh hook. The floating header button refreshes capabilities/readiness, the key catalog, and the active analytics tab; the duplicate shell refresh buttons are removed. Coordinator refreshes propagate request failures to the existing header error notification while preserving local error/retry state. Automatic loads remain nonthrowing, and an in-flight guard prevents duplicate analytics refresh batches. Loaded views stay mounted while capabilities refresh, avoiding a second automatic request batch after refresh completion. Existing status, last-updated text, retry handling, and page loading behavior remain. The analytics shell unregisters its header callback outside analytics routes.
+
+Analytics sidebar group matching now first checks that the current path belongs to `/analytics`. This prevents the page mapper's Usage fallback from marking Usage active on unrelated routes such as AI Providers. Existing analytics aliases and history navigation retain the correct Usage or Management highlight.
+
+
+DL015 validation: `bun run verify` passes 630 tests, lint, TypeScript, and production build; Go compile passes. Isolated Chrome CDP checks show the global button refreshes Usage queries or Management pricing, refreshes no hidden analytics data on AI Providers, and leaves only the current sidebar route active across aliases and browser history. Failure injection confirms the header shows a failure notification without success, preserves local error state, and restores Unavailable analytics to Ready after capabilities recover. Independent final review records one key read and three query POSTs per Usage refresh, with no duplicate remount batch, runtime exception, or unhandled rejection.
+
+
+### DL016: Attempt history pages and analytics entrance motion
+
+Attempt history renders at most 50 records per page using the shared Pagination control. Cursor fetches load later pages on demand, and range/filter changes or a global refresh reset the page. Export continues to cover the selected filtered dataset; the Export menu is wide enough for its labels. Button accepts a separate decorative icon slot, used by the Columns control to align its icon with the label.
+
+Analytics workspaces use the dashboard-style entrance timing. ECharts defers its initial frame until the route layer is visible and replays entrance motion when the active tab returns, including charts mounted after loading skeletons. Activity heatmaps reveal cells in a radial wave from the visible grid's top-left, first empty and then colored by a second wave starting 150ms later. The waves overlap. Reduced motion shows the settled chart/grid state, and normal hover or responsive resizing does not restart the heatmap entrance.
+
+The four requested Overview heading/description translation keys are present in English, Russian, Simplified Chinese, and Traditional Chinese. English follows each existing `t()` default. Pagination controls are localized in all four languages.
+
+
+DL016 validation: `bun run verify` passes 632 tests, lint, TypeScript, and the production build; Go compile and both repository diff checks pass. Isolated Chrome CDP checks cover desktop and 390px mobile pagination, full filtered export, untruncated menu labels, centered control icons, visible chart entrances, overlapping heatmap waves, and reduced-motion behavior. Pending heatmap cells remain hidden until the entrance starts to prevent a colored flash.
+
+Independent final QA passed: page 2 → global refresh → page 1 → Next loads page 2 correctly; empty results hide pagination. A live heatmap timeline confirms pending cells remain invisible before the empty wave, the color wave overlaps it, and cells settle to their final colors.
+
+
+### DL017: Keys ranking without duplicated detail views
+
+The Keys tab contains only its sortable ranking/catalog table and mobile cards. Removed the embedded per-key Overview, Analysis, recent events, their requests, and the View details action column/buttons. Shared key filters still scope the dedicated Overview, Analysis, and Attempt history tabs. Removed unused detail styles and the obsolete action-column test.
+
+Validation: 631 tests, lint, TypeScript, production build, Go compile, and diff checks pass. Isolated Chrome CDP at 1440px and 390px confirms populated rankings, no detail sections/buttons, and no horizontal page overflow.
+
+
+### DL018: Provider logos in Event filters
+
+The Events provider dropdown and selected value display existing provider brand logos. Select options accept optional icons, and ProviderCategoryList shares its themed logo renderer with Events. Analytics provider aliases resolve to their matching brand; Antigravity uses its existing OAuth asset. Unknown custom providers retain their text labels.
+
+Validation: isolated Chrome CDP at 1440px/light and 390px/dark confirms every mock provider option has one visible, loaded logo. Frontend tests, lint, TypeScript, production build, Go compile, and diff checks pass.
+
+
+### DL019: Preserve ECharts entrance on initial page load
+
+AnalyticsChart skips ResizeObserver callbacks when the chart already matches its host dimensions. The observer sends an initial notification after registration; calling ECharts resize for that unchanged geometry cancelled the initial entrance animation. Actual size changes still resize the chart.
+
+Validation: an isolated Chrome CDP reload trace reproduced one rendered frame per sparkline before the fix and 52–53 frames afterward. At 390px all six SVG widths match their 292px hosts. Frontend verification passes 631 tests, lint, TypeScript, and build; Go compile and diff checks pass.
+
+
+### DL020: Analytics card scroll reveals
+
+Analytics view cards reuse the dashboard useRevealOnScroll hook through AnalyticsCard. Each card rises 24px and fades in over 450ms on first entering the viewport; reduced motion leaves cards visible. The shared Card accepts a DOM ref so the reveal adds no layout wrapper. Event detail sheets retain their existing entrance.
+
+Validation: isolated Chrome CDP at 1440px and 390px confirms offscreen cards start transparent, reveal on scroll, and settle at opacity 1 with no transform. Reduced-motion emulation leaves zero hidden cards. All 631 tests, lint, TypeScript, production build, Go compile, and diff checks pass.
+
+
+### DL021: Single analytics entrance after tab changes
+
+Removed the superseded workspace-wide fade now that analytics cards reveal individually. The workspace animation started around 390ms into the cards' 450ms entrance on tab switches, causing the visible second fade. Card scroll reveals, route transitions, ECharts activation, and the heatmap ripple remain.
+
+Validation: isolated Chrome CDP reproduced overlapping card/workspace starts before the fix and no workspace animation afterward. Desktop and 390px mobile scroll reveals still settle at opacity 1 with no transform. All 631 tests, lint, TypeScript, production build, Go compile, and diff checks pass.
+
+
+### DL022: Coordinated analytics palettes
+
+Categorical chart colors use consistent blue, emerald, violet, amber, and cyan roles with separate light/dark lightness and chroma. The palette is authored in OKLCH in Sass, gamut-mapped and rounded to legacy RGB during compilation so ECharts/ZRender gradients and animation need no runtime converter. Cost overlays and success/failure markers have separate readable colors. All three stacked-bar builders use card-colored 1px boundaries, keeping adjacent bands distinguishable without forcing alternating near-black and pastel fills.
+
+Overview activity has its own blue volume ramp for light/white surfaces and clearer coral/amber/emerald health levels. Dark Token Activity, dark Request Health, and the Key × Model matrix ramp remain exactly unchanged. Palette tests compile real Sass, check perceptual category distances, graphical/text contrast, ordered volume ramps and empty cells, verify raw emitted values with ZRender, and pin preserved scales.
+
+Validation: `bun run verify` passes 644 tests, lint, TypeScript, and production build; Go compile and repository diff checks pass. Isolated Chrome CDP comparisons cover all Analysis cards and Overview heatmaps across light, white, and dark themes; mobile light/dark routes have no horizontal page overflow. Fresh independent review passes, including preservation and raw RGB compatibility.
+
+
+### DL023: Analytics table controls and Quick Stats timing
+
+Analytics Management uses the Lucide notebook-pen sidebar icon. Pricing rules and missing prices, provider summaries and credentials, and shared views render pages of at most 50 entries. Tables with actions keep the rightmost Action column visible while scrolling horizontally. Shared TablePagination provides localized page and row counts.
+
+Model Cost Efficiency replaces the former efficiency list with a 10-row table containing model name, observed requests, token volume, and known price per million tokens. Each column is sortable. A case-insensitive substring search sits beside the card title and resets pagination. Existing cost calculation is reused, and labels are translated in all four locales.
+
+Quick Stats sparklines run 15% faster: initial duration 870ms and update duration 435ms. Their initial starts are staggered by 70ms in DOM/display order so left-to-right, top-to-bottom entrances overlap. Reduced-motion and responsive resizing behavior remain.
+
+
+DL023 validation: `bun run verify` passes 646 tests, lint, TypeScript, and production build; Go compile and both diff checks pass. Live CDP checks confirm the Model Cost Efficiency 10-row limit, case-insensitive search, numeric sorting, mobile layout, and staggered Quick Stats frames. After the dev backend temporarily rate-limited fresh logins, isolated browser read fixtures verified all five management tables with 51 rows: 50 on page 1 and 1 on page 2, with mobile Action columns pinned within 0.5px of the scroll edge. Synchronous page clamps and a regression test prevent stale rows/ranges after a collection shrinks. Fresh independent review passes.
+
+### DL023: Shared upstream surfaces touched by the analytics UX pass
+
+The DL013–DL022 work makes small additive changes to files that upstream CPAMC also owns; the next upstream sync should expect conflicts there and preserve the fork side:
+
+- `src/components/ui/Button.tsx` — optional `icon` prop rendered before the label (hidden while loading).
+- `src/components/ui/Card.tsx` — optional `ref` forwarded to the root `div` (React 19 ref-as-prop) so scroll reveals need no wrapper.
+- `src/components/ui/Select.tsx` / `Select.module.scss` — optional `icon` on `SelectOption`, rendered in the trigger and option rows.
+- `src/components/ui/Table/Table.module.scss` — one rule for a sticky trailing action column.
+- `src/styles/components.scss` — `.btn-icon` sizing for the Button icon slot.
+- `src/components/layout/MainLayout.tsx` — sidebar selection scoped to the analytics parent page.
+- `src/features/providers/components/ProviderCategoryList.tsx` — logo rendering moved into the shared `ProviderLogo` component (also used by Event filters, DL018).
+
+No upstream behaviour changes; every addition is opt-in through a new prop or class.

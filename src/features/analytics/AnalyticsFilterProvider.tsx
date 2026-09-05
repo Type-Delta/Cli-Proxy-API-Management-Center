@@ -142,11 +142,13 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
       keysLoading: keyCatalog.loading,
       keysError: keyCatalog.error,
       refreshKeys: keyCatalog.refresh,
+      refreshKeysOrThrow: keyCatalog.refreshOrThrow,
     }),
     [
       keyCatalog.error,
       keyCatalog.loading,
       keyCatalog.refresh,
+      keyCatalog.refreshOrThrow,
       keys,
       reportResolvedRange,
       resolvedRange,

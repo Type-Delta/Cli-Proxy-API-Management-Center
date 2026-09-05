@@ -19,7 +19,7 @@ import type { MeterTone } from '@/features/dashboard/utils';
 import { formatNumber } from '../../components/analyticsFormatting';
 import { MAX_ANALYTICS_KEY_FILTERS, type AnalyticsRange } from '../../query';
 
-/** Fixed calendar grid: seven day rows, one column per ISO week, as GitHub draws it. */
+/** Fixed calendar grid: seven day rows, one column per Sunday-first week, as GitHub draws it. */
 export const HEATMAP_ROWS = 7;
 export const HEATMAP_LEVELS = 5;
 
@@ -304,7 +304,7 @@ export const roundToTenth = (value: number) => Math.round(value * 10) / 10;
 
 /* ------------------------------------------------------------------ chart options */
 
-/** One heatmap cell in ECharts' calendar form: the local day, and the quantized level. */
+/** One heatmap cell: the local day, and the quantized level. */
 export type CalendarDatum = [string, number];
 
 /** A local YYYY-MM-DD key; the calendar coordinate matches cells to days by this string. */
@@ -322,63 +322,26 @@ export const calendarDay = (bucket: Pick<ActivityBucket, 'start'>, zone?: string
   return parts;
 };
 
-/**
- * The calendar-heatmap option both activity cards share; only the ramp and the tooltip text
- * differ, so the geometry lives here once.
- */
-export function calendarHeatmapOption(input: {
-  data: CalendarDatum[];
-  /** Colour per level, index 0 = "no data"; supplied as CSS custom-property references. */
-  levelColors: string[];
-  /** Left-hand day names, seven entries starting at Sunday; blanks hide a row's label. */
-  dayNames: string[];
-  /** Twelve month names across the top. */
-  monthNames: string[];
-  /** Cell tooltip body, keyed by the calendar day. */
-  tooltip: (day: string) => string;
-}): EChartsCoreOption {
-  const days = input.data.map(([day]) => day).filter(Boolean);
-  const range = days.length ? [days[0], days[days.length - 1]] : undefined;
-  return {
-    tooltip: {
-      trigger: 'item',
-      // The card scrolls horizontally, so a panel parented to the chart would be clipped by that
-      // overflow; the body is the only ancestor that cannot cut it off.
-      appendToBody: true,
-      // The cell is the target, so the panel hugs the pointer rather than the plot edge.
-      formatter: (params: unknown) => {
-        const value = (params as { value?: CalendarDatum }).value;
-        return Array.isArray(value) ? input.tooltip(String(value[0])) : '';
-      },
-    },
-    visualMap: {
-      show: false,
-      type: 'piecewise',
-      // Levels are already quantized by the model, so the map is an exact lookup, not a scale.
-      pieces: input.levelColors.map((color, level) => ({ value: level, color })),
-    },
-    calendar: {
-      top: 26,
-      left: 34,
-      // No `right`: pinning both edges makes ECharts derive the width and ignore cellSize, which
-      // stretches the cells into rectangles. The card scrolls instead, as GitHub's grid does.
-      bottom: 4,
-      cellSize: [10, 10],
-      range,
-      // 3px of the card's own background is drawn as the cell border, which is how GitHub's
-      // gap is made: no gutter geometry, just a thick same-colour stroke.
-      itemStyle: { borderWidth: 3 },
-      splitLine: { show: false },
-      yearLabel: { show: false },
-      dayLabel: { firstDay: 1, nameMap: input.dayNames, margin: 6 },
-      monthLabel: { nameMap: input.monthNames, margin: 8 },
-    },
-    series: [{ type: 'heatmap', coordinateSystem: 'calendar', data: input.data }],
-  };
+/** Places calendar dates in Sunday-first columns, preserving gaps and year boundaries. */
+export function calendarHeatmapCells(data: CalendarDatum[]) {
+  const sorted = [...data].sort(([a], [b]) => a.localeCompare(b));
+  if (!sorted.length) return [];
+  const first = new Date(`${sorted[0][0]}T00:00:00Z`);
+  const origin = first.getTime() - first.getUTCDay() * 86_400_000;
+  return sorted.map(([day, level]) => {
+    const date = new Date(`${day}T00:00:00Z`);
+    return {
+      day,
+      level,
+      row: date.getUTCDay(),
+      column: Math.floor((date.getTime() - origin) / 604_800_000),
+    };
+  });
 }
 
 /** The sparkline option shared by every KPI tile: line, soft area, no chrome. */
 export function sparklineOption(input: {
+  animationDelay?: number;
   /** [bucket start ISO, value] so the tooltip can name the bucket the cursor snapped to. */
   data: Array<[string, number]>;
   seriesName: string;
@@ -387,8 +350,18 @@ export function sparklineOption(input: {
   axisPointer: unknown;
 }): EChartsCoreOption {
   return {
+    animationDuration: Math.round(1000 / 1.35),
+    animationDurationUpdate: Math.round(500 / 1.35),
+    animationDelay: input.animationDelay ?? 0,
     grid: { top: 2, right: 1, bottom: 2, left: 1, containLabel: false },
-    tooltip: { trigger: 'axis', formatter: input.tooltipFormatter, axisPointer: input.axisPointer },
+    // KPI cards clip their contents to preserve rounded corners; the chart adapter portals this
+    // panel outside that boundary while ECharts still owns its placement and transitions.
+    tooltip: {
+      trigger: 'axis',
+      appendToBody: true,
+      formatter: input.tooltipFormatter,
+      axisPointer: input.axisPointer,
+    },
     xAxis: { type: 'category', show: false, boundaryGap: false, data: input.data.map(([x]) => x) },
     yAxis: { type: 'value', show: false, scale: true },
     series: [
@@ -397,6 +370,13 @@ export function sparklineOption(input: {
         name: input.seriesName,
         data: input.data.map(([, y]) => y),
         showSymbol: false,
+        cursor: 'default',
+        // ECharts cannot derive emphasis colours from CSS var() strings.
+        emphasis: {
+          lineStyle: { color: input.color, width: 1.5 },
+          itemStyle: { color: input.color },
+          areaStyle: { color: input.color, opacity: 0.16 },
+        },
         smooth: 0.25,
         lineStyle: { width: 1.5, color: input.color },
         itemStyle: { color: input.color },

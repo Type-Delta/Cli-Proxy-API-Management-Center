@@ -1,13 +1,29 @@
+@use 'sass:color';
+@use 'sass:math';
+
+// Author perceptually even colors in OKLCH; emit legacy RGB for ECharts/ZRender interpolation.
+@function viz-color($lightness, $chroma, $hue) {
+  $rgb: color.to-space(
+    color.to-gamut(oklch($lightness $chroma $hue), $space: rgb, $method: local-minde),
+    rgb
+  );
+  @return rgb(
+    math.round(color.channel($rgb, 'red')),
+    math.round(color.channel($rgb, 'green')),
+    math.round(color.channel($rgb, 'blue'))
+  );
+}
+
 /**
- * 主题样式
+ * Theme styles
  */
 
-// 浅色主题（默认）
+// Light theme (default)
 :root {
-  // 极简暖灰：浅色模式
-  --bg-secondary: #faf9f5; // 页面背景（纸感）
-  --bg-primary: #f0eee8; // 容器/卡片背景
-  --bg-tertiary: #e9e6df; // hover/次级背景
+  // Warm gray light surfaces
+  --bg-secondary: #faf9f5; // Paper-like page background
+  --bg-primary: #f0eee8; // Container and card background
+  --bg-tertiary: #e9e6df; // Hover and secondary background
   --bg-hover: var(--bg-tertiary);
   --bg-quinary: #f6f4ee;
   --bg-error-light: rgba(198, 87, 70, 0.1);
@@ -20,19 +36,19 @@
   --text-quaternary: #c0bab3;
   --text-muted: var(--text-tertiary);
 
-  --border-color: #e3e1db; // 边框/分割线
+  --border-color: #e3e1db; // Borders and separators
   --border-secondary: var(--border-color);
   --border-primary: #d5d2cb;
   --border-hover: #cecac4;
 
-  --primary-color: #8b8680; // 行动色（主色）
+  --primary-color: #8b8680; // Primary action color
   --primary-hover: #7f7a74;
   --primary-active: #726d67;
   --primary-contrast: #ffffff;
 
   --success-color: #10b981;
   --quota-medium-color: #e0aa14;
-  --warning-color: #c65746; // 错误/警告色
+  --warning-color: #c65746; // Error and warning color
   --error-color: #c65746;
   --danger-color: var(--error-color);
   --info-color: var(--primary-color);
@@ -80,45 +96,37 @@
   --glass-bg-secondary: color-mix(in srgb, var(--bg-secondary) 82%, transparent);
   --glass-border: color-mix(in srgb, var(--border-color) 60%, transparent);
 
-  // 可视化配色：与语义色同源；深色模式下重新取步阶（见 [data-theme='dark']）。
-  // 规则：翡翠绿只表达「活的流量」。
-  --viz-success: #10b981;
-  --viz-failure: #c65746;
+  // Visualization colors have separate semantic, categorical, and volume roles.
+  // Semantic emerald indicates successful traffic.
+  --viz-success: #087f5b;
+  --viz-failure: #c84455;
   // Data-only neutral hue. The chrome greys (--primary-active) read as "disabled" when a
   // whole grid is painted with them, so volume ramps use this desaturated blue instead.
   --viz-neutral: #3f6493;
 
-  // Nominal (categorical) data palette. Semantic tokens encode meaning, so they cannot also
-  // encode category identity: stacked neighbours derived from them measured 1.10-1.18:1 apart.
-  // These ten hues alternate between a dark band (relative luminance ~0.026) and a light band
-  // (~0.245), which puts every consecutive pair >= 3.6:1 apart and every swatch >= 3:1 against
-  // --bg-primary in both the warm and the white theme. Order is the stack order, so index the
-  // series by position, never modulo. Tests pin these values in tests/analyticsPalette.test.ts.
-  --viz-cat-1: #0e2865;
-  --viz-cat-2: #249a57;
-  --viz-cat-3: #4e134e;
-  --viz-cat-4: #bf770c;
-  --viz-cat-5: #02313b;
-  --viz-cat-6: #e3567c;
-  --viz-cat-7: #341b6c;
-  --viz-cat-8: #57982c;
-  --viz-cat-9: #4e1f0b;
-  --viz-cat-10: #269982;
+  // Theme-specific categorical colors: blue, emerald, violet, amber, cyan, then ranking hues.
+  --viz-cat-1: #{viz-color(0.57, 0.16, 255)};
+  --viz-cat-2: #{viz-color(0.55, 0.12, 160)};
+  --viz-cat-3: #{viz-color(0.58, 0.15, 305)};
+  --viz-cat-4: #{viz-color(0.59, 0.13, 75)};
+  --viz-cat-5: #{viz-color(0.55, 0.1, 205)};
+  --viz-cat-6: #{viz-color(0.59, 0.16, 20)};
+  --viz-cat-7: #{viz-color(0.57, 0.15, 285)};
+  --viz-cat-8: #{viz-color(0.55, 0.12, 115)};
+  --viz-cat-9: #{viz-color(0.57, 0.16, 340)};
+  --viz-cat-10: #{viz-color(0.55, 0.12, 190)};
   // The "everything else" band that closes a capped ranking. Achromatic so it never reads as
-  // a named category, but placed on the light band so it separates from --viz-cat-1 beneath it.
+  // a named category.
   --viz-cat-other: #8e867f;
-  // Line overlays drawn over the categorical fills; >= 1.9:1 against every fill and >= 4.5:1
-  // against the card so they stay readable as thin strokes.
-  --viz-line-cost: #b10e3a;
+  // Cost overlays use a separate rose tone with text-level contrast against the card.
+  --viz-line-cost: #b53d68;
 
-  // Ordinal request-health ramp. Contrast against --bg-primary is strictly increasing
-  // (1.89 / 2.90 / 4.28 / 6.29 / 8.94) so "healthier" always reads as "stronger", while the
-  // red -> amber -> green hue progression carries the semantics.
-  --viz-health-1: #ed998f;
-  --viz-health-2: #eb5e4e;
-  --viz-health-3: #9f6208;
-  --viz-health-4: #176338;
-  --viz-health-5: #084a2b;
+  // Request health uses coral, amber, and clear emerald greens on light surfaces.
+  --viz-health-1: #{viz-color(0.73, 0.13, 25)};
+  --viz-health-2: #{viz-color(0.64, 0.18, 28)};
+  --viz-health-3: #{viz-color(0.66, 0.13, 78)};
+  --viz-health-4: #{viz-color(0.66, 0.12, 157)};
+  --viz-health-5: #{viz-color(0.57, 0.13, 158)};
 
   // Sequential volume ramp for heatmap cells, banded off --viz-neutral's hue. Contrast against
   // --bg-primary rises 1.34 / 1.91 / 2.95 / 4.72 / 8.00 with every step >= 1.4x, so "busier"
@@ -130,6 +138,13 @@
   --viz-neutral-3: #6f8db4;
   --viz-neutral-4: #4a6b96;
   --viz-neutral-5: #2b4870;
+  // Activity-only ramp, authored as an OKLCH blue-teal lightness sweep. Keep the neutral ramp
+  // above untouched: it is the established Key × Model Heatmap scale.
+  --viz-activity-1: #{viz-color(0.87, 0.04, 235)};
+  --viz-activity-2: #{viz-color(0.78, 0.07, 235)};
+  --viz-activity-3: #{viz-color(0.68, 0.1, 235)};
+  --viz-activity-4: #{viz-color(0.58, 0.12, 235)};
+  --viz-activity-5: #{viz-color(0.48, 0.12, 235)};
   // A day with no traffic at all: the card's own hover tint, so an empty grid reads as a grid
   // rather than as data.
   --viz-empty-cell: #e9e6df;
@@ -143,14 +158,14 @@
   --viz-tooltip-text: #f6f4f1;
   --viz-tooltip-text-dim: #a29c95;
 
-  // 动效词汇表：内置 ease 太弱，交互反馈统一用强减速曲线。
-  // 按压 160ms / 悬停 200ms，UI 动效不超过 300ms。
+  // Interaction motion uses a strong deceleration curve.
+  // Press feedback takes 160ms and hover feedback 200ms; UI feedback stays under 300ms.
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
   --dur-press: 160ms;
   --dur-hover: 200ms;
 }
 
-// 纯白主题
+// White theme
 [data-theme='white'] {
   --bg-secondary: #ffffff;
   --bg-primary: #ffffff;
@@ -220,12 +235,12 @@
   --accent-bg: var(--bg-tertiary);
 }
 
-// 深色主题（#191919）
+// Dark theme
 [data-theme='dark'] {
-  // 极简暖灰：深色模式（提升对比度与层级）
-  --bg-secondary: #151412; // 页面背景
-  --bg-primary: #1d1b18; // 容器/卡片背景
-  --bg-tertiary: #262320; // hover/次级背景
+  // Warm gray dark surfaces with distinct contrast levels
+  --bg-secondary: #151412; // Page background
+  --bg-primary: #1d1b18; // Container and card background
+  --bg-tertiary: #262320; // Hover and secondary background
   --bg-hover: #2e2a26;
   --bg-quinary: #191714;
   --bg-error-light: rgba(198, 87, 70, 0.18);
@@ -292,28 +307,24 @@
 
   --glass-border: color-mix(in srgb, var(--border-color) 55%, transparent);
 
-  // 深色卡面上 #10b981 亮度超出 OKLCH 0.48–0.67 区间，且与失败色的色盲分离度不足，
-  // 因此深色单独降一档。三套主题均已通过对比度/色盲/亮度校验。
-  --viz-success: #0fae78;
-  --viz-failure: #cf4b3a;
+  // Luminous semantic markers stay distinguishable on dark chart surfaces.
+  --viz-success: #55d3a3;
+  --viz-failure: #f07b82;
   --viz-neutral: #88b0dc;
 
-  // Same ten hues, re-banded for the dark card: the alternating bands invert to ~0.155 and
-  // ~0.700 relative luminance so neighbours stay >= 3.6:1 apart and each swatch >= 3.3:1
-  // against --bg-primary. Hue order matches :root, so a category keeps its identity on theme
-  // change.
-  --viz-cat-1: #3066e1;
-  --viz-cat-2: #a3eac2;
-  --viz-cat-3: #b72eb7;
-  --viz-cat-4: #f9d59e;
-  --viz-cat-5: #047890;
-  --viz-cat-6: #f7d0db;
-  --viz-cat-7: #7b55d4;
-  --viz-cat-8: #c0e5a7;
-  --viz-cat-9: #ba4b1b;
-  --viz-cat-10: #a1e8d9;
+  // Matching hues with luminous, controlled lightness on dark cards.
+  --viz-cat-1: #{viz-color(0.72, 0.14, 255)};
+  --viz-cat-2: #{viz-color(0.74, 0.13, 160)};
+  --viz-cat-3: #{viz-color(0.74, 0.14, 305)};
+  --viz-cat-4: #{viz-color(0.78, 0.14, 75)};
+  --viz-cat-5: #{viz-color(0.75, 0.11, 205)};
+  --viz-cat-6: #{viz-color(0.73, 0.15, 20)};
+  --viz-cat-7: #{viz-color(0.72, 0.14, 285)};
+  --viz-cat-8: #{viz-color(0.76, 0.14, 115)};
+  --viz-cat-9: #{viz-color(0.74, 0.15, 340)};
+  --viz-cat-10: #{viz-color(0.74, 0.12, 190)};
   --viz-cat-other: #dcd9d7;
-  --viz-line-cost: #f87296;
+  --viz-line-cost: #ff82ad;
 
   --viz-health-1: #8a2217;
   --viz-health-2: #c02615;
@@ -327,6 +338,13 @@
   --viz-neutral-3: #4a76a8;
   --viz-neutral-4: #6f9cca;
   --viz-neutral-5: #a8c8e8;
+  // Exact copy of the existing dark Token Activity scale. Key × Model continues to read the
+  // unchanged --viz-neutral-* scale, while the activity component gets an explicit role token.
+  --viz-activity-1: #1f3350;
+  --viz-activity-2: #2f4f78;
+  --viz-activity-3: #4a76a8;
+  --viz-activity-4: #6f9cca;
+  --viz-activity-5: #a8c8e8;
   --viz-empty-cell: #262320;
 
   // Lifted off #1c1a17 so the panel still separates from the #1d1b18 card behind it (1.29:1)

@@ -211,8 +211,8 @@ export function useAnalyticsLoad<T>(
 
   useEffect(() => {
     if (!coordinator || !kind || !isCurrentLayer) return;
-    return coordinator.register(kind, registrationTokenRef.current, refresh);
-  }, [coordinator, isCurrentLayer, kind, refresh]);
+    return coordinator.register(kind, registrationTokenRef.current, refreshOrThrow);
+  }, [coordinator, isCurrentLayer, kind, refreshOrThrow]);
 
   useEffect(() => {
     if (!enabled) {

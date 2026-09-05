@@ -7,9 +7,11 @@ import {
   type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import antigravityLogo from '@/assets/icons/antigravity.svg';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { AnalyticsCard as Card } from '@/features/analytics/components/AnalyticsCard';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
 import {
   Table,
@@ -20,6 +22,8 @@ import {
   TableRow,
 } from '@/components/ui/Table';
 import { IconEye, IconSettings } from '@/components/ui/icons';
+import { PROVIDER_LOGOS } from '@/features/providers/brandLogos';
+import { ProviderLogo } from '@/features/providers/components/ProviderLogo';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { analyticsApi } from '@/services/api';
 import type { AnalyticsEvent, AnalyticsEventPage, AnalyticsFilters, AnalyticsKey } from '@/types';
@@ -50,6 +54,7 @@ import {
 } from '../useAnalyticsLoad';
 import { EventColumnSettings, type EventColumnOption } from './events/EventColumnSettings';
 import { EventDetailSheet } from './events/EventDetailSheet';
+import { EVENTS_PAGE_SIZE, paginateEvents } from './events/eventPagination';
 import {
   loadEventColumnPreferences,
   saveEventColumnPreferences,
@@ -105,6 +110,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
   );
   const [selectedAttemptId, setSelectedAttemptId] = useState('');
   const [activeRow, setActiveRow] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const filterCardRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery('(max-width: 768px)');
 
@@ -153,7 +159,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
   const request = useMemo(
     () =>
       buildAnalyticsQuery('events', range, keyIds, {
-        page_size: 100,
+        page_size: EVENTS_PAGE_SIZE,
         ...(hasFilters ? { filters: requestFilters } : {}),
       }),
     [hasFilters, keyIds, range, requestFilters]
@@ -200,11 +206,14 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     setLoadMoreRetryAt(undefined);
     setRetentionCutoff('');
     setActiveRow(0);
+    setCurrentPage(1);
   }, [scope]);
 
   useEffect(() => {
     if (!result.data) return;
     setPages([result.data]);
+    setCurrentPage(1);
+    setActiveRow(0);
     setLoadMoreError('');
   }, [result.data]);
 
@@ -213,6 +222,8 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     [pages, result.data]
   );
   const events = useMemo(() => uniqueEvents(effectivePages), [effectivePages]);
+  const paginatedEvents = useMemo(() => paginateEvents(events, currentPage), [currentPage, events]);
+  const visibleEvents = paginatedEvents.pageItems;
   const lastPage = effectivePages[effectivePages.length - 1];
   const nextCursor = lastPage?.meta.next_cursor ?? '';
   const firstPage = effectivePages[0];
@@ -224,6 +235,10 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
   );
   const selectedEvent = events.find((event) => event.attempt_id === selectedAttemptId) ?? null;
   const selectedKey = selectedEvent ? keyById.get(selectedEvent.key_id) : undefined;
+  const totalPages =
+    totalCount === undefined
+      ? paginatedEvents.totalPages + (nextCursor ? 1 : 0)
+      : Math.max(paginatedEvents.totalPages, Math.ceil(totalCount / EVENTS_PAGE_SIZE));
 
   const eventRange = firstPage?.meta.range ?? resolveAnalyticsRange(range);
   useEffect(() => {
@@ -242,7 +257,27 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
   const providerOptions = [
     allOption(t('analytics.all_providers', { defaultValue: 'All providers' })),
     ...[...new Set((providerDimensions.data ?? []).map((row) => row.value).filter(Boolean))].map(
-      (value) => ({ value, label: formatAnalyticsEnum(t, 'provider', value) })
+      (value) => {
+        const brand =
+          (
+            {
+              openai: 'openaiCompatibility',
+              'openai-compatible': 'openaiCompatibility',
+              'openai-compatibility': 'openaiCompatibility',
+              'gemini-cli': 'gemini',
+              'vertex-ai': 'vertex',
+            } as Record<string, string>
+          )[value] ?? value;
+        const logo =
+          value === 'antigravity'
+            ? { src: antigravityLogo }
+            : Object.entries(PROVIDER_LOGOS).find(([id]) => id === brand)?.[1];
+        return {
+          value,
+          label: formatAnalyticsEnum(t, 'provider', value),
+          icon: logo ? <ProviderLogo logo={logo} /> : undefined,
+        };
+      }
     ),
   ];
   const modelOptions = [
@@ -310,8 +345,8 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     setFilters({ ...filters, [name]: value });
   };
 
-  const loadMore = async () => {
-    if (!nextCursor || !firstPage || loadingMore) return;
+  const loadMore = async (): Promise<boolean> => {
+    if (!nextCursor || !firstPage || loadingMore) return false;
     const startedScope = scope;
     setLoadingMore(true);
     setLoadMoreError('');
@@ -322,6 +357,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
       if (scopeRef.current === startedScope) {
         setPages((current) => [...current, next]);
         setLoadMoreRetryAt(undefined);
+        return true;
       }
     } catch (caught) {
       const failed = analyticsLoadFailure(caught);
@@ -332,6 +368,21 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
       }
     } finally {
       if (scopeRef.current === startedScope) setLoadingMore(false);
+    }
+    return false;
+  };
+
+  const goToPage = async (page: number) => {
+    if (page <= 0 || page === currentPage) return;
+    if (page <= paginatedEvents.totalPages) {
+      setCurrentPage(page);
+      setActiveRow(0);
+      return;
+    }
+    if (page !== paginatedEvents.totalPages + 1 || !nextCursor) return;
+    if (await loadMore()) {
+      setCurrentPage(page);
+      setActiveRow(0);
     }
   };
 
@@ -466,10 +517,10 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
       return;
     }
     let next: number;
-    if (keyEvent.key === 'ArrowDown') next = Math.min(events.length - 1, index + 1);
+    if (keyEvent.key === 'ArrowDown') next = Math.min(visibleEvents.length - 1, index + 1);
     else if (keyEvent.key === 'ArrowUp') next = Math.max(0, index - 1);
     else if (keyEvent.key === 'Home') next = 0;
-    else if (keyEvent.key === 'End') next = events.length - 1;
+    else if (keyEvent.key === 'End') next = visibleEvents.length - 1;
     else return;
     keyEvent.preventDefault();
     setActiveRow(next);
@@ -616,8 +667,12 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
               title={t('analytics.events')}
               extra={
                 <div className={styles.tableActions}>
-                  <Button variant="secondary" size="sm" onClick={() => setColumnSettingsOpen(true)}>
-                    <IconSettings size={16} />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<IconSettings size={16} />}
+                    onClick={() => setColumnSettingsOpen(true)}
+                  >
                     {t('analytics.columns', { defaultValue: 'Columns' })}
                   </Button>
                   <Select
@@ -642,6 +697,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                     ariaLabel={t('analytics.export_menu', { defaultValue: 'Export' })}
                     disabled={exporting}
                     fullWidth={false}
+                    className={styles.exportSelect}
                   />
                 </div>
               }
@@ -678,7 +734,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                 />
               ) : isMobile ? (
                 <div className={styles.cardList}>
-                  {events.map((event) => (
+                  {visibleEvents.map((event) => (
                     <Card key={event.attempt_id} className={styles.eventCard}>
                       <div className={styles.eventCardHead}>
                         <span title={event.requested_at}>
@@ -712,11 +768,6 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                   aria-label={t('analytics.events')}
                   aria-rowcount={totalCount === undefined ? undefined : totalCount + 1}
                 >
-                  <caption className={styles.tableCaption}>
-                    {t('analytics.events_row_hint', {
-                      defaultValue: 'Select a row for full attempt details',
-                    })}
-                  </caption>
                   <TableHeader>
                     <TableRow>
                       {visibleColumns.map((column) => (
@@ -725,12 +776,12 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {events.map((event, index) => (
+                    {visibleEvents.map((event, index) => (
                       <TableRow
                         key={event.attempt_id}
                         className={styles.eventRow}
                         // Roving tabIndex: the body is a single tab stop whatever the row count.
-                        tabIndex={index === Math.min(activeRow, events.length - 1) ? 0 : -1}
+                        tabIndex={index === Math.min(activeRow, visibleEvents.length - 1) ? 0 : -1}
                         aria-label={rowLabel(event)}
                         onFocus={() => setActiveRow(index)}
                         onClick={() => setSelectedAttemptId(event.attempt_id)}
@@ -744,32 +795,53 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                   </TableBody>
                 </Table>
               )}
-              <div className={styles.pagination}>
-                <span role="status" aria-live="polite">
-                  {totalCount === undefined
-                    ? t('analytics.events_loaded', {
-                        loaded: events.length,
-                        defaultValue: 'Loaded {{loaded}}',
-                      })
-                    : t('analytics.events_loaded_total', {
-                        loaded: events.length,
-                        total: totalCount,
-                        defaultValue: 'Loaded {{loaded}} / {{total}}',
-                      })}
-                </span>
-                {nextCursor && (
-                  <Button
-                    variant="secondary"
-                    loading={loadingMore}
-                    disabled={retryIn > 0}
-                    onClick={() => void loadMore()}
-                  >
-                    {retryIn > 0
-                      ? retryLabel
-                      : t('analytics.load_more', { defaultValue: 'Load more' })}
-                  </Button>
-                )}
-              </div>
+              {events.length > 0 && (
+                <div className={styles.pagination}>
+                  <span role="status" aria-live="polite">
+                    {totalCount === undefined
+                      ? t('analytics.events_page', {
+                          start: (paginatedEvents.currentPage - 1) * EVENTS_PAGE_SIZE + 1,
+                          end:
+                            (paginatedEvents.currentPage - 1) * EVENTS_PAGE_SIZE +
+                            visibleEvents.length,
+                          defaultValue: 'Showing {{start}}–{{end}}',
+                        })
+                      : t('analytics.events_page_total', {
+                          start: (paginatedEvents.currentPage - 1) * EVENTS_PAGE_SIZE + 1,
+                          end:
+                            (paginatedEvents.currentPage - 1) * EVENTS_PAGE_SIZE +
+                            visibleEvents.length,
+                          total: totalCount,
+                          defaultValue: 'Showing {{start}}–{{end}} of {{total}}',
+                        })}
+                  </span>
+                  <Pagination
+                    currentPage={paginatedEvents.currentPage}
+                    totalPages={totalPages}
+                    onPageChange={(page) => void goToPage(page)}
+                    pageLabel={t('analytics.page_of', {
+                      page: paginatedEvents.currentPage,
+                      defaultValue: 'Page {{page}}',
+                    })}
+                    previousLabel={t('analytics.previous_page', {
+                      defaultValue: 'Previous',
+                    })}
+                    nextLabel={
+                      retryIn > 0 ? retryLabel : t('analytics.next_page', { defaultValue: 'Next' })
+                    }
+                    ariaLabel={t('analytics.events_pagination', {
+                      defaultValue: 'Attempt history pagination',
+                    })}
+                    previousDisabled={retryIn > 0}
+                    nextDisabled={
+                      retryIn > 0 ||
+                      paginatedEvents.currentPage >= totalPages ||
+                      (!nextCursor && paginatedEvents.currentPage >= paginatedEvents.totalPages)
+                    }
+                    nextLoading={loadingMore}
+                  />
+                </div>
+              )}
               {loadMoreError && (
                 <div className="error-box" role="alert">
                   {loadMoreError}

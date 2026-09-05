@@ -571,7 +571,12 @@ export function tokenUsageOption({
         type: 'bar' as const,
         stack: 'tokens',
         yAxisIndex: 0,
-        itemStyle: { color: palette.categorical[index], borderRadius: 0 },
+        itemStyle: {
+          color: palette.categorical[index],
+          borderColor: palette.card,
+          borderWidth: 1,
+          borderRadius: 0,
+        },
         barMaxWidth: 26,
         data: points.map((point) => point.categories[category.key]),
       })),
@@ -644,6 +649,8 @@ export function topModelsOption({
       barMaxWidth: 34,
       itemStyle: {
         color: topModelColor(palette, index, model.other),
+        borderColor: palette.card,
+        borderWidth: 1,
         opacity: !highlighted || highlighted === model.model ? 1 : 0.18,
       },
       data: model.values,
@@ -1015,7 +1022,11 @@ export function distributionOption({
       type: 'bar' as const,
       stack: 'tokens',
       barMaxWidth: 16,
-      itemStyle: { color: palette.categorical[category] },
+      itemStyle: {
+        color: palette.categorical[category],
+        borderColor: palette.card,
+        borderWidth: 1,
+      },
       // The row total closes the last band, so the reader gets the number without a hover.
       label:
         category === categoryLabels.length - 1

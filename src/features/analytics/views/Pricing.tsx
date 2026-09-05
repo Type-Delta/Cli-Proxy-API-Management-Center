@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { AnalyticsCard as Card } from '@/features/analytics/components/AnalyticsCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -27,16 +27,17 @@ import {
 } from '../components/analyticsFormatting';
 import { analyticsRangeLabel } from '../query';
 import { useAnalyticsLoad as useLoad } from '../useAnalyticsLoad';
+import { ANALYTICS_TABLE_PAGE_SIZE, TablePagination } from '../components/TablePagination';
 import {
   buildRepriceRequestFromRange,
   draftToPricingRule,
-  pricingSyncOutcome,
   duplicatePricingMatch,
   pricingRuleToDraft,
   type PricingRuleDraft,
   validatePricingRuleDraft,
 } from './manage/pricingValidation';
 import styles from '../Analytics.module.scss';
+import { IconPlus } from '@/components/ui/icons';
 
 const text = (key: string, defaultValue: string, options?: Record<string, unknown>) => ({
   defaultValue: defaultValue || key,
@@ -72,7 +73,42 @@ export function Pricing() {
   const [editor, setEditor] = useState<PricingRuleDraft | null>(null);
   const [editingId, setEditingId] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const [rulesPageState, setRulesPage] = useState(1);
+  const [missingPageState, setMissingPage] = useState(1);
+
+  const rulesPage = Math.min(
+    rulesPageState,
+    Math.max(1, Math.ceil((result.data?.rules.length ?? 0) / ANALYTICS_TABLE_PAGE_SIZE))
+  );
+  const missingPage = Math.min(
+    missingPageState,
+    Math.max(1, Math.ceil((result.data?.missing.length ?? 0) / ANALYTICS_TABLE_PAGE_SIZE))
+  );
+
+  useEffect(() => {
+    const totalPages = Math.max(
+      1,
+      Math.ceil((result.data?.rules.length ?? 0) / ANALYTICS_TABLE_PAGE_SIZE)
+    );
+    setRulesPage((page) => Math.min(page, totalPages));
+  }, [result.data?.rules.length]);
+
+  useEffect(() => {
+    const totalPages = Math.max(
+      1,
+      Math.ceil((result.data?.missing.length ?? 0) / ANALYTICS_TABLE_PAGE_SIZE)
+    );
+    setMissingPage((page) => Math.min(page, totalPages));
+  }, [result.data?.missing.length]);
+
+  const visibleRules = result.data?.rules.slice(
+    (rulesPage - 1) * ANALYTICS_TABLE_PAGE_SIZE,
+    rulesPage * ANALYTICS_TABLE_PAGE_SIZE
+  );
+  const visibleMissing = result.data?.missing.slice(
+    (missingPage - 1) * ANALYTICS_TABLE_PAGE_SIZE,
+    missingPage * ANALYTICS_TABLE_PAGE_SIZE
+  );
 
   const openAdd = () => {
     setEditingId(undefined);
@@ -164,22 +200,6 @@ export function Pricing() {
     }
   };
 
-  const sync = async () => {
-    setSyncing(true);
-    let succeeded = true;
-    try {
-      await result.refreshOrThrow();
-    } catch {
-      // The in-page AsyncState already shows result.error with the detailed message;
-      // the toast only needs to stop claiming success.
-      succeeded = false;
-    } finally {
-      setSyncing(false);
-    }
-    const outcome = pricingSyncOutcome(succeeded);
-    notify(t(outcome.key, text(outcome.key, outcome.fallback)), outcome.type);
-  };
-
   return (
     <AsyncState
       loading={result.loading}
@@ -193,19 +213,27 @@ export function Pricing() {
           <Card
             title={t('analytics.pricing', text('analytics.pricing', 'Pricing'))}
             extra={
-              <Button variant="secondary" onClick={() => void sync()} loading={syncing}>
-                {t(
-                  'analytics.pricing_refresh',
-                  text('analytics.pricing_refresh', 'Refresh catalog')
-                )}
-              </Button>
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  onClick={openAdd}
+                >
+                  <IconPlus size={16} />
+                  <span>
+                    {t(
+                      'analytics.pricing_add_rule',
+                      text('analytics.pricing_add_rule', 'Add rule')
+                    )}
+                  </span>
+                </button>
+              </div>
             }
           >
             <p>
               {t(
                 'analytics.pricing_state',
-                text('analytics.pricing_state', 'Sync: {{state}} · rounding: {{rounding}}', {
-                  state: formatAnalyticsEnum(t, 'sync_state', result.data.sync_state),
+                text('analytics.pricing_state', '{{rounding}}', {
                   rounding: formatAnalyticsEnum(t, 'rounding', result.data.rounding),
                 })
               )}
@@ -219,14 +247,6 @@ export function Pricing() {
                 )
               )}
             </p>
-            <div className={styles.actions}>
-              <Button onClick={openAdd}>
-                {t(
-                  'analytics.pricing_add_rule',
-                  text('analytics.pricing_add_rule', 'Add pricing rule')
-                )}
-              </Button>
-            </div>
             {result.data.rules.length === 0 ? (
               <EmptyState
                 title={t(
@@ -250,99 +270,114 @@ export function Pricing() {
                 }
               />
             ) : (
-              <Table
-                aria-label={t(
-                  'analytics.pricing_rules',
-                  text('analytics.pricing_rules', 'Pricing rules')
-                )}
-              >
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      {t('analytics.pricing_match', text('analytics.pricing_match', 'Match'))}
-                    </TableHead>
-                    <TableHead>
-                      {t('analytics.pricing_input', text('analytics.pricing_input', 'Input / 1M'))}
-                    </TableHead>
-                    <TableHead>
-                      {t(
-                        'analytics.pricing_output',
-                        text('analytics.pricing_output', 'Output / 1M')
-                      )}
-                    </TableHead>
-                    <TableHead>
-                      {t(
-                        'analytics.pricing_cache',
-                        text('analytics.pricing_cache', 'Cache multipliers')
-                      )}
-                    </TableHead>
-                    <TableHead>
-                      {t('analytics.pricing_source', text('analytics.pricing_source', 'Source'))}
-                    </TableHead>
-                    <TableHead>{t('common.action', text('common.action', 'Action'))}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {result.data.rules.map((rule) => (
-                    <TableRow key={rule.rule_id}>
-                      <TableCell>
-                        <strong>{rule.match.model ?? rule.match.alias}</strong>
-                        <br />
-                        <small>
-                          {rule.match.model
-                            ? t('analytics.pricing_model', text('analytics.pricing_model', 'Model'))
-                            : t(
-                                'analytics.pricing_alias',
-                                text('analytics.pricing_alias', 'Alias')
-                              )}
-                        </small>
-                      </TableCell>
-                      <TableCell>
-                        {rule.input_per_million_usd ??
-                          t(
-                            'analytics.pricing_missing_value',
-                            text('analytics.pricing_missing_value', 'Missing')
-                          )}
-                      </TableCell>
-                      <TableCell>
-                        {rule.output_per_million_usd ??
-                          t(
-                            'analytics.pricing_missing_value',
-                            text('analytics.pricing_missing_value', 'Missing')
-                          )}
-                      </TableCell>
-                      <TableCell>
-                        {rule.cache_read_multiplier ?? '1'} /{' '}
-                        {rule.cache_creation_multiplier ?? '1'}
-                      </TableCell>
-                      <TableCell>
-                        {rule.source}
-                        <br />
-                        <small>
-                          {rule.updated_at
-                            ? formatDateTime(rule.updated_at, i18n.resolvedLanguage)
-                            : '—'}
-                        </small>
-                      </TableCell>
-                      <TableCell>
-                        <div className={styles.actions}>
-                          <Button size="sm" variant="secondary" onClick={() => openEdit(rule)}>
-                            {t('common.edit', text('common.edit', 'Edit'))}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            onClick={() => void removeRule(rule)}
-                            disabled={saving}
-                          >
-                            {t('common.delete', text('common.delete', 'Delete'))}
-                          </Button>
-                        </div>
-                      </TableCell>
+              <>
+                <Table
+                  aria-label={t(
+                    'analytics.pricing_rules',
+                    text('analytics.pricing_rules', 'Pricing rules')
+                  )}
+                >
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>
+                        {t('analytics.pricing_match', text('analytics.pricing_match', 'Match'))}
+                      </TableHead>
+                      <TableHead>
+                        {t(
+                          'analytics.pricing_input',
+                          text('analytics.pricing_input', 'Input / 1M')
+                        )}
+                      </TableHead>
+                      <TableHead>
+                        {t(
+                          'analytics.pricing_output',
+                          text('analytics.pricing_output', 'Output / 1M')
+                        )}
+                      </TableHead>
+                      <TableHead>
+                        {t(
+                          'analytics.pricing_cache',
+                          text('analytics.pricing_cache', 'Cache multipliers')
+                        )}
+                      </TableHead>
+                      <TableHead>
+                        {t('analytics.pricing_source', text('analytics.pricing_source', 'Source'))}
+                      </TableHead>
+                      <TableHead className={styles.stickyAction}>
+                        {t('common.action', text('common.action', 'Action'))}
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {visibleRules?.map((rule) => (
+                      <TableRow key={rule.rule_id}>
+                        <TableCell>
+                          <strong>{rule.match.model ?? rule.match.alias}</strong>
+                          <br />
+                          <small>
+                            {rule.match.model
+                              ? t(
+                                  'analytics.pricing_model',
+                                  text('analytics.pricing_model', 'Model')
+                                )
+                              : t(
+                                  'analytics.pricing_alias',
+                                  text('analytics.pricing_alias', 'Alias')
+                                )}
+                          </small>
+                        </TableCell>
+                        <TableCell>
+                          {rule.input_per_million_usd ??
+                            t(
+                              'analytics.pricing_missing_value',
+                              text('analytics.pricing_missing_value', 'Missing')
+                            )}
+                        </TableCell>
+                        <TableCell>
+                          {rule.output_per_million_usd ??
+                            t(
+                              'analytics.pricing_missing_value',
+                              text('analytics.pricing_missing_value', 'Missing')
+                            )}
+                        </TableCell>
+                        <TableCell>
+                          {rule.cache_read_multiplier ?? '1'} /{' '}
+                          {rule.cache_creation_multiplier ?? '1'}
+                        </TableCell>
+                        <TableCell>
+                          {rule.source}
+                          <br />
+                          <small>
+                            {rule.updated_at
+                              ? formatDateTime(rule.updated_at, i18n.resolvedLanguage)
+                              : '—'}
+                          </small>
+                        </TableCell>
+                        <TableCell className={styles.stickyAction}>
+                          <div className={styles.actions}>
+                            <Button size="sm" variant="secondary" onClick={() => openEdit(rule)}>
+                              {t('common.edit', text('common.edit', 'Edit'))}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => void removeRule(rule)}
+                              disabled={saving}
+                            >
+                              {t('common.delete', text('common.delete', 'Delete'))}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <TablePagination
+                  currentPage={rulesPage}
+                  totalItems={result.data.rules.length}
+                  onPageChange={setRulesPage}
+                />
+              </>
             )}
           </Card>
           <Card
@@ -404,7 +439,7 @@ export function Pricing() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {result.data.missing.map((missing) => (
+                    {visibleMissing?.map((missing) => (
                       <TableRow key={`${missing.provider}:${missing.model}`}>
                         <TableCell>{missing.provider}</TableCell>
                         <TableCell>{missing.model}</TableCell>
@@ -421,6 +456,11 @@ export function Pricing() {
                     ))}
                   </TableBody>
                 </Table>
+                <TablePagination
+                  currentPage={missingPage}
+                  totalItems={result.data.missing.length}
+                  onPageChange={setMissingPage}
+                />
               </>
             )}
           </Card>

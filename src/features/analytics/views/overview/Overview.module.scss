@@ -103,16 +103,56 @@
 }
 
 .sparklineSlot {
+  // ECharts' line paths default to a pointer even when the series has no click action.
+  [role='img'],
+  [role='img'] * {
+    cursor: default !important;
+  }
+
   min-height: 32px;
   margin-block-start: auto;
   padding-block-start: 8px;
   border-block-start: 1px solid var(--border-color);
 }
 
-// The calendar is 53 weeks wide whatever the card is, so the card scrolls rather than the page.
+.heatmapCalendar {
+  display: flex;
+  min-width: 0;
+  gap: 3px;
+}
+
+.heatmapDays {
+  display: grid;
+  flex: none;
+  min-width: 30px;
+  grid-template-rows: 18px repeat(7, 12px);
+  row-gap: 3px;
+  padding-block-start: 2px;
+}
+
 .heatmapChart {
-  width: 100%;
-  min-width: 730px;
+  display: grid;
+  width: max-content;
+  grid-template-rows: 18px repeat(7, 12px);
+  grid-auto-columns: 12px;
+  gap: 3px;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-active);
+    outline-offset: 2px;
+  }
+}
+
+.dayLabel,
+.monthLabel {
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 12px;
+  text-transform: uppercase;
+}
+
+.monthLabel {
+  align-self: start;
 }
 
 .dailyGrid {
@@ -198,6 +238,9 @@
 }
 
 .legendCell {
+  box-sizing: border-box;
+  display: block;
+  flex: none;
   width: 12px;
   height: 12px;
   border: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
@@ -238,10 +281,11 @@
 }
 
 .heatmapScroller {
+  flex: 1 1 0;
+  min-width: 0;
   max-width: 100%;
-  overflow-x: auto;
+  overflow: hidden;
   padding-block: 2px 8px;
-  scrollbar-gutter: stable;
 }
 
 .tokenLevel0,
@@ -249,34 +293,28 @@
   background: var(--viz-empty-cell);
 }
 
-// The legend swatches mirror the grid exactly: the same --viz-neutral-* ramp the calendar
-// heatmap passes to its visualMap, so "Less -> More" is a sample of the cells, not an
-// approximation of them.
+// The grid and legend share the same cell classes and colour ramp.
 .tokenLevel1 {
-  background: var(--viz-neutral-1);
+  background: var(--viz-activity-1);
 }
 
 .tokenLevel2 {
-  background: var(--viz-neutral-2);
+  background: var(--viz-activity-2);
 }
 
 .tokenLevel3 {
-  background: var(--viz-neutral-3);
+  background: var(--viz-activity-3);
 }
 
 .tokenLevel4 {
-  background: var(--viz-neutral-4);
+  background: var(--viz-activity-4);
 }
 
 .tokenLevel5 {
-  background: var(--viz-neutral-5);
+  background: var(--viz-activity-5);
 }
 
-// Ordinal ramp, not five semantic colours: mixing --viz-failure/--amber-color/--viz-success
-// against the card put L2 and L3 within 0.01 of each other in light and made dark L3 (amber,
-// 4.75) hotter than L4 (green, 2.35). The --viz-health-* tokens keep the red -> amber -> green
-// reading while stepping contrast against --bg-primary strictly upward, so "more healthy" is
-// always "more emphatic". Values and steps are pinned in tests/analyticsPalette.test.ts.
+// Theme-specific coral, amber, and emerald levels are shared by cells and their legend.
 .healthLevel1 {
   background: var(--viz-health-1);
 }
@@ -340,5 +378,156 @@
 
   .activityHeader {
     align-items: stretch;
+  }
+}
+
+.activityCell {
+  position: relative;
+
+  // Cover half the 3px gutter on each side without enlarging the visible square.
+  &::after {
+    content: '';
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
+// The entrance has two overlapping waves: the first makes the grid materialize as empty cells,
+// then this veil lifts 150ms later so the existing level ramp arrives while the cell is still
+// settling. The delay is supplied from the visible grid coordinates in ActivityHeatmaps.tsx.
+@media (prefers-reduced-motion: no-preference) {
+  .activityCell[data-ripple='pending'] {
+    opacity: 0;
+  }
+}
+
+.activityCell[data-ripple='true'] {
+  animation: heatmapCellReveal 420ms cubic-bezier(0.16, 1, 0.3, 1)
+    var(--activity-ripple-delay) both;
+
+  &::before {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    content: '';
+    border-radius: inherit;
+    background: var(--viz-empty-cell);
+    pointer-events: none;
+    animation: heatmapCellFill 260ms cubic-bezier(0.16, 1, 0.3, 1)
+      calc(var(--activity-ripple-delay) + 150ms) both;
+  }
+}
+
+@keyframes heatmapCellReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+
+  48% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes heatmapCellFill {
+  0%,
+  46% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activityCell[data-ripple='true'] {
+    animation: none;
+    transform: none;
+    opacity: 1;
+
+    &::before {
+      animation: none;
+      opacity: 0;
+    }
+  }
+}
+
+.activityCell:hover {
+  outline: 2px solid var(--text-secondary);
+  outline-offset: 1px;
+}
+
+// Keep the final 15px hitbox inside the measured scroller while it still covers the preceding gap.
+.activityCellEnd::after {
+  right: 0;
+  left: auto;
+  transform: none;
+}
+
+.heatmapTooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 0.2s cubic-bezier(0.23, 1, 0.32, 1),
+    visibility 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+
+  &[data-visible='true'] {
+    opacity: 1;
+    visibility: visible;
+
+    @starting-style {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  z-index: 10000;
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--viz-tooltip-border);
+  border-radius: 8px;
+  background: var(--viz-tooltip-bg);
+  color: var(--viz-tooltip-text);
+  font-size: 12px;
+  pointer-events: none;
+
+  dl {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 6px 0 0;
+  }
+
+  dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  dt {
+    color: var(--viz-tooltip-text-dim);
+  }
+  dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
   }
 }

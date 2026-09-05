@@ -39,6 +39,11 @@ import {
   TOKEN_CATEGORY_KEYS,
 } from '@/features/analytics/views/analysis/analysisModel';
 import { readAnalyticsPalette } from '@/features/analytics/components/chartTheme';
+import {
+  filterModelCostEfficiency,
+  paginateModelCostEfficiency,
+  sortModelCostEfficiency,
+} from '@/features/analytics/views/analysis/modelCostEfficiency';
 import { parseAnalyticsUrlState, serializeAnalyticsUrlState } from '@/features/analytics/query';
 import type {
   ActivityBucket,
@@ -206,6 +211,47 @@ describe('analytics Analysis models', () => {
       },
     ] satisfies AnalysisModel[];
     expect(buildModelEfficiency(models)[0]?.costPerMillion).toBe(2.125);
+  });
+
+  test('filters, sorts, and paginates model cost rows without mutating source data', () => {
+    const models = Array.from({ length: 11 }, (_, index) => ({
+      model: index === 0 ? 'Claude-3' : `model-${index}`,
+      requests: index + 1,
+      input_tokens: 0,
+      output_tokens: 0,
+      cached_tokens: 0,
+      cache_read_tokens: 0,
+      cache_creation_tokens: 0,
+      reasoning_tokens: 0,
+      total_tokens: (index + 1) * 1_000_000,
+      known_cost_usd: String(11 - index),
+    })) satisfies AnalysisModel[];
+    const rows = buildModelEfficiency(models);
+    const filtered = filterModelCostEfficiency(rows, 'CLAUDE');
+
+    expect(filtered.map((row) => row.model)).toEqual(['Claude-3']);
+    expect(sortModelCostEfficiency(rows, 'cost', 'asc')[0]?.model).toBe('model-10');
+    expect(sortModelCostEfficiency(rows, 'requests', 'desc')[0]?.requests).toBe(11);
+    expect(sortModelCostEfficiency(rows, 'tokens', 'desc')[0]?.total_tokens).toBe(11_000_000);
+    expect(sortModelCostEfficiency(rows, 'model', 'asc')[0]?.model).toBe('Claude-3');
+
+    const page = paginateModelCostEfficiency(rows, 2);
+    expect(page).toMatchObject({ currentPage: 2, totalPages: 2 });
+    expect(page.pageItems).toHaveLength(1);
+    expect(rows).toHaveLength(11);
+
+    const markup = renderToStaticMarkup(
+      createElement(ModelEfficiency, {
+        section: { meta: { partial: false }, buckets: [], models },
+        loading: false,
+        error: '',
+        onRetry: () => {},
+        locale: 'en',
+      })
+    );
+    const body = markup.match(/<tbody[\s\S]*?<\/tbody>/)?.[0] ?? '';
+    expect(body.match(/<tr/g)).toHaveLength(10);
+    expect(markup).toContain('Page 1 of 2');
   });
 
   test('separates unsupported latency from usable partial samples', () => {
@@ -502,7 +548,7 @@ type Series = {
   type: string;
   stack?: string;
   yAxisIndex?: number;
-  itemStyle?: { color?: string; opacity?: number };
+  itemStyle?: { color?: string; opacity?: number; borderColor?: string; borderWidth?: number };
   lineStyle?: { color?: string; type?: unknown };
   data: unknown[];
   markLine?: { data: Array<{ name: string; xAxis?: number; yAxis?: number }> };
@@ -582,6 +628,9 @@ describe('analysis ECharts options', () => {
     }) as unknown as Option;
 
     expect(option.series).toHaveLength(TOKEN_CATEGORY_KEYS.length + 2);
+    for (const series of option.series.slice(0, 5)) {
+      expect(series.itemStyle).toMatchObject({ borderColor: PALETTE.card, borderWidth: 1 });
+    }
     expect(option.series.slice(0, 5).map((series) => series.type)).toEqual(Array(5).fill('bar'));
     expect(option.series.slice(0, 5).every((series) => series.stack === 'tokens')).toBe(true);
     // Stack order is array order, never modulo: category N takes categorical slot N.
@@ -658,6 +707,9 @@ describe('analysis ECharts options', () => {
 
     // Six ranks plus the folded "Other" band, which takes the achromatic slot.
     expect(option.series).toHaveLength(7);
+    for (const series of option.series) {
+      expect(series.itemStyle).toMatchObject({ borderColor: PALETTE.card, borderWidth: 1 });
+    }
     expect(option.series[0].itemStyle?.color).toBe('#cat006');
     expect(option.series.at(-1)?.name).toBe('Other models');
     expect(option.series.at(-1)?.itemStyle?.color).toBe('#8e867f');

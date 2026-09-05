@@ -18,6 +18,7 @@ import { MainRoutes } from '@/router/MainRoutes';
 import { authFilesApi, capabilitiesApi, pluginsApi } from '@/services/api';
 import {
   IconChevronDown,
+  IconNotebookPen,
   IconSidebarAuthFiles,
   IconSidebarConfig,
   IconSidebarDashboard,
@@ -49,6 +50,7 @@ import { APIKEY_FUN_DISPLAY_NAME, hasApiKeyFunConfig } from '@/features/provider
 import {
   analyticsPageFromPathname,
   ANALYTICS_WORKSPACE_ICON,
+  isAnalyticsPathname,
 } from '@/features/analytics/navigation';
 import { AnalyticsFilterProvider } from '@/features/analytics/AnalyticsFilterProvider';
 import { AnalyticsShell } from '@/features/analytics/AnalyticsShell';
@@ -70,6 +72,7 @@ const sidebarIcons: Record<string, ReactNode> = {
   logs: <IconSidebarLogs size={18} />,
   system: <IconSidebarSystem size={18} />,
   analytics: <ANALYTICS_WORKSPACE_ICON size={18} />,
+  analyticsManagement: <IconNotebookPen size={18} />,
 };
 
 interface SidebarNavLinkItem {
@@ -655,7 +658,7 @@ export function MainLayout() {
                 labelDefault: 'Analytics Management',
                 metaKey: 'nav_meta.analytics_management',
                 metaDefault: 'Pricing, providers, and maintenance',
-                icon: sidebarIcons.analytics,
+                icon: sidebarIcons.analyticsManagement,
               },
             ],
           },
@@ -897,6 +900,7 @@ export function MainLayout() {
       : null;
     const isAnalyticsPageActive =
       analyticsPagePath !== null &&
+      isAnalyticsPathname(location.pathname) &&
       analyticsPageFromPathname(location.pathname) === analyticsPagePath;
 
     return (

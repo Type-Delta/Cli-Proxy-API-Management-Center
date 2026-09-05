@@ -18,27 +18,6 @@
   min-width: 1180px;
 }
 
-.actionHeader,
-.actionCell {
-  position: sticky;
-  right: 0;
-  background: var(--bg-primary);
-  box-shadow: -8px 0 8px -8px rgba(0, 0, 0, 0.15);
-}
-
-.actionHeader {
-  z-index: 2;
-}
-
-.actionCell {
-  z-index: 1;
-}
-
-.row:hover .actionCell,
-.row.selected .actionCell {
-  background: var(--bg-primary);
-}
-
 .retryButton {
   min-height: 40px;
   margin-inline-start: 10px;
@@ -80,12 +59,6 @@
   }
 }
 
-.journey {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 .cardList {
   display: flex;
   flex-direction: column;
@@ -96,11 +69,6 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-
-  button {
-    align-self: flex-start;
-    min-height: 40px;
-  }
 }
 
 .keyCardHead {

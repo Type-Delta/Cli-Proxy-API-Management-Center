@@ -2,17 +2,21 @@ import { beforeAll, describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { I18nextProvider } from 'react-i18next';
-import { ActivityHeatmaps } from '@/features/analytics/views/overview/ActivityHeatmaps';
+import {
+  ActivityHeatmaps,
+  fitActivityHeatmapWindow,
+} from '@/features/analytics/views/overview/ActivityHeatmaps';
 import { MetricTiles, OverviewKpis } from '@/features/analytics/views/overview/OverviewKpis';
 import i18n from '@/i18n';
 import {
   buildOverviewActivityQuery,
   buildOverviewMetrics,
   calendarDay,
-  calendarHeatmapOption,
+  calendarHeatmapCells,
   METRIC_ICONS,
   overviewSparklines,
   requestHealthLevel,
+  sparklineOption,
   summarizeActivityYear,
   summarizeTrend,
   toneForCacheRate,
@@ -200,6 +204,26 @@ describe('analytics overview model', () => {
     expect(summarizeTrend([], String)).toBeNull();
   });
 
+  test('leaves KPI tooltip placement to the chart adapter', () => {
+    const option = sparklineOption({
+      data: [['2026-09-04T00:00:00Z', 49]],
+      seriesName: 'Requests',
+      animationDelay: 140,
+      color: 'var(--viz-success)',
+      tooltipFormatter: () => 'Requests',
+      axisPointer: { type: 'line', snap: true },
+    });
+
+    expect(option).toMatchObject({
+      animationDuration: Math.round(1000 / 1.35),
+      animationDurationUpdate: Math.round(500 / 1.35),
+      animationDelay: 140,
+    });
+    expect(option.tooltip).toMatchObject({ trigger: 'axis', appendToBody: true });
+    expect(option.tooltip).not.toHaveProperty('confine');
+    expect(option.tooltip).not.toHaveProperty('position');
+  });
+
   test('uses CPAUK cache-rate thresholds without marking a low rate as a failure', () => {
     expect(toneForCacheRate(null)).toBe('idle');
     expect(toneForCacheRate(19.99)).toBe('idle');
@@ -227,54 +251,35 @@ describe('analytics overview model', () => {
     expect(requestHealthLevel(990, 10)).toBe(5);
   });
 
-  // R6-3: the calendar option is the whole grid contract now — 365 [day, level] points, the
-  // Mon/Wed/Fri day labels, and one visualMap piece per level including "no data".
-  test('builds a 365-day calendar option with the GitHub label set', () => {
+  test('places Sunday first and preserves missing days across year boundaries', () => {
+    expect(
+      calendarHeatmapCells([
+        ['2026-01-04', 5],
+        ['2025-12-31', 2],
+        ['2026-01-03', 3],
+      ])
+    ).toEqual([
+      { day: '2025-12-31', level: 2, row: 3, column: 0 },
+      { day: '2026-01-03', level: 3, row: 6, column: 0 },
+      { day: '2026-01-04', level: 5, row: 0, column: 1 },
+    ]);
+    expect(calendarHeatmapCells([])).toEqual([]);
+  });
+
+  test('fits trailing whole-week columns and rebases their grid coordinates', () => {
     const data = Array.from({ length: 365 }, (_, index): [string, number] => [
       new Date(Date.UTC(2025, 8, 5) + index * 86_400_000).toISOString().slice(0, 10),
-      index % 6,
+      index === 364 ? 5 : 0,
     ]);
-    const option = calendarHeatmapOption({
-      data,
-      levelColors: ['var(--viz-empty-cell)', 'a', 'b', 'c', 'd', 'e'],
-      dayNames: ['', 'MON', '', 'WED', '', 'FRI', ''],
-      monthNames: Array.from({ length: 12 }, (_, month) => `M${month}`),
-      tooltip: (day) => day,
-      // The option is an opaque ECharts bag; the test reads the fields the ports depend on.
-    }) as {
-      series: Array<{ type: string; coordinateSystem: string; data: unknown[] }>;
-      calendar: Record<string, unknown> & {
-        dayLabel: Record<string, unknown>;
-        monthLabel: { nameMap: string[] };
-      };
-      visualMap: Record<string, unknown> & { pieces: unknown[] };
-      tooltip: { trigger: string };
-    };
+    const cells = calendarHeatmapCells(data);
+    const windowed = fitActivityHeatmapWindow(cells, 47);
 
-    expect(option.series[0]).toMatchObject({ type: 'heatmap', coordinateSystem: 'calendar' });
-    expect(option.series[0].data).toHaveLength(365);
-    expect(option.series[0].data[0]).toEqual(['2025-09-05', 0]);
-    expect(option.calendar).toMatchObject({
-      cellSize: [10, 10],
-      range: ['2025-09-05', '2026-09-04'],
-      itemStyle: { borderWidth: 3 },
-      yearLabel: { show: false },
-    });
-    expect(option.calendar.dayLabel).toMatchObject({
-      firstDay: 1,
-      nameMap: ['', 'MON', '', 'WED', '', 'FRI', ''],
-    });
-    expect(option.calendar.monthLabel.nameMap).toHaveLength(12);
-    expect(option.visualMap).toMatchObject({ show: false, type: 'piecewise' });
-    expect(option.visualMap.pieces).toEqual([
-      { value: 0, color: 'var(--viz-empty-cell)' },
-      { value: 1, color: 'a' },
-      { value: 2, color: 'b' },
-      { value: 3, color: 'c' },
-      { value: 4, color: 'd' },
-      { value: 5, color: 'e' },
-    ]);
-    expect(option.tooltip.trigger).toBe('item');
+    expect(windowed.columnCount).toBe(3);
+    expect(windowed.cells).toHaveLength(20);
+    expect(windowed.cells[0]).toMatchObject({ column: 0, day: '2026-08-16' });
+    expect(windowed.cells.at(-1)).toMatchObject({ column: 2, day: '2026-09-04', level: 5 });
+    expect(windowed.cells.filter((cell) => cell.level === 0)).toHaveLength(19);
+    expect(fitActivityHeatmapWindow(cells, 10_000).columnCount).toBe(53);
   });
 
   test('reads each bucket back as a calendar day in the response zone', () => {

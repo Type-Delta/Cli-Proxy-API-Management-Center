@@ -155,30 +155,32 @@ export function Filters({
     <section className={styles.filters} aria-label={t('analytics.filters')}>
       <Card className={styles.filtersCard}>
         <TimeRangeControl range={range} resolvedRange={resolvedRange} setRange={setRange} />
-        {showKeys && (
-          <AnalyticsKeyFilter
-            keys={keys}
-            selected={selected}
-            loading={keysLoading}
-            error={keysError}
-            onChange={setSelected}
-            onRetry={retryKeys}
-          />
-        )}
-        {showSort && (
-          <label className={styles.filterField}>
-            <span>{t('analytics.rank_by')}</span>
-            <Select
-              value={sort}
-              onChange={(value) => setSort(value as AnalyticsLeaderboardSort)}
-              options={[
-                { value: 'tokens', label: t('analytics.total_tokens') },
-                { value: 'cost', label: t('analytics.known_cost') },
-              ]}
-              ariaLabel={t('analytics.rank_by')}
+        <div className={styles.filterFields}>
+          {showKeys && (
+            <AnalyticsKeyFilter
+              keys={keys}
+              selected={selected}
+              loading={keysLoading}
+              error={keysError}
+              onChange={setSelected}
+              onRetry={retryKeys}
             />
-          </label>
-        )}
+          )}
+          {showSort && (
+            <label className={styles.filterField}>
+              <span>{t('analytics.rank_by')}</span>
+              <Select
+                value={sort}
+                onChange={(value) => setSort(value as AnalyticsLeaderboardSort)}
+                options={[
+                  { value: 'tokens', label: t('analytics.total_tokens') },
+                  { value: 'cost', label: t('analytics.known_cost') },
+                ]}
+                ariaLabel={t('analytics.rank_by')}
+              />
+            </label>
+          )}
+        </div>
       </Card>
     </section>
   );

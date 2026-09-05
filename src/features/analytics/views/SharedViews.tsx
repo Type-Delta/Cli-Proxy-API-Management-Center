@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { AnalyticsCard as Card } from '@/features/analytics/components/AnalyticsCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -20,6 +20,7 @@ import type { AnalyticsKey, ViewerCreateResponse, ViewerMetadata } from '@/types
 import { copyToClipboard } from '@/utils/clipboard';
 import { analyticsKeyIdentity } from '../analyticsKeyFilterModel';
 import { formatDateTime } from '../components/analyticsFormatting';
+import { ANALYTICS_TABLE_PAGE_SIZE, TablePagination } from '../components/TablePagination';
 import { viewerAfterCopy, redactViewerKeyId } from './manage/sharedViewsLogic';
 import { buildViewerLink } from './viewer/viewerApi';
 import { useAnalyticsLoad as useLoad } from '../useAnalyticsLoad';
@@ -54,6 +55,23 @@ export function SharedViews({ keys }: { keys: AnalyticsKey[] }) {
   const [copyStatus, setCopyStatus] = useState('');
   const viewers = useLoad<ViewerMetadata[]>(() => analyticsApi.viewers(), 'viewers');
   const [error, setError] = useState('');
+  const [pageState, setPage] = useState(1);
+  const page = Math.min(
+    pageState,
+    Math.max(1, Math.ceil((viewers.data?.length ?? 0) / ANALYTICS_TABLE_PAGE_SIZE))
+  );
+  useEffect(() => {
+    setPage((currentPage) =>
+      Math.min(
+        currentPage,
+        Math.max(1, Math.ceil((viewers.data?.length ?? 0) / ANALYTICS_TABLE_PAGE_SIZE))
+      )
+    );
+  }, [viewers.data?.length]);
+  const visibleViewers = viewers.data?.slice(
+    (page - 1) * ANALYTICS_TABLE_PAGE_SIZE,
+    page * ANALYTICS_TABLE_PAGE_SIZE
+  );
   const keyOptions = useMemo(
     () =>
       keys.map((key) => ({
@@ -126,7 +144,10 @@ export function SharedViews({ keys }: { keys: AnalyticsKey[] }) {
   };
   return (
     <>
-      <Card title={t('analytics.shared', { defaultValue: 'Shared key views' })}>
+      <Card
+        className={styles.card}
+        title={t('analytics.shared', { defaultValue: 'Shared key views' })}
+      >
         <p>
           {t('analytics.shared_scope', {
             defaultValue:
@@ -138,24 +159,27 @@ export function SharedViews({ keys }: { keys: AnalyticsKey[] }) {
             defaultValue: `Each link expires after ${VIEWER_LIFETIME_DAYS} days. Create a new link when the recipient needs access again.`,
           })}
         </p>
-        <label>
-          <span>{t('analytics.key', { defaultValue: 'Key' })}</span>
-          <Select
-            value={keyId}
-            onChange={setKeyId}
-            placeholder={t('analytics.choose_key', { defaultValue: 'Choose a key' })}
-            ariaLabel={t('analytics.key', { defaultValue: 'Key' })}
-            options={keyOptions}
+        <div className={styles.sharedKeyConfig}>
+          <label>
+            <span>{t('analytics.key', { defaultValue: 'Key' })}</span>
+            <Select
+              value={keyId}
+              size="lg"
+              onChange={setKeyId}
+              placeholder={t('analytics.choose_key', { defaultValue: 'Choose a key' })}
+              ariaLabel={t('analytics.key', { defaultValue: 'Key' })}
+              options={keyOptions}
+            />
+          </label>
+          <Input
+            label={t('analytics.label', { defaultValue: 'Viewer label' })}
+            value={label}
+            onChange={(event) => setLabel(event.target.value)}
+            placeholder={t('analytics.viewer_label_placeholder', {
+              defaultValue: 'For example, finance read-only',
+            })}
           />
-        </label>
-        <Input
-          label={t('analytics.label', { defaultValue: 'Viewer label' })}
-          value={label}
-          onChange={(event) => setLabel(event.target.value)}
-          placeholder={t('analytics.viewer_label_placeholder', {
-            defaultValue: 'For example, finance read-only',
-          })}
-        />
+        </div>
         <Button onClick={() => void create()} disabled={!keyId || creating} loading={creating}>
           {t('analytics.create_view', { defaultValue: 'Create shared view' })}
         </Button>
@@ -247,41 +271,50 @@ export function SharedViews({ keys }: { keys: AnalyticsKey[] }) {
           />
         )}
         {viewers.data && viewers.data.length > 0 && (
-          <Table aria-label={t('analytics.created_views', { defaultValue: 'Shared views' })}>
-            <caption className={styles.srOnly}>
-              {t('analytics.created_views', { defaultValue: 'Shared views' })}
-            </caption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('analytics.label', { defaultValue: 'Viewer label' })}</TableHead>
-                <TableHead>{t('analytics.key_scope', { defaultValue: 'Key scope' })}</TableHead>
-                <TableHead>
-                  {t('analytics.viewer_access', { defaultValue: 'Recipient sees' })}
-                </TableHead>
-                <TableHead>{t('analytics.expires', { defaultValue: 'Expires' })}</TableHead>
-                <TableHead>{t('common.action', { defaultValue: 'Action' })}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {viewers.data.map((entry) => (
-                <TableRow key={entry.id}>
-                  <TableCell>
-                    {entry.label || t('analytics.unnamed_view', { defaultValue: 'Unnamed view' })}
-                  </TableCell>
-                  <TableCell>{viewerKeyLabel(entry, keys)}</TableCell>
-                  <TableCell>{viewerAccessLabel(entry.allowed_views, t)}</TableCell>
-                  <TableCell title={entry.expires_at}>
-                    {formatDateTime(entry.expires_at, i18n.resolvedLanguage)}
-                  </TableCell>
-                  <TableCell>
-                    <Button size="sm" variant="danger" onClick={() => void revoke(entry.id)}>
-                      {t('analytics.revoke', { defaultValue: 'Revoke' })}
-                    </Button>
-                  </TableCell>
+          <>
+            <Table aria-label={t('analytics.created_views', { defaultValue: 'Shared views' })}>
+              <caption className={styles.srOnly}>
+                {t('analytics.created_views', { defaultValue: 'Shared views' })}
+              </caption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('analytics.label', { defaultValue: 'Viewer label' })}</TableHead>
+                  <TableHead>{t('analytics.key_scope', { defaultValue: 'Key scope' })}</TableHead>
+                  <TableHead>
+                    {t('analytics.viewer_access', { defaultValue: 'Recipient sees' })}
+                  </TableHead>
+                  <TableHead>{t('analytics.expires', { defaultValue: 'Expires' })}</TableHead>
+                  <TableHead className={styles.stickyAction}>
+                    {t('common.action', { defaultValue: 'Action' })}
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleViewers?.map((entry) => (
+                  <TableRow key={entry.id}>
+                    <TableCell>
+                      {entry.label || t('analytics.unnamed_view', { defaultValue: 'Unnamed view' })}
+                    </TableCell>
+                    <TableCell>{viewerKeyLabel(entry, keys)}</TableCell>
+                    <TableCell>{viewerAccessLabel(entry.allowed_views, t)}</TableCell>
+                    <TableCell title={entry.expires_at}>
+                      {formatDateTime(entry.expires_at, i18n.resolvedLanguage)}
+                    </TableCell>
+                    <TableCell className={styles.stickyAction}>
+                      <Button size="sm" variant="danger" onClick={() => void revoke(entry.id)}>
+                        {t('analytics.revoke', { defaultValue: 'Revoke' })}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <TablePagination
+              currentPage={page}
+              totalItems={viewers.data.length}
+              onPageChange={setPage}
+            />
+          </>
         )}
       </Card>
     </>

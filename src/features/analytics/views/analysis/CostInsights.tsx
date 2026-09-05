@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/Table';
 import type { AnalysisCostComponents, AnalysisModelByTime } from '@/types';
 import { AnalyticsChart } from '../../components/AnalyticsChart';
 import {
@@ -10,7 +11,18 @@ import {
 } from '../../components/analyticsFormatting';
 import { AnalysisCard } from './AnalysisCard';
 import { buildModelEfficiency, costBreakdownOption } from './analysisModel';
+import { SortableHeader } from '../../components/SortableHeader';
+import { TablePagination } from '../../components/TablePagination';
+import {
+  filterModelCostEfficiency,
+  MODEL_COST_PAGE_SIZE,
+  paginateModelCostEfficiency,
+  sortModelCostEfficiency,
+  type ModelCostSortDirection,
+  type ModelCostSortKey,
+} from './modelCostEfficiency';
 import { useAnalysisPalette } from './useAnalysisPalette';
+import { IconSearch } from '@/components/ui/icons';
 import styles from './Analysis.module.scss';
 
 /**
@@ -174,13 +186,55 @@ export function ModelEfficiency({
   onRetry: () => void;
   locale?: string;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState<ModelCostSortKey>('cost');
+  const [sortDirection, setSortDirection] = useState<ModelCostSortDirection>('asc');
+  const [page, setPage] = useState(1);
   const models = useMemo(() => buildModelEfficiency(section?.models ?? []), [section]);
-  const maximumVolume = Math.max(0, ...models.map((model) => model.total_tokens));
+  const filteredModels = useMemo(() => filterModelCostEfficiency(models, search), [models, search]);
+  const sortedModels = useMemo(
+    () => sortModelCostEfficiency(filteredModels, sortKey, sortDirection),
+    [filteredModels, sortDirection, sortKey]
+  );
+  const paginatedModels = useMemo(
+    () => paginateModelCostEfficiency(sortedModels, page),
+    [page, sortedModels]
+  );
+  useEffect(() => {
+    setPage(paginatedModels.currentPage);
+  }, [paginatedModels.currentPage]);
+  const resolvedLocale = locale ?? i18n.resolvedLanguage;
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const chooseSort = (nextKey: ModelCostSortKey) => {
+    if (nextKey === sortKey) {
+      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortKey(nextKey);
+    setSortDirection(nextKey === 'model' || nextKey === 'cost' ? 'asc' : 'desc');
+    setPage(1);
+  };
+
+  const column = (key: ModelCostSortKey, labelKey: string, defaultValue: string) => (
+    <SortableHeader
+      active={sortKey === key}
+      direction={sortDirection}
+      onClick={() => chooseSort(key)}
+    >
+      {t(labelKey, { defaultValue })}
+    </SortableHeader>
+  );
 
   return (
     <AnalysisCard
-      title={t('analytics.analysis.model_efficiency_title', { defaultValue: 'Model Efficiency' })}
+      title={t('analytics.analysis.model_efficiency_title', {
+        defaultValue: 'Model Cost Efficiency',
+      })}
       description={t('analytics.analysis.model_efficiency_description', {
         defaultValue: 'Known cost per 1 million total tokens.',
       })}
@@ -196,50 +250,89 @@ export function ModelEfficiency({
               defaultValue: 'The server did not return this analysis section.',
             })
           : t('analytics.analysis.no_efficiency', {
-              defaultValue: 'Model efficiency will appear when token and cost data are available.',
+              defaultValue:
+                'Model cost efficiency will appear when token and cost data are available.',
             })
       }
       onRetry={onRetry}
+      extra={
+        // <input
+        //   className={styles.modelSearch}
+        //   type="search"
+        //   value={search}
+        //   aria-label={t('analytics.analysis.model_search', { defaultValue: 'Search models' })}
+        //   placeholder={t('analytics.analysis.model_search', { defaultValue: 'Search models' })}
+        //   onChange={(event) => {
+        //     setSearch(event.target.value);
+        //     setPage(1);
+        //   }}
+        // />
+        <div className={styles.searchWrap}>
+          <span className={styles.searchIcon} aria-hidden="true">
+            <IconSearch size={16} />
+          </span>
+          <input
+            type="search"
+            className={styles.searchInput}
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            aria-label={t('analytics.analysis.model_search', { defaultValue: 'Search models' })}
+            placeholder={t('analytics.analysis.model_search', { defaultValue: 'Search models' })}
+          />
+        </div>
+      }
     >
-      <ol className={styles.efficiencyList}>
-        {models.map((model) => {
-          const rate = model.costPerMillion ?? 0;
-          return (
-            <li key={model.model}>
-              <div>
-                <strong title={model.model}>{model.model}</strong>
-                <span title={formatCompactTokens(model.total_tokens, locale).title}>
-                  {formatCompactTokens(model.total_tokens, locale).text}{' '}
-                  {t('analytics.total_tokens', { defaultValue: 'tokens' })}
-                </span>
-                <span>
-                  {formatNumber(model.requests, locale)}{' '}
-                  {t('analytics.proxy_requests', { defaultValue: 'proxy requests' })}
-                </span>
-              </div>
-              <div className={styles.efficiencyMeasure}>
-                <div className={styles.efficiencyVolume}>
-                  <span>{t('analytics.analysis.volume', { defaultValue: 'Volume' })}</span>
-                  <strong title={formatNumber(model.total_tokens, locale)}>
-                    {formatCompactTokens(model.total_tokens, locale).text}
-                  </strong>
-                  <i aria-hidden="true">
-                    <b
-                      style={{
-                        width: `${maximumVolume > 0 ? (model.total_tokens / maximumVolume) * 100 : 0}%`,
-                      }}
-                    />
-                  </i>
-                </div>
-                <strong title={formatCostValue(rate, locale).title}>
-                  {formatCostValue(rate, locale).text}
-                  <small> / 1M</small>
-                </strong>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+      {filteredModels.length === 0 ? (
+        <p className={styles.modelSearchEmpty} role="status">
+          {t('analytics.analysis.no_matching_models', {
+            defaultValue: 'No models match your search.',
+          })}
+        </p>
+      ) : (
+        <>
+          <Table
+            aria-label={t('analytics.analysis.model_efficiency_title', {
+              defaultValue: 'Model Cost Efficiency',
+            })}
+          >
+            <TableHeader>
+              <TableRow>
+                {column('model', 'analytics.analysis.model_name', 'Model name')}
+                {column('requests', 'analytics.analysis.observed_requests', 'Observed requests')}
+                {column('tokens', 'analytics.analysis.volume_tokens', 'Volume (tokens)')}
+                {column('cost', 'analytics.analysis.price_per_million', 'Price per million')}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedModels.pageItems.map((model) => {
+                const tokens = formatCompactTokens(model.total_tokens, resolvedLocale);
+                const cost = formatCostValue(model.costPerMillion, resolvedLocale);
+                return (
+                  <TableRow key={model.model}>
+                    <TableCell title={model.model}>{model.model}</TableCell>
+                    <TableCell alignRight>{formatNumber(model.requests, resolvedLocale)}</TableCell>
+                    <TableCell alignRight title={tokens.title}>
+                      {tokens.text}
+                    </TableCell>
+                    <TableCell alignRight title={cost.title}>
+                      {cost.text}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          <TablePagination
+            currentPage={paginatedModels.currentPage}
+            totalItems={filteredModels.length}
+            pageSize={MODEL_COST_PAGE_SIZE}
+            onPageChange={setPage}
+          />
+        </>
+      )}
     </AnalysisCard>
   );
 }

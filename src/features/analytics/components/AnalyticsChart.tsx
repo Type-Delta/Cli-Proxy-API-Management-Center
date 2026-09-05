@@ -10,10 +10,12 @@ import {
   TooltipComponent,
   VisualMapComponent,
 } from 'echarts/components';
+import type { TooltipComponentOption } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 import type { EChartsCoreOption, EChartsType } from 'echarts/core';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
 import { analyticsThemeName, registerAnalyticsThemes, resolveAnalyticsTheme } from './chartTheme';
 import styles from './AnalyticsChart.module.scss';
 
@@ -59,6 +61,81 @@ const reducedMotionQuery = () =>
     ? window.matchMedia('(prefers-reduced-motion: reduce)')
     : null;
 
+type TooltipPositionCallback = Extract<
+  NonNullable<TooltipComponentOption['position']>,
+  (...args: never[]) => unknown
+>;
+
+const createPortaledTooltipPosition = (host: HTMLDivElement): TooltipPositionCallback => (
+  point,
+  _params,
+  _element,
+  _rect,
+  size
+) => {
+  const hostRect = host.getBoundingClientRect();
+  const [contentWidth, contentHeight] = size.contentSize;
+  const viewportWidth = document.documentElement.clientWidth;
+  const viewportHeight = document.documentElement.clientHeight;
+  const desiredViewportX = hostRect.left + point[0] + 20;
+  const desiredViewportY = hostRect.top + point[1] - contentHeight - 20;
+  const viewportX = Math.min(
+    Math.max(desiredViewportX, 0),
+    Math.max(0, viewportWidth - contentWidth)
+  );
+  const viewportY = Math.min(
+    Math.max(desiredViewportY, 0),
+    Math.max(0, viewportHeight - contentHeight)
+  );
+
+  return [viewportX - hostRect.left, viewportY - hostRect.top];
+};
+
+const withTooltipPortal = (
+  option: EChartsCoreOption,
+  portal: HTMLDivElement | null,
+  host: HTMLDivElement | null
+) => {
+  const tooltip = option.tooltip as TooltipComponentOption | TooltipComponentOption[] | undefined;
+  if (!portal || !host || !tooltip || Array.isArray(tooltip) || tooltip.appendToBody !== true)
+    return option;
+  return {
+    ...option,
+    tooltip: {
+      ...tooltip,
+      appendToBody: false,
+      appendTo: portal,
+      ...(tooltip.position === undefined
+        ? { position: createPortaledTooltipPosition(host) }
+        : {}),
+    },
+  };
+};
+
+const applyChartOption = ({
+  chart,
+  option,
+  portal,
+  host,
+  replay,
+}: {
+  chart: EChartsType;
+  option: EChartsCoreOption;
+  portal: HTMLDivElement | null;
+  host: HTMLDivElement;
+  replay: boolean;
+}) => {
+  const motion = reducedMotionQuery();
+  const nextOption = withTooltipPortal(option, portal, host);
+
+  // The first setOption can happen while PageTransition is still hiding the layer. Clearing the
+  // previous frame before activation gives ECharts a real initial state to animate from again.
+  if (replay && !motion?.matches) chart.clear();
+  chart.setOption(motion?.matches ? { ...nextOption, animation: false } : nextOption, {
+    notMerge: true,
+  });
+};
+
 /**
  * The single ECharts host for analytics.
  *
@@ -77,13 +154,32 @@ export function AnalyticsChart({
   empty,
   focusable = true,
 }: AnalyticsChartProps) {
+  const transitionLayer = usePageTransitionLayer();
+  const isVisible =
+    transitionLayer === null || (transitionLayer.isCurrentLayer && !transitionLayer.isAnimating);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<EChartsType | null>(null);
   const optionRef = useRef(option);
   const eventsRef = useRef(onEvents);
   const appliedRef = useRef<EChartsCoreOption | null>(null);
+  const renderedRef = useRef(false);
+  const wasVisibleRef = useRef(isVisible);
+  const visibleRef = useRef(isVisible);
   const themeRef = useRef<string | null>(null);
+  const tooltipPortalRef = useRef<HTMLDivElement | null>(null);
   const skip = Boolean(empty);
+
+  useLayoutEffect(() => {
+    if (skip) return;
+    const portal = document.createElement('div');
+    portal.className = styles.tooltipPortal;
+    document.body.appendChild(portal);
+    tooltipPortalRef.current = portal;
+    return () => {
+      portal.remove();
+      tooltipPortalRef.current = null;
+    };
+  }, [skip]);
 
   // Latest props for the imperative paths (init, theme change) that run outside a render.
   useLayoutEffect(() => {
@@ -91,19 +187,25 @@ export function AnalyticsChart({
     eventsRef.current = onEvents;
   });
 
+  useLayoutEffect(() => {
+    visibleRef.current = isVisible;
+  }, [isVisible]);
+
   useEffect(() => {
     const host = hostRef.current;
     if (!host || skip) return;
-
     const motion = reducedMotionQuery();
+
     const apply = (chart: EChartsType) => {
-      chart.setOption(
-        // Reduced motion is a preference about the whole frame, so it is merged over whatever the
-        // port asked for rather than left to each port to remember.
-        motion?.matches ? { ...optionRef.current, animation: false } : optionRef.current,
-        { notMerge: true }
-      );
+      applyChartOption({
+        chart,
+        option: optionRef.current,
+        portal: tooltipPortalRef.current,
+        host,
+        replay: false,
+      });
       appliedRef.current = optionRef.current;
+      renderedRef.current = true;
     };
     const create = () => {
       // Themes resolve their colours at init, so a theme change means a fresh instance. That is
@@ -115,12 +217,14 @@ export function AnalyticsChart({
       for (const [event, handler] of Object.entries(eventsRef.current ?? {})) {
         chart.on(event, handler);
       }
-      apply(chart);
       chartRef.current = chart;
+      if (visibleRef.current) apply(chart);
     };
     const destroy = () => {
       chartRef.current?.dispose();
       chartRef.current = null;
+      renderedRef.current = false;
+      appliedRef.current = null;
     };
     const recreate = () => {
       destroy();
@@ -129,7 +233,16 @@ export function AnalyticsChart({
 
     create();
 
-    const resize = new ResizeObserver(() => chartRef.current?.resize());
+    const resize = new ResizeObserver(() => {
+      const chart = chartRef.current;
+      if (!chart) return;
+      const width = host.clientWidth;
+      const height = host.clientHeight;
+      // ResizeObserver also fires on observation; resizing unchanged geometry cancels entrance motion.
+      if (chart.getWidth() !== width || chart.getHeight() !== height) {
+        chart.resize({ width, height });
+      }
+    });
     resize.observe(host);
     // `data-theme` is written by the theme store on <html>; re-read the tokens it just changed.
     // Registration itself borrows the attribute to resolve each theme's tokens, so compare against
@@ -155,17 +268,44 @@ export function AnalyticsChart({
     };
   }, [skip]);
 
+  // Wait for the shared route transition to settle before the first visible paint. This is also
+  // the activation edge when switching analytics tabs, so charts replay their entrance together
+  // with the newly visible view instead of animating behind the transition layer.
+  useEffect(() => {
+    const wasVisible = wasVisibleRef.current;
+    wasVisibleRef.current = isVisible;
+    if (skip || !isVisible || wasVisible) return;
+    const chart = chartRef.current;
+    const host = hostRef.current;
+    if (!chart || !host) return;
+    applyChartOption({
+      chart,
+      option: optionRef.current,
+      portal: tooltipPortalRef.current,
+      host,
+      replay: renderedRef.current,
+    });
+    appliedRef.current = optionRef.current;
+    renderedRef.current = true;
+  }, [isVisible, skip]);
+
   useEffect(() => {
     const chart = chartRef.current;
     // `create` already painted this option; only a genuinely new one has to be pushed.
-    if (!chart || appliedRef.current === option) return;
-    const motion = reducedMotionQuery();
+    if (!chart || !isVisible || appliedRef.current === option) return;
     // notMerge, always: a series that disappeared from the data has to disappear from the chart.
-    chart.setOption(motion?.matches ? { ...option, animation: false } : option, {
-      notMerge: true,
+    const host = hostRef.current;
+    if (!host) return;
+    applyChartOption({
+      chart,
+      option,
+      portal: tooltipPortalRef.current,
+      host,
+      replay: false,
     });
     appliedRef.current = option;
-  }, [option]);
+    renderedRef.current = true;
+  }, [isVisible, option]);
 
   const hidden = description ?? children;
   const style = { '--analytics-chart-height': `${height}px` } as CSSProperties;

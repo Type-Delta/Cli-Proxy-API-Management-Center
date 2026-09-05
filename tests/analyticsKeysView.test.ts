@@ -7,10 +7,6 @@ import {
 } from '@/features/analytics/views/keys/keyRanking';
 import type { AnalyticsKey, LeaderboardRow, TokenUsage } from '@/types';
 
-const keysViewSource = readFileSync(
-  new URL('../src/features/analytics/views/KeysView.tsx', import.meta.url),
-  'utf8'
-);
 const sortableHeaderSource = readFileSync(
   new URL('../src/features/analytics/components/SortableHeader.tsx', import.meta.url),
   'utf8'
@@ -111,10 +107,5 @@ describe('SortableHeader contract', () => {
     expect(sortableHeaderSource).toContain("icon === 'up'");
     expect(sortableHeaderSource).toContain("icon === 'down'");
     expect(sortableHeaderSource).toContain('<IconArrowUpDown size={14} />');
-  });
-
-  test('keeps the Keys Action column sticky in both header and body markup', () => {
-    expect(keysViewSource).toContain('className={styles.actionHeader}');
-    expect(keysViewSource).toContain('className={styles.actionCell}');
   });
 });

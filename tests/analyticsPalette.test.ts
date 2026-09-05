@@ -1,21 +1,20 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { compile } from 'sass';
+import { parse as parseChartColor } from 'zrender/lib/tool/color';
 import {
   TOP_MODEL_LIMIT,
   buildTopModelSeries,
 } from '@/features/analytics/views/analysis/analysisModel';
 import type { AnalysisModel, AnalysisModelByTime } from '@/types';
 
-// The chart palettes are literal hex in themes.scss precisely so this file can read them:
-// `color-mix()` is a browser primitive with no evaluator here, and the round-4 defects were
-// invisible exactly because nothing could measure the resolved colours.
-const themes = readFileSync(new URL('../src/styles/themes.scss', import.meta.url), 'utf8');
+// Measure the emitted sRGB colors, including the OKLCH-to-RGB Sass boundary.
+const themes = compile(new URL('../src/styles/themes.scss', import.meta.url).pathname).css;
 
 /**
  * Splits the sheet into its top-level selector blocks. Anchored to the start of a line so a
  * `[data-theme='dark']` mentioned inside a comment cannot be mistaken for the block itself.
  */
-const SELECTORS = Array.from(themes.matchAll(/^(?::root|\[data-theme='(\w+)'\])\s*\{/gm));
+const SELECTORS = Array.from(themes.matchAll(/^(?::root|\[data-theme=['"]?(\w+)['"]?\])\s*\{/gm));
 const BLOCKS = new Map(
   SELECTORS.map((match, index) => {
     const next = SELECTORS[index + 1];
@@ -24,23 +23,32 @@ const BLOCKS = new Map(
   })
 );
 
-const readToken = (theme: 'root' | 'white' | 'dark', name: string): string | null => {
-  const match = (BLOCKS.get(theme) ?? '').match(new RegExp(`${name}:\\s*(#[0-9a-f]{6})`, 'i'));
-  return match ? match[1] : null;
+const readToken = (theme: 'root' | 'white' | 'dark', name: string, raw = false): string | null => {
+  const match = (BLOCKS.get(theme) ?? '').match(
+    new RegExp(`${name}:\\s*(#[0-9a-f]{6}|rgb\\([^;]+\\))`, 'i')
+  );
+  if (!match) return null;
+  if (raw || match[1].startsWith('#')) return match[1];
+  return (
+    '#' +
+    (match[1].match(/\d+/g) ?? [])
+      .map((value) => Number(value).toString(16).padStart(2, '0'))
+      .join('')
+  );
 };
 
 /**
  * The three painted themes. `[data-theme='white']` overrides only its own tokens, so any
  * viz token it does not redeclare is inherited from `:root` — resolve it the same way CSS does.
  */
-const resolve = (theme: 'light' | 'white' | 'dark', name: string) => {
+const resolve = (theme: 'light' | 'white' | 'dark', name: string, raw = false) => {
   const value =
     theme === 'dark'
-      ? readToken('dark', name)
+      ? readToken('dark', name, raw)
       : theme === 'white'
-        ? readToken('white', name)
+        ? readToken('white', name, raw)
         : null;
-  const token = value ?? readToken('root', name);
+  const token = value ?? readToken('root', name, raw);
   if (!token) throw new Error(`themes.scss declares no ${name}`);
   return token;
 };
@@ -62,22 +70,32 @@ const contrast = (a: string, b: string) => {
   return hi / lo;
 };
 
-/** Fills only have to separate from each other and the card, so 3:1 is the graphical floor. */
+// OKLab distance detects hue/chroma differences without forcing alternating dark/pale bands.
+const oklab = (hex: string) => {
+  const [r, g, b] = [1, 3, 5].map((i) => channel(parseInt(hex.slice(i, i + 2), 16)));
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [
+    0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+  ];
+};
+const distance = (a: string, b: string) => {
+  const x = oklab(a),
+    y = oklab(b);
+  return Math.hypot(...x.map((v, i) => v - y[i]));
+};
+
+/** Card-colored stack borders separate adjacent fills at the 3:1 graphical contrast floor. */
 const GRAPHICAL_FLOOR = 3;
 
 describe('request health ramp', () => {
-  test.each(THEMES)('%s: contrast against the card rises strictly from L1 to L5', (theme) => {
-    const background = BACKGROUNDS[theme];
-    const ratios = [1, 2, 3, 4, 5].map((level) =>
-      contrast(resolve(theme, `--viz-health-${level}`), background)
-    );
-    for (let index = 1; index < ratios.length; index += 1) {
-      expect(ratios[index]).toBeGreaterThan(ratios[index - 1]);
-    }
-    // A step the eye can actually resolve, not just a float that happens to be larger.
-    for (let index = 1; index < ratios.length; index += 1) {
-      expect(ratios[index] / ratios[index - 1]).toBeGreaterThan(1.25);
-    }
+  test.each(THEMES)('%s: neighboring health levels remain perceptually distinct', (theme) => {
+    const fills = [1, 2, 3, 4, 5].map((level) => resolve(theme, `--viz-health-${level}`));
+    for (let i = 1; i < fills.length; i++)
+      expect(distance(fills[i], fills[i - 1])).toBeGreaterThan(0.06);
   });
 
   test.each(THEMES)('%s: the five levels are five different colours', (theme) => {
@@ -86,14 +104,14 @@ describe('request health ramp', () => {
   });
 });
 
-describe('sequential volume ramp', () => {
+describe.each(['neutral', 'activity'])('%s volume ramp', (role) => {
   // A sequential ramp encodes "how much", so its lowest level is allowed to sit near the card —
   // the 3:1 graphical floor governs categorical fills that must separate from each other.
   test.each(THEMES)(
     '%s: contrast against the card rises strictly, in resolvable steps',
     (theme) => {
       const ratios = [1, 2, 3, 4, 5].map((level) =>
-        contrast(resolve(theme, `--viz-neutral-${level}`), BACKGROUNDS[theme])
+        contrast(resolve(theme, `--viz-${role}-${level}`), BACKGROUNDS[theme])
       );
       for (let index = 1; index < ratios.length; index += 1) {
         expect(ratios[index]).toBeGreaterThan(ratios[index - 1]);
@@ -106,7 +124,7 @@ describe('sequential volume ramp', () => {
 
   test.each(THEMES)('%s: an empty day is distinguishable from the quietest one', (theme) => {
     const empty = resolve(theme, '--viz-empty-cell');
-    const quietest = resolve(theme, '--viz-neutral-1');
+    const quietest = resolve(theme, `--viz-${role}-1`);
     expect(empty).not.toBe(quietest);
     expect(contrast(empty, quietest)).toBeGreaterThan(1.15);
   });
@@ -117,10 +135,10 @@ describe('token category palette', () => {
   // input -> output -> cache_read -> cache_creation -> reasoning.
   const STACK = ['--viz-cat-1', '--viz-cat-2', '--viz-cat-3', '--viz-cat-4', '--viz-cat-5'];
 
-  test.each(THEMES)('%s: every stack neighbour clears 3:1', (theme) => {
+  test.each(THEMES)('%s: adjacent categories have distinct perceptual colors', (theme) => {
     const fills = STACK.map((name) => resolve(theme, name));
     for (let index = 1; index < fills.length; index += 1) {
-      expect(contrast(fills[index], fills[index - 1])).toBeGreaterThanOrEqual(GRAPHICAL_FLOOR);
+      expect(distance(fills[index], fills[index - 1])).toBeGreaterThan(0.1);
     }
   });
 
@@ -157,19 +175,16 @@ describe('top model palette', () => {
     expect(MODEL_STACK.length).toBe(TOP_MODEL_LIMIT + 1);
   });
 
-  test.each(THEMES)(
-    '%s: every model stack neighbour clears 3:1 and every swatch is distinct',
-    (theme) => {
-      const fills = MODEL_STACK.map((name) => resolve(theme, name));
-      expect(new Set(fills).size).toBe(MODEL_STACK.length);
-      for (let index = 1; index < fills.length; index += 1) {
-        expect(contrast(fills[index], fills[index - 1])).toBeGreaterThanOrEqual(GRAPHICAL_FLOOR);
-      }
-      for (const fill of fills) {
-        expect(contrast(fill, BACKGROUNDS[theme])).toBeGreaterThanOrEqual(GRAPHICAL_FLOOR);
-      }
+  test.each(THEMES)('%s: adjacent model colors are perceptually distinct and readable', (theme) => {
+    const fills = MODEL_STACK.map((name) => resolve(theme, name));
+    expect(new Set(fills).size).toBe(MODEL_STACK.length);
+    for (let index = 1; index < fills.length; index += 1) {
+      expect(distance(fills[index], fills[index - 1])).toBeGreaterThan(0.1);
     }
-  );
+    for (const fill of fills) {
+      expect(contrast(fill, BACKGROUNDS[theme])).toBeGreaterThanOrEqual(GRAPHICAL_FLOOR);
+    }
+  });
 });
 
 describe('top model ranking cap', () => {
@@ -249,5 +264,38 @@ describe('chart tooltip panel', () => {
     expect(contrast(resolve(theme, '--viz-tooltip-text-dim'), panel)).toBeGreaterThanOrEqual(4.5);
     // It also has to read as a panel, not as a hole in the card.
     expect(contrast(panel, BACKGROUNDS[theme])).toBeGreaterThanOrEqual(1.2);
+  });
+});
+
+describe('palette compatibility and preserved scales', () => {
+  test.each(THEMES)('%s: ECharts can parse all emitted category and activity colors', (theme) => {
+    for (const prefix of ['--viz-cat-', '--viz-activity-', '--viz-health-']) {
+      for (let level = 1; level <= (prefix === '--viz-cat-' ? 10 : 5); level++) {
+        expect(parseChartColor(resolve(theme, `${prefix}${level}`, true))).toBeDefined();
+      }
+    }
+  });
+  test('keeps approved dark activity and health colors exactly', () => {
+    expect([1, 2, 3, 4, 5].map((level) => resolve('dark', `--viz-activity-${level}`))).toEqual([
+      '#1f3350',
+      '#2f4f78',
+      '#4a76a8',
+      '#6f9cca',
+      '#a8c8e8',
+    ]);
+    expect([1, 2, 3, 4, 5].map((level) => resolve('dark', `--viz-health-${level}`))).toEqual([
+      '#8a2217',
+      '#c02615',
+      '#b46f09',
+      '#2ab265',
+      '#18d77e',
+    ]);
+  });
+  test.each(THEMES)('%s: preserves the matrix volume ramp', (theme) => {
+    expect([1, 2, 3, 4, 5].map((level) => resolve(theme, `--viz-neutral-${level}`))).toEqual(
+      theme === 'dark'
+        ? ['#1f3350', '#2f4f78', '#4a76a8', '#6f9cca', '#a8c8e8']
+        : ['#c3d1e2', '#9ab0cd', '#6f8db4', '#4a6b96', '#2b4870']
+    );
   });
 });

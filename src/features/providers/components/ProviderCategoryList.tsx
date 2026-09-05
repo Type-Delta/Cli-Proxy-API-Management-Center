@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { ProviderLogo } from './ProviderLogo';
 import { PROVIDER_LOGOS } from '../brandLogos';
 import type { ProviderBrand, ProviderGroup } from '../types';
 import styles from './ProviderCategoryList.module.scss';
@@ -39,23 +40,6 @@ export function ProviderCategoryList({ groups, activeBrand, onSelect }: Provider
         const activeCount = group.resources.filter((r) => !r.disabled).length;
         const logo = PROVIDER_LOGOS[group.id];
         const itemClass = `${styles.item} ${active ? styles.active : ''}`;
-        const logoClassName = [
-          styles.logo,
-          logo?.transparent ? styles.logoTransparent : '',
-          logo?.themeSurface ? styles.logoThemeSurface : '',
-          logo?.darkSrc ? styles.logoThemeLight : '',
-          logo?.invertOnDark ? styles.logoInvertOnDark : '',
-        ]
-          .filter(Boolean)
-          .join(' ');
-        const darkLogoClassName = [
-          styles.logo,
-          logo?.transparent ? styles.logoTransparent : '',
-          logo?.themeSurface ? styles.logoThemeSurface : '',
-          styles.logoThemeDark,
-        ]
-          .filter(Boolean)
-          .join(' ');
 
         return (
           <button
@@ -66,19 +50,7 @@ export function ProviderCategoryList({ groups, activeBrand, onSelect }: Provider
             aria-current={active ? 'page' : undefined}
           >
             <span className={styles.itemLeft}>
-              {logo ? (
-                <>
-                  <img src={logo.src} alt="" aria-hidden="true" className={logoClassName} />
-                  {logo.darkSrc ? (
-                    <img
-                      src={logo.darkSrc}
-                      alt=""
-                      aria-hidden="true"
-                      className={darkLogoClassName}
-                    />
-                  ) : null}
-                </>
-              ) : null}
+              <ProviderLogo logo={logo} />
               <span className={styles.itemText}>
                 <span className={styles.itemTitle}>
                   {t(`providersPage.providerNames.${group.id}`)}
