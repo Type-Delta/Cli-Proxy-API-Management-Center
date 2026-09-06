@@ -389,5 +389,11 @@ field. When a visible limit changes, the editor starts from the existing limits 
 unknown extension fields. The API client retains null contract slots and the model-key hook filters them
 only at its string boundary.
 
-Validation: `bun run verify`, targeted API-key contract tests, ESLint, TypeScript, and isolated Chrome
-CDP desktop/mobile happy-path checks.
+Validation: `bun run verify` passed 651 tests, lint, TypeScript, and the production build. After pinning
+the server index when an edit modal opens, the eight API-key contract tests, ESLint, TypeScript, and
+production build passed again. On 2026-09-06, isolated Chrome CDP checks against a real CPA backend
+through a same-origin test proxy exercised label creation, editing, and clearing at 1440px desktop
+and 390px mobile widths. Checks confirmed exact multiline Unicode labels, short-ID fallback, correct
+server indexes after a blank config entry, preservation of unknown limit fields, and mobile key
+rotation. The mobile view had no horizontal overflow or visible raw key text; browser console errors
+were empty.

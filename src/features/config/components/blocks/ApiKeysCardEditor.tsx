@@ -134,6 +134,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   const inputErrorId = `${inputId}-error`;
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
+  const [editingConfigIndex, setEditingConfigIndex] = useState<number | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [labelValue, setLabelValue] = useState('');
   const [maxRequests, setMaxRequests] = useState('');
@@ -143,6 +144,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
 
   const openAddModal = () => {
     setEditingRowId(null);
+    setEditingConfigIndex(null);
     setInputValue('');
     setLabelValue('');
     setMaxRequests('');
@@ -157,6 +159,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
     const entry = configIndex === undefined ? undefined : contract.entries[configIndex];
     const limits = entry !== null && typeof entry === 'object' ? entry.limits : undefined;
     setEditingRowId(rowId);
+    setEditingConfigIndex(configIndex ?? null);
     setInputValue(apiKeys[index] ?? '');
     setLabelValue(labelFor(index));
     setMaxRequests(String(limits?.['max-requests'] ?? ''));
@@ -168,6 +171,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   const closeModal = () => {
     setModalOpen(false);
     setEditingRowId(null);
+    setEditingConfigIndex(null);
     setInputValue('');
     setLabelValue('');
     setFormError('');
@@ -223,7 +227,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       return;
     }
     const editingIndex = editingRowId ? renderRowIds.findIndex((id) => id === editingRowId) : -1;
-    const editingConfigIndex = editingIndex >= 0 ? configIndexFor(editingIndex) : undefined;
+    const editingServerIndex = editingIndex >= 0 ? editingConfigIndex ?? undefined : undefined;
     const editingIdentity = editingIndex >= 0 ? identityFor(editingIndex) : undefined;
     const duplicateDraftLabel =
       labelValue !== '' &&
@@ -249,7 +253,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       return;
     }
     const existingEntry =
-      editingConfigIndex === undefined ? undefined : contract.entries[editingConfigIndex];
+      editingServerIndex === undefined ? undefined : contract.entries[editingServerIndex];
     const existingLimits =
       existingEntry !== null && typeof existingEntry === 'object'
         ? existingEntry.limits
@@ -265,8 +269,8 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
     try {
       if (supportsWrites) {
         if (editingIndex >= 0) {
-          if (editingConfigIndex === undefined) throw new Error(t('common.error'));
-          await apiKeysApi.update(editingConfigIndex, contract.configRevision, {
+          if (editingServerIndex === undefined) throw new Error(t('common.error'));
+          await apiKeysApi.update(editingServerIndex, contract.configRevision, {
             value: trimmed,
             label: labelValue,
             ...(limits !== undefined ? { limits } : {}),
