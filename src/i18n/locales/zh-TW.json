@@ -1785,6 +1785,9 @@
         "hint": "每個條目代表一個 API 金鑰（與「API 金鑰管理」頁面樣式一致）",
         "edit_title": "編輯 API 金鑰",
         "add_title": "新增 API 金鑰",
+        "label_input": "金鑰標籤（選填）",
+        "label_placeholder": "例如：正式環境",
+        "label_hint": "標籤必須唯一且區分大小寫。留空則顯示短 ID。",
         "input_label": "API 金鑰",
         "input_placeholder": "貼上你的 API 金鑰",
         "input_hint": "金鑰預設隱藏。限額透過含版本檢查的 CPA 金鑰介面儲存。",
@@ -1812,6 +1815,7 @@
         "error_empty": "請輸入 API 金鑰",
         "error_invalid": "API 金鑰包含無效字元",
         "error_duplicate": "該 API 金鑰已設定。",
+        "error_duplicate_label": "該標籤已分配給其他 API 金鑰。",
         "error_limit": "限額必須為非負數，請求上限必須為整數。",
         "strength": {
           "label": "API 金鑰強度",

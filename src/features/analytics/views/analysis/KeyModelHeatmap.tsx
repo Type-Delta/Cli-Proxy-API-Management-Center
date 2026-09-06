@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AnalysisKeyModelMatrix } from '@/types';
+import type { AnalysisKeyModelMatrix, AnalyticsKey } from '@/types';
 import { AnalyticsChart } from '../../components/AnalyticsChart';
 import {
   formatCompactTokens,
@@ -15,6 +15,7 @@ import {
   keyModelHeatmapOption,
   selectHeatmapModels,
 } from './analysisModel';
+import { analyticsKeyIdentity } from '../../analyticsKeyFilterModel';
 import { useAnalysisPalette } from './useAnalysisPalette';
 import styles from './Analysis.module.scss';
 
@@ -37,6 +38,7 @@ export function KeyModelHeatmap({
   retryAt,
   onRetry,
   locale,
+  keyCatalog = [],
 }: {
   section: AnalysisKeyModelMatrix | null | undefined;
   loading: boolean;
@@ -45,6 +47,7 @@ export function KeyModelHeatmap({
   retryAt?: number;
   onRetry: () => void;
   locale?: string;
+  keyCatalog?: readonly AnalyticsKey[];
 }) {
   const { t } = useTranslation();
   const palette = useAnalysisPalette();
@@ -55,6 +58,13 @@ export function KeyModelHeatmap({
     [limit, matrix]
   );
   const visibleModels = selection.models;
+  const keyLabel = useMemo(() => {
+    const byId = new Map(keyCatalog.map((entry) => [entry.key_id, entry]));
+    return (keyId: string) => {
+      const key = byId.get(keyId);
+      return key ? analyticsKeyIdentity(key) : compactKeyId(keyId);
+    };
+  }, [keyCatalog]);
   const tokensLabel = t('analytics.total_tokens', { defaultValue: 'tokens' });
   const requestsLabel = t('analytics.proxy_requests', { defaultValue: 'proxy requests' });
 
@@ -83,12 +93,12 @@ export function KeyModelHeatmap({
       maxTokens: matrix.maxTokens,
       palette,
       formatTokens: (value) => formatCompactTokens(value, locale).text,
-      formatKey: compactKeyId,
+      formatKey: keyLabel,
       tooltip: (modelIndex, keyIndex) => {
         const model = visibleModels[modelIndex] ?? '';
         const value = matrix.rows[keyIndex]?.cells.find((cell) => cell.model === model)?.value;
         return {
-          header: `${compactKeyId(matrix.keys[keyIndex] ?? '')} / ${model}`,
+          header: `${keyLabel(matrix.keys[keyIndex] ?? '')} / ${model}`,
           rows: [
             { name: tokensLabel, text: formatNumber(value?.total_tokens ?? 0, locale) },
             { name: requestsLabel, text: formatNumber(value?.requests ?? 0, locale) },
@@ -100,7 +110,7 @@ export function KeyModelHeatmap({
         };
       },
     });
-  }, [locale, matrix, palette, requestsLabel, t, tokensLabel, visibleModels]);
+  }, [keyLabel, locale, matrix, palette, requestsLabel, t, tokensLabel, visibleModels]);
 
   // The alternative names the busiest intersections rather than every cell: a 20 x 12 matrix is
   // 240 numbers, which is a worse readout than the ranking a reader actually wants.
@@ -168,7 +178,7 @@ export function KeyModelHeatmap({
             <ul>
               {topCells.map((cell) => (
                 <li key={`${cell.keyId}/${cell.model}`}>
-                  {compactKeyId(cell.keyId)} / {cell.model}: {formatNumber(cell.tokens, locale)}{' '}
+                  {keyLabel(cell.keyId)} / {cell.model}: {formatNumber(cell.tokens, locale)}{' '}
                   {tokensLabel}
                 </li>
               ))}

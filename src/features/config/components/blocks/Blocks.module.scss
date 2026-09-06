@@ -151,6 +151,22 @@
   }
 }
 
+.apiKeyItemMeta {
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
+.apiKeyTitle {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.apiKeyLabelInput {
+  resize: vertical;
+}
+
 .apiKeyLimitGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

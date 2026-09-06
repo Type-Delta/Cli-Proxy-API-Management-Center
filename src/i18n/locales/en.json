@@ -1759,6 +1759,9 @@
         "hint": "Each entry represents an API key (consistent with 'API Key Management' page style)",
         "edit_title": "Edit API Key",
         "add_title": "Add API Key",
+        "label_input": "Key label (optional)",
+        "label_placeholder": "For example, production",
+        "label_hint": "Labels are unique and case-sensitive. Leave blank to use the short ID.",
         "input_label": "API Key",
         "input_placeholder": "Paste your API key",
         "input_hint": "Keys stay concealed. Saving limits uses the revisioned CPA key contract.",
@@ -1786,6 +1789,7 @@
         "error_empty": "Please enter an API key",
         "error_invalid": "API key contains invalid characters",
         "error_duplicate": "That API key is already configured.",
+        "error_duplicate_label": "That label is already assigned to another API key.",
         "error_limit": "Limits must be non-negative numbers; request caps must be whole numbers.",
         "strength": {
           "label": "API key strength",

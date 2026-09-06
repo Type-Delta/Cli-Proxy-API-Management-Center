@@ -1,4 +1,5 @@
 import type {
+  ApiKeyContractEntry,
   InboundApiKeyEntry,
   ApiKeyIdentity,
   ApiKeyLimitEntry,
@@ -12,7 +13,7 @@ import { apiClient } from './client';
 
 export const API_KEY_CONTRACT_HEADERS = { 'X-CPA-API-Key-Contract': '1' } as const;
 
-const normalizeEntry = (entry: unknown): InboundApiKeyEntry | null => {
+const normalizeEntry = (entry: unknown): ApiKeyContractEntry => {
   if (typeof entry === 'string') return entry;
   if (!isRecord(entry) || typeof entry.key !== 'string') return null;
   const copy: StructuredApiKeyEntry = { ...entry, key: entry.key };
@@ -25,9 +26,7 @@ export const apiKeysApi = {
     const data = await apiClient.get<Record<string, unknown>>('/api-keys');
     const rawEntries = data['api-keys'] ?? data.apiKeys;
     const entries = Array.isArray(rawEntries)
-      ? rawEntries
-          .map(normalizeEntry)
-          .filter((entry): entry is InboundApiKeyEntry => entry !== null)
+      ? rawEntries.map(normalizeEntry)
       : [];
     return {
       entries,
@@ -36,7 +35,7 @@ export const apiKeysApi = {
         : [],
       configRevision: typeof data.config_revision === 'string' ? data.config_revision : '',
       warnings: Array.isArray(data.warnings) ? (data.warnings as ApiKeyWarning[]) : [],
-      structured: entries.some((entry) => typeof entry !== 'string'),
+      structured: entries.some((entry) => entry !== null && typeof entry !== 'string'),
     };
   },
 
@@ -62,7 +61,7 @@ export const apiKeysApi = {
   update: (
     index: number,
     configRevision: string,
-    patch: { value?: string; limits?: ApiKeyLimits | null }
+    patch: { value?: string; label?: string; limits?: ApiKeyLimits | null }
   ) =>
     apiClient.patch(
       '/api-keys',
@@ -70,10 +69,10 @@ export const apiKeysApi = {
       { headers: API_KEY_CONTRACT_HEADERS }
     ),
 
-  add: (configRevision: string, value: string, limits: ApiKeyLimits | null) =>
+  add: (configRevision: string, value: string, limits: ApiKeyLimits | null, label?: string) =>
     apiClient.patch(
       '/api-keys',
-      { value, limits, config_revision: configRevision },
+      { value, limits, ...(label !== undefined ? { label } : {}), config_revision: configRevision },
       { headers: API_KEY_CONTRACT_HEADERS }
     ),
 

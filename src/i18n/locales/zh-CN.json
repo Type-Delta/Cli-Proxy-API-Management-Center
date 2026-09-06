@@ -1759,6 +1759,9 @@
         "hint": "每个条目代表一个 API 密钥（与 「API 密钥管理」 页面样式一致）",
         "edit_title": "编辑 API 密钥",
         "add_title": "添加 API 密钥",
+        "label_input": "密钥标签（可选）",
+        "label_placeholder": "例如：生产环境",
+        "label_hint": "标签必须唯一且区分大小写。留空则显示短 ID。",
         "input_label": "API 密钥",
         "input_placeholder": "粘贴你的 API 密钥",
         "input_hint": "密钥默认隐藏。限额通过带版本校验的 CPA 密钥接口保存。",
@@ -1786,6 +1789,7 @@
         "error_empty": "请输入 API 密钥",
         "error_invalid": "API 密钥包含无效字符",
         "error_duplicate": "该 API 密钥已配置。",
+        "error_duplicate_label": "该标签已分配给其他 API 密钥。",
         "error_limit": "限额必须为非负数，请求上限必须为整数。",
         "strength": {
           "label": "API 密钥强度",

@@ -1,7 +1,8 @@
 import { useMemo, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AnalyticsDimensionPage } from '@/types';
+import type { AnalyticsDimensionPage, AnalyticsKey } from '@/types';
 import { useAnalyticsFilters } from '../../AnalyticsFilterContext';
+import { analyticsKeyIdentity } from '../../analyticsKeyFilterModel';
 import type { AnalyticsLoadResult } from '../../useAnalyticsLoad';
 import { AnalyticsChart } from '../../components/AnalyticsChart';
 import {
@@ -33,15 +34,26 @@ const categoryMix = (row: DistributionRow) => [
   row.tokens.reasoning,
 ];
 
-const safeDimensionValue = (dimension: AnalysisDistribution, value: string) =>
-  dimension === 'key' || dimension === 'credential' ? compactKeyId(value) : value || '—';
+const safeDimensionValue = (
+  dimension: AnalysisDistribution,
+  value: string,
+  keyCatalog: readonly AnalyticsKey[]
+) => {
+  if (dimension === 'key') {
+    const key = keyCatalog.find((entry) => entry.key_id === value);
+    return key ? analyticsKeyIdentity(key) : compactKeyId(value);
+  }
+  return dimension === 'credential' ? compactKeyId(value) : value || '—';
+};
 
 export function UsageDistribution({
   results,
   locale,
+  keyCatalog = [],
 }: {
   results: Record<AnalysisDistribution, AnalyticsLoadResult<AnalyticsDimensionPage>>;
   locale?: string;
+  keyCatalog?: readonly AnalyticsKey[];
 }) {
   const { t } = useTranslation();
   const palette = useAnalysisPalette();
@@ -59,7 +71,7 @@ export function UsageDistribution({
     () =>
       distributionOption({
         rows: rows.map((row) => ({
-          label: safeDimensionValue(active, row.value),
+          label: safeDimensionValue(active, row.value, keyCatalog),
           categories: categoryMix(row),
         })),
         categoryLabels,
@@ -68,7 +80,7 @@ export function UsageDistribution({
         tooltip: (index) => {
           const row = rows[index];
           return {
-            header: safeDimensionValue(active, row.value),
+            header: safeDimensionValue(active, row.value, keyCatalog),
             rows: [
               { name: shareLabel, text: formatPercent(row.percent, locale) },
               { name: tokensLabel, text: formatNumber(row.tokens.total, locale) },
@@ -82,7 +94,7 @@ export function UsageDistribution({
         },
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- labels derive from t/locale.
-    [active, locale, palette, requestsLabel, rows, shareLabel, t, tokensLabel]
+    [active, keyCatalog, locale, palette, requestsLabel, rows, shareLabel, t, tokensLabel]
   );
   const labels: Record<AnalysisDistribution, string> = {
     key: t('analytics.analysis.distribution_key', { defaultValue: 'Key' }),
@@ -180,8 +192,9 @@ export function UsageDistribution({
           <ul>
             {rows.map((row) => (
               <li key={row.value}>
-                {safeDimensionValue(active, row.value)}: {formatPercent(row.percent, locale)}{' '}
-                {shareLabel}, {formatNumber(row.tokens.total, locale)} {tokensLabel},{' '}
+                {safeDimensionValue(active, row.value, keyCatalog)}:{' '}
+                {formatPercent(row.percent, locale)} {shareLabel},{' '}
+                {formatNumber(row.tokens.total, locale)} {tokensLabel},{' '}
                 {formatCostValue(row.known_cost_usd, locale).text},{' '}
                 {formatNumber(row.proxy_requests, locale)} {requestsLabel}
               </li>

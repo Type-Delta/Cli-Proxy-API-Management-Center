@@ -59,7 +59,7 @@ function useAnalysisCard(request: AnalyticsAnalysisQuery, card: string) {
 
 export function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: string[] }) {
   const { i18n, t } = useTranslation();
-  const { reportResolvedRange } = useAnalyticsFilters();
+  const { keys, reportResolvedRange } = useAnalyticsFilters();
   const request = useMemo(
     () =>
       buildAnalyticsQuery('analysis', range, keyIds, {
@@ -119,7 +119,7 @@ export function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: str
           onRetry={() => void costBreakdown.refresh()}
           locale={locale}
         />
-        <UsageDistribution results={distributions} locale={locale} />
+        <UsageDistribution results={distributions} locale={locale} keyCatalog={keys} />
       </section>
       <section className={styles.analysisSection} aria-labelledby="analytics-analysis-behaviour">
         <Eyebrow as="h2" id="analytics-analysis-behaviour">
@@ -160,6 +160,7 @@ export function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: str
           retryAt={keyModel.retryAt}
           onRetry={() => void keyModel.refresh()}
           locale={locale}
+          keyCatalog={keys}
         />
       </section>
     </div>

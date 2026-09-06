@@ -114,8 +114,9 @@ export function ApiKeysField({ values, disabled, onChange }: SharedFieldProps) {
       <FieldGroup>
         <ApiKeysCardEditor
           value={values.apiKeysText}
+          labels={values.apiKeyLabels}
           disabled={disabled}
-          onChange={(apiKeysText) => onChange({ apiKeysText })}
+          onChange={(apiKeysText, apiKeyLabels) => onChange({ apiKeysText, apiKeyLabels })}
         />
       </FieldGroup>
     </FieldAnchor>

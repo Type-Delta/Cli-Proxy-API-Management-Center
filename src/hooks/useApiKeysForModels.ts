@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { apiKeysApi } from '@/services/api/apiKeys';
 import { useAuthStore, useConfigStore } from '@/stores';
+import type { InboundApiKeyEntry } from '@/types';
 import { rawApiKey } from '@/utils/keyIdentity';
 
 const normalizeApiKeyList = (input: unknown): string[] => {
@@ -58,7 +59,9 @@ export function useApiKeysForModels() {
 
       try {
         const response = await apiKeysApi.list();
-        const list = response.entries.map(rawApiKey);
+        const list = response.entries
+          .filter((entry): entry is InboundApiKeyEntry => entry !== null)
+          .map(rawApiKey);
         const normalized = normalizeApiKeyList(list);
         if (normalized.length) {
           cacheRef.current = normalized;

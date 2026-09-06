@@ -43,42 +43,91 @@ function extractApiKeyValue(raw: unknown): string | null {
   return null;
 }
 
-function parseApiKeysText(raw: unknown): string {
-  if (!Array.isArray(raw)) return '';
+export function parseApiKeyEntries(raw: unknown): Array<{ key: string; label: string }> {
+  if (!Array.isArray(raw)) return [];
 
-  const keys: string[] = [];
-  for (const item of raw) {
+  return raw.flatMap((item) => {
     const key = extractApiKeyValue(item);
-    if (key) keys.push(key);
-  }
-  return keys.join('\n');
-}
-
-export function mergeApiKeyEntries(raw: unknown, keys: string[]): unknown[] {
-  const existing = Array.isArray(raw) ? raw : [];
-  return keys.map((key, index) => {
-    const current = existing[index];
-    const record = asRecord(current);
-    if (!record) return key;
-    return { ...record, key };
+    if (!key) return [];
+    const record = asRecord(item);
+    return [
+      {
+        key,
+        label: typeof record?.label === 'string' ? record.label : '',
+      },
+    ];
   });
 }
 
-function resolveApiKeysText(parsed: Record<string, unknown>): string {
+function parseApiKeysText(raw: unknown): string {
+  return parseApiKeyEntries(raw)
+    .map((entry) => entry.key)
+    .join('\n');
+}
+
+function parseApiKeyLabels(raw: unknown): string[] {
+  return parseApiKeyEntries(raw).map((entry) => entry.label);
+}
+
+function toApiKeyEntryArray(raw: unknown): unknown[] {
+  if (Array.isArray(raw)) return raw;
+  if (raw === null || typeof raw !== 'object') return [];
+  const items = (raw as { items?: unknown }).items;
+  if (!Array.isArray(items)) return [];
+  return items.map((item) => {
+    if (item !== null && typeof item === 'object') {
+      const toJSON = (item as { toJSON?: () => unknown }).toJSON;
+      if (typeof toJSON === 'function') return toJSON.call(item);
+    }
+    return item;
+  });
+}
+
+export function mergeApiKeyEntries(
+  raw: unknown,
+  keys: string[],
+  labels?: readonly string[]
+): unknown[] {
+  const existing = toApiKeyEntryArray(raw).filter((entry) => extractApiKeyValue(entry) !== null);
+  return keys.map((key, index) => {
+    const current = existing[index];
+    const record = asRecord(current);
+    const label = labels?.[index];
+    if (!record) {
+      return label !== undefined && label !== '' ? { key, label } : key;
+    }
+    const next: Record<string, unknown> = { ...record, key };
+    if (labels !== undefined && label !== undefined) {
+      if (label === '') delete next['label'];
+      else next['label'] = label;
+    }
+    return next;
+  });
+}
+
+function resolveApiKeyEntries(parsed: Record<string, unknown>): unknown {
   if (Object.prototype.hasOwnProperty.call(parsed, 'api-keys')) {
-    return parseApiKeysText(parsed['api-keys']);
+    return parsed['api-keys'];
   }
 
   const auth = asRecord(parsed.auth);
   const providers = asRecord(auth?.providers);
   const configApiKeyProvider = asRecord(providers?.['config-api-key']);
-  if (!configApiKeyProvider) return '';
+  if (!configApiKeyProvider) return [];
 
   if (Object.prototype.hasOwnProperty.call(configApiKeyProvider, 'api-key-entries')) {
-    return parseApiKeysText(configApiKeyProvider['api-key-entries']);
+    return configApiKeyProvider['api-key-entries'];
   }
 
-  return parseApiKeysText(configApiKeyProvider['api-keys']);
+  return configApiKeyProvider['api-keys'];
+}
+
+function resolveApiKeysText(parsed: Record<string, unknown>): string {
+  return parseApiKeysText(resolveApiKeyEntries(parsed));
+}
+
+function resolveApiKeyLabels(parsed: Record<string, unknown>): string[] {
+  return parseApiKeyLabels(resolveApiKeyEntries(parsed));
 }
 
 type YamlDocument = ReturnType<typeof parseDocument>;
@@ -1149,6 +1198,13 @@ function getNextDirtyFields(
     );
   }
 
+  if (Object.prototype.hasOwnProperty.call(patch, 'apiKeyLabels')) {
+    updateDirty(
+      'apiKeyLabels',
+      areStringArraysEqual(nextValues.apiKeyLabels, baselineValues.apiKeyLabels)
+    );
+  }
+
   if (Object.prototype.hasOwnProperty.call(patch, 'pluginStoreSources')) {
     updateDirty(
       'pluginStoreSources',
@@ -1330,6 +1386,7 @@ export function useVisualConfig() {
 
         authDir: typeof parsed['auth-dir'] === 'string' ? parsed['auth-dir'] : '',
         apiKeysText: resolveApiKeysText(parsed),
+        apiKeyLabels: resolveApiKeyLabels(parsed),
         pluginsEnabled: Boolean(plugins?.enabled),
         pluginStoreSources: parseStringList(plugins?.['store-sources']),
         pluginStoreAuth: parsePluginStoreAuthRules(plugins?.['store-auth']),
@@ -1540,17 +1597,39 @@ export function useVisualConfig() {
         }
 
         if (dirtyFields.has('authDir')) setStringInDoc(doc, ['auth-dir'], values.authDir);
-        if (dirtyFields.has('apiKeysText')) {
+        const apiKeysDirty = dirtyFields.has('apiKeysText');
+        const apiKeyLabelsDirty = dirtyFields.has('apiKeyLabels');
+        if (apiKeysDirty || apiKeyLabelsDirty) {
           const apiKeys = values.apiKeysText
             .split('\n')
             .map((key) => key.trim())
             .filter(Boolean);
+          const legacyEntriesPath = [
+            'auth',
+            'providers',
+            'config-api-key',
+            docHas(doc, ['auth', 'providers', 'config-api-key', 'api-key-entries'])
+              ? 'api-key-entries'
+              : 'api-keys',
+          ];
+          const entryPath = apiKeysDirty
+            ? ['api-keys']
+            : docHas(doc, ['api-keys'])
+              ? ['api-keys']
+              : legacyEntriesPath;
           if (apiKeys.length > 0) {
-            doc.setIn(['api-keys'], mergeApiKeyEntries(doc.getIn(['api-keys']), apiKeys));
-          } else if (docHas(doc, ['api-keys'])) {
-            doc.deleteIn(['api-keys']);
+            doc.setIn(
+              entryPath,
+              mergeApiKeyEntries(
+                doc.getIn(entryPath),
+                apiKeys,
+                apiKeyLabelsDirty ? values.apiKeyLabels : undefined
+              )
+            );
+          } else if (apiKeysDirty && docHas(doc, entryPath)) {
+            doc.deleteIn(entryPath);
           }
-          deleteLegacyApiKeysProvider(doc);
+          if (apiKeysDirty) deleteLegacyApiKeysProvider(doc);
         }
 
         const pluginsDirty =

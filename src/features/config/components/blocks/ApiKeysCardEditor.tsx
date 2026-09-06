@@ -5,14 +5,19 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { apiKeysApi, capabilitiesApi } from '@/services/api';
 import { useAuthStore, useNotificationStore } from '@/stores';
-import type { ApiKeyLimitEntry, ApiKeyLimits, ApiKeysResponse } from '@/types';
+import type { ApiKeyLimitEntry, ApiKeysResponse } from '@/types';
 import { copyToClipboard } from '@/utils/clipboard';
-import { collisionSafeShortKeyIds } from '@/utils/keyIdentity';
+import {
+  collisionSafeShortKeyIds,
+  hasDuplicateApiKeyLabel,
+  mapApiKeyRowsToConfigIndexes,
+} from '@/utils/keyIdentity';
 import { makeClientId } from '@/types/visualConfig';
 import { generateSecureApiKey } from '@/utils/apiKey';
 import { maskApiKey } from '@/utils/format';
 import { isValidApiKeyCharset } from '@/utils/validation';
 import { ApiKeyStrengthMeter } from './ApiKeyStrengthMeter';
+import { buildApiKeyLimits } from './apiKeyEditorUtils';
 import styles from './Blocks.module.scss';
 
 const emptyResponse: ApiKeysResponse = {
@@ -25,12 +30,14 @@ const emptyResponse: ApiKeysResponse = {
 
 export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   value,
+  labels,
   disabled,
   onChange,
 }: {
   value: string;
+  labels: readonly string[];
   disabled?: boolean;
-  onChange: (nextValue: string) => void;
+  onChange: (nextValue: string, nextLabels: string[]) => void;
 }) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -44,6 +51,10 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
         .map((key) => key.trim())
         .filter(Boolean),
     [value]
+  );
+  const apiKeyLabels = useMemo(
+    () => apiKeys.map((_, index) => labels[index] ?? ''),
+    [apiKeys, labels]
   );
   const [rowIds, setRowIds] = useState(() => apiKeys.map(() => makeClientId()));
   const renderRowIds = useMemo(() => {
@@ -88,16 +99,43 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
     () => collisionSafeShortKeyIds(contract.identities.map((identity) => identity.key_id)),
     [contract.identities]
   );
+  const rowConfigIndexes = useMemo(
+    () => mapApiKeyRowsToConfigIndexes(contract.entries, apiKeys),
+    [contract.entries, apiKeys]
+  );
+  const configIndexFor = (index: number) => rowConfigIndexes[index];
   const identityFor = (index: number) =>
-    contract.identities.find((identity) => identity.config_indexes.includes(index));
-  const limitsFor = (index: number) => limitRows.find((row) => row.config_index === index);
+    contract.identities.find((identity) => {
+      const configIndex = configIndexFor(index);
+      return configIndex !== undefined && identity.config_indexes.includes(configIndex);
+    });
+  const labelFor = (index: number) => {
+    const configIndex = configIndexFor(index);
+    const entry = configIndex === undefined ? undefined : contract.entries[configIndex];
+    if (entry !== null && typeof entry === 'object' && typeof entry.label === 'string') {
+      return entry.label;
+    }
+    if (index < labels.length) return apiKeyLabels[index] ?? '';
+    const identity = identityFor(index);
+    if (typeof identity?.label === 'string') return identity.label;
+    return '';
+  };
+  const limitsFor = (index: number) => {
+    const configIndex = configIndexFor(index);
+    return configIndex === undefined
+      ? undefined
+      : limitRows.find((row) => row.config_index === configIndex);
+  };
 
   const inputId = useId();
+  const labelInputId = `${inputId}-label`;
+  const labelHintId = `${labelInputId}-hint`;
   const inputHintId = `${inputId}-hint`;
   const inputErrorId = `${inputId}-error`;
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
+  const [labelValue, setLabelValue] = useState('');
   const [maxRequests, setMaxRequests] = useState('');
   const [maxTokensM, setMaxTokensM] = useState('');
   const [resets, setResets] = useState('');
@@ -106,6 +144,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   const openAddModal = () => {
     setEditingRowId(null);
     setInputValue('');
+    setLabelValue('');
     setMaxRequests('');
     setMaxTokensM('');
     setResets('');
@@ -114,10 +153,12 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   };
   const openEditModal = (rowId: string) => {
     const index = renderRowIds.findIndex((id) => id === rowId);
-    const entry = contract.entries[index];
-    const limits = typeof entry === 'object' ? entry.limits : undefined;
+    const configIndex = configIndexFor(index);
+    const entry = configIndex === undefined ? undefined : contract.entries[configIndex];
+    const limits = entry !== null && typeof entry === 'object' ? entry.limits : undefined;
     setEditingRowId(rowId);
     setInputValue(apiKeys[index] ?? '');
+    setLabelValue(labelFor(index));
     setMaxRequests(String(limits?.['max-requests'] ?? ''));
     setMaxTokensM(String(limits?.['max-tokens-m'] ?? ''));
     setResets(typeof limits?.resets === 'string' ? limits.resets : '');
@@ -128,13 +169,16 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
     setModalOpen(false);
     setEditingRowId(null);
     setInputValue('');
+    setLabelValue('');
     setFormError('');
   };
-  const updateKeys = (nextKeys: string[]) => onChange(nextKeys.join('\n'));
+  const updateKeys = (nextKeys: string[], nextLabels: string[]) =>
+    onChange(nextKeys.join('\n'), nextLabels);
 
   const handleDelete = (rowId: string) => {
     const index = renderRowIds.findIndex((id) => id === rowId);
     if (index < 0) return;
+    const configIndex = configIndexFor(index);
     showConfirmation({
       title: t('config_management.visual.api_keys.delete_title'),
       message: t('config_management.visual.api_keys.delete_confirm'),
@@ -142,10 +186,16 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       onConfirm: async () => {
         setBusy(true);
         try {
-          if (supportsWrites) await apiKeysApi.delete(index, contract.configRevision);
+          if (supportsWrites) {
+            if (configIndex === undefined) throw new Error(t('common.error'));
+            await apiKeysApi.delete(configIndex, contract.configRevision);
+          }
           setRevealedRows(new Set());
           setRowIds(renderRowIds.filter((id) => id !== rowId));
-          updateKeys(apiKeys.filter((_, current) => current !== index));
+          updateKeys(
+            apiKeys.filter((_, current) => current !== index),
+            apiKeyLabels.filter((_, current) => current !== index)
+          );
           await refreshContract();
         } catch (error) {
           showNotification(error instanceof Error ? error.message : t('common.error'), 'error');
@@ -173,16 +223,24 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       return;
     }
     const editingIndex = editingRowId ? renderRowIds.findIndex((id) => id === editingRowId) : -1;
+    const editingConfigIndex = editingIndex >= 0 ? configIndexFor(editingIndex) : undefined;
+    const editingIdentity = editingIndex >= 0 ? identityFor(editingIndex) : undefined;
+    const duplicateDraftLabel =
+      labelValue !== '' &&
+      apiKeys.some((_, index) => index !== editingIndex && labelFor(index) === labelValue);
+    if (
+      duplicateDraftLabel ||
+      hasDuplicateApiKeyLabel(labelValue, contract.identities, editingIdentity?.key_id)
+    ) {
+      setFormError(t('config_management.visual.api_keys.error_duplicate_label'));
+      return;
+    }
+    if (!supportsWrites && labelValue !== (editingIndex >= 0 ? labelFor(editingIndex) : '')) {
+      setFormError(t('config_management.visual.api_keys.compatibility_blocked'));
+      return;
+    }
     const requestLimit = Number(maxRequests);
     const tokenLimit = Number(maxTokensM);
-    const limits: ApiKeyLimits | null =
-      maxRequests || maxTokensM || resets
-        ? {
-            ...(maxRequests ? { 'max-requests': requestLimit } : {}),
-            ...(maxTokensM ? { 'max-tokens-m': tokenLimit } : {}),
-            ...(resets ? { resets: resets as ApiKeyLimits['resets'] } : {}),
-          }
-        : null;
     if (
       (maxRequests && (!Number.isInteger(requestLimit) || requestLimit < 0)) ||
       (maxTokensM && (!Number.isFinite(tokenLimit) || tokenLimit < 0))
@@ -190,16 +248,31 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       setFormError(t('config_management.visual.api_keys.error_limit'));
       return;
     }
+    const existingEntry =
+      editingConfigIndex === undefined ? undefined : contract.entries[editingConfigIndex];
+    const existingLimits =
+      existingEntry !== null && typeof existingEntry === 'object'
+        ? existingEntry.limits
+        : undefined;
+    const limits = buildApiKeyLimits(
+      existingLimits,
+      editingIndex >= 0,
+      maxRequests,
+      maxTokensM,
+      resets
+    );
     setBusy(true);
     try {
       if (supportsWrites) {
         if (editingIndex >= 0) {
-          await apiKeysApi.update(editingIndex, contract.configRevision, {
+          if (editingConfigIndex === undefined) throw new Error(t('common.error'));
+          await apiKeysApi.update(editingConfigIndex, contract.configRevision, {
             value: trimmed,
-            limits,
+            label: labelValue,
+            ...(limits !== undefined ? { limits } : {}),
           });
         } else {
-          await apiKeysApi.add(contract.configRevision, trimmed, limits);
+          await apiKeysApi.add(contract.configRevision, trimmed, limits ?? null, labelValue);
         }
       } else if ((maxRequests || maxTokensM || resets) && editingIndex >= 0) {
         setFormError(t('config_management.visual.api_keys.compatibility_blocked'));
@@ -209,9 +282,13 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
         editingIndex < 0
           ? [...apiKeys, trimmed]
           : apiKeys.map((key, index) => (index === editingIndex ? trimmed : key));
+      const nextLabels =
+        editingIndex < 0
+          ? [...apiKeyLabels, labelValue]
+          : apiKeyLabels.map((label, index) => (index === editingIndex ? labelValue : label));
       if (editingIndex < 0) setRowIds([...renderRowIds, makeClientId()]);
       setRevealedRows(new Set());
-      updateKeys(nextKeys);
+      updateKeys(nextKeys, nextLabels);
       closeModal();
       await refreshContract();
     } catch (error) {
@@ -260,13 +337,16 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
           {apiKeys.map((key, index) => {
             const identity = identityFor(index);
             const shortId = identity ? shortIds.get(identity.key_id) : undefined;
+            const label = labelFor(index);
             const usage = limitsFor(index);
             const revealed = revealedRows.has(index);
             return (
               <div key={renderRowIds[index] ?? `${index}`} className="item-row">
-                <div className="item-meta">
+                <div className={`item-meta ${styles.apiKeyItemMeta}`}>
                   <div className="pill">#{index + 1}</div>
-                  <div className="item-title">{shortId ?? t('common.api_key')}</div>
+                  <div className={`item-title ${styles.apiKeyTitle}`} title={shortId ?? undefined}>
+                    {label || shortId || t('common.api_key')}
+                  </div>
                   <div
                     className="item-subtitle"
                     aria-label={t('config_management.visual.api_keys.raw_value')}
@@ -374,6 +454,20 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
         }
       >
         <div className="form-group">
+          <label htmlFor={labelInputId}>{t('config_management.visual.api_keys.label_input')}</label>
+          <textarea
+            id={labelInputId}
+            className={`input ${styles.apiKeyLabelInput}`}
+            rows={2}
+            autoComplete="off"
+            value={labelValue}
+            onChange={(event) => setLabelValue(event.target.value)}
+            aria-describedby={labelHintId}
+            placeholder={t('config_management.visual.api_keys.label_placeholder')}
+          />
+          <div id={labelHintId} className="hint">
+            {t('config_management.visual.api_keys.label_hint')}
+          </div>
           <label htmlFor={inputId}>{t('config_management.visual.api_keys.input_label')}</label>
           <div className={styles.apiKeyModalInputRow}>
             <input

@@ -7,14 +7,19 @@ export type ApiKeyLimits = {
 
 export type StructuredApiKeyEntry = {
   key: string;
+  /** Optional human-readable identity; the raw key remains concealed. */
+  label?: string;
   limits?: ApiKeyLimits;
   [field: string]: unknown;
 };
 
 export type InboundApiKeyEntry = string | StructuredApiKeyEntry;
+export type ApiKeyContractEntry = InboundApiKeyEntry | null;
 
 export type ApiKeyIdentity = {
   key_id: string;
+  /** Optional human-readable identity; never used as the key ID. */
+  label?: string;
   status: 'configured' | 'identity_conflict';
   config_indexes: number[];
   duplicate?: boolean;
@@ -26,7 +31,8 @@ export type ApiKeyWarning = {
 };
 
 export type ApiKeysResponse = {
-  entries: InboundApiKeyEntry[];
+  /** Entries retain their server-side positions; null represents an invalid wire entry. */
+  entries: ApiKeyContractEntry[];
   identities: ApiKeyIdentity[];
   configRevision: string;
   warnings: ApiKeyWarning[];

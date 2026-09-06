@@ -378,3 +378,16 @@ The DL013–DL022 work makes small additive changes to files that upstream CPAMC
 - `src/features/providers/components/ProviderCategoryList.tsx` — logo rendering moved into the shared `ProviderLogo` component (also used by Event filters, DL018).
 
 No upstream behaviour changes; every addition is opt-in through a new prop or class.
+
+
+### DL024: Labeled API-key editor contract alignment
+
+The API-key editor supports optional exact UTF-8 labels while keeping stable key IDs for identity and
+operations. Display rows resolve their original server-side indexes, so blank or malformed entries do
+not shift edit, delete, identity, or usage-limit actions. Label-only updates omit an unchanged limits
+field. When a visible limit changes, the editor starts from the existing limits object and preserves
+unknown extension fields. The API client retains null contract slots and the model-key hook filters them
+only at its string boundary.
+
+Validation: `bun run verify`, targeted API-key contract tests, ESLint, TypeScript, and isolated Chrome
+CDP desktop/mobile happy-path checks.
