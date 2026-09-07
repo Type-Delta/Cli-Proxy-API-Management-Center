@@ -414,3 +414,78 @@ unmount, or the bounded attempt limit. Shared analytics cost labels now identify
 estimates, with a pricing note explaining that subscription billing is not measured.
 
 Validation: targeted pricing/API tests, ESLint, TypeScript compilation, and the Impeccable detector pass.
+### DL030: Readable analytics chart labels and token breakdowns
+
+Usage Distribution and Key × Model Heatmap axes display a configured key label or fall back to the
+short key ID. Tooltips retain the label and short ID together. Usage Distribution adds a wrapping
+color legend and tooltip counts for input, output, cache read, cache creation, and reasoning tokens.
+The counts use the same mutually exclusive categories as the stacked bars and reuse existing
+translations and palette colors.
+
+Heatmap model headers truncate with ellipses within their column width instead of hiding overlapping
+names. Width follows the chart container, including after analytics data loads and when it resizes.
+Cell tooltips retain the full model name.
+
+Validation: `bun run verify` passed 651 tests, lint, TypeScript, and the production build. The CPA
+server compile check and both repository diff checks passed.
+Isolated Chrome CDP checks on 2026-09-07 verified desktop and 390px mobile layouts against the copied
+main-worktree mock data, including a cold mobile login. Named keys showed labels on axes and both
+identifiers in tooltips; unnamed keys retained short IDs. All selected model headers stayed visible,
+the legend wrapped without horizontal overflow, and tooltip category counts matched the bars.
+
+### DL026: Compact latency tiles and animated analysis metrics
+
+Latency tiles use tighter spacing and larger values. The Sampled badge shares the label row and
+aligns to the card's right edge. Mobile latency summary values are larger too.
+
+Analysis card metrics reuse the dashboard's count-up hook through `AnimatedMetric`. Counters begin
+when visible, preserve exact final values and locale formatting, and honor reduced motion. Coverage
+includes cost totals and category amounts/shares, blended rate, latency summary values and sample
+count, and Top Models totals/shares. ECharts, tooltips, model-efficiency tables, sample-browser rows,
+and rank ordinals keep their existing rendering.
+
+Validation: `bun run verify` passed 651 tests, lint, TypeScript, and the production build.
+Isolated Chrome CDP checks at desktop and 390px verified intermediate count-up frames on scroll,
+exact final costs, percentages, durations and counts, and reduced motion without intermediate counts.
+Latency values render at 22px on desktop and 20px on mobile with no horizontal page overflow.
+A browser-only sampled-response fixture verified that the Sampled badge shares the label line and
+aligns to its right edge; the override was removed after checking.
+
+### DL027: Reject invalid management capabilities responses
+
+The capabilities adapter rejects HTML and incomplete response objects before analytics consumes
+them. A dev server's SPA fallback previously returned HTML with HTTP 200, which the client accepted
+as capabilities and then crashed while reading `analytics.supported`. Invalid responses now use the
+existing load-error path and explain that the API server URL must point to the management API.
+The HTTP 404 fallback for older servers remains unchanged. A regression test covers the HTML response.
+The diagnostic is translated into all four supported locales. Chrome CDP verified the default
+same-origin login and populated Analysis route, plus a browser-intercepted HTML response producing
+the diagnostic without an exception. The temporary development server forwards `/v0` and `/v1` to
+the mock backend, so its default login address now serves the actual management API.
+Validation: `bun run verify` passed 652 tests, lint, TypeScript, and the production build; the CPA
+compile check also passed.
+
+### DL028: Animated overview and activity summaries
+
+Overview KPI values, numeric details, daily averages, and the Token Activity and Request Health
+summary strips reuse `AnimatedMetric`. The component lives under `features/analytics/components`
+and is shared with Analysis. Values count up when visible and preserve their existing final
+formatting, missing-value display, and reduced-motion behavior. Heatmap cells, tooltips, tables,
+and descriptive range text retain their existing rendering. KPI sparkline entrance duration is
+541ms; its update duration remains unchanged.
+Chrome CDP checks at 1440px desktop and 390px mobile verified count-up frames, offscreen activation,
+exact final costs/rates/averages, and reduced motion with no page overflow or console errors.
+Fractional metrics use finer counter precision: RPM visibly counted from zero through 0.063 and
+0.072 to 0.073, while request counts remained integers.
+
+### DL029: Filter Usage Distribution by token category
+
+The Usage Distribution legend uses keyboard-accessible toggle buttons with pressed states. Hidden
+categories are muted and contribute zero to the stacked bars; bar-end labels show the visible sum,
+including zero when every category is off. Selections persist across distribution dimension tabs.
+Filtered tooltips show selected category counts and distinguish Displayed tokens from the full
+Total tokens. Original cost, requests, and overall token share remain available for context.
+Axis labels fit within their left gutter and truncate long names with ellipses instead of clipping
+their prefixes. Validation: `bun run verify` passed 654 tests, lint, TypeScript, and the production
+build. Chrome CDP verified mouse, keyboard and mobile touch toggles, filtered tooltip totals, hiding
+the last category, all-off/re-enable behavior, and selection retention across dimension tabs.

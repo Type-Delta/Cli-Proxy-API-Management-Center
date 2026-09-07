@@ -5,6 +5,7 @@ import type { AnalysisLatency } from '@/types';
 import { AnalyticsChart } from '../../components/AnalyticsChart';
 import { formatDateTime, formatDuration, formatNumber } from '../../components/analyticsFormatting';
 import { AnalysisCard } from './AnalysisCard';
+import { AnimatedMetric } from '../../components/AnimatedMetric';
 import {
   ANALYSIS_CHART_HEIGHT,
   latencyOption,
@@ -135,15 +136,27 @@ export function LatencyDiagnostics({
               .map((stat) => (
                 <span key={stat.label}>
                   <small>{stat.label}</small>
-                  <strong>{stat.value == null ? '—' : formatDuration(stat.value, locale)}</strong>
+                  <strong>
+                    <AnimatedMetric
+                      value={stat.value}
+                      format={(value) => formatDuration(value, locale)}
+                    />
+                  </strong>
                 </span>
               ))}
             <span>
-              <small>{t('analytics.analysis.sample_count', { defaultValue: 'Samples' })}</small>
-              <strong>{formatNumber(section?.sample_count ?? 0, locale)}</strong>
-              {section?.sampled && (
-                <em>{t('analytics.analysis.sampled', { defaultValue: 'Sampled' })}</em>
-              )}
+              <span className={styles.metricLabel}>
+                <small>{t('analytics.analysis.sample_count', { defaultValue: 'Samples' })}</small>
+                {section?.sampled && (
+                  <em>{t('analytics.analysis.sampled', { defaultValue: 'Sampled' })}</em>
+                )}
+              </span>
+              <strong>
+                <AnimatedMetric
+                  value={section?.sample_count ?? 0}
+                  format={(value) => formatNumber(value, locale)}
+                />
+              </strong>
             </span>
           </div>
           {presentation.state === 'ready' && (
@@ -171,7 +184,12 @@ export function LatencyDiagnostics({
                 {stats.map((stat) => (
                   <div key={stat.label}>
                     <dt>{stat.label}</dt>
-                    <dd>{stat.value == null ? '—' : formatDuration(stat.value, locale)}</dd>
+                    <dd>
+                      <AnimatedMetric
+                        value={stat.value}
+                        format={(value) => formatDuration(value, locale)}
+                      />
+                    </dd>
                   </div>
                 ))}
               </dl>

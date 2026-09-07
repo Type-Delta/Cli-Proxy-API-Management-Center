@@ -1,4 +1,4 @@
-import { useMemo, type KeyboardEvent } from 'react';
+import { useMemo, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AnalyticsDimensionPage, AnalyticsKey } from '@/types';
 import { useAnalyticsFilters } from '../../AnalyticsFilterContext';
@@ -21,6 +21,7 @@ import {
   TOKEN_CATEGORY_KEYS,
   type AnalysisDistribution,
   type DistributionRow,
+  type TokenCategoryKey,
 } from './analysisModel';
 import { useAnalysisPalette } from './useAnalysisPalette';
 import styles from './Analysis.module.scss';
@@ -41,9 +42,21 @@ const safeDimensionValue = (
 ) => {
   if (dimension === 'key') {
     const key = keyCatalog.find((entry) => entry.key_id === value);
-    return key ? analyticsKeyIdentity(key) : compactKeyId(value);
+    return key ? key.label || key.short_key_id : compactKeyId(value);
   }
   return dimension === 'credential' ? compactKeyId(value) : value || '—';
+};
+
+const safeDimensionTooltipValue = (
+  dimension: AnalysisDistribution,
+  value: string,
+  keyCatalog: readonly AnalyticsKey[]
+) => {
+  if (dimension === 'key') {
+    const key = keyCatalog.find((entry) => entry.key_id === value);
+    return key ? analyticsKeyIdentity(key) : compactKeyId(value);
+  }
+  return safeDimensionValue(dimension, value, keyCatalog);
 };
 
 export function UsageDistribution({
@@ -59,6 +72,9 @@ export function UsageDistribution({
   const palette = useAnalysisPalette();
   // The active dimension lives in the hash query so a shared link reopens on it.
   const { distribution: active, setDistribution: setActive } = useAnalyticsFilters();
+  const [selectedCategories, setSelectedCategories] = useState<Set<TokenCategoryKey>>(
+    () => new Set(TOKEN_CATEGORY_KEYS)
+  );
   const result = results[active];
   const rows = useMemo(() => buildDistributionRows(result.data?.rows ?? []), [result.data]);
   const tokensLabel = t('analytics.total_tokens', { defaultValue: 'tokens' });
@@ -67,6 +83,14 @@ export function UsageDistribution({
   const categoryLabels = TOKEN_CATEGORY_KEYS.map((key) =>
     t(`analytics.analysis.category_${key}`, { defaultValue: key.replace('_', ' ') })
   );
+  const selectedCategoryFlags = useMemo(
+    () => TOKEN_CATEGORY_KEYS.map((key) => selectedCategories.has(key)),
+    [selectedCategories]
+  );
+  const visibleCategoryCount = selectedCategoryFlags.filter(Boolean).length;
+  const displayedTokensLabel = t('analytics.analysis.displayed_tokens', {
+    defaultValue: 'Displayed tokens',
+  });
   const option = useMemo(
     () =>
       distributionOption({
@@ -75,14 +99,40 @@ export function UsageDistribution({
           categories: categoryMix(row),
         })),
         categoryLabels,
+        selectedCategories: selectedCategoryFlags,
         palette,
         formatTokens: (value) => formatCompactTokens(value, locale).text,
         tooltip: (index) => {
           const row = rows[index];
+          const categories = categoryMix(row);
+          const filtered = visibleCategoryCount < TOKEN_CATEGORY_KEYS.length;
+          const visibleTokens = categories.reduce(
+            (sum, value, category) => sum + (selectedCategoryFlags[category] ? value : 0),
+            0
+          );
           return {
-            header: safeDimensionValue(active, row.value, keyCatalog),
+            header: safeDimensionTooltipValue(active, row.value, keyCatalog),
             rows: [
               { name: shareLabel, text: formatPercent(row.percent, locale) },
+              ...categoryLabels.flatMap((name, category) =>
+                selectedCategoryFlags[category]
+                  ? [
+                      {
+                        name,
+                        text: formatNumber(categories[category] ?? 0, locale),
+                        color: palette.categorical[category],
+                      },
+                    ]
+                  : []
+              ),
+              ...(filtered
+                ? [
+                    {
+                      name: displayedTokensLabel,
+                      text: formatNumber(visibleTokens, locale),
+                    },
+                  ]
+                : []),
               { name: tokensLabel, text: formatNumber(row.tokens.total, locale) },
               {
                 name: t('analytics.known_cost', { defaultValue: 'Estimated API-equivalent cost' }),
@@ -93,8 +143,21 @@ export function UsageDistribution({
           };
         },
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- labels derive from t/locale.
-    [active, keyCatalog, locale, palette, requestsLabel, rows, shareLabel, t, tokensLabel]
+    [
+      active,
+      categoryLabels,
+      displayedTokensLabel,
+      keyCatalog,
+      locale,
+      palette,
+      requestsLabel,
+      rows,
+      selectedCategoryFlags,
+      shareLabel,
+      t,
+      tokensLabel,
+      visibleCategoryCount,
+    ]
   );
   const labels: Record<AnalysisDistribution, string> = {
     key: t('analytics.analysis.distribution_key', { defaultValue: 'Key' }),
@@ -169,6 +232,38 @@ export function UsageDistribution({
         role="tabpanel"
         aria-labelledby={`analysis-distribution-${active}`}
       >
+        {rows.length > 0 && (
+          <ul
+            className={styles.distributionLegend}
+            aria-label={t('analytics.analysis.filter_token_categories', {
+              defaultValue: 'Filter token categories',
+            })}
+          >
+            {categoryLabels.map((label, index) => {
+              const category = TOKEN_CATEGORY_KEYS[index];
+              const selected = selectedCategories.has(category);
+              return (
+                <li key={category}>
+                  <button
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() =>
+                      setSelectedCategories((previous) => {
+                        const next = new Set(previous);
+                        if (next.has(category)) next.delete(category);
+                        else next.add(category);
+                        return next;
+                      })
+                    }
+                  >
+                    <i aria-hidden="true" style={{ backgroundColor: palette.categorical[index] }} />
+                    {label}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
         <AnalyticsChart
           option={option}
           height={distributionChartHeight(rows.length)}

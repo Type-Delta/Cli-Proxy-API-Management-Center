@@ -871,6 +871,52 @@ describe('analysis ECharts options', () => {
     expect(heatmapChartHeight(4)).toBeGreaterThan(heatmapChartHeight(2));
   });
 
+  test('filters Usage Distribution categories while keeping closing labels on visible totals', () => {
+    const base = {
+      rows: [
+        { label: 'key-a', categories: [10, 5, 2, 1, 3] },
+        { label: 'key-b', categories: [4, 1, 1, 0, 2] },
+      ],
+      categoryLabels: [...TOKEN_CATEGORY_KEYS],
+      palette: PALETTE,
+      formatTokens: identity,
+      tooltip: (index: number) => ({
+        header: `row-${index}`,
+        rows: [{ name: 'share', text: '75%' }],
+      }),
+    };
+    const option = distributionOption({
+      ...base,
+      selectedCategories: [true, true, true, true, false],
+    }) as unknown as Option;
+
+    expect(option.series.map((series) => series.data)).toEqual([
+      [4, 10],
+      [1, 5],
+      [1, 2],
+      [0, 1],
+      [0, 0],
+    ]);
+    expect(option.series[3].label?.show).toBe(true);
+    expect(option.series[4].label?.show).toBe(false);
+    expect(option.series[3].label?.formatter({ dataIndex: 0 })).toBe('6');
+  });
+
+  test('keeps an all-disabled Usage Distribution chart reenableable and labelled as zero', () => {
+    const option = distributionOption({
+      rows: [{ label: 'key-a', categories: [10, 5, 2, 1, 3] }],
+      categoryLabels: [...TOKEN_CATEGORY_KEYS],
+      selectedCategories: TOKEN_CATEGORY_KEYS.map(() => false),
+      palette: PALETTE,
+      formatTokens: identity,
+      tooltip: () => ({ header: 'row', rows: [] }),
+    }) as unknown as Option;
+
+    expect(option.series.every((series) => series.data.every((value) => value === 0))).toBe(true);
+    expect(option.series.at(-1)?.label?.show).toBe(true);
+    expect(option.series.at(-1)?.label?.formatter({ dataIndex: 0 })).toBe('0');
+  });
+
   test('thins category ticks instead of printing one label per bucket', () => {
     expect(axisLabelInterval(0)).toBe(0);
     expect(axisLabelInterval(5)).toBe(0);

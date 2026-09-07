@@ -61,6 +61,8 @@ export type TooltipRow = {
   text: string;
   /** ECharts hands the swatch in as `params.marker`; omit for rows that have no series. */
   marker?: string;
+  /** Optional palette colour for rows added by a custom tooltip formatter. */
+  color?: string;
 };
 
 /**
@@ -72,7 +74,12 @@ export type TooltipRow = {
 export function tooltipPanel(header: string, rows: TooltipRow[], total?: TooltipRow) {
   const line = (row: TooltipRow, isTotal = false) =>
     `<div data-tt="row"${isTotal ? ' data-tt-total="true"' : ''}>` +
-    `<span data-tt="name">${row.marker ?? ''}${escapeHtml(row.name)}</span>` +
+    `<span data-tt="name">${
+      row.marker ??
+      (row.color
+        ? `<span data-tt-marker="true" style="background-color:${escapeHtml(row.color)}"></span>`
+        : '')
+    }${escapeHtml(row.name)}</span>` +
     `<span data-tt="value">${escapeHtml(row.text)}</span></div>`;
   return (
     `<div data-tt="panel"><div data-tt="head">${escapeHtml(header)}</div>` +
@@ -893,6 +900,7 @@ export type KeyModelHeatmapOptionInput = {
   palette: AnalyticsPalette;
   formatTokens: (value: number) => string;
   formatKey: (value: string) => string;
+  modelLabelWidth?: number;
   tooltip: (modelIndex: number, keyIndex: number) => { header: string; rows: TooltipRow[] };
 };
 
@@ -904,11 +912,12 @@ export function keyModelHeatmapOption({
   palette,
   formatTokens,
   formatKey,
+  modelLabelWidth = 96,
   tooltip,
 }: KeyModelHeatmapOptionInput): EChartsCoreOption {
   const ceiling = Math.max(1, maxTokens);
   return {
-    grid: { left: 116, right: 16, top: 46, bottom: 8, containLabel: false },
+    grid: { left: 85, right: 16, top: 46, bottom: 8, containLabel: false },
     tooltip: {
       trigger: 'item',
       formatter: (input: unknown) => {
@@ -925,7 +934,9 @@ export function keyModelHeatmapOption({
       splitArea: { show: false },
       splitLine: { show: false },
       axisLine: { show: false },
-      axisLabel: { hideOverlap: true, interval: 0 },
+      // Keep every selected model discoverable on narrow cards. ECharts' overlap hiding silently
+      // removes headers; truncate each one within a predictable cell-sized measure instead.
+      axisLabel: { hideOverlap: false, interval: 0, width: modelLabelWidth, overflow: 'truncate' },
     },
     yAxis: {
       type: 'category',
@@ -975,6 +986,8 @@ export type DistributionOptionInput = {
   rows: readonly DistributionRowSeries[];
   /** Localized category names, in stack order. */
   categoryLabels: readonly string[];
+  /** Which category bands remain visible; omitted means every category is enabled. */
+  selectedCategories?: readonly boolean[];
   palette: AnalyticsPalette;
   formatTokens: (value: number) => string;
   /** Full facts for one row: share, spend and request count live here, not on the bar. */
@@ -991,6 +1004,7 @@ export const distributionChartHeight = (rowCount: number) =>
 export function distributionOption({
   rows,
   categoryLabels,
+  selectedCategories,
   palette,
   formatTokens,
   tooltip,
@@ -998,8 +1012,16 @@ export function distributionOption({
   // Descending rank reads top-down, and a category axis runs bottom-up.
   const ordered = [...rows].reverse();
   const rowIndex = (index: number) => rows.length - 1 - index;
+  const selected = categoryLabels.map((_, category) => selectedCategories?.[category] ?? true);
+  const lastSelectedCategory = selected.reduce(
+    (last, enabled, category) => (enabled ? category : last),
+    -1
+  );
+  // Keep one zero-valued series responsible for the closing label when every category is hidden.
+  const labelCategory =
+    lastSelectedCategory === -1 ? categoryLabels.length - 1 : lastSelectedCategory;
   return {
-    grid: { left: 150, right: 66, top: 4, bottom: 24, containLabel: false },
+    grid: { left: 96, right: 66, top: 4, bottom: 24, containLabel: false },
     tooltip: {
       trigger: 'item',
       formatter: (input: unknown) => {
@@ -1015,7 +1037,7 @@ export function distributionOption({
       data: ordered.map((row) => row.label),
       axisLine: { lineStyle: { color: palette.border } },
       splitLine: { show: false },
-      axisLabel: { interval: 0, width: 138, overflow: 'truncate' },
+      axisLabel: { interval: 0, width: 88, margin: 8, overflow: 'truncate' },
     },
     series: categoryLabels.map((label, category) => ({
       name: label,
@@ -1029,7 +1051,7 @@ export function distributionOption({
       },
       // The row total closes the last band, so the reader gets the number without a hover.
       label:
-        category === categoryLabels.length - 1
+        category === labelCategory
           ? {
               show: true,
               position: 'right' as const,
@@ -1037,11 +1059,14 @@ export function distributionOption({
               fontSize: 11,
               formatter: ({ dataIndex }: { dataIndex: number }) =>
                 formatTokens(
-                  ordered[dataIndex]?.categories.reduce((sum, value) => sum + value, 0) ?? 0
+                  ordered[dataIndex]?.categories.reduce(
+                    (sum, value, index) => sum + (selected[index] ? value : 0),
+                    0
+                  ) ?? 0
                 ),
             }
           : { show: false },
-      data: ordered.map((row) => row.categories[category] ?? 0),
+      data: ordered.map((row) => (selected[category] ? (row.categories[category] ?? 0) : 0)),
     })),
   };
 }

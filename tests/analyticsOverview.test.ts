@@ -215,7 +215,7 @@ describe('analytics overview model', () => {
     });
 
     expect(option).toMatchObject({
-      animationDuration: Math.round(1000 / 1.35),
+      animationDuration: Math.round(1000 / 1.85),
       animationDurationUpdate: Math.round(500 / 1.35),
       animationDelay: 140,
     });

@@ -15,6 +15,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import type { ActivityBucket, AnalyticsActivity } from '@/types';
 import { prefersReducedMotion } from '@/hooks/motion';
 import { AsyncState } from '../../components/AnalyticsShared';
+import { AnimatedMetric } from '../../components/AnimatedMetric';
 import { formatNumber, formatPercent } from '../../components/analyticsFormatting';
 import {
   calendarDay,
@@ -81,13 +82,22 @@ function HeatmapLegend({
 }
 
 /** The per-card summary strip: "Total tokens · Input · Output" and its health twin. */
-function HeatmapSummary({ items }: { items: Array<{ label: string; value: string }> }) {
+type HeatmapSummaryItem = {
+  label: string;
+  value: number | null;
+  format: (value: number) => string;
+  scale?: number;
+};
+
+function HeatmapSummary({ items }: { items: HeatmapSummaryItem[] }) {
   return (
     <dl className={styles.heatmapSummary}>
       {items.map((item) => (
         <div key={item.label}>
           <dt>{item.label}</dt>
-          <dd>{item.value}</dd>
+          <dd>
+            <AnimatedMetric value={item.value} scale={item.scale} format={item.format} />
+          </dd>
         </div>
       ))}
     </dl>
@@ -617,15 +627,18 @@ export function ActivityHeatmaps({
                       items={[
                         {
                           label: t('analytics.total_tokens', { defaultValue: 'Total tokens' }),
-                          value: formatNumber(totals.tokens, locale),
+                          value: totals.tokens,
+                          format: (value) => formatNumber(value, locale),
                         },
                         {
                           label: t('analytics.input_tokens', { defaultValue: 'Input tokens' }),
-                          value: formatNumber(totals.input, locale),
+                          value: totals.input,
+                          format: (value) => formatNumber(value, locale),
                         },
                         {
                           label: t('analytics.output_tokens', { defaultValue: 'Output tokens' }),
-                          value: formatNumber(totals.output, locale),
+                          value: totals.output,
+                          format: (value) => formatNumber(value, locale),
                         },
                       ]}
                     />
@@ -670,15 +683,19 @@ export function ActivityHeatmaps({
                           label: t('analytics.overview.success_rate', {
                             defaultValue: 'Success rate',
                           }),
-                          value: formatPercent(successRate, locale),
+                          value: successRate,
+                          scale: 10,
+                          format: (value) => formatPercent(value, locale),
                         },
                         {
                           label: t('analytics.overview.succeeded', { defaultValue: 'Succeeded' }),
-                          value: formatNumber(totals.succeeded, locale),
+                          value: totals.succeeded,
+                          format: (value) => formatNumber(value, locale),
                         },
                         {
                           label: t('analytics.overview.failed', { defaultValue: 'Failed' }),
-                          value: formatNumber(totals.failed, locale),
+                          value: totals.failed,
+                          format: (value) => formatNumber(value, locale),
                         },
                       ]}
                     />

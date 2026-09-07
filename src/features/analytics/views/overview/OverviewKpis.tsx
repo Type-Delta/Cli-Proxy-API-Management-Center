@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { toneForSuccessRate } from '@/features/dashboard/utils';
 import type { AnalyticsSummary } from '@/types';
 import { AnalyticsChart } from '../../components/AnalyticsChart';
+import { AnimatedMetric } from '../../components/AnimatedMetric';
 import { axisTooltipFormatter, snapAxisPointer } from '../../components/chartTheme';
 import {
   formatCompactTokens,
@@ -77,7 +78,17 @@ export function DetailValue({ label, value }: { label: string; value: FormattedV
   return (
     <span className={styles.detailItem} title={value.title}>
       <span>{label}</span>
-      <b>{value.text}</b>
+      <b>
+        {value.animatedFormat && value.animatedValue !== undefined ? (
+          <AnimatedMetric
+            value={value.animatedValue}
+            scale={value.animatedScale}
+            format={value.animatedFormat}
+          />
+        ) : (
+          value.text
+        )}
+      </b>
     </span>
   );
 }
@@ -107,7 +118,15 @@ export function MetricTiles({ cards, label }: { cards: MetricCard[]; label: stri
               {card.label}
             </span>
             <strong className={styles.metricValue} title={card.value.title}>
-              {card.value.text}
+              {card.value.animatedFormat && card.value.animatedValue !== undefined ? (
+                <AnimatedMetric
+                  value={card.value.animatedValue}
+                  scale={card.value.animatedScale}
+                  format={card.value.animatedFormat}
+                />
+              ) : (
+                card.value.text
+              )}
             </strong>
             {card.detail}
             {card.trend && (
@@ -144,11 +163,41 @@ export function OverviewKpis({
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage;
   const metrics = buildOverviewMetrics(summary);
+  const exactNumberValue = (value: number): FormattedValue => ({
+    ...exactNumber(value, locale),
+    animatedValue: value,
+    animatedScale: Number.isInteger(value) ? 1 : 1_000,
+    animatedFormat: (animated) => formatNumber(animated, locale),
+  });
+  const exactPercentValue = (value: number | null): FormattedValue => ({
+    ...exactPercent(value, locale),
+    animatedValue: value,
+    animatedScale: 10,
+    animatedFormat: (animated) => formatPercent(animated, locale),
+  });
   const compact = (value: number) => ({
     ...formatCompactTokens(value, locale),
     title: String(value),
+    animatedValue: value,
+    animatedFormat: (animated: number) => formatCompactTokens(animated, locale).text,
   });
-  const numberText = (value: number) => exactNumber(value, locale).text;
+  const costValue = (value: number | string | null | undefined): FormattedValue => {
+    const numericValue =
+      value === null || value === undefined || value === ''
+        ? null
+        : typeof value === 'number'
+          ? value
+          : Number(value);
+    const animatedValue =
+      numericValue !== null && Number.isFinite(numericValue) ? numericValue : null;
+    return {
+      ...formatCostValue(value, locale),
+      animatedValue,
+      animatedScale: 10_000,
+      animatedFormat: (animated) => formatCostValue(animated, locale).text,
+    };
+  };
+  const numberText = (value: number) => exactNumberValue(value).text;
   const percentText = (value: number | null) => exactPercent(value, locale).text;
   const compactText = (value: number) => compact(value).text;
   const costText = (value: number) => formatCostValue(value, locale).text;
@@ -164,7 +213,7 @@ export function OverviewKpis({
     {
       key: 'requests',
       label: t('analytics.overview.requests', { defaultValue: 'Requests' }),
-      value: exactNumber(metrics.requests, locale),
+      value: exactNumberValue(metrics.requests),
       ariaLabel: `${t('analytics.overview.requests', { defaultValue: 'Requests' })}: ${numberText(metrics.requests)}. ${t('analytics.overview.succeeded', { defaultValue: 'Succeeded' })}: ${numberText(metrics.succeeded)}. ${t('analytics.overview.failed', { defaultValue: 'Failed' })}: ${numberText(metrics.failed)}. ${t('analytics.overview.success_rate', { defaultValue: 'Success rate' })}: ${percentText(metrics.successRate)}.`,
       accent: TONE_ACCENTS[requestTone],
       icon: METRIC_ICONS.requests,
@@ -173,15 +222,15 @@ export function OverviewKpis({
         <MetricDetail>
           <DetailValue
             label={t('analytics.overview.succeeded', { defaultValue: 'Succeeded' })}
-            value={exactNumber(metrics.succeeded, locale)}
+            value={exactNumberValue(metrics.succeeded)}
           />
           <DetailValue
             label={t('analytics.overview.failed', { defaultValue: 'Failed' })}
-            value={exactNumber(metrics.failed, locale)}
+            value={exactNumberValue(metrics.failed)}
           />
           <DetailValue
             label={t('analytics.overview.success_rate', { defaultValue: 'Success rate' })}
-            value={exactPercent(metrics.successRate, locale)}
+            value={exactPercentValue(metrics.successRate)}
           />
         </MetricDetail>
       ),
@@ -214,7 +263,7 @@ export function OverviewKpis({
     {
       key: 'rpm',
       label: t('analytics.overview.rpm', { defaultValue: 'RPM' }),
-      value: exactNumber(metrics.requestsPerMinute, locale),
+      value: exactNumberValue(metrics.requestsPerMinute),
       ariaLabel: `${t('analytics.overview.rpm', { defaultValue: 'RPM' })}: ${numberText(metrics.requestsPerMinute)}. ${t('analytics.overview.requests_per_minute', { defaultValue: 'Requests per minute' })}.`,
       accent: TONE_ACCENTS.idle,
       icon: METRIC_ICONS.rpm,
@@ -248,7 +297,7 @@ export function OverviewKpis({
     {
       key: 'cache_rate',
       label: t('analytics.overview.cache_rate', { defaultValue: 'Cache rate' }),
-      value: exactPercent(metrics.cacheReadRate, locale),
+      value: exactPercentValue(metrics.cacheReadRate),
       ariaLabel: `${t('analytics.overview.cache_rate', { defaultValue: 'Cache rate' })}: ${percentText(metrics.cacheReadRate)}. ${t('analytics.overview.cache_rate_basis', { defaultValue: 'Cache reads as a share of input tokens' })}.`,
       accent: TONE_ACCENTS[cacheTone],
       icon: METRIC_ICONS.cache_rate,
@@ -266,7 +315,7 @@ export function OverviewKpis({
     {
       key: 'cost',
       label: t('analytics.overview.cost', { defaultValue: 'Cost' }),
-      value: formatCostValue(metrics.costLabel, locale),
+      value: costValue(metrics.costLabel),
       ariaLabel: `${t('analytics.overview.cost', { defaultValue: 'Cost' })}: ${formatCostValue(metrics.costLabel, locale).text}. ${
         metrics.priceCoverageComplete
           ? t('analytics.overview.known_cost', { defaultValue: 'Estimated API-equivalent cost' })
@@ -293,13 +342,13 @@ export function OverviewKpis({
     },
   ];
 
-  const dailyValues = [
+  const dailyValues: Array<{ label: string; value: FormattedValue }> = [
     {
       label: t('analytics.overview.average_requests', { defaultValue: 'Average requests' }),
       value:
         metrics.avgRequests === null
           ? { text: '—' }
-          : exactNumber(roundToTenth(metrics.avgRequests), locale),
+          : exactNumberValue(roundToTenth(metrics.avgRequests)),
     },
     {
       label: t('analytics.overview.average_tokens', { defaultValue: 'Average tokens' }),
@@ -307,7 +356,7 @@ export function OverviewKpis({
     },
     {
       label: t('analytics.overview.average_cost', { defaultValue: 'Average cost' }),
-      value: formatCostValue(metrics.avgCostLabel, locale),
+      value: costValue(metrics.avgCostLabel),
     },
   ];
   const rangeDays = metrics.rangeDays === null ? null : roundToTenth(metrics.rangeDays);
@@ -340,7 +389,17 @@ export function OverviewKpis({
             {dailyValues.map(({ label, value }) => (
               <div className={styles.dailyMetric} key={label}>
                 <span>{label}</span>
-                <strong title={value.title}>{value.text}</strong>
+                <strong title={value.title}>
+                  {value.animatedFormat && value.animatedValue !== undefined ? (
+                    <AnimatedMetric
+                      value={value.animatedValue}
+                      scale={value.animatedScale}
+                      format={value.animatedFormat}
+                    />
+                  ) : (
+                    value.text
+                  )}
+                </strong>
               </div>
             ))}
           </div>

@@ -10,6 +10,7 @@ import {
   formatPercent,
 } from '../../components/analyticsFormatting';
 import { AnalysisCard } from './AnalysisCard';
+import { AnimatedMetric } from '../../components/AnimatedMetric';
 import {
   ANALYSIS_CHART_HEIGHT,
   buildTokenSeries,
@@ -259,9 +260,18 @@ export function TopModelsChart({
                     {name}
                   </span>
                   <strong title={formatNumber(model.totalTokens, locale)}>
-                    {formatCompactTokens(model.totalTokens, locale).text}
+                    <AnimatedMetric
+                      value={model.totalTokens}
+                      format={(value) => formatCompactTokens(value, locale).text}
+                    />
                   </strong>
-                  <span>{formatPercent(model.share, locale)}</span>
+                  <span>
+                    <AnimatedMetric
+                      value={model.share}
+                      scale={10}
+                      format={(value) => formatPercent(value, locale)}
+                    />
+                  </span>
                 </button>
               </li>
             );

@@ -81,6 +81,14 @@
     white-space: nowrap;
   }
 
+  [data-tt-marker='true'] {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 2px;
+  }
+
   [data-tt='value'] {
     margin-left: auto;
     color: var(--viz-tooltip-text);

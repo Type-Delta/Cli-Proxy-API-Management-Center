@@ -115,7 +115,13 @@ export type TrendSummary = {
   direction: 'up' | 'down' | 'flat';
 };
 
-export type FormattedValue = { text: string; title?: string };
+export type FormattedValue = {
+  text: string;
+  title?: string;
+  animatedValue?: number | null;
+  animatedScale?: number;
+  animatedFormat?: (value: number) => string;
+};
 
 /** One KPI tile: label, value, detail rows and an optional decorative trend. */
 export type MetricCard<Key extends string = string> = {
@@ -350,7 +356,7 @@ export function sparklineOption(input: {
   axisPointer: unknown;
 }): EChartsCoreOption {
   return {
-    animationDuration: Math.round(1000 / 1.35),
+    animationDuration: Math.round(1000 / 1.85),
     animationDurationUpdate: Math.round(500 / 1.35),
     animationDelay: input.animationDelay ?? 0,
     grid: { top: 2, right: 1, bottom: 2, left: 1, containLabel: false },
