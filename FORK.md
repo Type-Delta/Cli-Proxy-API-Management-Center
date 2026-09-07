@@ -397,3 +397,20 @@ and 390px mobile widths. Checks confirmed exact multiline Unicode labels, short-
 server indexes after a blank config entry, preservation of unknown limit fields, and mobile key
 rotation. The mobile view had no horizontal overflow or visible raw key text; browser console errors
 were empty.
+
+
+### DL025: Lazy models.dev pricing catalog and manual overrides
+
+Pricing displays the effective catalog while keeping discovered `models.dev` rows separate from
+manual overrides. Editing a discovered row creates a management override, and removing an override
+sends only the remaining overrides so the discovered rate returns. Provider-scoped model and alias
+matches remain distinct from global matches. The page explains the six-hour lazy cache and active-user
+refresh behavior and shows catalog update and expiry times when CPA supplies them. All four locales
+carry the added pricing copy.
+
+The first asynchronous catalog response is shown as a loading state and triggers at most twelve
+one-second refreshes while `sync_state` is `refreshing`; polling stops after readiness, failure,
+unmount, or the bounded attempt limit. Shared analytics cost labels now identify API-equivalent
+estimates, with a pricing note explaining that subscription billing is not measured.
+
+Validation: targeted pricing/API tests, ESLint, TypeScript compilation, and the Impeccable detector pass.

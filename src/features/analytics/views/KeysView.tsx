@@ -51,7 +51,7 @@ const SORTABLE_COLUMNS: ReadonlyArray<{
   { id: 'last_activity', labelKey: 'analytics.last_activity', defaultValue: 'Last activity' },
   { id: 'indexes', labelKey: 'analytics.config_indexes', defaultValue: 'Config indexes' },
   { id: 'tokens', labelKey: 'analytics.total_tokens', defaultValue: 'Total tokens' },
-  { id: 'cost', labelKey: 'analytics.known_cost', defaultValue: 'Known API cost' },
+  { id: 'cost', labelKey: 'analytics.known_cost', defaultValue: 'Estimated API-equivalent cost' },
   { id: 'unpriced', labelKey: 'analytics.unpriced_tokens', defaultValue: 'Unpriced tokens' },
   { id: 'share', labelKey: 'analytics.share', defaultValue: 'Share' },
 ];

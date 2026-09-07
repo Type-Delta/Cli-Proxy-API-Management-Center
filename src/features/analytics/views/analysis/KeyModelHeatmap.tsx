@@ -103,7 +103,7 @@ export function KeyModelHeatmap({
             { name: tokensLabel, text: formatNumber(value?.total_tokens ?? 0, locale) },
             { name: requestsLabel, text: formatNumber(value?.requests ?? 0, locale) },
             {
-              name: t('analytics.known_cost', { defaultValue: 'Known cost' }),
+              name: t('analytics.known_cost', { defaultValue: 'Estimated API-equivalent cost' }),
               text: formatCostValue(value?.known_cost_usd ?? 0, locale).text,
             },
           ],

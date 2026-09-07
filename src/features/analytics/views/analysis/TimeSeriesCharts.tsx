@@ -51,7 +51,7 @@ export function TokenUsageChart({
     reasoning: t('analytics.reasoning_tokens', { defaultValue: 'Reasoning' }),
   };
   const requestsLabel = t('analytics.proxy_requests', { defaultValue: 'Proxy requests' });
-  const costLabel = t('analytics.known_cost', { defaultValue: 'Known cost' });
+  const costLabel = t('analytics.known_cost', { defaultValue: 'Estimated API-equivalent cost' });
   const option = useMemo(
     () =>
       tokenUsageOption({

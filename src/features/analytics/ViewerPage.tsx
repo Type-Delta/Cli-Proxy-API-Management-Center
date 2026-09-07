@@ -219,10 +219,10 @@ function ViewerTotals({ summary }: { summary: ViewerSummary }) {
   const outputLabel = t('analytics.output_tokens', { defaultValue: 'Output tokens' });
   const reasoningLabel = t('analytics.reasoning_tokens', { defaultValue: 'Reasoning tokens' });
   const cacheLabel = t('analytics.cache_tokens', { defaultValue: 'Cache tokens' });
-  const costLabel = t('analytics.known_cost', { defaultValue: 'Known cost' });
+  const costLabel = t('analytics.known_cost', { defaultValue: 'Estimated API-equivalent cost' });
   const cacheTokens = summary.tokens.cache_read + summary.tokens.cache_creation;
   const costBasis = priced
-    ? t('analytics.overview.known_cost', { defaultValue: 'Known API cost' })
+    ? t('analytics.overview.known_cost', { defaultValue: 'Estimated API-equivalent cost' })
     : t('analytics.overview.unpriced_tokens', {
         defaultValue: '{{count}} unpriced tokens',
         count: formatNumber(summary.unpriced_tokens, locale),

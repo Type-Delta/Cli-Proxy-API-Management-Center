@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { AnalyticsCard as Card } from '@/features/analytics/components/AnalyticsCard';
@@ -33,6 +33,10 @@ import {
   draftToPricingRule,
   duplicatePricingMatch,
   pricingRuleToDraft,
+  pricingOverridesForWrite,
+  pricingRulesForDisplay,
+  isPricingCatalogRefreshing,
+  upsertPricingOverride,
   type PricingRuleDraft,
   validatePricingRuleDraft,
 } from './manage/pricingValidation';
@@ -46,6 +50,7 @@ const text = (key: string, defaultValue: string, options?: Record<string, unknow
 
 const newRule = (): PricingRuleDraft => ({
   rule_id: `rule-${Date.now()}`,
+  provider: '',
   match_type: 'model',
   match_value: '',
   input_per_million_usd: '',
@@ -75,10 +80,31 @@ export function Pricing() {
   const [saving, setSaving] = useState(false);
   const [rulesPageState, setRulesPage] = useState(1);
   const [missingPageState, setMissingPage] = useState(1);
+  const catalogRefreshAttempts = useRef(0);
+  const displayRules = result.data ? pricingRulesForDisplay(result.data) : [];
+  const catalogSource = result.data?.catalog_source ?? 'models.dev';
+  const catalogUpdatedAt = result.data?.catalog_updated_at ?? result.data?.updated_at;
+  const catalogExpiresAt = result.data?.catalog_expires_at;
+  const overrideRuleIds = result.data
+    ? new Set(pricingOverridesForWrite(result.data).map((rule) => rule.rule_id))
+    : new Set<string>();
+  const catalogRefreshing = isPricingCatalogRefreshing(result.data?.sync_state);
+  const refreshPricing = result.refresh;
+
+  useEffect(() => {
+    if (!catalogRefreshing) {
+      catalogRefreshAttempts.current = 0;
+      return;
+    }
+    if (catalogRefreshAttempts.current >= 12) return;
+    catalogRefreshAttempts.current += 1;
+    const timer = window.setTimeout(() => void refreshPricing(), 1000);
+    return () => window.clearTimeout(timer);
+  }, [catalogRefreshing, result.data, refreshPricing]);
 
   const rulesPage = Math.min(
     rulesPageState,
-    Math.max(1, Math.ceil((result.data?.rules.length ?? 0) / ANALYTICS_TABLE_PAGE_SIZE))
+    Math.max(1, Math.ceil(displayRules.length / ANALYTICS_TABLE_PAGE_SIZE))
   );
   const missingPage = Math.min(
     missingPageState,
@@ -88,10 +114,10 @@ export function Pricing() {
   useEffect(() => {
     const totalPages = Math.max(
       1,
-      Math.ceil((result.data?.rules.length ?? 0) / ANALYTICS_TABLE_PAGE_SIZE)
+      Math.ceil(displayRules.length / ANALYTICS_TABLE_PAGE_SIZE)
     );
     setRulesPage((page) => Math.min(page, totalPages));
-  }, [result.data?.rules.length]);
+  }, [displayRules.length]);
 
   useEffect(() => {
     const totalPages = Math.max(
@@ -101,7 +127,7 @@ export function Pricing() {
     setMissingPage((page) => Math.min(page, totalPages));
   }, [result.data?.missing.length]);
 
-  const visibleRules = result.data?.rules.slice(
+  const visibleRules = displayRules.slice(
     (rulesPage - 1) * ANALYTICS_TABLE_PAGE_SIZE,
     rulesPage * ANALYTICS_TABLE_PAGE_SIZE
   );
@@ -124,7 +150,7 @@ export function Pricing() {
     const errors = validatePricingRuleDraft(editor);
     if (
       Object.keys(errors).length > 0 ||
-      duplicatePricingMatch(result.data.rules, editor, editingId)
+      duplicatePricingMatch(pricingOverridesForWrite(result.data), editor, editingId)
     ) {
       notify(
         t(
@@ -139,9 +165,8 @@ export function Pricing() {
     if (!rule) return;
     setSaving(true);
     try {
-      const rules = editingId
-        ? result.data.rules.map((current) => (current.rule_id === editingId ? rule : current))
-        : [...result.data.rules, rule];
+      const currentOverrides = pricingOverridesForWrite(result.data);
+      const rules = upsertPricingOverride(currentOverrides, rule, editingId);
       await analyticsApi.updatePricing({
         currency_unit: result.data.currency_unit,
         rounding: result.data.rounding,
@@ -166,8 +191,21 @@ export function Pricing() {
   };
 
   const removeRule = async (rule: PricingRule) => {
+    const currentOverrides = result.data ? pricingOverridesForWrite(result.data) : [];
+    if (!result.data || !currentOverrides.some((current) => current.rule_id === rule.rule_id)) {
+      notify(
+        t(
+          'analytics.pricing_discovered_read_only',
+          text(
+            'analytics.pricing_discovered_read_only',
+            'Discovered prices are refreshed automatically. Edit a row to create an override.'
+          )
+        ),
+        'info'
+      );
+      return;
+    }
     if (
-      !result.data ||
       !window.confirm(
         t(
           'analytics.pricing_remove_confirm',
@@ -181,7 +219,7 @@ export function Pricing() {
       await analyticsApi.updatePricing({
         currency_unit: result.data.currency_unit,
         rounding: result.data.rounding,
-        rules: result.data.rules.filter((current) => current.rule_id !== rule.rule_id),
+        rules: currentOverrides.filter((current) => current.rule_id !== rule.rule_id),
       });
       notify(
         t('analytics.pricing_saved', text('analytics.pricing_saved', 'Pricing rules saved.')),
@@ -247,7 +285,81 @@ export function Pricing() {
                 )
               )}
             </p>
-            {result.data.rules.length === 0 ? (
+            <p>
+              {t(
+                'analytics.pricing_estimate_note',
+                text(
+                  'analytics.pricing_estimate_note',
+                  'Displayed costs are API-equivalent estimates based on token usage and catalog rates; they do not represent subscription billing.'
+                )
+              )}
+            </p>
+            <p>
+              {t(
+                'analytics.pricing_catalog_state',
+                text(
+                  'analytics.pricing_catalog_state',
+                  '{{source}} prices are loaded when this page is opened and cached for 6 hours. CPA refreshes only while it has active users.',
+                  { source: catalogSource }
+                )
+              )}
+              {catalogUpdatedAt
+                ? ` ${t(
+                    'analytics.pricing_catalog_updated',
+                    text('analytics.pricing_catalog_updated', 'Last catalog update: {{time}}.', {
+                      time: formatDateTime(
+                        catalogUpdatedAt,
+                        i18n.resolvedLanguage
+                      ),
+                    })
+                  )}`
+                : ''}
+              {catalogExpiresAt
+                ? ` ${t(
+                    'analytics.pricing_catalog_expires',
+                    text('analytics.pricing_catalog_expires', 'Cached until {{time}}.', {
+                      time: formatDateTime(catalogExpiresAt, i18n.resolvedLanguage),
+                    })
+                  )}`
+                : ''}
+            </p>
+            {result.data.sync_state === 'stale' && (
+              <p role="status">
+                {t(
+                  'analytics.pricing_catalog_stale',
+                  text(
+                    'analytics.pricing_catalog_stale',
+                    'Catalog refresh is delayed; showing the last successful catalog.'
+                  )
+                )}
+              </p>
+            )}
+            {result.data.sync_state === 'unavailable' && (
+              <p role="alert">
+                {t(
+                  'analytics.pricing_catalog_unavailable',
+                  text(
+                    'analytics.pricing_catalog_unavailable',
+                    'The pricing catalog is unavailable. Add a manual rule or try again later.'
+                  )
+                )}
+              </p>
+            )}
+            {displayRules.length === 0 && catalogRefreshing ? (
+              <EmptyState
+                title={t(
+                  'analytics.pricing_catalog_refreshing',
+                  text('analytics.pricing_catalog_refreshing', 'Loading pricing catalog')
+                )}
+                description={t(
+                  'analytics.pricing_catalog_refreshing_description',
+                  text(
+                    'analytics.pricing_catalog_refreshing_description',
+                    'CPA is fetching the cached catalog. This page will update automatically.'
+                  )
+                )}
+              />
+            ) : displayRules.length === 0 ? (
               <EmptyState
                 title={t(
                   'analytics.pricing_empty',
@@ -312,7 +424,10 @@ export function Pricing() {
                     {visibleRules?.map((rule) => (
                       <TableRow key={rule.rule_id}>
                         <TableCell>
-                          <strong>{rule.match.model ?? rule.match.alias}</strong>
+                          <strong>
+                            {rule.match.provider ? `${rule.match.provider}/` : ''}
+                            {rule.match.model ?? rule.match.alias}
+                          </strong>
                           <br />
                           <small>
                             {rule.match.model
@@ -345,7 +460,12 @@ export function Pricing() {
                           {rule.cache_creation_multiplier ?? '1'}
                         </TableCell>
                         <TableCell>
-                          {rule.source}
+                          {rule.source === 'models.dev'
+                            ? rule.source
+                            : t(
+                                'analytics.pricing_override',
+                                text('analytics.pricing_override', 'Manual override')
+                              )}
                           <br />
                           <small>
                             {rule.updated_at
@@ -358,14 +478,16 @@ export function Pricing() {
                             <Button size="sm" variant="secondary" onClick={() => openEdit(rule)}>
                               {t('common.edit', text('common.edit', 'Edit'))}
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="danger"
-                              onClick={() => void removeRule(rule)}
-                              disabled={saving}
-                            >
-                              {t('common.delete', text('common.delete', 'Delete'))}
-                            </Button>
+                            {overrideRuleIds.has(rule.rule_id) && (
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onClick={() => void removeRule(rule)}
+                                disabled={saving}
+                              >
+                                {t('common.delete', text('common.delete', 'Delete'))}
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -374,7 +496,7 @@ export function Pricing() {
                 </Table>
                 <TablePagination
                   currentPage={rulesPage}
-                  totalItems={result.data.rules.length}
+                  totalItems={displayRules.length}
                   onPageChange={setRulesPage}
                 />
               </>
@@ -533,6 +655,19 @@ function RuleEditor({
           onChange={(event) => update('rule_id', event.target.value)}
           error={errorText(errors.rule_id, t)}
           disabled={Boolean(editingId) || saving}
+        />
+        <Input
+          label={t('analytics.pricing_provider', text('analytics.pricing_provider', 'Provider'))}
+          value={draft.provider}
+          onChange={(event) => update('provider', event.target.value)}
+          hint={t(
+            'analytics.pricing_provider_hint',
+            text(
+              'analytics.pricing_provider_hint',
+              'Leave blank to match this model across providers.'
+            )
+          )}
+          disabled={saving}
         />
         <label>
           <span>

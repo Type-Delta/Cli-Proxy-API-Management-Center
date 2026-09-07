@@ -236,7 +236,7 @@ export function ModelEfficiency({
         defaultValue: 'Model Cost Efficiency',
       })}
       description={t('analytics.analysis.model_efficiency_description', {
-        defaultValue: 'Known cost per 1 million total tokens.',
+        defaultValue: 'Estimated API-equivalent cost per 1 million total tokens.',
       })}
       loading={loading}
       error={error}

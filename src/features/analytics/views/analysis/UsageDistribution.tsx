@@ -85,7 +85,7 @@ export function UsageDistribution({
               { name: shareLabel, text: formatPercent(row.percent, locale) },
               { name: tokensLabel, text: formatNumber(row.tokens.total, locale) },
               {
-                name: t('analytics.known_cost', { defaultValue: 'Known cost' }),
+                name: t('analytics.known_cost', { defaultValue: 'Estimated API-equivalent cost' }),
                 text: formatCostValue(row.known_cost_usd, locale).text,
               },
               { name: requestsLabel, text: formatNumber(row.proxy_requests, locale) },

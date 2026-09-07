@@ -407,7 +407,7 @@ export type AnalyticsEventDetailQuery = AnalyticsRange & {
 
 export type PricingRule = {
   rule_id: string;
-  match: { model?: string; alias?: string };
+  match: { provider?: string; model?: string; alias?: string };
   input_per_million_usd: string | null;
   output_per_million_usd: string | null;
   cache_read_multiplier?: string;
@@ -428,6 +428,12 @@ export type PricingSnapshot = {
   currency_unit: string;
   rounding: string;
   rules: PricingRule[];
+  /** Effective rules returned for display. Newer CPA versions also expose the inputs separately. */
+  overrides?: PricingRule[] | null;
+  catalog?: PricingRule[] | null;
+  catalog_source?: string | null;
+  catalog_updated_at?: string | null;
+  catalog_expires_at?: string | null;
   missing: PricingMissing[];
   sync_state: string;
   updated_at: string | null;

@@ -4,12 +4,18 @@ import {
   buildRepriceRequest,
   draftToPricingRule,
   duplicatePricingMatch,
+  pricingOverrideRule,
+  pricingOverridesForWrite,
+  pricingRulesForDisplay,
+  isPricingCatalogRefreshing,
+  upsertPricingOverride,
   type PricingRuleDraft,
   validatePricingRuleDraft,
 } from '@/features/analytics/views/manage/pricingValidation';
 
 const draft = (patch: Partial<PricingRuleDraft> = {}): PricingRuleDraft => ({
   rule_id: 'rule-1',
+  provider: '',
   match_type: 'model',
   match_value: 'gpt-5',
   input_per_million_usd: '1.25',
@@ -21,6 +27,66 @@ const draft = (patch: Partial<PricingRuleDraft> = {}): PricingRuleDraft => ({
 });
 
 describe('analytics pricing behavior', () => {
+  test('only the asynchronous refresh state enables catalog polling', () => {
+    expect(isPricingCatalogRefreshing('refreshing')).toBe(true);
+    expect(isPricingCatalogRefreshing('ready')).toBe(false);
+    expect(isPricingCatalogRefreshing('stale')).toBe(false);
+    expect(isPricingCatalogRefreshing(undefined)).toBe(false);
+  });
+
+  const catalogRule = draftToPricingRule(draft({ rule_id: 'catalog-gpt-5', source: 'models.dev' }))!;
+  const overrideRule = draftToPricingRule(
+    draft({ rule_id: 'override-gpt-5', input_per_million_usd: '9', source: 'management-api' })
+  )!;
+
+  test('keeps discovered rows out of writes and overlays manual overrides', () => {
+    const snapshot = {
+      currency_unit: 'nano_usd',
+      rounding: 'half_away_from_zero_once_per_event',
+      rules: [catalogRule, overrideRule],
+      catalog: [catalogRule],
+      overrides: [overrideRule],
+      missing: [],
+      sync_state: 'synced',
+      updated_at: null,
+    };
+    expect(pricingOverridesForWrite(snapshot)).toEqual([overrideRule]);
+    expect(pricingRulesForDisplay(snapshot)).toEqual([catalogRule, overrideRule]);
+    expect(pricingOverridesForWrite({ ...snapshot, overrides: null })).toEqual([overrideRule]);
+  });
+
+  test('turns an edited models.dev row into a management override', () => {
+    expect(pricingOverrideRule(catalogRule)).toMatchObject({
+      rule_id: 'override-catalog-gpt-5',
+      source: 'management-api',
+    });
+    expect(upsertPricingOverride([], catalogRule, 'catalog-gpt-5')).toHaveLength(1);
+    expect(
+      upsertPricingOverride(
+        [overrideRule],
+        draftToPricingRule(
+          draft({ rule_id: 'override-gpt-5', input_per_million_usd: '4', source: 'management-api' })
+        )!,
+        'override-gpt-5'
+      )
+    ).toEqual([
+      expect.objectContaining({
+        rule_id: 'override-gpt-5',
+        source: 'management-api',
+      }),
+    ]);
+  });
+
+  test('round-trips provider-scoped matches and keeps global matches distinct', () => {
+    const providerDraft = draft({ provider: 'openai' });
+    const providerRule = draftToPricingRule(providerDraft)!;
+    expect(providerRule.match).toEqual({ provider: 'openai', model: 'gpt-5' });
+    expect(duplicatePricingMatch([providerRule], draft({ rule_id: 'global' }))).toBe(false);
+    expect(duplicatePricingMatch([providerRule], draft({ rule_id: 'same', provider: 'openai' }))).toBe(
+      true
+    );
+  });
+
   test('validates nonnegative prices and converts a model match', () => {
     expect(validatePricingRuleDraft(draft())).toEqual({});
     expect(draftToPricingRule(draft())).toMatchObject({

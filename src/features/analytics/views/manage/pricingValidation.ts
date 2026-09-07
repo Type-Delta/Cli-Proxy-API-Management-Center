@@ -2,10 +2,12 @@ import type {
   AnalyticsRange as AnalyticsResolvedRange,
   AnalyticsRepriceRequest,
   PricingRule,
+  PricingSnapshot,
 } from '@/types';
 
 export type PricingRuleDraft = Omit<PricingRule, 'rule_id' | 'match' | 'updated_at'> & {
   rule_id: string;
+  provider: string;
   match_type: 'model' | 'alias';
   match_value: string;
   input_per_million_usd: string;
@@ -59,10 +61,12 @@ export function draftToPricingRule(draft: PricingRuleDraft): PricingRule | null 
   const parseNullable = (value: string) => (value.trim() ? value.trim() : null);
   return {
     rule_id: draft.rule_id.trim(),
-    match:
-      draft.match_type === 'model'
+    match: {
+      ...(draft.provider.trim() ? { provider: draft.provider.trim() } : {}),
+      ...(draft.match_type === 'model'
         ? { model: draft.match_value.trim() }
-        : { alias: draft.match_value.trim() },
+        : { alias: draft.match_value.trim() }),
+    },
     input_per_million_usd: parseNullable(draft.input_per_million_usd),
     output_per_million_usd: parseNullable(draft.output_per_million_usd),
     cache_read_multiplier: draft.cache_read_multiplier.trim() || '1',
@@ -76,6 +80,7 @@ export function pricingRuleToDraft(rule: PricingRule): PricingRuleDraft {
   const matchType = rule.match.model ? 'model' : 'alias';
   return {
     rule_id: rule.rule_id,
+    provider: rule.match.provider ?? '',
     match_type: matchType,
     match_value: rule.match.model ?? rule.match.alias ?? '',
     input_per_million_usd: rule.input_per_million_usd ?? '',
@@ -84,6 +89,56 @@ export function pricingRuleToDraft(rule: PricingRule): PricingRuleDraft {
     cache_creation_multiplier: rule.cache_creation_multiplier ?? '1',
     source: rule.source,
   };
+}
+
+const pricingMatchKey = (rule: PricingRule) =>
+  `${rule.match.provider ?? ''}:${rule.match.model ? `model:${rule.match.model}` : `alias:${rule.match.alias ?? ''}`}`;
+
+/**
+ * Returns the rules the pricing page can safely send back to CPA. Catalog rows are
+ * read-only inputs; only explicit overrides belong in a PUT request.
+ */
+export function pricingOverridesForWrite(snapshot: PricingSnapshot): PricingRule[] {
+  if (snapshot.overrides) return snapshot.overrides;
+  if (snapshot.catalog) return snapshot.rules.filter((rule) => rule.source !== 'models.dev');
+  return snapshot.rules.filter((rule) => rule.source !== 'models.dev');
+}
+
+/**
+ * Merges discovered catalog rows with manual overrides for display. Overrides win
+ * on an exact model or alias match and are kept in the row order returned by CPA.
+ */
+export function pricingRulesForDisplay(snapshot: PricingSnapshot): PricingRule[] {
+  if (snapshot.rules.length > 0) return snapshot.rules;
+  const catalog = snapshot.catalog ?? [];
+  const overrides = pricingOverridesForWrite(snapshot);
+  if (catalog.length === 0) return snapshot.rules;
+
+  const overrideByMatch = new Map(overrides.map((rule) => [pricingMatchKey(rule), rule]));
+  const rows = catalog.map((rule) => overrideByMatch.get(pricingMatchKey(rule)) ?? rule);
+  const catalogKeys = new Set(catalog.map(pricingMatchKey));
+  return rows.concat(overrides.filter((rule) => !catalogKeys.has(pricingMatchKey(rule))));
+}
+
+export function pricingOverrideRule(rule: PricingRule): PricingRule {
+  return {
+    ...rule,
+    rule_id: rule.source === 'models.dev' ? `override-${rule.rule_id}` : rule.rule_id,
+    source: 'management-api',
+    updated_at: null,
+  };
+}
+
+export function upsertPricingOverride(
+  overrides: PricingRule[],
+  rule: PricingRule,
+  editingId?: string
+): PricingRule[] {
+  const override = pricingOverrideRule(rule);
+  if (!editingId) return [...overrides, override];
+  const index = overrides.findIndex((current) => current.rule_id === editingId);
+  if (index < 0) return [...overrides, override];
+  return overrides.map((current, currentIndex) => (currentIndex === index ? override : current));
 }
 
 export function buildRepriceRequest(
@@ -129,6 +184,9 @@ export type PricingSyncOutcome = {
   type: 'success' | 'error';
 };
 
+export const isPricingCatalogRefreshing = (syncState: string | undefined) =>
+  syncState === 'refreshing';
+
 /**
  * Maps a pricing catalog refresh outcome to its notification. Kept pure and separate from
  * Pricing.tsx's sync() so a failed `refresh` (e.g. useAnalyticsLoad.refreshOrThrow rejecting)
@@ -156,6 +214,7 @@ export function duplicatePricingMatch(
   const value = draft.match_value.trim();
   return rules.some((rule) => {
     if (rule.rule_id === editingId || rule.rule_id === draft.rule_id) return false;
+    if ((rule.match.provider ?? '').trim() !== draft.provider.trim()) return false;
     const match = draft.match_type === 'model' ? rule.match.model : rule.match.alias;
     return match?.trim() === value;
   });
