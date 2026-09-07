@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useAnalyticsFilters } from './AnalyticsFilterContext';
 import { AnalyticsSkeleton } from './AnalyticsSkeleton';
 import { useAnalyticsCapabilities } from './AnalyticsShellContext';
+import { INVALID_MANAGEMENT_CAPABILITIES_RESPONSE } from '@/services/api/capabilities';
 import type { AnalyticsPageKind } from './navigation';
 import { resolveAnalyticsAvailability } from './query';
 import { Analysis } from './views/Analysis';
@@ -21,13 +22,17 @@ export type { AnalyticsPageKind } from './navigation';
 export function AnalyticsPage({ kind }: { kind: AnalyticsPageKind }) {
   const { t } = useTranslation();
   const capabilities = useAnalyticsCapabilities();
+  const capabilitiesError =
+    capabilities.error === INVALID_MANAGEMENT_CAPABILITIES_RESPONSE
+      ? t('analytics.invalid_capabilities_response')
+      : capabilities.error;
   if (capabilities.loading && !capabilities.data) return <AnalyticsSkeleton />;
-  if (capabilities.error || !capabilities.data?.analytics.supported)
+  if (capabilitiesError || !capabilities.data?.analytics.supported)
     return (
       <Card>
         <EmptyState
           title={t('analytics.unavailable_title')}
-          description={capabilities.error || t('analytics.unsupported')}
+          description={capabilitiesError || t('analytics.unsupported')}
         />
       </Card>
     );

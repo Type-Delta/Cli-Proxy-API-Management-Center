@@ -199,15 +199,15 @@
 .latencyMetrics {
   display: grid;
   grid-template-columns: repeat(5, minmax(100px, 1fr));
-  gap: 8px;
-  margin-bottom: $spacing-md;
+  gap: 6px;
+  margin-bottom: $spacing-sm;
 
   > span {
     display: flex;
     min-width: 0;
     flex-direction: column;
     gap: 3px;
-    padding: 9px 10px;
+    padding: 8px 10px;
     border-radius: $radius-md;
     background: var(--muted-bg);
   }
@@ -217,14 +217,23 @@
     font-size: 11px;
   }
 
+  .metricLabel {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
   strong {
     color: var(--text-primary);
-    font-size: 16px;
+    font-size: 22px;
+    line-height: 1.15;
     font-variant-numeric: tabular-nums;
   }
 
   em {
-    width: fit-content;
+    flex: none;
     padding: 2px 6px;
     border-radius: $radius-full;
     background: var(--count-badge-bg);
@@ -320,6 +329,52 @@
   }
 }
 
+.distributionLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0 0 $spacing-sm;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  list-style: none;
+
+  li {
+    display: inline-flex;
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 5px;
+    border: 1px solid transparent;
+    border-radius: $radius-sm;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    &:focus-visible {
+      border-color: var(--primary-color);
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary-10);
+    }
+
+    &[aria-pressed='false'] {
+      color: var(--text-tertiary);
+      opacity: 0.55;
+    }
+  }
+
+  i {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 2px;
+  }
+}
+
 .tabLoading {
   display: inline-block;
   width: 6px;
@@ -399,6 +454,11 @@
   font-size: 12px;
 }
 
+.heatmapChart {
+  width: 100%;
+  min-width: 0;
+}
+
 .heatmapLegend {
   display: flex;
   align-items: center;
@@ -459,7 +519,7 @@
     dd {
       margin: 3px 0 0;
       color: var(--text-primary);
-      font-size: 16px;
+      font-size: 20px;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
     }
@@ -481,7 +541,6 @@
   .modelSearch {
     width: 100%;
   }
-
 }
 
 @media (prefers-reduced-motion: reduce) {

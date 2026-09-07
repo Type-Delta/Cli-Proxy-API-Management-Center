@@ -10,6 +10,7 @@ import {
   formatPercent,
 } from '../../components/analyticsFormatting';
 import { AnalysisCard } from './AnalysisCard';
+import { AnimatedMetric } from '../../components/AnimatedMetric';
 import { buildModelEfficiency, costBreakdownOption } from './analysisModel';
 import { SortableHeader } from '../../components/SortableHeader';
 import { TablePagination } from '../../components/TablePagination';
@@ -121,7 +122,11 @@ export function CostBreakdown({
           {t('analytics.analysis.total_known_spend', { defaultValue: 'Total known spend' })}
         </span>
         <strong title={formatCostValue(total, locale).title}>
-          {formatCostValue(total, locale).text}
+          <AnimatedMetric
+            value={total}
+            scale={10_000}
+            format={(value) => formatCostValue(value, locale).text}
+          />
         </strong>
       </div>
       <AnalyticsChart
@@ -150,8 +155,17 @@ export function CostBreakdown({
               {segment.label}
             </dt>
             <dd title={formatCostValue(segment.value, locale).title}>
-              {formatCostValue(segment.value, locale).text} ·{' '}
-              {formatPercent(segment.percent, locale)}
+              <AnimatedMetric
+                value={segment.value}
+                scale={10_000}
+                format={(value) => formatCostValue(value, locale).text}
+              />{' '}
+              ·{' '}
+              <AnimatedMetric
+                value={segment.percent}
+                scale={10}
+                format={(value) => formatPercent(value, locale)}
+              />
             </dd>
           </div>
         ))}
@@ -159,7 +173,15 @@ export function CostBreakdown({
       <div className={styles.blendedRate}>
         <span>{t('analytics.analysis.blended_rate', { defaultValue: 'Blended rate' })}</span>
         <strong title={formatCostValue(section?.blended_usd_per_million, locale).title}>
-          {formatCostValue(section?.blended_usd_per_million, locale).text}{' '}
+          <AnimatedMetric
+            value={
+              section?.blended_usd_per_million == null || section.blended_usd_per_million === ''
+                ? null
+                : Number(section.blended_usd_per_million)
+            }
+            scale={10_000}
+            format={(value) => formatCostValue(value, locale).text}
+          />{' '}
           <small>
             {t('analytics.analysis.per_million_tokens', { defaultValue: 'per 1M tokens' })}
           </small>
