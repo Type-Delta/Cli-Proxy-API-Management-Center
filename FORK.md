@@ -489,3 +489,9 @@ Axis labels fit within their left gutter and truncate long names with ellipses i
 their prefixes. Validation: `bun run verify` passed 654 tests, lint, TypeScript, and the production
 build. Chrome CDP verified mouse, keyboard and mobile touch toggles, filtered tooltip totals, hiding
 the last category, all-off/re-enable behavior, and selection retention across dimension tabs.
+
+### DL030: Remote development access
+
+Vite listens on all network interfaces and accepts all host names so the existing mock-data
+workspace can be opened through a remote IP address or a custom development hostname.
+Validation: the running development server on port 18517 returned HTTP 200 with a custom Host header.
