@@ -18,6 +18,7 @@ import {
   ANALYSIS_DISTRIBUTIONS,
   buildDistributionRows,
   compactKeyId,
+  deriveUnclassifiedTokens,
   distributionChartHeight,
   distributionOption,
   TOKEN_CATEGORY_KEYS,
@@ -35,6 +36,7 @@ const categoryMix = (row: DistributionRow) => [
   row.tokens.cache_read,
   row.tokens.cache_creation,
   row.tokens.reasoning,
+  deriveUnclassifiedTokens(row.tokens.total, row.tokens.input, row.tokens.output),
 ];
 
 const safeDimensionValue = (
@@ -97,7 +99,12 @@ export function UsageDistribution({
   const categoryLabels = useMemo(
     () =>
       TOKEN_CATEGORY_KEYS.map((key) =>
-        t(`analytics.analysis.category_${key}`, { defaultValue: key.replace('_', ' ') })
+        t(
+          key === 'unclassified'
+            ? 'analytics.analysis.unclassified'
+            : `analytics.analysis.category_${key}`,
+          { defaultValue: key === 'unclassified' ? 'Unclassified' : key.replace('_', ' ') }
+        )
       ),
     [t]
   );
@@ -207,7 +214,8 @@ export function UsageDistribution({
     <AnalysisCard
       title={t('analytics.analysis.distribution_title', { defaultValue: 'Usage Distribution' })}
       description={t('analytics.analysis.distribution_description', {
-        defaultValue: 'Token share, spend, requests, and category mix by dimension.',
+        defaultValue:
+          'Token share, spend, requests, and classified or unclassified category mix by dimension.',
       })}
       loading={result.loading}
       error={result.error}
@@ -279,7 +287,8 @@ export function UsageDistribution({
             Math.max(...ANALYSIS_DISTRIBUTIONS.map((dimension) => dimensionRows[dimension].length))
           )}
           ariaLabel={t('analytics.analysis.distribution_chart_summary', {
-            defaultValue: '{{count}} {{dimension}} rows by token volume',
+            defaultValue:
+              '{{count}} {{dimension}} rows by classified and unclassified token volume',
             count: rows.length,
             dimension: labels[active].toLocaleLowerCase(locale),
           })}
@@ -296,15 +305,23 @@ export function UsageDistribution({
           }
         >
           <ul>
-            {rows.map((row) => (
-              <li key={row.value}>
-                {safeDimensionValue(active, row.value, keyCatalog)}:{' '}
-                {formatPercent(row.percent, locale)} {shareLabel},{' '}
-                {formatNumber(row.tokens.total, locale)} {tokensLabel},{' '}
-                {formatCostValue(row.known_cost_usd, locale).text},{' '}
-                {formatNumber(row.proxy_requests, locale)} {requestsLabel}
-              </li>
-            ))}
+            {rows.map((row) => {
+              const categories = categoryMix(row);
+              return (
+                <li key={row.value}>
+                  {safeDimensionValue(active, row.value, keyCatalog)}:{' '}
+                  {formatPercent(row.percent, locale)} {shareLabel},{' '}
+                  {categoryLabels
+                    .map(
+                      (label, index) => `${label} ${formatNumber(categories[index] ?? 0, locale)}`
+                    )
+                    .join(', ')}
+                  , {formatNumber(row.tokens.total, locale)} {tokensLabel},{' '}
+                  {formatCostValue(row.known_cost_usd, locale).text},{' '}
+                  {formatNumber(row.proxy_requests, locale)} {requestsLabel}
+                </li>
+              );
+            })}
           </ul>
         </AnalyticsChart>
       </div>

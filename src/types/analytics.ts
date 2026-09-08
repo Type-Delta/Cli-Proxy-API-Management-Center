@@ -251,6 +251,7 @@ export type ActivityBucket = {
   reasoning_tokens: number;
   total_tokens: number;
   known_cost_usd: string;
+  unpriced_tokens?: number;
 };
 
 export type AnalyticsActivity = {
@@ -281,6 +282,7 @@ export type AnalysisModel = {
   reasoning_tokens: number;
   total_tokens: number;
   known_cost_usd: string;
+  unpriced_tokens?: number;
 };
 
 export type AnalysisModelBucket = { start: string; models: AnalysisModel[] | null };

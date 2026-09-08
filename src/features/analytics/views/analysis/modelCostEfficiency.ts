@@ -1,4 +1,4 @@
-import type { ModelEfficiencyRow } from './analysisModel';
+import { compareModelEfficiencyCost, type ModelEfficiencyRow } from './analysisModel';
 
 export const MODEL_COST_PAGE_SIZE = 10;
 
@@ -36,7 +36,7 @@ const compareValues = (
   if (key === 'model') return left.model.localeCompare(right.model);
   if (key === 'requests') return left.requests - right.requests;
   if (key === 'tokens') return left.total_tokens - right.total_tokens;
-  if (key === 'cost') return (left.costPerMillion ?? 0) - (right.costPerMillion ?? 0);
+  if (key === 'cost') return compareModelEfficiencyCost(left, right);
   const costField =
     key === 'input'
       ? 'uncached_input_usd'
@@ -59,6 +59,11 @@ export function sortModelCostEfficiency(
 ) {
   const multiplier = direction === 'asc' ? 1 : -1;
   return [...rows].sort((left, right) => {
+    if (key === 'cost') {
+      const leftUnavailable = left.costPerMillion === null;
+      const rightUnavailable = right.costPerMillion === null;
+      if (leftUnavailable !== rightUnavailable) return leftUnavailable ? 1 : -1;
+    }
     const difference = compareValues(left, right, key);
     return difference === 0 ? left.model.localeCompare(right.model) : multiplier * difference;
   });

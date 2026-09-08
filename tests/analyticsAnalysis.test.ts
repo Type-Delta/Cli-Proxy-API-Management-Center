@@ -19,6 +19,7 @@ import {
   buildTopModelSeries,
   cellInk,
   contrastRatio,
+  deriveUnclassifiedTokens,
   distributionChartHeight,
   distributionOption,
   heatmapChartHeight,
@@ -126,6 +127,7 @@ describe('analytics Analysis models', () => {
           cache_read: 200,
           cache_creation: 100,
           reasoning: 50,
+          unclassified: 0,
         },
         reportedInput: 1_000,
         reportedOutput: 450,
@@ -213,9 +215,80 @@ describe('analytics Analysis models', () => {
         reasoning_tokens: 0,
         total_tokens: 1_000_000,
         known_cost_usd: '2.125',
+        unpriced_tokens: 0,
       },
     ] satisfies AnalysisModel[];
     expect(buildModelEfficiency(models)[0]?.costPerMillion).toBe(2.125);
+  });
+
+  test('keeps wholly unpriced models out of the cheapest efficiency rank', () => {
+    const models = [
+      {
+        model: 'unpriced',
+        requests: 1,
+        input_tokens: 100,
+        output_tokens: 0,
+        cached_tokens: 0,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        reasoning_tokens: 0,
+        total_tokens: 100,
+        known_cost_usd: '0',
+        unpriced_tokens: 100,
+      },
+      {
+        model: 'known',
+        requests: 1,
+        input_tokens: 100,
+        output_tokens: 0,
+        cached_tokens: 0,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        reasoning_tokens: 0,
+        total_tokens: 100,
+        known_cost_usd: '0.001',
+        unpriced_tokens: 0,
+      },
+    ] satisfies AnalysisModel[];
+
+    const rows = buildModelEfficiency(models);
+    expect(rows.find((row) => row.model === 'unpriced')).toMatchObject({
+      costPerMillion: null,
+      pricingStatus: 'unknown',
+    });
+    expect(sortModelCostEfficiency(rows, 'cost', 'asc').map((row) => row.model)).toEqual([
+      'known',
+      'unpriced',
+    ]);
+
+    const markup = renderToStaticMarkup(
+      createElement(ModelEfficiency, {
+        section: { meta: { partial: false }, buckets: [], models },
+        loading: false,
+        error: '',
+        onRetry: () => {},
+        locale: 'en',
+      })
+    );
+    expect(markup).toContain('Price unknown');
+  });
+
+  test('derives the unclassified remainder from the authoritative total', () => {
+    const sparseBucket = {
+      ...tokenBucket,
+      input_tokens: 0,
+      output_tokens: 0,
+      cached_tokens: 0,
+      cache_read_tokens: 0,
+      cache_creation_tokens: 0,
+      reasoning_tokens: 0,
+      total_tokens: 100,
+    };
+    const [point] = buildTokenSeries([sparseBucket]);
+
+    expect(deriveUnclassifiedTokens(100, 0, 0)).toBe(100);
+    expect(point.categories.unclassified).toBe(100);
+    expect(Object.values(point.categories).reduce((sum, value) => sum + value, 0)).toBe(100);
   });
 
   test('filters, sorts, and paginates model cost rows without mutating source data', () => {
@@ -230,6 +303,7 @@ describe('analytics Analysis models', () => {
       reasoning_tokens: 0,
       total_tokens: (index + 1) * 1_000_000,
       known_cost_usd: String(11 - index),
+      unpriced_tokens: 0,
     })) satisfies AnalysisModel[];
     const costs = models.map((model, index) => ({
       model: model.model,
@@ -641,7 +715,7 @@ const points = buildTokenSeries([
 ]);
 
 describe('analysis ECharts options', () => {
-  test('stacks the five token categories in palette order under two overlay lines', () => {
+  test('stacks token categories in palette order under two overlay lines', () => {
     const option = tokenUsageOption({
       points,
       categories: TOKEN_CATEGORY_KEYS.map((key) => ({ key, label: key })),
@@ -656,20 +730,22 @@ describe('analysis ECharts options', () => {
     }) as unknown as Option;
 
     expect(option.series).toHaveLength(TOKEN_CATEGORY_KEYS.length + 2);
-    for (const series of option.series.slice(0, 5)) {
+    for (const series of option.series.slice(0, TOKEN_CATEGORY_KEYS.length)) {
       expect(series.itemStyle).toMatchObject({ borderColor: PALETTE.card, borderWidth: 1 });
     }
-    expect(option.series.slice(0, 5).map((series) => series.type)).toEqual(Array(5).fill('bar'));
-    expect(option.series.slice(0, 5).every((series) => series.stack === 'tokens')).toBe(true);
+    expect(option.series.slice(0, TOKEN_CATEGORY_KEYS.length).map((series) => series.type)).toEqual(
+      Array(TOKEN_CATEGORY_KEYS.length).fill('bar')
+    );
+    expect(
+      option.series
+        .slice(0, TOKEN_CATEGORY_KEYS.length)
+        .every((series) => series.stack === 'tokens')
+    ).toBe(true);
     // Stack order is array order, never modulo: category N takes categorical slot N.
-    expect(option.series.slice(0, 5).map((series) => series.itemStyle?.color)).toEqual([
-      '#cat001',
-      '#cat002',
-      '#cat003',
-      '#cat004',
-      '#cat005',
-    ]);
-    const [requests, cost] = option.series.slice(5);
+    expect(
+      option.series.slice(0, TOKEN_CATEGORY_KEYS.length).map((series) => series.itemStyle?.color)
+    ).toEqual(['#cat001', '#cat002', '#cat003', '#cat004', '#cat005', '#cat006']);
+    const [requests, cost] = option.series.slice(TOKEN_CATEGORY_KEYS.length);
     expect(requests.type).toBe('line');
     // The request line is achromatic and dashed so it never competes with a category hue.
     expect(requests.lineStyle?.color).toBe('#6d6760');
@@ -697,8 +773,18 @@ describe('analysis ECharts options', () => {
     const html = option.tooltip.formatter([
       { seriesIndex: 0, seriesName: 'input', axisValueLabel: 'Sep 1', value: 700, marker: '' },
       { seriesIndex: 1, seriesName: 'output', axisValueLabel: 'Sep 1', value: 400, marker: '' },
-      { seriesIndex: 5, seriesName: 'Proxy requests', axisValueLabel: 'Sep 1', value: 9 },
-      { seriesIndex: 6, seriesName: 'Known cost', axisValueLabel: 'Sep 1', value: 0.5 },
+      {
+        seriesIndex: TOKEN_CATEGORY_KEYS.length,
+        seriesName: 'Proxy requests',
+        axisValueLabel: 'Sep 1',
+        value: 9,
+      },
+      {
+        seriesIndex: TOKEN_CATEGORY_KEYS.length + 1,
+        seriesName: 'Known cost',
+        axisValueLabel: 'Sep 1',
+        value: 0.5,
+      },
     ]);
     expect(html).toContain('data-tt-total="true"');
     // 700 + 400 — the 9 requests and $0.50 are in different units and must not be summed in.
@@ -738,7 +824,7 @@ describe('analysis ECharts options', () => {
     for (const series of option.series) {
       expect(series.itemStyle).toMatchObject({ borderColor: PALETTE.card, borderWidth: 1 });
     }
-    expect(option.series[0].itemStyle?.color).toBe('#cat006');
+    expect(option.series[0].itemStyle?.color).toBe(PALETTE.categorical[TOKEN_CATEGORY_KEYS.length]);
     expect(option.series.at(-1)?.name).toBe('Other models');
     expect(option.series.at(-1)?.itemStyle?.color).toBe('#8e867f');
     expect(topModelColor(PALETTE, 0, true)).toBe('#8e867f');
@@ -1006,8 +1092,8 @@ describe('analysis ECharts options', () => {
   test('stacks Usage Distribution rows by category and reserves a band per row', () => {
     const option = distributionOption({
       rows: [
-        { label: 'key-a', categories: [10, 5, 0, 0, 0] },
-        { label: 'key-b', categories: [4, 1, 0, 0, 0] },
+        { label: 'key-a', categories: [10, 5, 0, 0, 0, 0] },
+        { label: 'key-b', categories: [4, 1, 0, 0, 0, 0] },
       ],
       categoryLabels: [...TOKEN_CATEGORY_KEYS],
       palette: PALETTE,
@@ -1030,8 +1116,8 @@ describe('analysis ECharts options', () => {
   test('filters Usage Distribution categories while keeping closing labels on visible totals', () => {
     const base = {
       rows: [
-        { label: 'key-a', categories: [10, 5, 2, 1, 3] },
-        { label: 'key-b', categories: [4, 1, 1, 0, 2] },
+        { label: 'key-a', categories: [10, 5, 2, 1, 3, 4] },
+        { label: 'key-b', categories: [4, 1, 1, 0, 2, 1] },
       ],
       categoryLabels: [...TOKEN_CATEGORY_KEYS],
       palette: PALETTE,
@@ -1043,7 +1129,7 @@ describe('analysis ECharts options', () => {
     };
     const option = distributionOption({
       ...base,
-      selectedCategories: [true, true, true, true, false],
+      selectedCategories: [true, true, true, true, false, false],
     }) as unknown as Option;
 
     expect(option.series.map((series) => series.data)).toEqual([
@@ -1051,6 +1137,7 @@ describe('analysis ECharts options', () => {
       [1, 5],
       [1, 2],
       [0, 1],
+      [0, 0],
       [0, 0],
     ]);
     expect(option.series[3].label?.show).toBe(true);
@@ -1060,7 +1147,7 @@ describe('analysis ECharts options', () => {
 
   test('keeps an all-disabled Usage Distribution chart reenableable and labelled as zero', () => {
     const option = distributionOption({
-      rows: [{ label: 'key-a', categories: [10, 5, 2, 1, 3] }],
+      rows: [{ label: 'key-a', categories: [10, 5, 2, 1, 3, 4] }],
       categoryLabels: [...TOKEN_CATEGORY_KEYS],
       selectedCategories: TOKEN_CATEGORY_KEYS.map(() => false),
       palette: PALETTE,

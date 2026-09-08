@@ -112,7 +112,6 @@ export function CostBreakdown({
       onRetry={onRetry}
     >
       <div className={styles.costBreakdownBody}>
-
         <div className={styles.costRadar}>
           <CostRadar
             segments={segments}
@@ -129,17 +128,17 @@ export function CostBreakdown({
         </div>
         <dl className={styles.costList}>
           <div className={styles.costTotal}>
-          <span>
-            {t('analytics.analysis.total_known_spend', { defaultValue: 'Total known spend' })}
-          </span>
-          <strong title={formatCostValue(total, locale).title}>
-            <AnimatedMetric
-              value={total}
-              scale={10_000}
-              format={(value) => formatCostValue(value, locale).text}
-            />
-          </strong>
-        </div>
+            <span>
+              {t('analytics.analysis.total_known_spend', { defaultValue: 'Total known spend' })}
+            </span>
+            <strong title={formatCostValue(total, locale).title}>
+              <AnimatedMetric
+                value={total}
+                scale={10_000}
+                format={(value) => formatCostValue(value, locale).text}
+              />
+            </strong>
+          </div>
           {segments.map((segment) => (
             <div key={segment.key}>
               <dt>
@@ -188,6 +187,7 @@ export function CostBreakdown({
 export function ModelEfficiency({
   section,
   costs,
+  costPartial,
   loading,
   error,
   errorStatus,
@@ -197,6 +197,7 @@ export function ModelEfficiency({
 }: {
   section: AnalysisModelByTime | null | undefined;
   costs?: readonly AnalysisModelCost[] | null;
+  costPartial?: boolean;
   loading: boolean;
   error: string;
   errorStatus?: number;
@@ -210,8 +211,8 @@ export function ModelEfficiency({
   const [sortDirection, setSortDirection] = useState<ModelCostSortDirection>('asc');
   const [page, setPage] = useState(1);
   const models = useMemo(
-    () => buildModelEfficiency(section?.models ?? [], costs),
-    [costs, section]
+    () => buildModelEfficiency(section?.models ?? [], costs, costPartial),
+    [costPartial, costs, section]
   );
   const filteredModels = useMemo(() => filterModelCostEfficiency(models, search), [models, search]);
   const sortedModels = useMemo(
@@ -265,7 +266,7 @@ export function ModelEfficiency({
       errorStatus={errorStatus}
       retryAt={retryAt}
       hasData={models.length > 0}
-      partial={section?.meta.partial}
+      partial={section?.meta.partial || costPartial}
       emptyDescription={
         section === null
           ? t('analytics.analysis.section_unavailable_description', {
@@ -336,7 +337,14 @@ export function ModelEfficiency({
             <TableBody>
               {paginatedModels.pageItems.map((model) => {
                 const tokens = formatCompactTokens(model.total_tokens, resolvedLocale);
-                const cost = formatCostValue(model.costPerMillion, resolvedLocale);
+                const pricingQualifier =
+                  model.pricingStatus === 'partial'
+                    ? t('analytics.analysis.partial_pricing', { defaultValue: 'Partial pricing' })
+                    : t('analytics.analysis.price_unknown', { defaultValue: 'Price unknown' });
+                const cost =
+                  model.costPerMillion === null
+                    ? { text: pricingQualifier, title: pricingQualifier }
+                    : formatCostValue(model.costPerMillion, resolvedLocale);
                 const component = model.costComponents;
                 const totalCost = component ? Number(component.total_usd) : null;
                 const componentCell = (value: string | undefined) => {

@@ -27,6 +27,7 @@ export const TOKEN_CATEGORY_KEYS = [
   'cache_read',
   'cache_creation',
   'reasoning',
+  'unclassified',
 ] as const;
 export type TokenCategoryKey = (typeof TOKEN_CATEGORY_KEYS)[number];
 
@@ -203,13 +204,22 @@ const finite = (value: number | string | null | undefined) => {
 
 const nonNegative = (value: number | string | null | undefined) => Math.max(0, finite(value));
 
+export const deriveUnclassifiedTokens = (
+  totalTokens: number | string | null | undefined,
+  inputTokens: number | string | null | undefined,
+  outputTokens: number | string | null | undefined
+) => Math.max(0, nonNegative(totalTokens) - nonNegative(inputTokens) - nonNegative(outputTokens));
+
 export function buildTokenSeries(buckets: ActivityBucket[]): TokenSeriesPoint[] {
   return buckets.map((bucket) => {
+    const reportedInput = nonNegative(bucket.input_tokens);
+    const reportedOutput = nonNegative(bucket.output_tokens);
+    const total = nonNegative(bucket.total_tokens);
     const cacheRead = nonNegative(bucket.cache_read_tokens);
     const cacheCreation = nonNegative(bucket.cache_creation_tokens);
     const reasoning = nonNegative(bucket.reasoning_tokens);
-    const input = Math.max(0, nonNegative(bucket.input_tokens) - cacheRead - cacheCreation);
-    const output = Math.max(0, nonNegative(bucket.output_tokens) - reasoning);
+    const input = Math.max(0, reportedInput - cacheRead - cacheCreation);
+    const output = Math.max(0, reportedOutput - reasoning);
 
     return {
       start: bucket.start,
@@ -220,10 +230,11 @@ export function buildTokenSeries(buckets: ActivityBucket[]): TokenSeriesPoint[] 
         cache_read: cacheRead,
         cache_creation: cacheCreation,
         reasoning,
+        unclassified: deriveUnclassifiedTokens(total, reportedInput, reportedOutput),
       },
-      reportedInput: nonNegative(bucket.input_tokens),
-      reportedOutput: nonNegative(bucket.output_tokens),
-      total: nonNegative(bucket.total_tokens),
+      reportedInput,
+      reportedOutput,
+      total,
       requests: nonNegative(bucket.requests),
       knownCost: nonNegative(bucket.known_cost_usd),
     };
@@ -317,29 +328,53 @@ export function buildDistributionRows(rows: DimensionRow[]): DistributionRow[] {
 
 export type ModelEfficiencyRow = AnalysisModel & {
   costPerMillion: number | null;
+  pricingStatus: 'complete' | 'partial' | 'unknown';
   costComponents?: AnalysisModelCost;
+};
+
+export const compareModelEfficiencyCost = (
+  left: Pick<ModelEfficiencyRow, 'costPerMillion'>,
+  right: Pick<ModelEfficiencyRow, 'costPerMillion'>
+) => {
+  const leftUnavailable = left.costPerMillion === null;
+  const rightUnavailable = right.costPerMillion === null;
+  if (leftUnavailable !== rightUnavailable) return leftUnavailable ? 1 : -1;
+  return (left.costPerMillion ?? 0) - (right.costPerMillion ?? 0);
 };
 
 export function buildModelEfficiency(
   models: AnalysisModel[],
-  costComponents?: readonly AnalysisModelCost[] | null
+  costComponents?: readonly AnalysisModelCost[] | null,
+  costSectionPartial = false
 ): ModelEfficiencyRow[] {
   const byModel = new Map((costComponents ?? []).map((component) => [component.model, component]));
   return models
     .map((model) => {
       const tokens = nonNegative(model.total_tokens);
       const cost = finite(model.known_cost_usd);
+      const unpriced = model.unpriced_tokens;
+      const coverageUnknown = unpriced == null;
+      const unpricedCount = nonNegative(unpriced);
+      const whollyUnpriced = tokens > 0 && !coverageUnknown && unpricedCount >= tokens;
+      const pricingStatus: ModelEfficiencyRow['pricingStatus'] =
+        coverageUnknown || whollyUnpriced
+          ? 'unknown'
+          : costSectionPartial || unpricedCount > 0
+            ? 'partial'
+            : 'complete';
       return {
         ...model,
-        costPerMillion: tokens > 0 && cost >= 0 ? (cost / tokens) * 1_000_000 : null,
+        costPerMillion:
+          pricingStatus === 'complete' && tokens > 0 && cost >= 0
+            ? (cost / tokens) * 1_000_000
+            : null,
+        pricingStatus,
         costComponents: byModel.get(model.model),
       };
     })
-    .filter((model) => model.costPerMillion !== null)
     .sort(
       (left, right) =>
-        (left.costPerMillion ?? 0) - (right.costPerMillion ?? 0) ||
-        left.model.localeCompare(right.model)
+        compareModelEfficiencyCost(left, right) || left.model.localeCompare(right.model)
     );
 }
 
@@ -597,7 +632,7 @@ const categoryAxis = (values: string[], formatter: (value: string) => string, bo
   axisLabel: { interval: axisLabelInterval(values.length), formatter, hideOverlap: true },
 });
 
-/** Top Models continues the categorical sequence after the five token-category hues. */
+/** Top Models continues the categorical sequence after the token-category hues. */
 export const topModelColor = (palette: AnalyticsPalette, index: number, other = false) =>
   other
     ? palette.categoricalOther

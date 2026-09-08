@@ -130,6 +130,7 @@ export function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: str
         <ModelEfficiency
           section={modelEfficiency.data?.model_by_time}
           costs={costBreakdown.data?.cost_components?.models}
+          costPartial={costBreakdown.data?.cost_components?.meta.partial}
           loading={modelEfficiency.loading}
           error={modelEfficiency.error}
           errorStatus={modelEfficiency.errorStatus}

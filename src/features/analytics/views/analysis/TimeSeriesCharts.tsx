@@ -50,6 +50,7 @@ export function TokenUsageChart({
     cache_read: t('analytics.analysis.cache_read', { defaultValue: 'Cache read' }),
     cache_creation: t('analytics.analysis.cache_write', { defaultValue: 'Cache write' }),
     reasoning: t('analytics.reasoning_tokens', { defaultValue: 'Reasoning' }),
+    unclassified: t('analytics.analysis.unclassified', { defaultValue: 'Unclassified' }),
   };
   const requestsLabel = t('analytics.proxy_requests', { defaultValue: 'Proxy requests' });
   const costLabel = t('analytics.known_cost', { defaultValue: 'Estimated API-equivalent cost' });
@@ -75,7 +76,8 @@ export function TokenUsageChart({
     <AnalysisCard
       title={t('analytics.analysis.token_usage_title', { defaultValue: 'Token Usage Over Time' })}
       description={t('analytics.analysis.token_usage_description', {
-        defaultValue: 'Token categories with request and known-cost trends.',
+        defaultValue:
+          'Classified and unclassified token categories with request and known-cost trends.',
       })}
       loading={loading}
       error={error}
@@ -98,7 +100,8 @@ export function TokenUsageChart({
         option={option}
         height={ANALYSIS_CHART_HEIGHT}
         ariaLabel={t('analytics.analysis.token_chart_summary', {
-          defaultValue: '{{count}} time buckets of token usage, requests, and known cost',
+          defaultValue:
+            '{{count}} time buckets of classified and unclassified token usage, requests, and known cost',
           count: points.length,
         })}
       >
