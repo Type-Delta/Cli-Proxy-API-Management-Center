@@ -541,3 +541,20 @@ Isolated Chrome CDP checked desktop/mobile Overview and Keys, whole-phrase hover
 tooltips constrained to the mobile viewport, the two-column Daily Average layout, and lifetime
 dates in America/New_York. There was no page overflow or console error. A full one-minute
 refresh cycle fetched the visible queries without replacing chart instances or mode selections.
+
+### DL034: Shared segmented controls, table sorting, and custom tooltips
+
+Auth Files and analytics use one SegmentedControl extracted from the Auth Files toolbar, retaining
+its pill shape, active styling, and problem-state color. SortableTableHead now lives with the shared
+Table component. Numeric headers place the arrow before their label and text headers place it after;
+the key catalog uses the same styled control instead of unstyled native buttons.
+A root TooltipProvider converts native title hints into custom panels using the ECharts tooltip
+tokens. It supports dynamically updated and removed hints, viewport placement, keyboard focus,
+Escape dismissal, and touch. Title-only icon controls retain accessible names. Existing custom
+panels use the same colors, border, radius, and padding. Touch release does not dismiss a tapped hint.
+
+Validation: `bun run verify` passes 673 tests, ESLint, TypeScript, and the production build. Chrome
+CDP reproduced the key header's native gray background and outset border before the fix, then
+verified transparent styled headers and correct sort-arrow placement. Isolated browser checks
+verified dynamic title updates/removal, accessible names, focus/Escape, removed targets, and mobile
+first-tap tooltips constrained to the viewport. No console errors were observed.

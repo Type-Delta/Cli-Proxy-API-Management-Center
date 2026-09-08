@@ -19,8 +19,8 @@
   min-height: 100vh;
   height: 100vh;
   overflow: hidden;
-  // 与 .page-transition__layer 的不透明填充保持同色：外壳一旦用渐变，
-  // main-content 的 padding 圈就会和内容层拼出一道 4~7 级色差的硬边，看着像每页都有边框。
+  // Match the opaque .page-transition__layer fill. A gradient here would make the
+  // main-content padding ring look like a hard border around every page.
   background: var(--bg-secondary);
   color: var(--text-primary);
 
@@ -740,12 +740,15 @@
   width: max-content;
   max-width: min(320px, calc(100vw - var(--sidebar-collapsed-width) - 24px));
   max-height: calc(100vh - 16px);
-  padding: 9px 12px;
+  padding: 10px 12px;
   overflow: hidden;
-  border-radius: 10px;
-  background: #24211c;
-  color: #f6f4f1;
-  box-shadow: 0 14px 36px rgb(0 0 0 / 0.32);
+  border-radius: 8px;
+  border: 1px solid var(--viz-tooltip-border);
+  background: var(--viz-tooltip-bg);
+  color: var(--viz-tooltip-text);
+  box-shadow: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   pointer-events: none;
   animation: nav-tooltip-in $transition-fast ease-out;
 
@@ -762,7 +765,7 @@
     max-width: 100%;
     overflow-wrap: anywhere;
     font-size: 11.5px;
-    color: rgb(246 244 241 / 0.6);
+    color: var(--viz-tooltip-text-dim);
     white-space: normal;
   }
 }

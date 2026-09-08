@@ -1,8 +1,8 @@
 @use '../../../styles/mixins' as *;
 
 /* ============================================================
- * 凭证卡片 — statTile 配方（14px 圆角 / 1px 边框 / 82% 透感纸面）
- * 遥测内容一律 mono + tabular-nums；品牌色只出现在头像与类型徽章。
+ * Credential card statTile recipe: 14px radius, 1px border, and an 82% translucent surface.
+ * Telemetry uses mono and tabular numerals; brand colour stays in the avatar and type badge.
  * ============================================================ */
 
 .card {
@@ -42,7 +42,7 @@
   background: color-mix(in srgb, var(--bg-primary) 55%, transparent);
 
   .head,
-  .fileName, /* 满宽文件名副行已移出 .head，必须单列 */
+  .fileName, /* The full-width filename row sits outside .head and must remain a single column. */
   .note,
   .health,
   .metaRow {
@@ -50,7 +50,7 @@
   }
 }
 
-/* 首次数据到达时的一次性级联入场；过滤/翻页/轮询不重播 */
+/* One cascading entrance when data first arrives; filters, pages, and polling do not replay it. */
 .cardEnter {
   animation: card-in 0.45s var(--ease-out-strong, ease-out) both;
   animation-delay: var(--card-delay, 0s);
@@ -63,7 +63,7 @@
   }
 }
 
-/* ---------- 头部：勾选 + 品牌头像 + 身份 ---------- */
+/* ---------- Header: selection, brand avatar, and identity ---------- */
 
 .head {
   display: flex;
@@ -177,7 +177,7 @@
   border-color: var(--border-hover);
 }
 
-/* 主行：账号（email / 项目 ID）领衔 */
+/* Primary row led by the account email or project ID. */
 .account {
   font-size: 13px;
   font-weight: 600;
@@ -187,15 +187,15 @@
   @include text-ellipsis;
 }
 
-/* 无账号线索时主行回落到文件名，沿用 mono 语汇。
-   必须声明在 .account 之后——两者同为单类选择器，letter-spacing 靠源序决胜。 */
+/* Fall back to the filename when no account clue exists and keep the mono treatment.
+   This follows .account because both selectors have equal specificity. */
 .accountMono {
   font-family: $font-mono;
   letter-spacing: -0.01em;
 }
 
-/* 副行：满卡宽的文件名。email 在 codex 名字的中段，必须能换行才不丢信息，
-   overflow-wrap + -webkit-box 的组合与本文件 .warning span 同配方。 */
+/* Full-width filename row. Long identities must wrap instead of hiding information;
+   overflow-wrap and -webkit-box match the .warning span treatment below. */
 .fileName {
   margin: -4px 0 0;
   font-family: $font-mono;
@@ -214,7 +214,7 @@
   @include text-ellipsis;
 }
 
-/* ---------- 告警行 ---------- */
+/* ---------- Warning row ---------- */
 
 .warning {
   display: flex;
@@ -240,7 +240,7 @@
   margin-top: 2px;
 }
 
-/* ---------- 健康区：eyebrow + 计数 + 状态条 ---------- */
+/* ---------- Health: eyebrow, counts, and status bar ---------- */
 
 .health {
   display: flex;
@@ -282,7 +282,7 @@
   color: var(--text-quaternary);
 }
 
-/* 绿色只给活的流量：有计数才点亮 */
+/* Green marks live traffic only, so empty counts stay quiet. */
 .countLive.countOk {
   color: var(--viz-success);
 }
@@ -291,7 +291,7 @@
   color: var(--viz-failure);
 }
 
-/* ---------- ProviderStatusBar 注入样式（18 个契约类名） ---------- */
+/* ---------- ProviderStatusBar injected styles (18 contract class names) ---------- */
 
 .statusBar {
   display: flex;
@@ -358,11 +358,14 @@
   flex-direction: column;
   gap: 2px;
   min-width: 150px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: var(--floating-surface);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--floating-shadow);
+  padding: 10px 12px;
+  border: 1px solid var(--viz-tooltip-border);
+  border-radius: 8px;
+  background: var(--viz-tooltip-bg);
+  color: var(--viz-tooltip-text);
+  box-shadow: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   pointer-events: none;
   font-family: $font-mono;
   font-size: 11px;
@@ -381,7 +384,7 @@
 }
 
 .tooltipTime {
-  color: var(--text-tertiary);
+  color: var(--viz-tooltip-text-dim);
   letter-spacing: 0.03em;
 }
 
@@ -389,7 +392,7 @@
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  color: var(--text-secondary);
+  color: var(--viz-tooltip-text-dim);
 }
 
 .tooltipSuccess {
@@ -401,10 +404,10 @@
 }
 
 .tooltipRate {
-  color: var(--text-secondary);
+  color: var(--viz-tooltip-text-dim);
 }
 
-/* ---------- 元数据行：size · modified · priority · WRR weight ---------- */
+/* ---------- Metadata: size, modified, priority, and WRR weight ---------- */
 
 .metaRow {
   display: flex;
@@ -454,7 +457,7 @@
   opacity: 0.78;
 }
 
-/* ---------- 页脚动作区 ---------- */
+/* ---------- Footer actions ---------- */
 
 .actions {
   margin-top: auto;
@@ -480,7 +483,7 @@
   gap: 4px;
 }
 
-/* Button 会用 span 包裹 children；将包裹层也设为 flex，避免 SVG 按文本基线偏移。 */
+/* Button wraps children in a span; keep that wrapper flex so SVGs do not follow the text baseline. */
 .actions :global(.btn > span) {
   display: inline-flex;
   align-items: center;
@@ -494,7 +497,7 @@
   flex-shrink: 0;
 }
 
-/* 图标按钮：方形紧凑的安静描边风——危险动作静默存在，hover 才显色块 */
+/* Compact square icon buttons use a quiet outline; danger actions gain a colour block on hover. */
 .card .actions .iconButton {
   display: inline-flex;
   align-items: center;
@@ -526,7 +529,7 @@
   }
 }
 
-/* 按压反馈：所有可点元素 scale 0.96（reduced-motion 下豁免） */
+/* Press feedback scales clickable elements to 0.96, except when reduced motion is requested. */
 .actions :global(.btn) {
   transition:
     transform var(--dur-press, 160ms) var(--ease-out-strong, ease-out),
@@ -572,7 +575,7 @@
   }
 }
 
-/* ---------- 降级 ---------- */
+/* ---------- Fallback ---------- */
 
 @media (prefers-reduced-motion: reduce) {
   .card {

@@ -17,6 +17,12 @@
   cursor: pointer;
 }
 
+.sortButtonRight {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  text-align: right;
+}
+
 .sortButton:hover,
 .sortButton:focus-visible {
   color: var(--text-primary);

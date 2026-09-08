@@ -7,14 +7,15 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { ProtectedRoute } from '@/router/ProtectedRoute';
 import { useLanguageStore, useThemeStore } from '@/stores';
 import { ViewerPage } from '@/features/analytics/ViewerPage';
+import { TooltipProvider } from '@/components/ui/Tooltip';
 
 function RootShell() {
   return (
-    <>
+    <TooltipProvider>
       <NotificationContainer />
       <ConfirmationModal />
       <Outlet />
-    </>
+    </TooltipProvider>
   );
 }
 

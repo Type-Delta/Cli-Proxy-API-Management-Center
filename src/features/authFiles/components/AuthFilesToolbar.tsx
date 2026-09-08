@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { IconSearch, IconSlidersHorizontal, IconTrash2 } from '@/components/ui/icons';
 import {
@@ -36,8 +37,7 @@ export type AuthFilesToolbarProps = {
 };
 
 /**
- * 工作区工具栏：搜索 · 状态分段 · 排序 · 显示设置 popover。
- * 「删除筛选结果」放在工具栏最右端——与限定它作用域的过滤器相邻（映射原则）。
+ * Workspace toolbar: search, status filter, sort, display settings, and scoped deletion.
  */
 export function AuthFilesToolbar(props: AuthFilesToolbarProps) {
   const {
@@ -97,29 +97,15 @@ export function AuthFilesToolbar(props: AuthFilesToolbarProps) {
         />
       </div>
 
-      <div
-        className={styles.segmented}
-        role="group"
-        aria-label={t('auth_files.problem_filter_label')}
-      >
-        {statusFilterOptions.map((option) => {
-          const isActive = statusFilterMode === option.value;
-          const isProblem = option.value === 'problem';
-          return (
-            <button
-              key={option.value}
-              type="button"
-              className={`${styles.segment} ${isActive ? styles.segmentActive : ''} ${
-                isProblem ? styles.segmentProblem : ''
-              }`}
-              aria-pressed={isActive}
-              onClick={() => onStatusFilterChange(option.value)}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedControl
+        value={statusFilterMode}
+        options={statusFilterOptions.map((option) => ({
+          ...option,
+          tone: option.value === 'problem' ? 'problem' : 'default',
+        }))}
+        onChange={onStatusFilterChange}
+        ariaLabel={t('auth_files.problem_filter_label')}
+      />
 
       <div className={styles.sort}>
         <Select
@@ -138,7 +124,7 @@ export function AuthFilesToolbar(props: AuthFilesToolbarProps) {
           aria-expanded={displaySettingsOpen}
           aria-controls="auth-files-display-settings"
           title={t('auth_files.display_options_label')}
-        onClick={() => setDisplaySettingsOpen((open) => !open)}
+          onClick={() => setDisplaySettingsOpen((open) => !open)}
         >
           <IconSlidersHorizontal size={15} />
           <span>{t('auth_files.display_options_label')}</span>

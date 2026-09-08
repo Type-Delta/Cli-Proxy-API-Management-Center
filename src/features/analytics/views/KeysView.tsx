@@ -7,11 +7,10 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
+  SortableTableHead,
 } from '@/components/ui/Table';
-import { IconArrowDown, IconArrowUp, IconArrowUpDown } from '@/components/ui/icons';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { analyticsApi } from '@/services/api';
 import type {
@@ -72,33 +71,17 @@ function CatalogHeader({
   label: string;
   description: string;
 }) {
-  const icon = active ? (
-    direction === 'asc' ? (
-      <IconArrowUp size={14} />
-    ) : (
-      <IconArrowDown size={14} />
-    )
-  ) : (
-    <IconArrowUpDown size={14} />
-  );
   return (
-    <TableHead
-      aria-sort={active ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'}
-      className={column.alignRight ? styles.metricHeader : undefined}
-      title={description}
+    <SortableTableHead
+      alignRight={column.alignRight}
+      active={active}
+      ariaLabel={`${label}. ${description}`}
+      description={description}
+      direction={direction}
+      onClick={onClick}
     >
-      <button
-        type="button"
-        className={styles.sortButton}
-        onClick={onClick}
-        aria-label={`${label}. ${description}`}
-      >
-        <span>{label}</span>
-        <span className={active ? styles.headerIconActive : styles.headerIcon} aria-hidden="true">
-          {icon}
-        </span>
-      </button>
-    </TableHead>
+      {label}
+    </SortableTableHead>
   );
 }
 
@@ -484,7 +467,7 @@ export function KeysView({ keys, range }: { keys: AnalyticsKey[]; range: Analyti
                 const share = Math.max(0, Math.min(100, Number(row.percent_of_total) || 0));
                 return (
                   <TableRow key={row.key_id}>
-                    <TableCell>{row.rank ?? '—'}</TableCell>
+                    <TableCell alignRight>{row.rank ?? '—'}</TableCell>
                     <TableCell title={row.short_key_id}>{analyticsKeyIdentity(row)}</TableCell>
                     <TableCell>
                       <KeyStatus row={row} />

@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { SortableTableHead } from '@/components/ui/Table';
 import {
   joinKeyRanking,
   keyActivityDate,
@@ -9,11 +11,6 @@ import {
 } from '@/features/analytics/views/keys/keyRanking';
 import { formatDateTime } from '@/features/analytics/components/analyticsFormatting';
 import type { AnalyticsKey, LeaderboardRow, TokenUsage } from '@/types';
-
-const sortableHeaderSource = readFileSync(
-  new URL('../src/features/analytics/components/SortableHeader.tsx', import.meta.url),
-  'utf8'
-);
 
 const tokens = (total: number): TokenUsage => ({
   input: total,
@@ -140,12 +137,48 @@ describe('Pricing disclosure gating', () => {
 });
 
 describe('SortableHeader contract', () => {
-  test('maps active direction to aria-sort and directional icons', () => {
-    expect(sortableHeaderSource).toContain(
-      'aria-sort={getSortableHeaderAriaSort(active, direction)}'
+  test('renders active direction and places right-aligned indicators at the left edge', () => {
+    const markup = renderToStaticMarkup(
+      createElement(
+        'table',
+        null,
+        createElement(
+          'thead',
+          null,
+          createElement(
+            'tr',
+            null,
+            createElement(
+              SortableTableHead,
+              {
+                active: true,
+                direction: 'asc',
+                alignRight: true,
+                onClick: () => undefined,
+              },
+              'Rank'
+            )
+          )
+        )
+      )
     );
-    expect(sortableHeaderSource).toContain("icon === 'up'");
-    expect(sortableHeaderSource).toContain("icon === 'down'");
-    expect(sortableHeaderSource).toContain('<IconArrowUpDown size={14} />');
+
+    expect(markup).toContain('aria-sort="ascending"');
+    expect(markup).toContain('data-sort-align="right"');
+    expect(markup).toContain('>Rank</span><span aria-hidden="true"><svg');
+  });
+
+  test('marks inactive left-aligned headers as unsorted with a neutral indicator', () => {
+    const markup = renderToStaticMarkup(
+      createElement(
+        SortableTableHead,
+        { active: false, direction: 'desc', onClick: () => undefined },
+        'Key'
+      )
+    );
+
+    expect(markup).toContain('aria-sort="none"');
+    expect(markup).toContain('data-sort-align="left"');
+    expect(markup).toContain('>Key</span><span aria-hidden="true"><svg');
   });
 });

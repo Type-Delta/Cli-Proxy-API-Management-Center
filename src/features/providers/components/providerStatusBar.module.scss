@@ -50,17 +50,19 @@
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 6px 10px;
+  background: var(--viz-tooltip-bg);
+  border: 1px solid var(--viz-tooltip-border);
+  border-radius: 8px;
+  padding: 10px 12px;
   font-size: 12px;
   line-height: 1.5;
   white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: $z-dropdown;
   pointer-events: none;
-  color: var(--text-primary);
+  color: var(--viz-tooltip-text);
 
   &::after {
     content: '';
@@ -69,7 +71,7 @@
     left: 50%;
     transform: translateX(-50%);
     border: 5px solid transparent;
-    border-top-color: var(--bg-primary);
+    border-top-color: var(--viz-tooltip-bg);
   }
 
   &::before {
@@ -79,7 +81,7 @@
     left: 50%;
     transform: translateX(-50%);
     border: 6px solid transparent;
-    border-top-color: var(--border-color);
+    border-top-color: var(--viz-tooltip-border);
   }
 }
 
@@ -108,7 +110,7 @@
 }
 
 .tooltipTime {
-  color: var(--text-secondary);
+  color: var(--viz-tooltip-text-dim);
   display: block;
   margin-bottom: 2px;
 }
@@ -128,7 +130,7 @@
 }
 
 .tooltipRate {
-  color: var(--text-secondary);
+  color: var(--viz-tooltip-text-dim);
   margin-left: 2px;
 }
 

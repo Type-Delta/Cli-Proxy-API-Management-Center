@@ -1,0 +1,36 @@
+@use '../../styles/variables' as *;
+
+.tooltip {
+  position: fixed;
+  z-index: $z-notification + 1;
+  box-sizing: border-box;
+  max-width: min(320px, calc(100vw - 24px));
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--viz-tooltip-border);
+  border-radius: 8px;
+  background: var(--viz-tooltip-bg);
+  color: var(--viz-tooltip-text);
+  box-shadow: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: none;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  opacity: 1;
+  animation: tooltip-in 120ms var(--ease-out-strong, ease-out) both;
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tooltip {
+    animation: none;
+  }
+}

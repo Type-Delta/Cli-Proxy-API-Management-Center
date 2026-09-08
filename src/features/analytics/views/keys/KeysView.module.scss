@@ -8,41 +8,6 @@
   margin: 0;
 }
 
-.sortButton {
-  width: 100%;
-  min-height: 40px;
-  padding-inline: 0;
-}
-
-.metricHeader {
-  text-align: right;
-  justify-content: flex-end;
-
-  :global(button) {
-    justify-content: flex-end;
-    text-align: right;
-  }
-}
-
-.headerIcon,
-.headerIconActive {
-  display: inline-flex;
-  flex: 0 0 14px;
-  align-items: center;
-  justify-content: center;
-}
-
-.headerIcon {
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-
-.sortButton:hover .headerIcon,
-.sortButton:focus-visible .headerIcon,
-.headerIconActive {
-  opacity: 1;
-}
-
 .keysTable {
   min-width: 1500px;
 }
