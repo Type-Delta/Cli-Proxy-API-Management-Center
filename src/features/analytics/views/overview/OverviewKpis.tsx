@@ -2,8 +2,9 @@ import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnalyticsCard as Card } from '@/features/analytics/components/AnalyticsCard';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { IconInfo } from '@/components/ui/icons';
 import { toneForSuccessRate } from '@/features/dashboard/utils';
-import type { AnalyticsSummary } from '@/types';
+import type { AnalyticsProcessingTime, AnalyticsSummary } from '@/types';
 import { AnalyticsChart } from '../../components/AnalyticsChart';
 import { AnimatedMetric } from '../../components/AnimatedMetric';
 import { axisTooltipFormatter, snapAxisPointer } from '../../components/chartTheme';
@@ -11,6 +12,7 @@ import {
   formatCompactTokens,
   formatCostValue,
   formatDateTime,
+  formatAccumulatedDuration,
   formatNumber,
   formatPercent,
 } from '../../components/analyticsFormatting';
@@ -28,6 +30,7 @@ import {
   type OverviewMetricKey,
   type OverviewSparklines,
 } from './overviewModel';
+import { ComparisonNote } from './ComparisonNote';
 import styles from './Overview.module.scss';
 
 const exactPercent = (value: number | null, locale?: string): FormattedValue => ({
@@ -128,6 +131,9 @@ export function MetricTiles({ cards, label }: { cards: MetricCard[]; label: stri
                 card.value.text
               )}
             </strong>
+            {card.comparison && (
+              <ComparisonNote metric={card.comparison.metric} value={card.comparison.value} />
+            )}
             {card.detail}
             {card.trend && (
               <MetricTrend
@@ -147,6 +153,157 @@ export function MetricTiles({ cards, label }: { cards: MetricCard[]; label: stri
           </Card>
         </div>
       ))}
+    </section>
+  );
+}
+
+function timingValue(
+  value: number | null | undefined,
+  locale: string | undefined,
+  unknownLabel: string,
+  sampleCount?: number,
+  sampleLabel?: string
+): FormattedValue {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return { text: unknownLabel };
+  }
+  const sampleTitle =
+    sampleCount === undefined || sampleLabel === undefined
+      ? ''
+      : `; ${formatNumber(sampleCount, locale)} ${sampleLabel}`;
+  return {
+    text: formatAccumulatedDuration(value, locale),
+    title: `${String(value)} ms${sampleTitle}`,
+  };
+}
+
+function ProcessingTimeCard({
+  processing,
+  attemptCount,
+}: {
+  processing: AnalyticsProcessingTime | null;
+  attemptCount: number;
+}) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage;
+  const unknownLabel = t('analytics.overview.timing_unknown', {
+    defaultValue: 'Unknown',
+  });
+  const e2eValue = timingValue(
+    processing?.e2e_ms,
+    locale,
+    unknownLabel,
+    processing?.sample_count,
+    t('analytics.overview.timing_e2e_samples', { defaultValue: 'E2E samples' })
+  );
+  const rows = [
+    {
+      key: 'generation',
+      label: t('analytics.overview.generation_time', { defaultValue: 'Generation' }),
+      value: processing?.generation_ms,
+      samples: processing?.generation_sample_count ?? 0,
+    },
+    {
+      key: 'ttft',
+      label: t('analytics.overview.ttft', { defaultValue: 'TTFT' }),
+      value: processing?.ttft_ms,
+      samples: processing?.ttft_sample_count ?? 0,
+    },
+    {
+      key: 'latency',
+      label: t('analytics.overview.latency', { defaultValue: 'Latency' }),
+      value: processing?.latency_ms,
+      samples: processing?.latency_sample_count ?? 0,
+    },
+  ];
+  const knownValues = rows
+    .map(({ value }) => value)
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+  const maxValue = Math.max(processing?.e2e_ms ?? 0, ...knownValues, 1);
+  const observedAttempts = Math.max(attemptCount, processing?.sample_count ?? 0);
+  const coverage = !processing
+    ? t('analytics.overview.timing_historical_unknown', {
+        defaultValue: 'Timing is unavailable for historical records.',
+      })
+    : processing.sample_count > 0
+      ? `${t('analytics.overview.timing_coverage', {
+          defaultValue: 'E2E timing observed for {{samples}} of {{attempts}} upstream attempts.',
+          samples: formatNumber(processing.sample_count, locale),
+          attempts: formatNumber(observedAttempts, locale),
+        })}${
+          processing.partial
+            ? ` ${t('analytics.overview.timing_partial_detail', {
+                defaultValue: 'Some timing fields are unavailable for these attempts.',
+              })}`
+            : ''
+        }`
+      : t('analytics.overview.timing_no_samples', {
+          defaultValue: 'No timing samples were observed in this range.',
+        });
+  const chartLabel = t('analytics.overview.processing_chart', {
+    defaultValue: 'Accumulated timing totals for E2E, generation, TTFT, and latency.',
+  });
+  const cardLabel = t('analytics.overview.processing_time', { defaultValue: 'Processing time' });
+  const e2eLabel = t('analytics.overview.e2e_duration', {
+    defaultValue: 'Accumulated E2E duration',
+  });
+
+  return (
+    <section
+      className={styles.processingCardFocus}
+      aria-label={`${cardLabel}. ${e2eLabel}: ${e2eValue.text}. ${coverage}`}
+    >
+      <Card className={styles.processingCard} title={cardLabel}>
+        <span className={styles.metricLabel}>{e2eLabel}</span>
+        <strong className={styles.metricValue} title={e2eValue.title}>
+          {e2eValue.text}
+        </strong>
+        <ComparisonNote
+          metric="processing"
+          value={processing?.e2e_ms == null ? null : processing.e2e_ms / 1_000}
+        />
+        <div className={styles.processingSubstats}>
+          {rows.map((row) => (
+            <DetailValue
+              key={row.key}
+              label={row.label}
+              value={timingValue(
+                row.value,
+                locale,
+                unknownLabel,
+                row.samples,
+                t('analytics.overview.timing_samples', { defaultValue: 'samples' })
+              )}
+            />
+          ))}
+        </div>
+        <div className={styles.processingChart} role="img" aria-label={chartLabel}>
+          {rows.map((row) => {
+            const scale =
+              typeof row.value === 'number' && Number.isFinite(row.value)
+                ? row.value === 0
+                  ? 0
+                  : Math.max(0.03, row.value / maxValue)
+                : 0;
+            return (
+              <div className={styles.processingBarRow} key={row.key}>
+                <span>{row.label}</span>
+                <span className={styles.processingBarTrack} aria-hidden="true">
+                  <span
+                    className={
+                      typeof row.value !== 'number' || !Number.isFinite(row.value)
+                        ? styles.processingBarUnknown
+                        : undefined
+                    }
+                    style={{ '--processing-bar-scale': scale } as CSSProperties}
+                  />
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <p className={styles.processingCoverage}>{coverage}</p>
+      </Card>
     </section>
   );
 }
@@ -217,6 +374,7 @@ export function OverviewKpis({
       ariaLabel: `${t('analytics.overview.requests', { defaultValue: 'Requests' })}: ${numberText(metrics.requests)}. ${t('analytics.overview.succeeded', { defaultValue: 'Succeeded' })}: ${numberText(metrics.succeeded)}. ${t('analytics.overview.failed', { defaultValue: 'Failed' })}: ${numberText(metrics.failed)}. ${t('analytics.overview.success_rate', { defaultValue: 'Success rate' })}: ${percentText(metrics.successRate)}.`,
       accent: TONE_ACCENTS[requestTone],
       icon: METRIC_ICONS.requests,
+      comparison: { metric: 'requests', value: metrics.requests },
       trend: trend(sparklines.requests, numberText),
       detail: (
         <MetricDetail>
@@ -242,6 +400,7 @@ export function OverviewKpis({
       ariaLabel: `${t('analytics.overview.tokens', { defaultValue: 'Tokens' })}: ${compactText(metrics.totalTokens)}. ${t('analytics.overview.cache_read', { defaultValue: 'Cache read' })}: ${compactText(metrics.cacheReadTokens)}. ${t('analytics.overview.cache_write', { defaultValue: 'Cache write' })}: ${compactText(metrics.cacheCreationTokens)}. ${t('analytics.overview.reasoning', { defaultValue: 'Reasoning' })}: ${compactText(metrics.reasoningTokens)}.`,
       accent: TONE_ACCENTS.idle,
       icon: METRIC_ICONS.tokens,
+      comparison: { metric: 'tokens', value: metrics.totalTokens },
       trend: trend(sparklines.tokens, compactText),
       detail: (
         <MetricDetail>
@@ -267,6 +426,7 @@ export function OverviewKpis({
       ariaLabel: `${t('analytics.overview.rpm', { defaultValue: 'RPM' })}: ${numberText(metrics.requestsPerMinute)}. ${t('analytics.overview.requests_per_minute', { defaultValue: 'Requests per minute' })}.`,
       accent: TONE_ACCENTS.idle,
       icon: METRIC_ICONS.rpm,
+      comparison: { metric: 'rpm', value: metrics.requestsPerMinute },
       trend: trend(sparklines.rpm, numberText),
       detail: (
         <MetricDetail>
@@ -285,6 +445,7 @@ export function OverviewKpis({
       ariaLabel: `${t('analytics.overview.tpm', { defaultValue: 'TPM' })}: ${compactText(metrics.tokensPerMinute)}. ${t('analytics.overview.tokens_per_minute', { defaultValue: 'Tokens per minute' })}.`,
       accent: TONE_ACCENTS.idle,
       icon: METRIC_ICONS.tpm,
+      comparison: { metric: 'tpm', value: metrics.tokensPerMinute },
       trend: trend(sparklines.tpm, compactText),
       detail: (
         <MetricDetail>
@@ -301,6 +462,7 @@ export function OverviewKpis({
       ariaLabel: `${t('analytics.overview.cache_rate', { defaultValue: 'Cache rate' })}: ${percentText(metrics.cacheReadRate)}. ${t('analytics.overview.cache_rate_basis', { defaultValue: 'Cache reads as a share of input tokens' })}.`,
       accent: TONE_ACCENTS[cacheTone],
       icon: METRIC_ICONS.cache_rate,
+      comparison: { metric: 'cache_rate', value: metrics.cacheReadRate },
       trend: trend(sparklines.cache_rate, percentText),
       detail: (
         <MetricDetail>
@@ -326,12 +488,15 @@ export function OverviewKpis({
       }.`,
       accent: TONE_ACCENTS[metrics.priceCoverageComplete ? 'idle' : 'warning'],
       icon: METRIC_ICONS.cost,
+      comparison: { metric: 'cost', value: metrics.cost },
       trend: trend(sparklines.cost, costText),
       detail: (
         <MetricDetail>
           <span>
             {metrics.priceCoverageComplete
-              ? t('analytics.overview.known_cost', { defaultValue: 'Estimated API-equivalent cost' })
+              ? t('analytics.overview.known_cost', {
+                  defaultValue: 'Estimated API-equivalent cost',
+                })
               : t('analytics.overview.unpriced_tokens', {
                   defaultValue: '{{count}} unpriced tokens',
                   count: formatNumber(metrics.unpricedTokens, locale),
@@ -383,28 +548,72 @@ export function OverviewKpis({
         label={t('analytics.overview.key_metrics', { defaultValue: 'Key metrics' })}
       />
 
-      <div className={styles.dailyCardFocus} role="group" tabIndex={0} aria-label={dailyAriaLabel}>
-        <Card title={dailyAverageLabel}>
-          <div className={styles.dailyGrid}>
-            {dailyValues.map(({ label, value }) => (
-              <div className={styles.dailyMetric} key={label}>
-                <span>{label}</span>
-                <strong title={value.title}>
-                  {value.animatedFormat && value.animatedValue !== undefined ? (
-                    <AnimatedMetric
-                      value={value.animatedValue}
-                      scale={value.animatedScale}
-                      format={value.animatedFormat}
-                    />
-                  ) : (
-                    value.text
-                  )}
-                </strong>
-              </div>
-            ))}
+      <details className={styles.comparisonInfo}>
+        <summary>
+          <IconInfo size={15} />
+          {t('analytics.overview.how_we_compare', { defaultValue: 'How we compare' })}
+        </summary>
+        <p>
+          {t('analytics.overview.comparison_disclaimer', {
+            defaultValue:
+              'These comparisons use rounded public figures for scale. They are illustrative, not accounting totals.',
+          })}
+        </p>
+        <dl>
+          <div>
+            <dt>
+              {t('analytics.overview.chars_per_token', { defaultValue: 'Characters per token' })}
+            </dt>
+            <dd>4</dd>
           </div>
-          <p className={styles.rangeBasis}>{dailyBasis}</p>
-        </Card>
+          <div>
+            <dt>{t('analytics.overview.words_per_token', { defaultValue: 'Words per token' })}</dt>
+            <dd>0.75</dd>
+          </div>
+          <div>
+            <dt>{t('analytics.overview.words_per_page', { defaultValue: 'Words per page' })}</dt>
+            <dd>500</dd>
+          </div>
+          <div>
+            <dt>{t('analytics.overview.page_thickness', { defaultValue: 'Page thickness' })}</dt>
+            <dd>0.1 mm</dd>
+          </div>
+        </dl>
+      </details>
+
+      <div className={styles.summaryHighlights}>
+        <div
+          className={styles.dailyCardFocus}
+          role="group"
+          tabIndex={0}
+          aria-label={dailyAriaLabel}
+        >
+          <Card title={dailyAverageLabel}>
+            <div className={styles.dailyGrid}>
+              {dailyValues.map(({ label, value }) => (
+                <div className={styles.dailyMetric} key={label}>
+                  <span>{label}</span>
+                  <strong title={value.title}>
+                    {value.animatedFormat && value.animatedValue !== undefined ? (
+                      <AnimatedMetric
+                        value={value.animatedValue}
+                        scale={value.animatedScale}
+                        format={value.animatedFormat}
+                      />
+                    ) : (
+                      value.text
+                    )}
+                  </strong>
+                </div>
+              ))}
+            </div>
+            <p className={styles.rangeBasis}>{dailyBasis}</p>
+          </Card>
+        </div>
+        <ProcessingTimeCard
+          processing={metrics.processingTime}
+          attemptCount={metrics.upstreamAttempts}
+        />
       </div>
     </div>
   );

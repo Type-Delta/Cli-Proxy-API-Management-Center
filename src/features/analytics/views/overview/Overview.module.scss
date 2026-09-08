@@ -22,7 +22,8 @@
 }
 
 .metricCardFocus,
-.dailyCardFocus {
+.dailyCardFocus,
+.processingCardFocus {
   min-width: 0;
   border-radius: 12px;
 
@@ -40,13 +41,28 @@
   min-height: 40px;
 }
 
+.summaryHighlights {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dailyCardFocus {
+  grid-column: span 2;
+}
+
+.processingCardFocus {
+  grid-column: span 1;
+}
+
 .metricCard {
   display: flex;
   height: 100%;
   min-width: 0;
   min-height: inherit;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
   flex-direction: column;
   gap: 8px;
 }
@@ -77,6 +93,180 @@
   line-height: 1.12;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.comparisonNote {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.comparisonPhrase {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.comparisonHelp {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  flex: 1;
+  align-items: stretch;
+}
+
+.comparisonTrigger {
+  display: inline-flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 26px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  margin: -4px -3px;
+  padding: 4px 3px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: help;
+  font: inherit;
+  line-height: inherit;
+  text-align: start;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--muted-bg);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-active);
+    outline-offset: 1px;
+  }
+
+  svg {
+    flex: none;
+  }
+}
+
+.comparisonTooltip {
+  position: absolute;
+  z-index: 20;
+  inset-inline-start: 0;
+  top: calc(100% + 8px);
+  display: flex;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--viz-tooltip-border);
+  border-radius: 8px;
+  background: var(--viz-tooltip-bg);
+  box-shadow: var(--shadow);
+  color: var(--viz-tooltip-text);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease,
+    visibility 150ms ease;
+  visibility: hidden;
+
+  small {
+    color: var(--viz-tooltip-text-dim);
+    font-size: 11px;
+  }
+}
+
+.comparisonHelp:focus-within .comparisonTooltip,
+.comparisonTooltip[data-open='true'] {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+@media (hover: hover) {
+  .comparisonHelp:hover .comparisonTooltip {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+    visibility: visible;
+  }
+}
+
+.comparisonInfo {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--muted-bg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+
+  summary {
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    gap: 7px;
+    padding: 0 12px;
+    color: var(--text-primary);
+    font-weight: 650;
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--primary-active);
+      outline-offset: -2px;
+    }
+  }
+
+  > p {
+    max-width: 70ch;
+    margin: 0;
+    padding: 0 12px 10px;
+  }
+
+  dl {
+    display: grid;
+    max-width: 70ch;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px 16px;
+    margin: 0;
+    padding: 0 12px 12px;
+  }
+
+  dl > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  dt {
+    color: var(--text-tertiary);
+    font-size: 11px;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 .metricDetail {
@@ -186,6 +376,93 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+
+.processingCard {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.processingSubstats {
+  display: grid;
+  min-height: 38px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+
+  .detailItem {
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .detailItem b {
+    overflow: hidden;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.processingChart {
+  display: flex;
+  min-height: 62px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  padding-block: 8px;
+  border-block: 1px solid var(--border-color);
+}
+
+.processingBarRow {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.processingBarTrack {
+  display: block;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--muted-bg);
+
+  > span {
+    display: block;
+    height: 100%;
+    width: 100%;
+    border-radius: inherit;
+    background: var(--primary-color);
+    transform: scaleX(var(--processing-bar-scale, 0));
+    transform-origin: left center;
+    transition: transform 180ms ease;
+  }
+}
+
+.processingBarUnknown {
+  transform: scaleX(1) !important;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--text-tertiary) 0,
+    var(--text-tertiary) 3px,
+    transparent 3px,
+    transparent 6px
+  ) !important;
+}
+
+.processingCoverage {
+  min-height: 34px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .rangeBasis {
@@ -349,12 +626,30 @@
   .metricGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .summaryHighlights {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dailyCardFocus {
+    grid-column: span 2;
+  }
+
+  .processingCardFocus {
+    grid-column: span 2;
+  }
 }
 
 @media (max-width: 768px) {
   .metricGrid,
-  .dailyGrid {
+  .dailyGrid,
+  .summaryHighlights {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dailyCardFocus,
+  .processingCardFocus {
+    grid-column: span 1;
   }
 
   .metricCard {
@@ -374,6 +669,14 @@
       padding-block-start: 0;
       border-block-start: 0;
     }
+  }
+
+  .comparisonInfo dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .processingSubstats {
+    gap: 10px;
   }
 
   .activityHeader {
@@ -406,8 +709,7 @@
 }
 
 .activityCell[data-ripple='true'] {
-  animation: heatmapCellReveal 420ms cubic-bezier(0.16, 1, 0.3, 1)
-    var(--activity-ripple-delay) both;
+  animation: heatmapCellReveal 420ms cubic-bezier(0.16, 1, 0.3, 1) var(--activity-ripple-delay) both;
 
   &::before {
     position: absolute;

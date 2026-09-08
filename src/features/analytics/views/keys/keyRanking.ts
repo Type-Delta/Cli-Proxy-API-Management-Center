@@ -1,4 +1,5 @@
 import type { AnalyticsKey, LeaderboardRow } from '@/types';
+import { formatDateTime, formatRelativeDate } from '../../components/analyticsFormatting';
 import type { AnalyticsLeaderboardSort } from '../../query';
 
 // The cost disclosure sentence only applies when the table is actually ranked by cost.
@@ -13,6 +14,9 @@ export type KeyColumnSort =
   | 'first_activity'
   | 'last_activity'
   | 'indexes'
+  | 'top_model'
+  | 'generation_time'
+  | 'requests'
   | 'tokens'
   | 'cost'
   | 'unpriced'
@@ -20,13 +24,22 @@ export type KeyColumnSort =
 
 export type KeySortDirection = 'asc' | 'desc';
 
-export type KeyRankingRow = AnalyticsKey & {
+export type KeyRankingRow = Omit<AnalyticsKey, 'top_model_tokens'> & {
   rank: number | null;
   proxy_requests: number;
   upstream_attempts: number;
   percent_of_total: string;
   server_order: number;
+  requests: number;
+  top_model: string | null;
+  top_model_tokens: number | null;
+  generation_time_ms: number | null;
+  generation_sample_count: number;
 };
+
+export type KeyDisplayStatus = AnalyticsKey['status'] | 'active' | 'idle';
+
+const KEY_ACTIVE_WINDOW_MS = 5 * 60 * 1000;
 
 const numberValue = (value: string | number | null | undefined) => {
   const parsed = Number(value ?? 0);
@@ -39,6 +52,32 @@ const dateValue = (value: string | null | undefined) => {
 };
 
 const keyLabel = (row: KeyRankingRow) => `${row.label ?? ''}\u0000${row.short_key_id}`;
+
+export function keyStatusForDisplay(
+  status: AnalyticsKey['status'],
+  lifetimeLastActivityAt: string | null | undefined,
+  now = new Date()
+): KeyDisplayStatus {
+  if (status !== 'configured') return status;
+  if (!lifetimeLastActivityAt) return 'idle';
+  const lastActivity = Date.parse(lifetimeLastActivityAt);
+  const elapsed = now.getTime() - lastActivity;
+  return Number.isFinite(lastActivity) && elapsed >= 0 && elapsed <= KEY_ACTIVE_WINDOW_MS
+    ? 'active'
+    : 'idle';
+}
+
+export function keyActivityDate(
+  value: string | null | undefined,
+  locale?: string,
+  now = new Date()
+) {
+  if (!value || Number.isNaN(new Date(value).getTime())) return null;
+  return {
+    relative: formatRelativeDate(value, locale, now),
+    full: formatDateTime(value, locale),
+  };
+}
 
 export function joinKeyRanking(
   keys: readonly AnalyticsKey[],
@@ -58,6 +97,11 @@ export function joinKeyRanking(
       last_activity_at: key?.last_activity_at ?? null,
       lifetime_first_activity_at: key?.lifetime_first_activity_at ?? null,
       lifetime_last_activity_at: key?.lifetime_last_activity_at ?? null,
+      requests: key?.requests ?? row.proxy_requests,
+      top_model: key?.top_model ?? null,
+      top_model_tokens: key?.top_model_tokens ?? null,
+      generation_time_ms: key?.generation_time_ms ?? null,
+      generation_sample_count: key?.generation_sample_count ?? 0,
       total_tokens: row.tokens.total,
       known_cost_usd: row.known_cost_usd,
       unpriced_tokens: row.unpriced_tokens,
@@ -77,6 +121,11 @@ export function joinKeyRanking(
       upstream_attempts: 0,
       percent_of_total: '0',
       server_order: leaderboard.length + index,
+      requests: key.requests ?? 0,
+      top_model: key.top_model ?? null,
+      top_model_tokens: key.top_model_tokens ?? null,
+      generation_time_ms: key.generation_time_ms ?? null,
+      generation_sample_count: key.generation_sample_count ?? 0,
     }));
   return [...ranked, ...unranked];
 }
@@ -96,16 +145,31 @@ export function sortKeyRanking(
           sensitivity: 'base',
         });
       case 'status':
-        return left.status.localeCompare(right.status);
+        return keyStatusForDisplay(left.status, left.lifetime_last_activity_at).localeCompare(
+          keyStatusForDisplay(right.status, right.lifetime_last_activity_at)
+        );
       case 'first_activity':
-        return dateValue(left.first_activity_at) - dateValue(right.first_activity_at);
+        return (
+          dateValue(left.lifetime_first_activity_at) - dateValue(right.lifetime_first_activity_at)
+        );
       case 'last_activity':
-        return dateValue(left.last_activity_at) - dateValue(right.last_activity_at);
+        return (
+          dateValue(left.lifetime_last_activity_at) - dateValue(right.lifetime_last_activity_at)
+        );
       case 'indexes':
         return (
           (left.config_indexes?.[0] ?? Number.MAX_SAFE_INTEGER) -
           (right.config_indexes?.[0] ?? Number.MAX_SAFE_INTEGER)
         );
+      case 'top_model':
+        return (left.top_model ?? '').localeCompare(right.top_model ?? '', undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        });
+      case 'generation_time':
+        return numberValue(left.generation_time_ms) - numberValue(right.generation_time_ms);
+      case 'requests':
+        return left.requests - right.requests;
       case 'tokens':
         return left.total_tokens - right.total_tokens;
       case 'cost':

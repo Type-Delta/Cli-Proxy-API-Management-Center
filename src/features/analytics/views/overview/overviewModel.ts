@@ -18,6 +18,7 @@ import {
 import type { MeterTone } from '@/features/dashboard/utils';
 import { formatNumber } from '../../components/analyticsFormatting';
 import { MAX_ANALYTICS_KEY_FILTERS, type AnalyticsRange } from '../../query';
+import type { ComparisonMetric } from './comparisonModel';
 
 /** Fixed calendar grid: seven day rows, one column per Sunday-first week, as GitHub draws it. */
 export const HEATMAP_ROWS = 7;
@@ -103,7 +104,7 @@ export function requestHealthLevel(succeeded: number, failed: number): number {
 export const requestHealthLevels = (buckets: readonly ActivityBucket[]): number[] =>
   buckets.map((bucket) => requestHealthLevel(bucket.succeeded, bucket.failed));
 
-export type OverviewMetricKey = 'requests' | 'tokens' | 'rpm' | 'tpm' | 'cache_rate' | 'cost';
+export type OverviewMetricKey = Exclude<ComparisonMetric, 'processing'>;
 
 /** The six trend series plus the bucket starts they share, so tooltips can name the bucket. */
 export type OverviewSparklines = Record<OverviewMetricKey, number[]> & { times: string[] };
@@ -133,6 +134,7 @@ export type MetricCard<Key extends string = string> = {
   accent: string;
   /** Sits inline with the label, tinted by `accent`; see METRIC_ICONS. */
   icon?: ComponentType<IconProps>;
+  comparison?: { metric: ComparisonMetric; value: number | null };
   trend?: {
     points: number[];
     /** Bucket starts, parallel to `points`; the tooltip names the bucket the cursor snapped to. */
@@ -237,6 +239,7 @@ export function overviewSparklines(points: readonly TimeseriesPoint[]): Overview
 
 export type OverviewMetrics = {
   requests: number;
+  upstreamAttempts: number;
   succeeded: number;
   failed: number;
   successRate: number | null;
@@ -257,6 +260,7 @@ export type OverviewMetrics = {
   avgTokens: number | null;
   avgCost: number | null;
   avgCostLabel: string;
+  processingTime: NonNullable<AnalyticsSummary['processing_time']> | null;
 };
 
 /**
@@ -269,6 +273,7 @@ export function buildOverviewMetrics(summary: AnalyticsSummary): OverviewMetrics
   const inputTokens = finite(summary.tokens.input);
   const cacheReadTokens = finite(summary.tokens.cache_read);
   const requests = finite(summary.proxy_requests);
+  const upstreamAttempts = finite(summary.upstream_attempts);
   const totalTokens = finite(summary.tokens.total);
   const cost = numeric(summary.known_cost_usd);
   const rangeDays = numeric(summary.range_days);
@@ -279,6 +284,7 @@ export function buildOverviewMetrics(summary: AnalyticsSummary): OverviewMetrics
   const avgCost = numeric(summary.avg_known_cost_usd_per_day) ?? perDay(cost);
   return {
     requests,
+    upstreamAttempts,
     succeeded,
     failed,
     successRate: numeric(summary.success_rate) ?? rate(succeeded, succeeded + failed),
@@ -302,6 +308,7 @@ export function buildOverviewMetrics(summary: AnalyticsSummary): OverviewMetrics
       numeric(summary.avg_known_cost_usd_per_day) === null
         ? (avgCost?.toString() ?? '')
         : summary.avg_known_cost_usd_per_day,
+    processingTime: summary.processing_time ?? null,
   };
 }
 

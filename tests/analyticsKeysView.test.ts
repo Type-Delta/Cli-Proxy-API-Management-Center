@@ -2,9 +2,12 @@ import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import {
   joinKeyRanking,
+  keyActivityDate,
+  keyStatusForDisplay,
   shouldShowPricingDisclosure,
   sortKeyRanking,
 } from '@/features/analytics/views/keys/keyRanking';
+import { formatDateTime } from '@/features/analytics/components/analyticsFormatting';
 import type { AnalyticsKey, LeaderboardRow, TokenUsage } from '@/types';
 
 const sortableHeaderSource = readFileSync(
@@ -37,6 +40,11 @@ const key = (id: string, label: string, shortId: string): AnalyticsKey => ({
   total_tokens: 1,
   known_cost_usd: '0.01',
   unpriced_tokens: 1,
+  requests: 14,
+  top_model: 'model-top',
+  top_model_tokens: 900,
+  generation_time_ms: 1_250,
+  generation_sample_count: 5,
 });
 
 const ranking = (
@@ -75,6 +83,20 @@ describe('Keys ranking model', () => {
       known_cost_usd: '1.25',
       config_indexes: [2],
       lifetime_first_activity_at: '2026-01-01T00:00:00Z',
+      requests: 14,
+      top_model: 'model-top',
+      generation_time_ms: 1_250,
+    });
+  });
+
+  test('preserves additive key catalog metrics for unranked configured keys', () => {
+    const rows = joinKeyRanking([key('key-a', 'Alpha', 'a-safe')], []);
+    expect(rows[0]).toMatchObject({
+      requests: 14,
+      top_model: 'model-top',
+      top_model_tokens: 900,
+      generation_time_ms: 1_250,
+      generation_sample_count: 5,
     });
   });
 
@@ -89,6 +111,24 @@ describe('Keys ranking model', () => {
       'key-a',
     ]);
     expect(sortKeyRanking(rows, 'key', 'asc').map((row) => row.key_id)).toEqual(['key-a', 'key-b']);
+  });
+
+  test('refines only configured status and uses lifetime activity for the five-minute window', () => {
+    const now = new Date('2026-09-08T12:00:00Z');
+    expect(keyStatusForDisplay('configured', '2026-09-08T11:55:00Z', now)).toBe('active');
+    expect(keyStatusForDisplay('configured', '2026-09-08T11:54:59Z', now)).toBe('idle');
+    expect(keyStatusForDisplay('configured', '2026-09-08T12:01:00Z', now)).toBe('idle');
+    expect(keyStatusForDisplay('rotated', '2026-09-08T11:59:59Z', now)).toBe('rotated');
+    expect(keyStatusForDisplay('configured', null, now)).toBe('idle');
+  });
+
+  test('formats lifetime dates with relative text and browser-local Intl output', () => {
+    const value = '2026-09-08T12:00:00Z';
+    const date = keyActivityDate(value, 'en-US', new Date('2026-09-08T12:05:00Z'));
+    expect(date?.relative).toBe('5 minutes ago');
+    expect(date?.full).toBe(formatDateTime(value, 'en-US'));
+    expect(date?.full).not.toContain('T12:00:00Z');
+    expect(keyActivityDate(null, 'en-US')).toBeNull();
   });
 });
 

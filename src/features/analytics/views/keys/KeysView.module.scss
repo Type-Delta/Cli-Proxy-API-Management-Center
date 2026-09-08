@@ -14,8 +14,37 @@
   padding-inline: 0;
 }
 
+.metricHeader {
+  text-align: right;
+  justify-content: flex-end;
+
+  :global(button) {
+    justify-content: flex-end;
+    text-align: right;
+  }
+}
+
+.headerIcon,
+.headerIconActive {
+  display: inline-flex;
+  flex: 0 0 14px;
+  align-items: center;
+  justify-content: center;
+}
+
+.headerIcon {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.sortButton:hover .headerIcon,
+.sortButton:focus-visible .headerIcon,
+.headerIconActive {
+  opacity: 1;
+}
+
 .keysTable {
-  min-width: 1180px;
+  min-width: 1500px;
 }
 
 .retryButton {
@@ -32,6 +61,31 @@
 
   small {
     color: var(--text-secondary);
+  }
+}
+
+.relativeDate {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.topModelValue {
+  display: flex;
+  min-width: 150px;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+  white-space: nowrap;
+
+  > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  small {
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -83,9 +137,17 @@
 
 .keyCardMetrics {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin: 0;
+
+  .stackedValue {
+    min-width: 0;
+
+    small {
+      white-space: normal;
+    }
+  }
 
   dt {
     color: var(--text-secondary);
@@ -96,5 +158,11 @@
     margin: 3px 0 0;
     color: var(--text-primary);
     font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (max-width: 420px) {
+  .keyCardMetrics {
+    grid-template-columns: 1fr;
   }
 }

@@ -523,3 +523,21 @@ Isolated Chrome CDP checks at 1440px and 390px verified colored gradients, stagg
 values, unclipped mobile timing labels, persistent chart instances across modes, explicit unavailable
 heatmap cells, and dashed/solid tooltip markers. Full timing data was checked using a browser-only
 fixture; the normal historical mock dataset correctly leaves missing timing unavailable.
+
+### DL033: Processing totals, comparisons, and lifetime key activity
+
+Quick Stats includes accumulated processing time beside the narrower Daily Average card. Its
+breakdown distinguishes missing observations from measured zero and explains coverage in upstream
+attempts. Each metric has at least seven range-specific comparisons, with estimates, constants,
+and substituted calculations available on hover, keyboard focus, or touch. All four locales are
+included. Accumulated durations use readable time units.
+The key catalog adds the top model and its token count, observed generation time, and requests.
+Config indexes precede lifetime first/last activity at the right edge. Dates show relative time and
+a full date in the client browser's timezone. Configured keys show Active for activity in the last
+five minutes and Idle otherwise. Column help and mobile cards describe the same metrics.
+
+Validation: `bun run verify` passed 670 tests, ESLint, TypeScript, and the production build.
+Isolated Chrome CDP checked desktop/mobile Overview and Keys, whole-phrase hover, first-tap
+tooltips constrained to the mobile viewport, the two-column Daily Average layout, and lifetime
+dates in America/New_York. There was no page overflow or console error. A full one-minute
+refresh cycle fetched the visible queries without replacing chart instances or mode selections.

@@ -6,7 +6,9 @@ import {
   ActivityHeatmaps,
   fitActivityHeatmapWindow,
 } from '@/features/analytics/views/overview/ActivityHeatmaps';
+import { ComparisonNote } from '@/features/analytics/views/overview/ComparisonNote';
 import { MetricTiles, OverviewKpis } from '@/features/analytics/views/overview/OverviewKpis';
+import { formatAccumulatedDuration } from '@/features/analytics/components/analyticsFormatting';
 import i18n from '@/i18n';
 import {
   buildOverviewActivityQuery,
@@ -22,6 +24,12 @@ import {
   toneForCacheRate,
   tokenActivityLevels,
 } from '@/features/analytics/views/overview/overviewModel';
+import {
+  buildComparison,
+  comparisonBand,
+  comparisonBandCounts,
+  RESTING_HEARTBEATS_PER_YEAR,
+} from '@/features/analytics/views/overview/comparisonModel';
 import * as overviewModel from '@/features/analytics/views/overview/overviewModel';
 import type { AnalyticsActivity, AnalyticsSummary, TimeseriesPoint, TokenUsage } from '@/types';
 import {
@@ -168,6 +176,118 @@ describe('analytics overview model', () => {
     expect(fallback.avgRequests).toBe(96);
     expect(fallback.avgTokens).toBe(720);
     expect(fallback.avgCost).toBe(1.7);
+  });
+
+  test('keeps timing axes nullable and exposes accumulated processing coverage', () => {
+    const metrics = buildOverviewMetrics(
+      summary({
+        processing_time: {
+          e2e_ms: 12_000,
+          ttft_ms: 2_000,
+          generation_ms: null,
+          latency_ms: null,
+          provider_latency_ms: null,
+          sample_count: 3,
+          ttft_sample_count: 3,
+          generation_sample_count: 0,
+          latency_sample_count: 0,
+          provider_latency_sample_count: 0,
+          partial: true,
+        },
+      })
+    );
+
+    expect(metrics.processingTime).toMatchObject({ e2e_ms: 12_000, generation_ms: null });
+    expect(buildOverviewMetrics(summary()).processingTime).toBeNull();
+  });
+
+  test('covers each comparison metric with checked dimensional bands', () => {
+    expect(comparisonBandCounts()).toEqual({
+      requests: 8,
+      tokens: 8,
+      rpm: 9,
+      tpm: 9,
+      cache_rate: 10,
+      cost: 9,
+      processing: 8,
+    });
+    expect(comparisonBand('tokens', 1_000_000)?.id).toBe('war_and_peace');
+    expect(comparisonBand('tokens', 1_000_000_000_000)?.id).toBe('karman_line');
+    expect(buildComparison('processing', null).available).toBe(false);
+    expect(buildComparison('cost', 12).formula).toBe('d / 12 USD');
+  });
+
+  test('uses computed heartbeat constants and numeric localized substitutions', () => {
+    expect(RESTING_HEARTBEATS_PER_YEAR).toBe(70 * 60 * 24 * 365);
+    const heartbeat = buildComparison('requests', RESTING_HEARTBEATS_PER_YEAR, 'en-US');
+    expect(heartbeat.formula).toBe('n / 36,792,000 beats per year');
+    expect(heartbeat.calculation).toBe('36,792,000 / 36,792,000 beats per year = 1.0');
+
+    const paperback = buildComparison('tokens', 120_000, 'en-US');
+    expect(paperback.figure).toBe('1.0');
+    expect(paperback.calculation).toBe('120,000 / 120,000 tokens per novel = 1.0');
+    expect(buildComparison('tokens', 120_000, 'zh-CN').figure).not.toContain('about one');
+  });
+
+  test('formats accumulated timing in human-sized units and explains coverage', () => {
+    expect(formatAccumulatedDuration(31_557_600_000, 'en-US')).toBe('1 yr');
+    expect(formatAccumulatedDuration(86_400_000, 'en-US')).toBe('1 day');
+
+    const markup = renderToStaticMarkup(
+      createElement(
+        I18nextProvider,
+        { i18n },
+        createElement(OverviewKpis, {
+          summary: summary({
+            upstream_attempts: 600,
+            processing_time: {
+              e2e_ms: 31_557_600_000,
+              ttft_ms: 2_000,
+              generation_ms: null,
+              latency_ms: null,
+              provider_latency_ms: null,
+              sample_count: 600,
+              ttft_sample_count: 600,
+              generation_sample_count: 0,
+              latency_sample_count: 0,
+              provider_latency_sample_count: 0,
+              partial: true,
+            },
+          }),
+          sparklines: {
+            times: [],
+            requests: [],
+            tokens: [],
+            rpm: [],
+            tpm: [],
+            cache_rate: [],
+            cost: [],
+          },
+          trendsLoading: false,
+        })
+      )
+    );
+
+    expect(markup).toContain('1 yr');
+    expect(markup).toContain('E2E timing observed for 600 of 600 upstream attempts.');
+    expect(markup).toContain('Some timing fields are unavailable for these attempts.');
+    expect(markup).not.toContain('of 240 requests observed');
+    expect(markup).toContain('--processing-bar-scale:0');
+  });
+
+  test('makes the full comparison phrase the accessible tooltip trigger', () => {
+    const markup = renderToStaticMarkup(
+      createElement(
+        I18nextProvider,
+        { i18n },
+        createElement(ComparisonNote, { metric: 'tokens', value: 120_000 })
+      )
+    );
+
+    expect(markup).toContain('aria-describedby="');
+    expect(markup).toContain('Calculation: 120,000 / 120,000 tokens per novel = 1.0');
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain('aria-hidden="true"');
   });
 
   test('derives six sparkline series and per-bucket rates', () => {
@@ -365,9 +485,8 @@ describe('analytics overview model', () => {
     // R6-8: the tone now tints the label icon; the 28x3 accent rule is gone.
     expect(markup).toContain('--metric-accent:var(--text-tertiary)');
     expect(markup).toContain('--metric-accent:var(--amber-color)');
-    // One tone-tinted icon per card. CSS-module class names are stubbed under bun test, so the
-    // icon is counted by its rendered SVG rather than by its class.
-    expect(markup.match(/<svg /g)).toHaveLength(6);
+    // One tone-tinted icon per card plus the comparison-method info icon.
+    expect(markup.match(/width="15" height="15"/g)).toHaveLength(7);
     expect(
       [...markup.matchAll(/aria-label="([^"]+)"/g)].every((match) => match[1].length < 200)
     ).toBe(true);
