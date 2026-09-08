@@ -558,3 +558,17 @@ CDP reproduced the key header's native gray background and outset border before 
 verified transparent styled headers and correct sort-arrow placement. Isolated browser checks
 verified dynamic title updates/removal, accessible names, focus/Escape, removed targets, and mobile
 first-tap tooltips constrained to the viewport. No console errors were observed.
+
+### DL035: Full-width metric trends and compact processing totals
+
+Quick Stats trends extend to the card's left, right, and bottom edges, retaining their content gap
+and using a taller plotting area. Processing time uses the metric-card hierarchy with accumulated
+E2E as its primary value and ECharts timing bars below. It precedes Daily average, which spans two
+columns; both cards fill their tracks and share a height. Coverage stays in the comparison tooltip.
+The separate How we compare section is removed, and relevant scale assumptions appear with the
+comparison that uses them. Existing worktree spacing edits are retained.
+
+Validation: the 673-test full verification passes. Desktop browser measurements confirm both
+summary cards fill their tracks, with widths of about 369 and 749 pixels and equal 306-pixel heights
+at a 1440-pixel viewport. The KPI plots meet the card edges, and comparison explanations remain
+available through hover, keyboard focus, and touch. All four locales include the relevant scales.

@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/icons';
 import type { MeterTone } from '@/features/dashboard/utils';
 import { formatNumber } from '../../components/analyticsFormatting';
+import { axisTooltipFormatter } from '../../components/chartTheme';
 import { MAX_ANALYTICS_KEY_FILTERS, type AnalyticsRange } from '../../query';
 import type { ComparisonMetric } from './comparisonModel';
 
@@ -366,7 +367,7 @@ export function sparklineOption(input: {
     animationDuration: Math.round(1000 / 1.85),
     animationDurationUpdate: Math.round(500 / 1.35),
     animationDelay: input.animationDelay ?? 0,
-    grid: { top: 2, right: 1, bottom: 2, left: 1, containLabel: false },
+    grid: { top: 2, right: 0, bottom: 0, left: 0, containLabel: false },
     // KPI cards clip their contents to preserve rounded corners; the chart adapter portals this
     // panel outside that boundary while ECharts still owns its placement and transitions.
     tooltip: {
@@ -394,6 +395,52 @@ export function sparklineOption(input: {
         lineStyle: { width: 1.5, color: input.color },
         itemStyle: { color: input.color },
         areaStyle: { color: input.color, opacity: 0.16 },
+      },
+    ],
+  };
+}
+
+/** Horizontal timing bars keep the observed timing axes comparable at a glance. */
+export function processingTimeOption(input: {
+  rows: Array<{ label: string; value: number | null }>;
+  maxValue: number;
+  format: (value: number) => string;
+  seriesName: string;
+}): EChartsCoreOption {
+  return {
+    animationDuration: 460,
+    animationDurationUpdate: 280,
+    grid: { top: 2, right: 4, bottom: 2, left: 82, containLabel: false },
+    tooltip: {
+      trigger: 'axis',
+      appendToBody: true,
+      axisPointer: { type: 'shadow' },
+      formatter: axisTooltipFormatter({ format: input.format }),
+    },
+    xAxis: {
+      type: 'value',
+      min: 0,
+      max: Math.max(input.maxValue, 1),
+      show: false,
+    },
+    yAxis: {
+      type: 'category',
+      inverse: true,
+      data: input.rows.map((row) => row.label),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { width: 74, overflow: 'truncate' },
+      splitLine: { show: false },
+    },
+    series: [
+      {
+        type: 'bar',
+        name: input.seriesName,
+        barMaxWidth: 12,
+        barCategoryGap: '34%',
+        data: input.rows.map((row) => row.value),
+        itemStyle: { borderRadius: [0, 5, 5, 0] },
+        emphasis: { focus: 'series' },
       },
     ],
   };

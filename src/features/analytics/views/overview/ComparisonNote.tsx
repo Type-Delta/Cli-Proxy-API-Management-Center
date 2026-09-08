@@ -7,9 +7,11 @@ import styles from './Overview.module.scss';
 export function ComparisonNote({
   metric,
   value,
+  additionalNote,
 }: {
   metric: ComparisonMetric;
   value: number | null | undefined;
+  additionalNote?: string | null;
 }) {
   const { t, i18n } = useTranslation();
   const comparison = buildComparison(metric, value, i18n.resolvedLanguage);
@@ -50,6 +52,35 @@ export function ComparisonNote({
             'These are accumulated axes. Requests can overlap, so their totals may exceed wall-clock time.',
         })
       : null;
+  const scaleNoteKey =
+    (comparison.metric === 'tokens' &&
+      (comparison.bandId === 'paperback_novels' ||
+        comparison.bandId === 'war_and_peace' ||
+        comparison.bandId === 'audiobook_years' ||
+        comparison.bandId === 'novels_per_hour')) ||
+    (comparison.metric === 'tpm' &&
+      (comparison.bandId === 'typist' ||
+        comparison.bandId === 'conversation' ||
+        comparison.bandId === 'reading' ||
+        comparison.bandId === 'paperback_pages' ||
+        comparison.bandId === 'novels' ||
+        comparison.bandId === 'war_and_peace'))
+      ? 'analytics.overview.comparison_scale.words_per_token'
+      : comparison.metric === 'tokens' && comparison.bandId === 'oxford_dictionary'
+        ? 'analytics.overview.comparison_scale.dictionary'
+        : comparison.metric === 'tokens' &&
+            (comparison.bandId === 'everest' || comparison.bandId === 'karman_line')
+          ? 'analytics.overview.comparison_scale.paper'
+          : null;
+  const scaleNote = scaleNoteKey
+    ? t(scaleNoteKey, {
+        defaultValue: scaleNoteKey.endsWith('words_per_token')
+          ? 'Scale: 0.75 words per token.'
+          : scaleNoteKey.endsWith('dictionary')
+            ? 'Scale: 6,150 characters per page divided by 4 characters per token.'
+            : 'Scale: 500 words per page and 0.1 mm per page.',
+      })
+    : null;
   const helpLabel = t('analytics.overview.comparison_help', {
     defaultValue: 'Explain this comparison',
   });
@@ -78,7 +109,6 @@ export function ComparisonNote({
           aria-controls={tooltipId}
           aria-describedby={tooltipId}
           aria-expanded={open}
-          title={helpLabel}
           onPointerDown={(event) => {
             touchRef.current = event.pointerType === 'touch';
           }}
@@ -104,9 +134,11 @@ export function ComparisonNote({
           aria-hidden={!open}
         >
           <span>{explanation}</span>
+          {scaleNote && <small>{scaleNote}</small>}
           <small>{formula}</small>
           <small>{calculation}</small>
           {concurrencyNote && <small>{concurrencyNote}</small>}
+          {additionalNote && <small>{additionalNote}</small>}
         </span>
       </span>
     </div>

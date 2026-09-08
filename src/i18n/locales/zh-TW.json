@@ -770,6 +770,12 @@
           "unavailable": "有測量資料後才會顯示比較。",
           "unavailable_hint": "所選範圍沒有可用於此比較的值。"
         }
+      },
+      "e2e_short": "E2E",
+      "comparison_scale": {
+        "words_per_token": "換算依據：每個權杖約含 0.75 個單字。",
+        "dictionary": "換算依據：每頁約 6,150 個字元，按每個權杖 4 個字元計算。",
+        "paper": "換算依據：每頁 500 個單字，紙張厚度為 0.1 毫米。"
       }
     },
     "analysis": {

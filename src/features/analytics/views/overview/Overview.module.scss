@@ -46,10 +46,17 @@
   min-width: 0;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+  align-items: stretch;
 }
 
 .dailyCardFocus {
   grid-column: span 2;
+}
+
+.dailyCardFocus,
+.processingCardFocus {
+  display: flex;
+  height: 100%;
 }
 
 .processingCardFocus {
@@ -59,12 +66,13 @@
 .metricCard {
   display: flex;
   height: 100%;
+  width: 100%;
   min-width: 0;
   min-height: inherit;
   box-sizing: border-box;
   overflow: visible;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 // R6-8: the tone that used to be a 28x3 rule now tints the label's icon, which costs no row.
@@ -206,73 +214,11 @@
   }
 }
 
-.comparisonInfo {
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--muted-bg);
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.45;
-
-  summary {
-    display: inline-flex;
-    min-height: 42px;
-    align-items: center;
-    gap: 7px;
-    padding: 0 12px;
-    color: var(--text-primary);
-    font-weight: 650;
-    cursor: pointer;
-    list-style: none;
-
-    &::-webkit-details-marker {
-      display: none;
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--primary-active);
-      outline-offset: -2px;
-    }
-  }
-
-  > p {
-    max-width: 70ch;
-    margin: 0;
-    padding: 0 12px 10px;
-  }
-
-  dl {
-    display: grid;
-    max-width: 70ch;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 6px 16px;
-    margin: 0;
-    padding: 0 12px 12px;
-  }
-
-  dl > div {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  dt {
-    color: var(--text-tertiary);
-    font-size: 11px;
-  }
-
-  dd {
-    margin: 0;
-    color: var(--text-primary);
-    font-variant-numeric: tabular-nums;
-  }
-}
-
 .metricDetail {
   display: flex;
   min-height: 38px;
   align-items: flex-start;
+  margin-top: 4px;
   gap: 6px 12px;
   flex-wrap: wrap;
   color: var(--text-secondary);
@@ -299,9 +245,12 @@
     cursor: default !important;
   }
 
-  min-height: 32px;
+  display: flex;
+  min-height: 56px;
   margin-block-start: auto;
-  padding-block-start: 8px;
+  margin-inline: -$spacing-lg;
+  margin-block-end: -$spacing-lg;
+  padding-block-start: 10px;
   border-block-start: 1px solid var(--border-color);
 }
 
@@ -378,15 +327,6 @@
   }
 }
 
-.processingCard {
-  display: flex;
-  height: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .processingSubstats {
   display: grid;
   min-height: 38px;
@@ -410,59 +350,12 @@
 
 .processingChart {
   display: flex;
-  min-height: 62px;
+  min-height: 112px;
+  margin-block-start: auto;
   flex-direction: column;
   justify-content: center;
-  gap: 7px;
-  padding-block: 8px;
-  border-block: 1px solid var(--border-color);
-}
-
-.processingBarRow {
-  display: grid;
-  grid-template-columns: 68px minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-  color: var(--text-secondary);
-  font-size: 11px;
-}
-
-.processingBarTrack {
-  display: block;
-  height: 7px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--muted-bg);
-
-  > span {
-    display: block;
-    height: 100%;
-    width: 100%;
-    border-radius: inherit;
-    background: var(--primary-color);
-    transform: scaleX(var(--processing-bar-scale, 0));
-    transform-origin: left center;
-    transition: transform 180ms ease;
-  }
-}
-
-.processingBarUnknown {
-  transform: scaleX(1) !important;
-  background: repeating-linear-gradient(
-    135deg,
-    var(--text-tertiary) 0,
-    var(--text-tertiary) 3px,
-    transparent 3px,
-    transparent 6px
-  ) !important;
-}
-
-.processingCoverage {
-  min-height: 34px;
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 11px;
-  line-height: 1.4;
+  padding-block-start: 8px;
+  border-block-start: 1px solid var(--border-color);
 }
 
 .rangeBasis {
@@ -671,10 +564,6 @@
     }
   }
 
-  .comparisonInfo dl {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .processingSubstats {
     gap: 10px;
   }
@@ -808,6 +697,7 @@
   border: 1px solid var(--viz-tooltip-border);
   border-radius: 8px;
   background: var(--viz-tooltip-bg);
+  box-shadow: var(--shadow);
   color: var(--viz-tooltip-text);
   font-size: 12px;
   pointer-events: none;

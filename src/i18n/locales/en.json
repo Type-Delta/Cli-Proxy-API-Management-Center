@@ -621,6 +621,12 @@
           "unavailable": "No comparison until this metric has measured usage.",
           "unavailable_hint": "The selected range does not contain a usable value for this comparison."
         }
+      },
+      "e2e_short": "E2E",
+      "comparison_scale": {
+        "words_per_token": "Scale: 0.75 words per token.",
+        "dictionary": "Scale: 6,150 characters per page divided by 4 characters per token.",
+        "paper": "Scale: 500 words per page and 0.1 mm per page."
       }
     },
     "analysis": {

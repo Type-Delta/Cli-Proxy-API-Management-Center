@@ -770,6 +770,12 @@
           "unavailable": "有测量数据后才会显示比较。",
           "unavailable_hint": "所选范围没有可用于此比较的值。"
         }
+      },
+      "e2e_short": "E2E",
+      "comparison_scale": {
+        "words_per_token": "换算依据：每个令牌约含 0.75 个单词。",
+        "dictionary": "换算依据：每页约 6,150 个字符，按每个令牌 4 个字符计算。",
+        "paper": "换算依据：每页 500 个单词，纸张厚度为 0.1 毫米。"
       }
     },
     "analysis": {

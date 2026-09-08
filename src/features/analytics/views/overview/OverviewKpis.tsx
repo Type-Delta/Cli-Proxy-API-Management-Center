@@ -2,7 +2,6 @@ import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnalyticsCard as Card } from '@/features/analytics/components/AnalyticsCard';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { IconInfo } from '@/components/ui/icons';
 import { toneForSuccessRate } from '@/features/dashboard/utils';
 import type { AnalyticsProcessingTime, AnalyticsSummary } from '@/types';
 import { AnalyticsChart } from '../../components/AnalyticsChart';
@@ -20,6 +19,7 @@ import {
   buildOverviewMetrics,
   exactNumber,
   METRIC_ICONS,
+  processingTimeOption,
   roundToTenth,
   sparklineOption,
   toneForCacheRate,
@@ -38,7 +38,7 @@ const exactPercent = (value: number | null, locale?: string): FormattedValue => 
   title: value === null ? undefined : `${String(value)}%`,
 });
 
-/** The KPI sparkline: 32px of line and soft area, no axes, and never its own tab stop. */
+/** The KPI sparkline: a full-width line and soft area, and never its own tab stop. */
 function MetricTrend({ card, label, index }: { card: MetricCard; label: string; index: number }) {
   const { i18n } = useTranslation();
   const locale = i18n.resolvedLanguage;
@@ -65,9 +65,9 @@ function MetricTrend({ card, label, index }: { card: MetricCard; label: string; 
   return (
     <div className={styles.sparklineSlot}>
       {trend.loading || !option ? (
-        <Skeleton width="100%" height={32} rounded={6} />
+        <Skeleton width="100%" height={56} rounded={6} />
       ) : (
-        <AnalyticsChart option={option} height={32} ariaLabel={label} focusable={false} />
+        <AnalyticsChart option={option} height={56} ariaLabel={label} focusable={false} />
       )}
     </div>
   );
@@ -244,8 +244,18 @@ function ProcessingTimeCard({
     defaultValue: 'Accumulated timing totals for E2E, generation, TTFT, and latency.',
   });
   const cardLabel = t('analytics.overview.processing_time', { defaultValue: 'Processing time' });
-  const e2eLabel = t('analytics.overview.e2e_duration', {
-    defaultValue: 'Accumulated E2E duration',
+  const e2eLabel = t('analytics.overview.e2e_short', {
+    defaultValue: 'E2E',
+  });
+  const chartRows = [
+    { label: e2eLabel, value: processing?.e2e_ms ?? null },
+    ...rows.map(({ label, value }) => ({ label, value: value ?? null })),
+  ];
+  const chartOption = processingTimeOption({
+    rows: chartRows,
+    maxValue,
+    format: (value) => formatAccumulatedDuration(value, locale),
+    seriesName: cardLabel,
   });
 
   return (
@@ -253,14 +263,15 @@ function ProcessingTimeCard({
       className={styles.processingCardFocus}
       aria-label={`${cardLabel}. ${e2eLabel}: ${e2eValue.text}. ${coverage}`}
     >
-      <Card className={styles.processingCard} title={cardLabel}>
-        <span className={styles.metricLabel}>{e2eLabel}</span>
+      <Card className={styles.metricCard}>
+        <span className={styles.metricLabel}>{cardLabel}</span>
         <strong className={styles.metricValue} title={e2eValue.title}>
           {e2eValue.text}
         </strong>
         <ComparisonNote
           metric="processing"
           value={processing?.e2e_ms == null ? null : processing.e2e_ms / 1_000}
+          additionalNote={coverage}
         />
         <div className={styles.processingSubstats}>
           {rows.map((row) => (
@@ -277,32 +288,14 @@ function ProcessingTimeCard({
             />
           ))}
         </div>
-        <div className={styles.processingChart} role="img" aria-label={chartLabel}>
-          {rows.map((row) => {
-            const scale =
-              typeof row.value === 'number' && Number.isFinite(row.value)
-                ? row.value === 0
-                  ? 0
-                  : Math.max(0.03, row.value / maxValue)
-                : 0;
-            return (
-              <div className={styles.processingBarRow} key={row.key}>
-                <span>{row.label}</span>
-                <span className={styles.processingBarTrack} aria-hidden="true">
-                  <span
-                    className={
-                      typeof row.value !== 'number' || !Number.isFinite(row.value)
-                        ? styles.processingBarUnknown
-                        : undefined
-                    }
-                    style={{ '--processing-bar-scale': scale } as CSSProperties}
-                  />
-                </span>
-              </div>
-            );
-          })}
+        <div className={styles.processingChart}>
+          <AnalyticsChart
+            option={chartOption}
+            height={112}
+            ariaLabel={chartLabel}
+            focusable={false}
+          />
         </div>
-        <p className={styles.processingCoverage}>{coverage}</p>
       </Card>
     </section>
   );
@@ -548,47 +541,19 @@ export function OverviewKpis({
         label={t('analytics.overview.key_metrics', { defaultValue: 'Key metrics' })}
       />
 
-      <details className={styles.comparisonInfo}>
-        <summary>
-          <IconInfo size={15} />
-          {t('analytics.overview.how_we_compare', { defaultValue: 'How we compare' })}
-        </summary>
-        <p>
-          {t('analytics.overview.comparison_disclaimer', {
-            defaultValue:
-              'These comparisons use rounded public figures for scale. They are illustrative, not accounting totals.',
-          })}
-        </p>
-        <dl>
-          <div>
-            <dt>
-              {t('analytics.overview.chars_per_token', { defaultValue: 'Characters per token' })}
-            </dt>
-            <dd>4</dd>
-          </div>
-          <div>
-            <dt>{t('analytics.overview.words_per_token', { defaultValue: 'Words per token' })}</dt>
-            <dd>0.75</dd>
-          </div>
-          <div>
-            <dt>{t('analytics.overview.words_per_page', { defaultValue: 'Words per page' })}</dt>
-            <dd>500</dd>
-          </div>
-          <div>
-            <dt>{t('analytics.overview.page_thickness', { defaultValue: 'Page thickness' })}</dt>
-            <dd>0.1 mm</dd>
-          </div>
-        </dl>
-      </details>
-
       <div className={styles.summaryHighlights}>
+        <ProcessingTimeCard
+          processing={metrics.processingTime}
+          attemptCount={metrics.upstreamAttempts}
+        />
         <div
           className={styles.dailyCardFocus}
           role="group"
           tabIndex={0}
           aria-label={dailyAriaLabel}
         >
-          <Card title={dailyAverageLabel}>
+          <Card className={styles.metricCard}>
+            <span className={styles.metricLabel}>{dailyAverageLabel}</span>
             <div className={styles.dailyGrid}>
               {dailyValues.map(({ label, value }) => (
                 <div className={styles.dailyMetric} key={label}>
@@ -610,10 +575,6 @@ export function OverviewKpis({
             <p className={styles.rangeBasis}>{dailyBasis}</p>
           </Card>
         </div>
-        <ProcessingTimeCard
-          processing={metrics.processingTime}
-          attemptCount={metrics.upstreamAttempts}
-        />
       </div>
     </div>
   );

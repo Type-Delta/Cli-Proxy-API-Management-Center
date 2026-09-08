@@ -17,6 +17,7 @@ import {
   calendarHeatmapCells,
   METRIC_ICONS,
   overviewSparklines,
+  processingTimeOption,
   requestHealthLevel,
   sparklineOption,
   summarizeActivityYear,
@@ -272,7 +273,11 @@ describe('analytics overview model', () => {
     expect(markup).toContain('E2E timing observed for 600 of 600 upstream attempts.');
     expect(markup).toContain('Some timing fields are unavailable for these attempts.');
     expect(markup).not.toContain('of 240 requests observed');
-    expect(markup).toContain('--processing-bar-scale:0');
+    expect(markup).toContain('--analytics-chart-height:112px');
+    expect(markup).not.toContain('Accumulated E2E duration');
+    expect(markup).not.toContain('processingCoverage');
+    expect(markup).not.toContain('How we compare');
+    expect(markup.indexOf('Processing time')).toBeLessThan(markup.indexOf('Daily average'));
   });
 
   test('makes the full comparison phrase the accessible tooltip trigger', () => {
@@ -286,8 +291,53 @@ describe('analytics overview model', () => {
 
     expect(markup).toContain('aria-describedby="');
     expect(markup).toContain('Calculation: 120,000 / 120,000 tokens per novel = 1.0');
+    expect(markup).toContain('Scale: 0.75 words per token.');
+    expect(markup).not.toContain('500 words per page');
     expect(markup).toContain('aria-expanded="false"');
     expect(markup).toContain('aria-hidden="true"');
+    expect(markup).not.toContain('title="Explain this comparison"');
+  });
+
+  test('keeps paper and dictionary scale assumptions with the matching token comparison', () => {
+    const render = (value: number) =>
+      renderToStaticMarkup(
+        createElement(
+          I18nextProvider,
+          { i18n },
+          createElement(ComparisonNote, { metric: 'tokens', value })
+        )
+      );
+
+    expect(render(100_000_000_000)).toContain('Scale: 500 words per page and 0.1 mm per page.');
+    expect(render(10_000_000)).toContain(
+      'Scale: 6,150 characters per page divided by 4 characters per token.'
+    );
+  });
+
+  test('uses the shared chart adapter for comparable processing bars', () => {
+    const option = processingTimeOption({
+      rows: [
+        { label: 'E2E', value: 12_000 },
+        { label: 'Generation', value: null },
+        { label: 'TTFT', value: 2_000 },
+      ],
+      maxValue: 12_000,
+      format: (value) => `${value} ms`,
+      seriesName: 'Processing time',
+    });
+
+    expect(option).toMatchObject({
+      tooltip: { trigger: 'axis', appendToBody: true },
+      grid: { left: 82 },
+      xAxis: { type: 'value', min: 0, max: 12_000 },
+      yAxis: {
+        type: 'category',
+        inverse: true,
+        data: ['E2E', 'Generation', 'TTFT'],
+        axisLabel: { width: 74, overflow: 'truncate' },
+      },
+      series: [{ type: 'bar', data: [12_000, null, 2_000] }],
+    });
   });
 
   test('derives six sparkline series and per-bucket rates', () => {
@@ -485,8 +535,8 @@ describe('analytics overview model', () => {
     // R6-8: the tone now tints the label icon; the 28x3 accent rule is gone.
     expect(markup).toContain('--metric-accent:var(--text-tertiary)');
     expect(markup).toContain('--metric-accent:var(--amber-color)');
-    // One tone-tinted icon per card plus the comparison-method info icon.
-    expect(markup.match(/width="15" height="15"/g)).toHaveLength(7);
+    // One tone-tinted icon per KPI card; comparison help icons stay visually smaller.
+    expect(markup.match(/width="15" height="15"/g)).toHaveLength(6);
     expect(
       [...markup.matchAll(/aria-label="([^"]+)"/g)].every((match) => match[1].length < 200)
     ).toBe(true);

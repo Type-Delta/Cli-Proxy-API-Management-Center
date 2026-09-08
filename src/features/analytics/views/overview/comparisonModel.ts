@@ -16,6 +16,7 @@ export type ComparisonBand = {
 export type MetricComparison = {
   metric: ComparisonMetric;
   value: number | null;
+  bandId?: string;
   phraseKey: string;
   phraseDefault: string;
   tooltipKey: string;
@@ -749,6 +750,7 @@ export function buildComparison(
   return {
     metric,
     value,
+    bandId: selected.id,
     phraseKey: selected.phraseKey,
     phraseDefault: selected.phraseDefault,
     tooltipKey: selected.tooltipKey,
