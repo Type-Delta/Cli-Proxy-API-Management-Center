@@ -10,6 +10,11 @@
 
 .keysTable {
   min-width: 1500px;
+
+  th,
+  td {
+    vertical-align: middle;
+  }
 }
 
 .retryButton {
@@ -130,4 +135,8 @@
   .keyCardMetrics {
     grid-template-columns: 1fr;
   }
+}
+
+.statusBadge {
+  margin-bottom: 0;
 }

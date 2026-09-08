@@ -884,7 +884,10 @@ export function latencyRadarOption({
         : null;
   }).filter((value): value is number => value !== null);
   const commonMaximum = Math.max(1, ...(scaleCandidates.length > 0 ? scaleCandidates : [1])) * 1.15;
-  const maxima = TIMING_METRIC_KEYS.map(() => commonMaximum);
+  // Radar geometry uses log10 milliseconds so short timings remain visible beside E2E totals.
+  const logMaximum = Math.log10(commonMaximum);
+  const toRadarScale = (value: number) => Math.log10(Math.max(1, value));
+  const maxima = TIMING_METRIC_KEYS.map(() => logMaximum);
   const indicatorLabels = TIMING_METRIC_KEYS.map((key, index) =>
     wrapRadarLabel(values[index] == null ? `${labels[key]}\n· ${unavailableLabel}` : labels[key])
   );
@@ -906,8 +909,8 @@ export function latencyRadarOption({
       if (value == null || !Number.isFinite(value)) return [];
       // ECharts starts at 90° and advances counterclockwise through radar indicators.
       const angle = ((90 + (index * 360) / axisCount) * Math.PI) / 180;
-      const x = centerX + Math.cos(angle) * radius * Math.min(1, value / commonMaximum);
-      const y = centerY - Math.sin(angle) * radius * Math.min(1, value / commonMaximum);
+      const x = centerX + Math.cos(angle) * radius * Math.min(1, toRadarScale(value) / logMaximum);
+      const y = centerY - Math.sin(angle) * radius * Math.min(1, toRadarScale(value) / logMaximum);
       const outwardX = Math.cos(angle);
       const outwardY = -Math.sin(angle);
       return [
@@ -994,7 +997,10 @@ export function latencyRadarOption({
         // ECharts treats null radar vertices as zero, which would draw an unavailable measurement
         // at the centre of the chart. Keep the grid and unavailable labels; partial responses draw
         // only known axis spokes and nodes with the custom series below.
-        data: hasCompleteValues && hasAnimatedCompleteValues ? [{ value: values }] : [],
+        data:
+          hasCompleteValues && hasAnimatedCompleteValues
+            ? [{ value: values.map((value) => toRadarScale(value as number)) }]
+            : [],
         animationDurationUpdate: 0,
       },
       ...(hasCompleteValues && hasAnimatedCompleteValues
@@ -1068,6 +1074,7 @@ export function latencyOption({
     silent: true,
     symbol: 'none',
     label: { color: palette.textSecondary, fontSize: 11, formatter: '{b}' },
+    animationDuration: 0,
     data: [
       ...(selectedTtft == null
         ? []
@@ -1332,6 +1339,9 @@ export function distributionOption({
   const labelCategory =
     lastSelectedCategory === -1 ? categoryLabels.length - 1 : lastSelectedCategory;
   return {
+    animationDuration: 600,
+    animationDurationUpdate: 400,
+    animationEasing: 'cubicOut',
     grid: { left: 96, right: 66, top: 4, bottom: 24, containLabel: false },
     tooltip: {
       trigger: 'item',

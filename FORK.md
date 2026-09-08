@@ -590,3 +590,48 @@ All added cost sorts reorder displayed rows. Focus opens the latency metric expl
 actual-component probe changes empty timing data to populated data and verifies both chart hosts
 appear with final 10-second E2E and 1-second TTFT values. Radar order and all cost sort keys have
 focused regression coverage.
+
+Usage Distribution displays the eight highest-token items in each dimension. Token shares retain
+the denominator of all returned rows, so limiting the visible list does not inflate percentages.
+
+Full-width metric trends clip their contents to the card’s inherited bottom corner radii,
+preventing chart fills from extending beyond the rounded card edge.
+
+Processing Time keeps its accumulated E2E value, comparison, and timing details without a chart.
+Removed the unused bar-chart helper and styles. Validation: `bun run verify` passes 672 tests,
+lint, TypeScript, and build; desktop and mobile browser checks show the summary without chart
+hosts or page overflow.
+
+Manual header refresh restores the previous 58% content opacity while automatic refresh keeps
+cards fully visible. The analytics status shows a spinner and Refreshing text during refresh
+instead of reverting to a skeleton. Initial capability loading retains its placeholder.
+Browser checks at desktop and mobile widths confirm manual opacity 0.58 and automatic opacity 1;
+mobile checks also confirm the Refreshing status without a skeleton for both triggers.
+
+Latency radar geometry uses a shared log10 millisecond scale across all axes and modes.
+Values at or below 1 ms map to the center; missing values remain unavailable. Tooltips and
+partial-radar numeric labels retain the original duration values.
+
+Fable supplied replacement TPM comparisons for tweets, days of talking, and English Wikipedias
+per day, plus a cache déjà vu comparison. Formula tooltips and all four locales match the new
+references. A private-jet cost band splits the old Super Bowl range at 25 million USD, leaving
+the cars range unchanged. Usage Distribution and Key × Model Heatmap use underlined tab controls
+with keyboard navigation and labelled panels; other segmented controls retain their appearance.
+Validation: 673 tests, lint, TypeScript, and production build pass. Isolated browser checks at
+1440 and 390 pixels confirm both tablists switch with arrow keys, focus the selected tab,
+reference the active panel, and introduce no page overflow or console errors.
+
+Usage Distribution replays its 600 ms bar entry animation when its dimension changes. The chart
+instance stays mounted and reduced-motion preferences suppress the replay. Validation: 673 tests,
+lint, TypeScript, and build pass; browser sampling confirms changing animation frames and an
+unchanged ECharts instance after switching modes, with no console errors.
+
+Key usage catalog cells align vertically at their centers. Active key badges use the success
+color and deleted keys use the error color. Every key status has a localized explanatory
+custom tooltip, and the Status column tooltip describes configuration, recent use, and history.
+
+Usage Distribution now retains all dimension series and switches their visibility through a
+hidden legend using merged ECharts updates. Stable category labels prevent unrelated renders
+from replacing options. The chart reserves the largest dimension's height so resize does not
+cancel the transition. This supersedes the dimension-triggered clear-and-replay behavior above.
+Browser frame sampling confirms a continuous transition and the same ECharts instance.

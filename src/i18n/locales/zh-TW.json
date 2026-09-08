@@ -693,22 +693,20 @@
           "reading_hint": "成人默讀約每分鐘 240 個單字，即約 320 個權杖。",
           "rap_god": "大約是《Rap God》最快段落的 {{value}} 倍。",
           "rap_god_hint": "該比較使用最快段落約每分鐘 517 個權杖的估計。",
-          "paperback_pages": "每分鐘大約 {{value}} 頁平裝書。",
-          "paperback_pages_hint": "排版後的平裝書一頁約有 667 個權杖。",
           "novels": "每分鐘大約 {{value}} 本完整小說。",
           "novels_hint": "一本 90,000 字的小說約有 120,000 個權杖。",
-          "war_and_peace": "每分鐘大約 {{value}} 倍《戰爭與和平》。",
-          "war_and_peace_hint": "按共用估算，《戰爭與和平》約有 783,000 個權杖。",
-          "oxford_dictionary": "每分鐘大約 {{value}} 套《牛津英語詞典》。",
-          "oxford_dictionary_hint": "一套第二版 OED 估算有 33,409,875 個權杖。",
           "unavailable": "有測量資料後才會顯示比較。",
-          "unavailable_hint": "所選範圍沒有可用於此比較的值。"
+          "unavailable_hint": "所選範圍沒有可用於此比較的值。",
+          "tweets_per_minute": "每分鐘處理相當於 {{value}} 則推文的文字",
+          "tweets_per_minute_hint": "每分鐘處理的總 token 數。假設一則 280 字元的推文 ≈ 70 個 token（4 字元/token）。粗略估算，非社群媒體基準。",
+          "days_of_talking": "每分鐘相當於一個人 {{value}} 天的說話量",
+          "days_of_talking_hint": "每分鐘處理的總 token 數。假設一般人每天約說 16,000 個詞，0.75 詞/token。僅為數量級示意。",
+          "wikipedias_per_day": "每天相當於 {{value}} 部英文維基百科",
+          "wikipedias_per_day_hint": "按每分鐘總 token 數折算到一天。假設英文維基百科約 45 億詞 ≈ 60 億 token（0.75 詞/token，取整）。粗略規模，非即時統計。"
         },
         "cache_rate": {
           "cold_start": "幾乎沒有輸入權杖來自快取重用。",
           "cold_start_hint": "測得的快取率低於 0.1%，因此只有很少一部分輸入權杖被重用。",
-          "one_in": "大約每 {{value}} 個輸入權杖中有 1 個命中快取。",
-          "one_in_hint": "穩定的提示詞前綴會讓這個比例提高。",
           "batting": "擊球率 .{{value}}，在大聯盟中已經不錯。",
           "batting_hint": "快取率按三位數的棒球擊球率表示。",
           "nba_range": "三分區間，約有 {{value}}% 被快取。",
@@ -726,7 +724,9 @@
           "total": "100% 被快取，接近完全重用。",
           "total_hint": "每個測量到的輸入權杖都由快取提供。",
           "unavailable": "有測量資料後才會顯示比較。",
-          "unavailable_hint": "所選範圍沒有可用於此比較的值。"
+          "unavailable_hint": "所選範圍沒有可用於此比較的值。",
+          "deja_vu": "每 {{value}} 個 token 就有 1 個似曾相識",
+          "deja_vu_hint": "僅為比喻，非測量值。「似曾相識」指因先前出現過而由提示快取提供的 token。數值 = 100 ÷ 快取命中率%。"
         },
         "cost": {
           "stamps": "大約相當於 {{value}} 張郵票。",
@@ -748,7 +748,9 @@
           "falcon_launches": "大約相當於 {{value}} 次獵鷹 9 發射。",
           "falcon_launches_hint": "獵鷹 9 的標價按 7,000 萬美元估算。",
           "unavailable": "有測量資料後才會顯示比較。",
-          "unavailable_hint": "所選範圍沒有可用於此比較的值。"
+          "unavailable_hint": "所選範圍沒有可用於此比較的值。",
+          "private_jet": "相當於 {{value}} 架私人飛機",
+          "private_jet_hint": "以每架輕型私人飛機約 500 萬美元的四捨五入示意預算計算。"
         },
         "processing": {
           "blinks": "大約相當於眨眼 {{value}} 次。",
@@ -1013,7 +1015,7 @@
     "keys_header_help": {
       "rank": "所選範圍內此金鑰的伺服器排名。",
       "key": "隱藏的金鑰識別和可選標籤。",
-      "status": "已設定金鑰在最近一次生命週期活動後的五分鐘內顯示為活躍。",
+      "status": "此 API 金鑰是否仍在設定中、最近是否使用過，或僅保留在用量歷史中。",
       "tokens": "所選範圍內記錄的權杖總數。",
       "cost": "僅統計有價格的用量對應的已知 API 等價成本。",
       "unpriced": "沒有符合價格規則的權杖。",
@@ -1024,6 +1026,14 @@
       "indexes": "與此金鑰關聯的設定索引。",
       "first_activity": "生命週期內首次活動，按瀏覽器時區顯示。",
       "last_activity": "生命週期內最近活動，按瀏覽器時區顯示。"
+    },
+    "key_status_help": {
+      "active": "已設定，且最近五分鐘內有使用紀錄。",
+      "idle": "已設定並可使用，但最近五分鐘內沒有活動。",
+      "rotated": "此金鑰已在輪替時被取代，其用量歷史仍保留。",
+      "deleted": "此金鑰已從設定中移除，其用量歷史仍保留。",
+      "historical": "此金鑰出現在用量歷史中，但目前未設定。",
+      "identity_conflict": "偵測到金鑰身分衝突，無法可靠地確定用量歸屬。"
     }
   },
   "dashboard": {

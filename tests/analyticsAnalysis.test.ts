@@ -798,7 +798,7 @@ describe('analysis ECharts options', () => {
     expect(option.tooltip.formatter([{ value: [120, 900, 'model-a', 'ts'] }])).toContain('900ms');
   });
 
-  test('keeps latency radar axes comparable and omits an incomplete polygon', () => {
+  test('uses shared log10 latency radar axes and omits an incomplete polygon', () => {
     // The custom radar follows the visual clockwise order E2E, provider, generation, TTFT,
     // latency even though ECharts exposes the axes in its counterclockwise data order.
     expect(TIMING_METRIC_KEYS.map((_, index) => latencyRadarAxisOffset(index))).toEqual([
@@ -839,12 +839,14 @@ describe('analysis ECharts options', () => {
       series: Array<{ data: unknown[] }>;
     };
     expect(complete.radar.indicator.map((indicator) => indicator.max)).toEqual(
-      expect.arrayContaining([expect.closeTo(230, 1e-9)])
+      expect.arrayContaining([expect.closeTo(Math.log10(230), 1e-9)])
     );
     expect(new Set(complete.radar.indicator.map((indicator) => Math.round(indicator.max)))).toEqual(
-      new Set([230])
+      new Set([Math.round(Math.log10(230))])
     );
-    expect(complete.series[0].data).toHaveLength(1);
+    expect(complete.series[0].data).toEqual([
+      { value: [200, 50, 80, 120, 30].map((value) => Math.log10(value)) },
+    ]);
 
     const partialMetrics = { ...metrics, provider_latency: metric(null, null, null) };
     const partial = latencyRadarOption({

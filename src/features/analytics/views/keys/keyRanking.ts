@@ -37,7 +37,7 @@ export type KeyRankingRow = Omit<AnalyticsKey, 'top_model_tokens'> & {
   generation_sample_count: number;
 };
 
-export type KeyDisplayStatus = AnalyticsKey['status'] | 'active' | 'idle';
+export type KeyDisplayStatus = Exclude<AnalyticsKey['status'], 'configured'> | 'active' | 'idle';
 
 const KEY_ACTIVE_WINDOW_MS = 5 * 60 * 1000;
 

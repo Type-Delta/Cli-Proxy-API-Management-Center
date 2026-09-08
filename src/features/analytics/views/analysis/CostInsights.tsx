@@ -112,18 +112,7 @@ export function CostBreakdown({
       onRetry={onRetry}
     >
       <div className={styles.costBreakdownBody}>
-        <div className={styles.costTotal}>
-          <span>
-            {t('analytics.analysis.total_known_spend', { defaultValue: 'Total known spend' })}
-          </span>
-          <strong title={formatCostValue(total, locale).title}>
-            <AnimatedMetric
-              value={total}
-              scale={10_000}
-              format={(value) => formatCostValue(value, locale).text}
-            />
-          </strong>
-        </div>
+
         <div className={styles.costRadar}>
           <CostRadar
             segments={segments}
@@ -139,6 +128,18 @@ export function CostBreakdown({
           />
         </div>
         <dl className={styles.costList}>
+          <div className={styles.costTotal}>
+          <span>
+            {t('analytics.analysis.total_known_spend', { defaultValue: 'Total known spend' })}
+          </span>
+          <strong title={formatCostValue(total, locale).title}>
+            <AnimatedMetric
+              value={total}
+              scale={10_000}
+              format={(value) => formatCostValue(value, locale).text}
+            />
+          </strong>
+        </div>
           {segments.map((segment) => (
             <div key={segment.key}>
               <dt>

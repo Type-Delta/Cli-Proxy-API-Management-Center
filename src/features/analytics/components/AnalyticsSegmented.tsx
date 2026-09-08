@@ -12,7 +12,9 @@ export type AnalyticsSegmentedProps<T extends string> = {
   ariaLabel: string;
   /** Use tab semantics when the segments switch a labelled panel, such as dimensions. */
   role?: 'group' | 'tablist';
+  variant?: 'segmented' | 'tabs';
   idPrefix?: string;
+  className?: string;
 };
 
 /** A compact, keyboard friendly selector shared by analytics chart modes. */
@@ -22,15 +24,19 @@ export function AnalyticsSegmented<T extends string>({
   onChange,
   ariaLabel,
   role = 'group',
+  variant = 'segmented',
   idPrefix,
+  className,
 }: AnalyticsSegmentedProps<T>) {
   return (
     <SegmentedControl
+      className={className}
       value={value}
       options={options}
       onChange={onChange}
       ariaLabel={ariaLabel}
       role={role}
+      variant={variant}
       idPrefix={idPrefix}
     />
   );

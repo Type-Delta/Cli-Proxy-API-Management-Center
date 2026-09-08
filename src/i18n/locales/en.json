@@ -544,22 +544,20 @@
           "reading_hint": "Adult silent reading is estimated at 240 words per minute, or about 320 tokens.",
           "rap_god": "About {{value}}× the fastest verse in Rap God.",
           "rap_god_hint": "The comparison uses roughly 517 tokens per minute for the record-setting passage.",
-          "paperback_pages": "About {{value}} paperback pages every minute.",
-          "paperback_pages_hint": "A typeset trade-paperback page is estimated at roughly 667 tokens.",
           "novels": "About {{value}} complete novels per minute.",
           "novels_hint": "One 90,000-word novel is roughly 120,000 tokens.",
-          "war_and_peace": "About {{value}}× War and Peace per minute.",
-          "war_and_peace_hint": "War and Peace is roughly 783,000 tokens using the shared token estimate.",
-          "oxford_dictionary": "About {{value}} Oxford English Dictionaries a minute.",
-          "oxford_dictionary_hint": "One OED second edition is estimated at 33,409,875 tokens.",
           "unavailable": "No comparison until this metric has measured usage.",
-          "unavailable_hint": "The selected range does not contain a usable value for this comparison."
+          "unavailable_hint": "The selected range does not contain a usable value for this comparison.",
+          "tweets_per_minute": "{{value}} tweets' worth of text every minute",
+          "tweets_per_minute_hint": "Aggregate tokens processed per minute. Assumes a full 280-character tweet ≈ 70 tokens (4 chars/token). Rough sizing, not a social-media benchmark.",
+          "days_of_talking": "{{value}} days of one person's talking, every minute",
+          "days_of_talking_hint": "Aggregate tokens processed per minute. Assumes an average person speaks ~16,000 words/day and 0.75 words/token. Order-of-magnitude illustration.",
+          "wikipedias_per_day": "{{value}} English Wikipedias a day",
+          "wikipedias_per_day_hint": "Aggregate tokens per minute scaled to a day. Assumes English Wikipedia ≈ 4.5B words ≈ 6B tokens (0.75 words/token, rounded). Rough scale, not a live count."
         },
         "cache_rate": {
           "cold_start": "Almost no input tokens were served from cache.",
           "cold_start_hint": "The measured cache rate is below 0.1%, so only a small fraction of input tokens was reused.",
-          "one_in": "About 1 input token in {{value}} hits cache.",
-          "one_in_hint": "Long, stable prompt prefixes are what make this rate climb.",
           "batting": "Batting .{{value}}, respectable in the majors.",
           "batting_hint": "The number is the cache rate expressed as a three-digit batting average.",
           "nba_range": "Three-point range, about {{value}}% cached.",
@@ -577,7 +575,9 @@
           "total": "100% cached, near-total recall.",
           "total_hint": "Every measured input token was served from cache.",
           "unavailable": "No comparison until this metric has measured usage.",
-          "unavailable_hint": "The selected range does not contain a usable value for this comparison."
+          "unavailable_hint": "The selected range does not contain a usable value for this comparison.",
+          "deja_vu": "Déjà vu on 1 in {{value}} tokens",
+          "deja_vu_hint": "Analogy, not a measurement. 'Déjà vu' = a token served from the prompt cache because it was seen before. Value = 100 ÷ cache-hit %."
         },
         "cost": {
           "stamps": "About {{value}} postage stamps.",
@@ -599,7 +599,9 @@
           "falcon_launches": "About {{value}} Falcon 9 launches.",
           "falcon_launches_hint": "A Falcon 9 list price is rounded to 70 million USD.",
           "unavailable": "No comparison until this metric has measured usage.",
-          "unavailable_hint": "The selected range does not contain a usable value for this comparison."
+          "unavailable_hint": "The selected range does not contain a usable value for this comparison.",
+          "private_jet": "That's {{value}} private jets",
+          "private_jet_hint": "Rounded illustrative budget of about $5M per light private jet."
         },
         "processing": {
           "blinks": "About {{value}} blinks of an eye.",
@@ -716,7 +718,7 @@
       "e2e_latency_description": "Compare E2E latency, time to first token, generation time, and provider timing.",
       "generation_time": "Generation time",
       "heatmap_mode": "Heatmap metric",
-      "median": "Median",
+      "median": "median",
       "model_cost_cache_read_help": "Cache read cost for this model.",
       "model_cost_cache_write_help": "Cache write cost for this model.",
       "model_cost_input_help": "Uncached input cost for this model.",
@@ -1013,7 +1015,7 @@
     "keys_header_help": {
       "rank": "Server rank for this key in the selected range.",
       "key": "The concealed key identity and optional label.",
-      "status": "Configured keys become active for five minutes after lifetime activity.",
+      "status": "Whether this API key is currently configured, recently used, or retained only in usage history.",
       "tokens": "Total tokens recorded in the selected range.",
       "cost": "Known API-equivalent cost for priced usage only.",
       "unpriced": "Tokens without a matching price rule.",
@@ -1024,6 +1026,14 @@
       "indexes": "Configuration indexes linked to this key.",
       "first_activity": "Lifetime first activity, shown in your browser timezone.",
       "last_activity": "Lifetime last activity, shown in your browser timezone."
+    },
+    "key_status_help": {
+      "active": "Configured and used within the last five minutes.",
+      "idle": "Configured and ready for use, with no activity in the last five minutes.",
+      "rotated": "This key was replaced during rotation; its usage history is retained.",
+      "deleted": "This key was removed from configuration; its usage history is retained.",
+      "historical": "This key appears in usage history but is not currently configured.",
+      "identity_conflict": "Conflicting key identities were detected; attribution cannot be resolved reliably."
     }
   },
   "dashboard": {

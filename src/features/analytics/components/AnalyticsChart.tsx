@@ -50,6 +50,10 @@ echarts.use([
 export type AnalyticsChartProps = {
   /** Pure data and geometry. Colour comes from the registered theme, not from here. */
   option: EChartsCoreOption;
+  /** Replay entry animation when a chart switches to a different dataset. */
+  animationKey?: string;
+  /** Preserve series models for animated dataset switches. */
+  mergeUpdates?: boolean;
   /** Reserved before the first frame, so a chart never shifts the card it lands in. */
   height: number;
   /** The chart's one-sentence summary; keep it under 200 characters. */
@@ -77,30 +81,26 @@ type TooltipPositionCallback = Extract<
   (...args: never[]) => unknown
 >;
 
-const createPortaledTooltipPosition = (host: HTMLDivElement): TooltipPositionCallback => (
-  point,
-  _params,
-  _element,
-  _rect,
-  size
-) => {
-  const hostRect = host.getBoundingClientRect();
-  const [contentWidth, contentHeight] = size.contentSize;
-  const viewportWidth = document.documentElement.clientWidth;
-  const viewportHeight = document.documentElement.clientHeight;
-  const desiredViewportX = hostRect.left + point[0] + 20;
-  const desiredViewportY = hostRect.top + point[1] - contentHeight - 20;
-  const viewportX = Math.min(
-    Math.max(desiredViewportX, 0),
-    Math.max(0, viewportWidth - contentWidth)
-  );
-  const viewportY = Math.min(
-    Math.max(desiredViewportY, 0),
-    Math.max(0, viewportHeight - contentHeight)
-  );
+const createPortaledTooltipPosition =
+  (host: HTMLDivElement): TooltipPositionCallback =>
+  (point, _params, _element, _rect, size) => {
+    const hostRect = host.getBoundingClientRect();
+    const [contentWidth, contentHeight] = size.contentSize;
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = document.documentElement.clientHeight;
+    const desiredViewportX = hostRect.left + point[0] + 20;
+    const desiredViewportY = hostRect.top + point[1] - contentHeight - 20;
+    const viewportX = Math.min(
+      Math.max(desiredViewportX, 0),
+      Math.max(0, viewportWidth - contentWidth)
+    );
+    const viewportY = Math.min(
+      Math.max(desiredViewportY, 0),
+      Math.max(0, viewportHeight - contentHeight)
+    );
 
-  return [viewportX - hostRect.left, viewportY - hostRect.top];
-};
+    return [viewportX - hostRect.left, viewportY - hostRect.top];
+  };
 
 const withTooltipPortal = (
   option: EChartsCoreOption,
@@ -116,9 +116,7 @@ const withTooltipPortal = (
       ...tooltip,
       appendToBody: false,
       appendTo: portal,
-      ...(tooltip.position === undefined
-        ? { position: createPortaledTooltipPosition(host) }
-        : {}),
+      ...(tooltip.position === undefined ? { position: createPortaledTooltipPosition(host) } : {}),
     },
   };
 };
@@ -129,12 +127,14 @@ const applyChartOption = ({
   portal,
   host,
   replay,
+  merge = false,
 }: {
   chart: EChartsType;
   option: EChartsCoreOption;
   portal: HTMLDivElement | null;
   host: HTMLDivElement;
   replay: boolean;
+  merge?: boolean;
 }) => {
   const motion = reducedMotionQuery();
   const nextOption = withTooltipPortal(option, portal, host);
@@ -143,7 +143,8 @@ const applyChartOption = ({
   // previous frame before activation gives ECharts a real initial state to animate from again.
   if (replay && !motion?.matches) chart.clear();
   chart.setOption(motion?.matches ? { ...nextOption, animation: false } : nextOption, {
-    notMerge: true,
+    notMerge: !merge,
+    ...(merge ? { replaceMerge: ['series'] } : {}),
   });
 };
 
@@ -155,6 +156,8 @@ const applyChartOption = ({
  */
 export function AnalyticsChart({
   option,
+  animationKey,
+  mergeUpdates = false,
   height,
   ariaLabel,
   description,
@@ -171,6 +174,7 @@ export function AnalyticsChart({
   const hostRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<EChartsType | null>(null);
   const optionRef = useRef(option);
+  const animationKeyRef = useRef(animationKey);
   const eventsRef = useRef(onEvents);
   const appliedRef = useRef<EChartsCoreOption | null>(null);
   const renderedRef = useRef(false);
@@ -303,8 +307,10 @@ export function AnalyticsChart({
   useEffect(() => {
     const chart = chartRef.current;
     // `create` already painted this option; only a genuinely new one has to be pushed.
-    if (!chart || !isVisible || appliedRef.current === option) return;
-    // notMerge, always: a series that disappeared from the data has to disappear from the chart.
+    if (!chart || !isVisible) return;
+    const replay = animationKeyRef.current !== animationKey;
+    if (appliedRef.current === option && !replay) return;
+    // Merge only for charts with stable series identities; replaceMerge removes obsolete series.
     const host = hostRef.current;
     if (!host) return;
     applyChartOption({
@@ -312,11 +318,13 @@ export function AnalyticsChart({
       option,
       portal: tooltipPortalRef.current,
       host,
-      replay: false,
+      replay,
+      merge: mergeUpdates,
     });
+    animationKeyRef.current = animationKey;
     appliedRef.current = option;
     renderedRef.current = true;
-  }, [isVisible, option]);
+  }, [animationKey, isVisible, mergeUpdates, option]);
 
   const hidden = description ?? children;
   const style = { '--analytics-chart-height': `${height}px` } as CSSProperties;

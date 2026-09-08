@@ -62,9 +62,7 @@ export function ComparisonNote({
       (comparison.bandId === 'typist' ||
         comparison.bandId === 'conversation' ||
         comparison.bandId === 'reading' ||
-        comparison.bandId === 'paperback_pages' ||
-        comparison.bandId === 'novels' ||
-        comparison.bandId === 'war_and_peace'))
+        comparison.bandId === 'novels'))
       ? 'analytics.overview.comparison_scale.words_per_token'
       : comparison.metric === 'tokens' && comparison.bandId === 'oxford_dictionary'
         ? 'analytics.overview.comparison_scale.dictionary'

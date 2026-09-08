@@ -103,6 +103,15 @@
 
 .refreshing {
   position: relative;
+
+  [data-analytics-manual-refresh='true'] & {
+    opacity: 0.58;
+    transition: opacity var(--dur-press) ease-out;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
 }
 
 .refreshingLabel {
@@ -141,6 +150,11 @@
   min-width: 0;
   grid-template-columns: minmax(0, 1fr);
   gap: $spacing-md;
+  margin-top: -14px;
+}
+
+.distributionTabs {
+  margin-top: -14px;
 }
 
 .costRadar {
@@ -249,23 +263,22 @@
   }
 
   .costTotal {
-    grid-column: 1;
-    grid-row: 1;
+    margin-bottom: $spacing-sm;
   }
 
   .costRadar {
     grid-column: 2;
-    grid-row: 1 / span 3;
+    grid-row: 1 / span 2;
   }
 
   .costList {
     grid-column: 1;
-    grid-row: 2;
+    grid-row: 1;
   }
 
   .blendedRate {
     grid-column: 1;
-    grid-row: 3;
+    grid-row: 2;
   }
 }
 
@@ -417,7 +430,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px 14px;
-  margin: 0 0 $spacing-sm;
+  margin: $spacing-sm 0 0;
   padding: 0;
   color: var(--text-secondary);
   font-size: 11px;
@@ -472,6 +485,11 @@
     color: var(--text-primary);
     font-size: 20px;
     font-variant-numeric: tabular-nums;
+    text-align: right;
+
+    small {
+      display: block;
+    }
   }
 }
 
@@ -506,6 +524,7 @@
 
   dd {
     margin: 0;
+    text-wrap: nowrap;
     color: var(--text-primary);
     font-size: 12px;
     font-variant-numeric: tabular-nums;

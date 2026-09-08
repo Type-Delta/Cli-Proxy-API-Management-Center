@@ -379,6 +379,14 @@ tbody tr:hover .stickyAction {
   flex-direction: column;
   gap: 20px;
 
+  [data-analytics-manual-refresh='true'] &[aria-busy='true'] > :not(.refreshingIndicator) {
+    opacity: 0.58;
+    transition: opacity 160ms ease-out;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
 }
 
 .refreshingIndicator {

@@ -231,6 +231,10 @@ export function KeyModelHeatmap({
       {matrix && (
         <>
           <AnalyticsSegmented
+            className={styles.distributionTabs}
+            role="tablist"
+            variant="tabs"
+            idPrefix="analysis-heatmap"
             value={metric}
             options={(['tokens', 'cost', 'generation'] as const).map((value) => ({
               value,
@@ -241,47 +245,53 @@ export function KeyModelHeatmap({
               defaultValue: 'Heatmap metric',
             })}
           />
-          {visibleModels.length < selection.totalModels && (
-            <p className={styles.heatmapLimit}>
-              {t('analytics.analysis.heatmap_showing', {
-                defaultValue: 'Showing {{visible}} of {{total}} models by {{metric}}.',
-                visible: visibleModels.length,
-                total: selection.totalModels,
-                metric: metricLabels[metric].toLocaleLowerCase(locale),
-              })}
-            </p>
-          )}
-          <div ref={chartWrapRef} className={styles.heatmapChart}>
-            <AnalyticsChart
-              option={option}
-              height={heatmapChartHeight(matrix.rows.length)}
-              ariaLabel={t('analytics.analysis.heatmap_chart_summary', {
-                defaultValue: '{{keys}} API keys across {{models}} models by {{metric}}',
-                keys: matrix.keys.length,
-                models: visibleModels.length,
-                metric: metricLabels[metric].toLocaleLowerCase(locale),
-              })}
-            >
-              <ul>
-                {topCells.map((cell) => (
-                  <li key={`${cell.keyId}/${cell.model}`}>
-                    {keyLabel(cell.keyId)} / {cell.model}:{' '}
-                    {cell.value == null
-                      ? unavailableLabel
-                      : metric === 'tokens'
-                        ? `${formatNumber(cell.value, locale)} ${tokensLabel}`
-                        : metric === 'cost'
-                          ? formatCostValue(cell.value, locale).text
-                          : formatAccumulatedDuration(cell.value, locale)}
-                  </li>
-                ))}
-              </ul>
-            </AnalyticsChart>
-          </div>
-          <div className={styles.heatmapLegend}>
-            <span>{t('analytics.analysis.heatmap_low', { defaultValue: 'Low' })}</span>
-            <i aria-hidden="true" />
-            <span>{t('analytics.analysis.heatmap_high', { defaultValue: 'High' })}</span>
+          <div
+            role="tabpanel"
+            id={`analysis-heatmap-panel-${metric}`}
+            aria-labelledby={`analysis-heatmap-${metric}`}
+          >
+            {visibleModels.length < selection.totalModels && (
+              <p className={styles.heatmapLimit}>
+                {t('analytics.analysis.heatmap_showing', {
+                  defaultValue: 'Showing {{visible}} of {{total}} models by {{metric}}.',
+                  visible: visibleModels.length,
+                  total: selection.totalModels,
+                  metric: metricLabels[metric].toLocaleLowerCase(locale),
+                })}
+              </p>
+            )}
+            <div ref={chartWrapRef} className={styles.heatmapChart}>
+              <AnalyticsChart
+                option={option}
+                height={heatmapChartHeight(matrix.rows.length)}
+                ariaLabel={t('analytics.analysis.heatmap_chart_summary', {
+                  defaultValue: '{{keys}} API keys across {{models}} models by {{metric}}',
+                  keys: matrix.keys.length,
+                  models: visibleModels.length,
+                  metric: metricLabels[metric].toLocaleLowerCase(locale),
+                })}
+              >
+                <ul>
+                  {topCells.map((cell) => (
+                    <li key={`${cell.keyId}/${cell.model}`}>
+                      {keyLabel(cell.keyId)} / {cell.model}:{' '}
+                      {cell.value == null
+                        ? unavailableLabel
+                        : metric === 'tokens'
+                          ? `${formatNumber(cell.value, locale)} ${tokensLabel}`
+                          : metric === 'cost'
+                            ? formatCostValue(cell.value, locale).text
+                            : formatAccumulatedDuration(cell.value, locale)}
+                    </li>
+                  ))}
+                </ul>
+              </AnalyticsChart>
+            </div>
+            <div className={styles.heatmapLegend}>
+              <span>{t('analytics.analysis.heatmap_low', { defaultValue: 'Low' })}</span>
+              <i aria-hidden="true" />
+              <span>{t('analytics.analysis.heatmap_high', { defaultValue: 'High' })}</span>
+            </div>
           </div>
         </>
       )}

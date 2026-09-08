@@ -379,13 +379,13 @@ export const COMPARISON_BANDS: Record<ComparisonMetric, readonly ComparisonBand[
     ),
     band(
       'tpm',
-      'paperback_pages',
+      'tweets_per_minute',
       6_670,
       120_000,
-      'About {{value}} paperback pages every minute.',
-      'A typeset trade-paperback page is estimated at roughly 667 tokens.',
-      'p / 667 tokens per page',
-      (value) => value / 667
+      "{{value}} tweets' worth of text every minute",
+      'Aggregate tokens processed per minute. Assumes a full 280-character tweet ≈ 70 tokens (4 chars/token). Rough sizing, not a social-media benchmark.',
+      'p / 70 tokens per tweet',
+      (value) => value / 70
     ),
     band(
       'tpm',
@@ -399,23 +399,23 @@ export const COMPARISON_BANDS: Record<ComparisonMetric, readonly ComparisonBand[
     ),
     band(
       'tpm',
-      'war_and_peace',
+      'days_of_talking',
       783_000,
       33_409_875,
-      'About {{value}}× War and Peace per minute.',
-      'War and Peace is roughly 783,000 tokens using the shared token estimate.',
-      'p / 783,000 TPM',
-      (value) => value / 783_000
+      "{{value}} days of one person's talking, every minute",
+      'Aggregate tokens processed per minute. Assumes an average person speaks ~16,000 words/day and 0.75 words/token. Order-of-magnitude illustration.',
+      'p × 0.75 words per token / 16,000 words per day',
+      (value) => (value * 0.75) / 16_000
     ),
     band(
       'tpm',
-      'oxford_dictionary',
+      'wikipedias_per_day',
       33_409_875,
       Number.POSITIVE_INFINITY,
-      'About {{value}} Oxford English Dictionaries a minute.',
-      'One OED second edition is estimated at 33,409,875 tokens.',
-      'p / 33,409,875 TPM',
-      (value) => value / 33_409_875
+      '{{value}} English Wikipedias a day',
+      'Aggregate tokens per minute scaled to a day. Assumes English Wikipedia ≈ 4.5B words ≈ 6B tokens (0.75 words/token, rounded). Rough scale, not a live count.',
+      'p × 1,440 minutes per day / 6,000,000,000 tokens per Wikipedia',
+      (value) => (value * 1_440) / 6_000_000_000
     ),
   ],
   cache_rate: [
@@ -431,11 +431,11 @@ export const COMPARISON_BANDS: Record<ComparisonMetric, readonly ComparisonBand[
     ),
     band(
       'cache_rate',
-      'one_in',
+      'deja_vu',
       0.1,
       15,
-      'About 1 input token in {{value}} hits cache.',
-      'Long, stable prompt prefixes are what make this rate climb.',
+      'Déjà vu on 1 in {{value}} tokens',
+      "Analogy, not a measurement. 'Déjà vu' = a token served from the prompt cache because it was seen before. Value = 100 ÷ cache-hit %.",
       '100 / c',
       (value) => 100 / value
     ),
@@ -504,8 +504,8 @@ export const COMPARISON_BANDS: Record<ComparisonMetric, readonly ComparisonBand[
       'near_total',
       99,
       100,
-      '{{value}}% cached, near-total recall.',
-      'Almost every input token is being reused in this illustrative range.',
+      'EUV\'s level precision; It never misses a droplet.',
+      'Extreme ultraviolet lithography (EUV) is a semiconductor manufacturing technique that uses laser to zap tiny droplets of molten tin—twice, turning it into superheated plasma to create intricate patterns on semiconductor substrates.',
       'c',
       (value) => value
     ),
@@ -593,8 +593,18 @@ export const COMPARISON_BANDS: Record<ComparisonMetric, readonly ComparisonBand[
     ),
     band(
       'cost',
-      'super_bowl',
+      'private_jet',
       1_000_000,
+      25_000_000,
+      "That's {{value}} private jets",
+      'Rounded illustrative budget of about $5M per light private jet.',
+      'd / 5,000,000 USD per light private jet',
+      (value) => value / 5_000_000
+    ),
+    band(
+      'cost',
+      'super_bowl',
+      25_000_000,
       70_000_000,
       'About {{value}} seconds of Super Bowl airtime.',
       'A 30-second Super Bowl spot is rounded to 8 million USD.',

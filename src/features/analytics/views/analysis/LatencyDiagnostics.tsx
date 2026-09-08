@@ -132,8 +132,8 @@ export function LatencyDiagnostics({
   const unavailableLabel = t('analytics.analysis.unavailable', { defaultValue: 'Unavailable' });
   const modeLabels: Record<TimingMode, string> = {
     p95: t('analytics.analysis.p95', { defaultValue: 'p95' }),
-    max: t('analytics.analysis.maximum', { defaultValue: 'Max' }),
-    median: t('analytics.analysis.median', { defaultValue: 'Median' }),
+    max: t('analytics.analysis.maximum', { defaultValue: 'max' }),
+    median: t('analytics.analysis.median', { defaultValue: 'median' }),
   };
   const timingValue = (key: TimingMetricKey) => {
     return timingMetricValue(metrics, key, mode);

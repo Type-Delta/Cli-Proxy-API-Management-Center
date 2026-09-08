@@ -20,7 +20,7 @@ import type {
 } from '@/types';
 import { useAnalyticsFilters } from '../AnalyticsFilterContext';
 import { analyticsKeyIdentity } from '../analyticsKeyFilterModel';
-import { AnalyticsStatusBadge, AsyncState } from '../components/AnalyticsShared';
+import { AsyncState } from '../components/AnalyticsShared';
 import { analyticsErrorCopy } from '../components/analyticsErrorCopy';
 import {
   formatCompactTokens,
@@ -106,7 +106,8 @@ const SORTABLE_COLUMNS: ReadonlyArray<CatalogColumn> = [
     labelKey: 'common.status',
     defaultValue: 'Status',
     descriptionKey: 'analytics.keys_header_help.status',
-    descriptionDefault: 'Configured keys become active for five minutes after lifetime activity.',
+    descriptionDefault:
+      'Whether this API key is currently configured, recently used, or retained only in usage history.',
   },
   {
     id: 'tokens',
@@ -208,21 +209,23 @@ function KeyStatus({
 }) {
   const { t } = useTranslation();
   const status = keyStatusForDisplay(row.status, row.lifetime_last_activity_at);
-  if (status === 'active' || status === 'idle') {
-    return (
-      <span
-        className="status-badge"
-        title={t(`analytics.enums.key_status.${status}`, {
-          defaultValue: status === 'active' ? 'Active' : 'Idle',
-        })}
-      >
-        {t(`analytics.enums.key_status.${status}`, {
-          defaultValue: status === 'active' ? 'Active' : 'Idle',
-        })}
-      </span>
-    );
-  }
-  return <AnalyticsStatusBadge category="key_status" value={status} />;
+  const descriptions = {
+    active: 'Configured and used within the last five minutes.',
+    idle: 'Configured and ready for use, with no activity in the last five minutes.',
+    rotated: 'This key was replaced during rotation; its usage history is retained.',
+    deleted: 'This key was removed from configuration; its usage history is retained.',
+    historical: 'This key appears in usage history but is not currently configured.',
+    identity_conflict:
+      'Conflicting key identities were detected; attribution cannot be resolved reliably.',
+  };
+  return (
+    <span
+      className={`status-badge ${styles.statusBadge} ${status === 'active' ? 'success' : status === 'deleted' ? 'error' : ''}`}
+      title={t(`analytics.key_status_help.${status}`, { defaultValue: descriptions[status] })}
+    >
+      {t(`analytics.enums.key_status.${status}`)}
+    </span>
+  );
 }
 
 function TopModelValue({

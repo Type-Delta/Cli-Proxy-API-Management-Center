@@ -19,7 +19,6 @@ import {
   buildOverviewMetrics,
   exactNumber,
   METRIC_ICONS,
-  processingTimeOption,
   roundToTenth,
   sparklineOption,
   toneForCacheRate,
@@ -65,9 +64,9 @@ function MetricTrend({ card, label, index }: { card: MetricCard; label: string; 
   return (
     <div className={styles.sparklineSlot}>
       {trend.loading || !option ? (
-        <Skeleton width="100%" height={56} rounded={6} />
+        <Skeleton width="100%" height={50} rounded={6} />
       ) : (
-        <AnalyticsChart option={option} height={56} ariaLabel={label} focusable={false} />
+        <AnalyticsChart option={option} height={50} ariaLabel={label} focusable={false} />
       )}
     </div>
   );
@@ -216,10 +215,6 @@ function ProcessingTimeCard({
       samples: processing?.latency_sample_count ?? 0,
     },
   ];
-  const knownValues = rows
-    .map(({ value }) => value)
-    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-  const maxValue = Math.max(processing?.e2e_ms ?? 0, ...knownValues, 1);
   const observedAttempts = Math.max(attemptCount, processing?.sample_count ?? 0);
   const coverage = !processing
     ? t('analytics.overview.timing_historical_unknown', {
@@ -240,22 +235,9 @@ function ProcessingTimeCard({
       : t('analytics.overview.timing_no_samples', {
           defaultValue: 'No timing samples were observed in this range.',
         });
-  const chartLabel = t('analytics.overview.processing_chart', {
-    defaultValue: 'Accumulated timing totals for E2E, generation, TTFT, and latency.',
-  });
   const cardLabel = t('analytics.overview.processing_time', { defaultValue: 'Processing time' });
   const e2eLabel = t('analytics.overview.e2e_short', {
     defaultValue: 'E2E',
-  });
-  const chartRows = [
-    { label: e2eLabel, value: processing?.e2e_ms ?? null },
-    ...rows.map(({ label, value }) => ({ label, value: value ?? null })),
-  ];
-  const chartOption = processingTimeOption({
-    rows: chartRows,
-    maxValue,
-    format: (value) => formatAccumulatedDuration(value, locale),
-    seriesName: cardLabel,
   });
 
   return (
@@ -273,7 +255,7 @@ function ProcessingTimeCard({
           value={processing?.e2e_ms == null ? null : processing.e2e_ms / 1_000}
           additionalNote={coverage}
         />
-        <div className={styles.processingSubstats}>
+        <div className={styles.metricDetail}>
           {rows.map((row) => (
             <DetailValue
               key={row.key}
@@ -287,14 +269,6 @@ function ProcessingTimeCard({
               )}
             />
           ))}
-        </div>
-        <div className={styles.processingChart}>
-          <AnalyticsChart
-            option={chartOption}
-            height={112}
-            ariaLabel={chartLabel}
-            focusable={false}
-          />
         </div>
       </Card>
     </section>

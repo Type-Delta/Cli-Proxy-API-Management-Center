@@ -17,7 +17,6 @@ import {
   calendarHeatmapCells,
   METRIC_ICONS,
   overviewSparklines,
-  processingTimeOption,
   requestHealthLevel,
   sparklineOption,
   summarizeActivityYear,
@@ -209,13 +208,27 @@ describe('analytics overview model', () => {
       rpm: 9,
       tpm: 9,
       cache_rate: 10,
-      cost: 9,
+      cost: 10,
       processing: 8,
     });
     expect(comparisonBand('tokens', 1_000_000)?.id).toBe('war_and_peace');
     expect(comparisonBand('tokens', 1_000_000_000_000)?.id).toBe('karman_line');
     expect(buildComparison('processing', null).available).toBe(false);
     expect(buildComparison('cost', 12).formula).toBe('d / 12 USD');
+  });
+
+  test('uses the replacement comparison scales at their existing boundaries', () => {
+    expect(comparisonBand('tpm', 6_670)?.id).toBe('tweets_per_minute');
+    expect(comparisonBand('tpm', 120_000)?.id).toBe('novels');
+    expect(comparisonBand('tpm', 783_000)?.id).toBe('days_of_talking');
+    expect(comparisonBand('tpm', 33_409_875)?.id).toBe('wikipedias_per_day');
+    expect(comparisonBand('cache_rate', 0.1)?.id).toBe('deja_vu');
+    expect(comparisonBand('cache_rate', 15)?.id).toBe('batting');
+    expect(comparisonBand('cost', 999_999)?.id).toBe('cars');
+    expect(comparisonBand('cost', 1_000_000)?.id).toBe('private_jet');
+    expect(comparisonBand('cost', 24_999_999)?.id).toBe('private_jet');
+    expect(comparisonBand('cost', 25_000_000)?.id).toBe('super_bowl');
+    expect(comparisonBand('cost', 70_000_000)?.id).toBe('falcon_launches');
   });
 
   test('uses computed heartbeat constants and numeric localized substitutions', () => {
@@ -273,7 +286,6 @@ describe('analytics overview model', () => {
     expect(markup).toContain('E2E timing observed for 600 of 600 upstream attempts.');
     expect(markup).toContain('Some timing fields are unavailable for these attempts.');
     expect(markup).not.toContain('of 240 requests observed');
-    expect(markup).toContain('--analytics-chart-height:112px');
     expect(markup).not.toContain('Accumulated E2E duration');
     expect(markup).not.toContain('processingCoverage');
     expect(markup).not.toContain('How we compare');
@@ -312,32 +324,6 @@ describe('analytics overview model', () => {
     expect(render(10_000_000)).toContain(
       'Scale: 6,150 characters per page divided by 4 characters per token.'
     );
-  });
-
-  test('uses the shared chart adapter for comparable processing bars', () => {
-    const option = processingTimeOption({
-      rows: [
-        { label: 'E2E', value: 12_000 },
-        { label: 'Generation', value: null },
-        { label: 'TTFT', value: 2_000 },
-      ],
-      maxValue: 12_000,
-      format: (value) => `${value} ms`,
-      seriesName: 'Processing time',
-    });
-
-    expect(option).toMatchObject({
-      tooltip: { trigger: 'axis', appendToBody: true },
-      grid: { left: 82 },
-      xAxis: { type: 'value', min: 0, max: 12_000 },
-      yAxis: {
-        type: 'category',
-        inverse: true,
-        data: ['E2E', 'Generation', 'TTFT'],
-        axisLabel: { width: 74, overflow: 'truncate' },
-      },
-      series: [{ type: 'bar', data: [12_000, null, 2_000] }],
-    });
   });
 
   test('derives six sparkline series and per-bucket rates', () => {

@@ -11,6 +11,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { capabilitiesApi } from '@/services/api';
 import type { ManagementCapabilities } from '@/types';
@@ -53,6 +54,7 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
   const portalPayloadsRef = useRef(new Set<symbol>());
   const refreshersRef = useRef(new Map<AnalyticsPageKind, Map<symbol, () => Promise<void>>>());
   const refreshingRef = useRef(false);
+  const [manualRefreshing, setManualRefreshing] = useState(false);
   const setContentHostRef = useCallback((node: HTMLDivElement | null) => setContentHost(node), []);
   const setPortalPayloadPresent = useCallback((token: symbol, present: boolean) => {
     if (present) portalPayloadsRef.current.add(token);
@@ -83,9 +85,10 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
     () => ({ register: registerRefresh, markUpdated }),
     [markUpdated, registerRefresh]
   );
-  const refreshPage = useCallback(async () => {
+  const refreshPage = useCallback(async (manual = true) => {
     if (refreshingRef.current) return;
     refreshingRef.current = true;
+    setManualRefreshing(manual);
     try {
       const refreshers = [...(refreshersRef.current.get(kind)?.values() ?? [])];
       const results = await Promise.allSettled([
@@ -97,12 +100,13 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
       if (failure) throw failure;
     } finally {
       refreshingRef.current = false;
+      setManualRefreshing(false);
     }
   }, [capabilities, filters, kind]);
   useHeaderRefresh(refreshPage, isAnalyticsPath);
   useEffect(() => {
     if (!isAnalyticsPath) return;
-    return registerAnalyticsAutoRefreshOwner(refreshPage);
+    return registerAnalyticsAutoRefreshOwner(() => refreshPage(false));
   }, [isAnalyticsPath, refreshPage]);
   const value = useMemo(
     () => ({ capabilities, contentHost, shellKind: kind, setPortalPayloadPresent }),
@@ -126,6 +130,7 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
             className={styles.page}
             aria-labelledby="analytics-page-title"
             data-analytics-shell
+            data-analytics-manual-refresh={manualRefreshing || undefined}
           >
             <header className={styles.header} data-analytics-header>
               <div className={styles.headerCopy}>
@@ -144,7 +149,14 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
                 </p>
               </div>
               <div className={styles.headerActions}>
-                {capabilities.loading ? (
+                {manualRefreshing || (capabilities.loading && Boolean(capabilities.data)) ? (
+                  <span className={styles.ready} role="status" aria-live="polite">
+                    <LoadingSpinner size={14} />
+                    <span className={styles.statusLabel}>
+                      {t('analytics.refreshing', { defaultValue: 'Refreshing' })}
+                    </span>
+                  </span>
+                ) : capabilities.loading ? (
                   <span className={styles.statusPlaceholder} aria-hidden="true">
                     <i className={styles.readyDot} />
                     <span className={styles.statusSkeleton}>

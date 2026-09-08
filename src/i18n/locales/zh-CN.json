@@ -693,22 +693,20 @@
           "reading_hint": "成人默读约每分钟 240 个单词，即约 320 个令牌。",
           "rap_god": "大约是《Rap God》最快段落的 {{value}} 倍。",
           "rap_god_hint": "该对比使用最快段落约每分钟 517 个令牌的估计。",
-          "paperback_pages": "每分钟大约 {{value}} 页平装书。",
-          "paperback_pages_hint": "排版后的平装书一页约有 667 个令牌。",
           "novels": "每分钟大约 {{value}} 本完整小说。",
           "novels_hint": "一本 90,000 词的小说约有 120,000 个令牌。",
-          "war_and_peace": "每分钟大约 {{value}} 倍《战争与和平》。",
-          "war_and_peace_hint": "按共享估算，《战争与和平》约有 783,000 个令牌。",
-          "oxford_dictionary": "每分钟大约 {{value}} 套《牛津英语词典》。",
-          "oxford_dictionary_hint": "一套第二版 OED 估算有 33,409,875 个令牌。",
           "unavailable": "有测量数据后才会显示比较。",
-          "unavailable_hint": "所选范围没有可用于此比较的值。"
+          "unavailable_hint": "所选范围没有可用于此比较的值。",
+          "tweets_per_minute": "每分钟处理相当于 {{value}} 条推文的文字",
+          "tweets_per_minute_hint": "每分钟处理的总 token 数。假设一条 280 字符的推文 ≈ 70 个 token（4 字符/token）。粗略估算，非社交媒体基准。",
+          "days_of_talking": "每分钟相当于一个人 {{value}} 天的说话量",
+          "days_of_talking_hint": "每分钟处理的总 token 数。假设普通人每天约说 16,000 个词，0.75 词/token。仅为数量级示意。",
+          "wikipedias_per_day": "每天相当于 {{value}} 部英文维基百科",
+          "wikipedias_per_day_hint": "按每分钟总 token 数折算到一天。假设英文维基百科约 45 亿词 ≈ 60 亿 token（0.75 词/token，取整）。粗略规模，非实时统计。"
         },
         "cache_rate": {
           "cold_start": "几乎没有输入令牌来自缓存重用。",
           "cold_start_hint": "测得的缓存率低于 0.1%，因此只有很少一部分输入令牌被重用。",
-          "one_in": "大约每 {{value}} 个输入令牌中有 1 个命中缓存。",
-          "one_in_hint": "稳定的提示词前缀会让这个比例提高。",
           "batting": "击球率 .{{value}}，在大联盟中已经不错。",
           "batting_hint": "缓存率按三位数的棒球击球率表示。",
           "nba_range": "三分区间，约有 {{value}}% 被缓存。",
@@ -726,7 +724,9 @@
           "total": "100% 被缓存，接近完全复用。",
           "total_hint": "每个测量到的输入令牌都由缓存提供。",
           "unavailable": "有测量数据后才会显示比较。",
-          "unavailable_hint": "所选范围没有可用于此比较的值。"
+          "unavailable_hint": "所选范围没有可用于此比较的值。",
+          "deja_vu": "每 {{value}} 个 token 就有 1 个似曾相识",
+          "deja_vu_hint": "仅为比喻，非测量值。“似曾相识”指因之前出现过而由提示缓存提供的 token。数值 = 100 ÷ 缓存命中率%。"
         },
         "cost": {
           "stamps": "大约相当于 {{value}} 张邮票。",
@@ -748,7 +748,9 @@
           "falcon_launches": "大约相当于 {{value}} 次猎鹰 9 发射。",
           "falcon_launches_hint": "猎鹰 9 的标价按 7,000 万美元估算。",
           "unavailable": "有测量数据后才会显示比较。",
-          "unavailable_hint": "所选范围没有可用于此比较的值。"
+          "unavailable_hint": "所选范围没有可用于此比较的值。",
+          "private_jet": "相当于 {{value}} 架私人飞机",
+          "private_jet_hint": "按每架轻型私人飞机约 500 万美元的四舍五入示意预算计算。"
         },
         "processing": {
           "blinks": "大约相当于眨眼 {{value}} 次。",
@@ -1013,7 +1015,7 @@
     "keys_header_help": {
       "rank": "所选范围内此密钥的服务器排名。",
       "key": "隐藏的密钥标识和可选标签。",
-      "status": "已配置密钥在最近一次生命周期活动后的五分钟内显示为活跃。",
+      "status": "此 API 密钥是否仍在配置中、最近是否使用过，或仅保留在用量历史中。",
       "tokens": "所选范围内记录的令牌总数。",
       "cost": "仅统计有价格的用量对应的已知 API 等价成本。",
       "unpriced": "没有匹配价格规则的令牌。",
@@ -1024,6 +1026,14 @@
       "indexes": "与此密钥关联的配置索引。",
       "first_activity": "生命周期内首次活动，按浏览器时区显示。",
       "last_activity": "生命周期内最近活动，按浏览器时区显示。"
+    },
+    "key_status_help": {
+      "active": "已配置，且最近五分钟内有使用记录。",
+      "idle": "已配置并可使用，但最近五分钟内没有活动。",
+      "rotated": "此密钥已在轮换时被替换，其用量历史仍保留。",
+      "deleted": "此密钥已从配置中移除，其用量历史仍保留。",
+      "historical": "此密钥出现在用量历史中，但当前未配置。",
+      "identity_conflict": "检测到密钥身份冲突，无法可靠地确定用量归属。"
     }
   },
   "dashboard": {

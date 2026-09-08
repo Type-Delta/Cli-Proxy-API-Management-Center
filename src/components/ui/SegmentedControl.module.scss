@@ -79,3 +79,43 @@
     transform: none;
   }
 }
+
+.tabs {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 0;
+  background: transparent;
+  overflow-x: auto;
+
+  .segment {
+    position: relative;
+    flex-shrink: 0;
+    min-height: 40px;
+    padding: 8px 12px;
+    border-radius: 8px 8px 0 0;
+    font-size: 13px;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: auto 10px 0;
+      height: 2px;
+      border-radius: $radius-full;
+      background: transparent;
+    }
+  }
+
+  .segmentActive {
+    background: transparent;
+    box-shadow: none;
+
+    &::after {
+      background: var(--primary-color);
+    }
+  }
+}
