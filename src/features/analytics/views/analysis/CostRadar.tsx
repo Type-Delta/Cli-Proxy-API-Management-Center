@@ -24,6 +24,8 @@ const DIRECTIONS = [
   [-1, 0],
 ];
 const RADAR_ORDER = [0, 3, 2, 1];
+const RADAR_AXIS_DELAY = 180;
+const RADAR_AXIS_DURATION = 560;
 
 export function CostRadar({
   segments,
@@ -102,12 +104,19 @@ export function CostRadar({
         targets.map((target, index) => {
           const progress = Math.min(
             1,
-            Math.max(0, (elapsed - (entrance ? index * 125 : 0)) / (entrance ? 500 : 300))
+            Math.max(
+              0,
+              (elapsed - (entrance ? index * RADAR_AXIS_DELAY : 0)) /
+                (entrance ? RADAR_AXIS_DURATION : 320)
+            )
           );
           return startValues[index] + (target - startValues[index]) * (1 - (1 - progress) ** 3);
         })
       );
-      if (elapsed < (entrance ? 875 : 300)) frame = requestAnimationFrame(tick);
+      if (
+        elapsed < (entrance ? RADAR_AXIS_DURATION + (targets.length - 1) * RADAR_AXIS_DELAY : 320)
+      )
+        frame = requestAnimationFrame(tick);
       else finish();
     };
     if (motion.matches) finish();

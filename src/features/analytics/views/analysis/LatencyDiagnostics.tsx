@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '@/components/ui/EmptyState';
 import type { AnalysisLatency } from '@/types';
+import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
 import { AnalyticsChart } from '../../components/AnalyticsChart';
 import { AnalyticsSegmented } from '../../components/AnalyticsSegmented';
 import { formatDateTime, formatDuration, formatNumber } from '../../components/analyticsFormatting';
@@ -11,6 +12,9 @@ import {
   ANALYSIS_CHART_HEIGHT,
   latencyOption,
   latencyRadarOption,
+  LATENCY_RADAR_AXIS_DELAY,
+  LATENCY_RADAR_AXIS_DURATION,
+  latencyRadarAxisOffset,
   resolveLatencyPresentation,
   resolveTimingMetrics,
   slowestLatencySamples,
@@ -21,6 +25,71 @@ import {
 } from './analysisModel';
 import { useAnalysisPalette } from './useAnalysisPalette';
 import styles from './Analysis.module.scss';
+
+function useLatencyRadarValues(targets: readonly (number | null)[], visible: boolean) {
+  const targetKey = JSON.stringify(targets);
+  const [values, setValues] = useState<(number | null)[]>(() =>
+    targets.map((target) => (target == null ? null : 0))
+  );
+  const currentRef = useRef(values);
+
+  useEffect(() => {
+    if (!visible) return;
+    const startValues = currentRef.current;
+    if (
+      targets.every((target, index) => {
+        const current = startValues[index] ?? null;
+        return target == null ? current == null : current === target;
+      })
+    ) {
+      return;
+    }
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let frame = 0;
+    const startedAt = performance.now();
+    const update = (next: (number | null)[]) => {
+      currentRef.current = next;
+      setValues(next);
+    };
+    const finish = () => {
+      cancelAnimationFrame(frame);
+      update([...targets]);
+    };
+    const onMotion = () => {
+      if (motion.matches) finish();
+    };
+    const tick = (now: number) => {
+      const elapsed = now - startedAt;
+      update(
+        targets.map((target, index) => {
+          if (target == null) return null;
+          const start = startValues[index] ?? 0;
+          const progress = Math.min(
+            1,
+            Math.max(0, (elapsed - latencyRadarAxisOffset(index)) / LATENCY_RADAR_AXIS_DURATION)
+          );
+          return start + (target - start) * (1 - (1 - progress) ** 3);
+        })
+      );
+      const totalDuration =
+        LATENCY_RADAR_AXIS_DURATION + (TIMING_METRIC_KEYS.length - 1) * LATENCY_RADAR_AXIS_DELAY;
+      if (elapsed < totalDuration) frame = requestAnimationFrame(tick);
+      else finish();
+    };
+    if (motion.matches) finish();
+    else frame = requestAnimationFrame(tick);
+    motion.addEventListener('change', onMotion);
+    return () => {
+      cancelAnimationFrame(frame);
+      motion.removeEventListener('change', onMotion);
+    };
+    // The serialized targets intentionally keep the animation stable while each frame updates
+    // `values`; the axis order below follows the native radar's counterclockwise geometry.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetKey, visible]);
+
+  return values;
+}
 
 export function LatencyDiagnostics({
   section,
@@ -41,7 +110,10 @@ export function LatencyDiagnostics({
 }) {
   const { t } = useTranslation();
   const palette = useAnalysisPalette();
+  const transitionLayer = usePageTransitionLayer();
   const [mode, setMode] = useState<TimingMode>('p95');
+  const radarHostRef = useRef<HTMLDivElement>(null);
+  const [radarIntersecting, setRadarIntersecting] = useState(false);
   const presentation = useMemo(() => resolveLatencyPresentation(section ?? null), [section]);
   const metrics = useMemo(() => resolveTimingMetrics(section ?? null), [section]);
   const samples = presentation.samples;
@@ -66,6 +138,63 @@ export function LatencyDiagnostics({
   const timingValue = (key: TimingMetricKey) => {
     return timingMetricValue(metrics, key, mode);
   };
+  const metricHints = {
+    e2e: {
+      definition: t('analytics.analysis.metric_e2e_definition', {
+        defaultValue: 'Elapsed time from the recorded request start until the response finishes.',
+      }),
+      calculation: t('analytics.analysis.metric_e2e_calculation', {
+        defaultValue:
+          'For requests in this range, shows the selected 95th percentile, longest duration, or median.',
+      }),
+    },
+    latency: {
+      definition: t('analytics.analysis.metric_latency_definition', {
+        defaultValue:
+          'Time from sending the request until the provider reports its first response token, when available.',
+      }),
+      calculation: t('analytics.analysis.metric_latency_calculation', {
+        defaultValue:
+          'For provider-reported observations, shows the selected 95th percentile, longest duration, or median.',
+      }),
+    },
+    ttft: {
+      definition: t('analytics.analysis.metric_ttft_definition', {
+        defaultValue: 'Time from request start until the first substantive token reaches CPA.',
+      }),
+      calculation: t('analytics.analysis.metric_ttft_calculation', {
+        defaultValue:
+          'For requests in this range, shows the selected 95th percentile, longest duration, or median.',
+      }),
+    },
+    generation: {
+      definition: t('analytics.analysis.metric_generation_definition', {
+        defaultValue: 'Time from the first to the last substantive token received by CPA.',
+      }),
+      calculation: t('analytics.analysis.metric_generation_calculation', {
+        defaultValue:
+          'For requests with complete token timing, shows the selected 95th percentile, longest duration, or median.',
+      }),
+    },
+    provider_latency: {
+      definition: t('analytics.analysis.metric_provider_latency_definition', {
+        defaultValue: 'Time until the provider accepts the request, when the upstream reports it.',
+      }),
+      calculation: t('analytics.analysis.metric_provider_latency_calculation', {
+        defaultValue:
+          'For provider-reported observations, shows the selected 95th percentile, longest duration, or median.',
+      }),
+    },
+    samples: {
+      definition: t('analytics.analysis.metric_samples_definition', {
+        defaultValue: 'Count of recorded end-to-end latency observations in the selected range.',
+      }),
+      calculation: t('analytics.analysis.metric_samples_calculation', {
+        defaultValue:
+          'Counts all end-to-end latency observations; the visible sample list may be capped.',
+      }),
+    },
+  } satisfies Record<TimingMetricKey | 'samples', { definition: string; calculation: string }>;
   const radarLabels: Record<TimingMetricKey, string> = {
     e2e: e2eLabel,
     latency: latencyLabel,
@@ -75,6 +204,38 @@ export function LatencyDiagnostics({
   };
   const markerTtft = timingValue('ttft');
   const markerE2e = timingValue('e2e');
+  const hasTimingMetrics = Boolean(
+    metrics && TIMING_METRIC_KEYS.some((key) => timingMetricValue(metrics, key, mode) != null)
+  );
+  const hasRadar =
+    presentation.state !== 'unsupported' &&
+    presentation.state !== 'missing' &&
+    (presentation.state === 'ready' || hasTimingMetrics);
+  const radarVisible =
+    hasRadar &&
+    radarIntersecting &&
+    (transitionLayer === null || (transitionLayer.isCurrentLayer && !transitionLayer.isAnimating));
+
+  useEffect(() => {
+    if (!hasRadar) return;
+    const host = radarHostRef.current;
+    if (!host) return;
+    if (typeof IntersectionObserver !== 'function') {
+      setRadarIntersecting(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => setRadarIntersecting(entries.some((entry) => entry.isIntersecting)),
+      { threshold: 0.1 }
+    );
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, [hasRadar]);
+
+  const radarValues = useLatencyRadarValues(
+    TIMING_METRIC_KEYS.map((key) => timingValue(key)),
+    radarVisible
+  );
   const option = latencyOption({
     samples,
     p95Ttft: section?.p95_ttft_ms,
@@ -97,12 +258,10 @@ export function LatencyDiagnostics({
     labels: radarLabels,
     unavailableLabel,
     palette,
+    animatedValues: radarValues,
     formatDuration: (value) => formatDuration(value, locale),
   });
   const hasSpecialState = presentation.state === 'unsupported' || presentation.state === 'missing';
-  const hasTimingMetrics = Boolean(
-    metrics && TIMING_METRIC_KEYS.some((key) => timingMetricValue(metrics, key, mode) != null)
-  );
   const chartLabel = t('analytics.analysis.e2e_latency_chart_summary', {
     defaultValue:
       '{{count}} samples on logarithmic TTFT and E2E latency axes with a {{mode}} marker',
@@ -135,7 +294,18 @@ export function LatencyDiagnostics({
       label: providerLatencyLabel,
       value: timingValue('provider_latency'),
     },
+    {
+      key: 'samples' as const,
+      label: t('analytics.analysis.sample_count', { defaultValue: 'Samples' }),
+      value: section?.sample_count ?? 0,
+    },
   ];
+  const formatStatValue = (stat: (typeof stats)[number]) =>
+    stat.value == null
+      ? unavailableLabel
+      : stat.key === 'samples'
+        ? formatNumber(stat.value, locale)
+        : formatDuration(stat.value, locale);
 
   return (
     <AnalysisCard
@@ -188,30 +358,29 @@ export function LatencyDiagnostics({
         <>
           <div className={styles.latencyMetrics}>
             {stats.map((stat) => (
-              <span key={stat.label}>
-                <small>{stat.label}</small>
+              <span
+                key={stat.label}
+                tabIndex={0}
+                title={`${metricHints[stat.key].definition} ${metricHints[stat.key].calculation}`}
+              >
+                <span className={styles.metricLabel}>
+                  <small>{stat.label}</small>
+                  {stat.key === 'samples' && section?.sampled && (
+                    <em>{t('analytics.analysis.sampled', { defaultValue: 'Sampled' })}</em>
+                  )}
+                </span>
                 <strong>
                   <AnimatedMetric
                     value={stat.value}
-                    format={(value) => formatDuration(value, locale)}
+                    format={(value) =>
+                      stat.key === 'samples'
+                        ? formatNumber(value, locale)
+                        : formatDuration(value, locale)
+                    }
                   />
                 </strong>
               </span>
             ))}
-            <span>
-              <span className={styles.metricLabel}>
-                <small>{t('analytics.analysis.sample_count', { defaultValue: 'Samples' })}</small>
-                {section?.sampled && (
-                  <em>{t('analytics.analysis.sampled', { defaultValue: 'Sampled' })}</em>
-                )}
-              </span>
-              <strong>
-                <AnimatedMetric
-                  value={section?.sample_count ?? 0}
-                  format={(value) => formatNumber(value, locale)}
-                />
-              </strong>
-            </span>
           </div>
           {(presentation.state === 'ready' || hasTimingMetrics) && (
             <>
@@ -226,12 +395,7 @@ export function LatencyDiagnostics({
                       // above and the sample browser below — so a third copy would only add noise.
                       description={
                         <p>
-                          {stats
-                            .map(
-                              (stat) =>
-                                `${stat.label} ${stat.value == null ? '—' : formatDuration(stat.value, locale)}`
-                            )
-                            .join(', ')}
+                          {stats.map((stat) => `${stat.label} ${formatStatValue(stat)}`).join(', ')}
                         </p>
                       }
                     />
@@ -243,7 +407,7 @@ export function LatencyDiagnostics({
                     })}
                   </div>
                 )}
-                <div className={styles.latencyRadar}>
+                <div className={styles.latencyRadar} ref={radarHostRef}>
                   <AnalyticsChart
                     option={radarOption}
                     height={ANALYSIS_CHART_HEIGHT}
@@ -254,12 +418,7 @@ export function LatencyDiagnostics({
                     })}
                     description={
                       <p>
-                        {stats
-                          .map(
-                            (stat) =>
-                              `${stat.label} ${stat.value == null ? unavailableLabel : formatDuration(stat.value, locale)}`
-                          )
-                          .join(', ')}
+                        {stats.map((stat) => `${stat.label} ${formatStatValue(stat)}`).join(', ')}
                       </p>
                     }
                   />
@@ -278,7 +437,11 @@ export function LatencyDiagnostics({
                     <dd>
                       <AnimatedMetric
                         value={stat.value}
-                        format={(value) => formatDuration(value, locale)}
+                        format={(value) =>
+                          stat.key === 'samples'
+                            ? formatNumber(value, locale)
+                            : formatDuration(value, locale)
+                        }
                       />
                     </dd>
                   </div>

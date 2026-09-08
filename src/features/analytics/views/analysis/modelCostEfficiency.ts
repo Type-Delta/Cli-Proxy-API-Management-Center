@@ -2,7 +2,16 @@ import type { ModelEfficiencyRow } from './analysisModel';
 
 export const MODEL_COST_PAGE_SIZE = 10;
 
-export type ModelCostSortKey = 'model' | 'requests' | 'tokens' | 'cost';
+export type ModelCostSortKey =
+  | 'model'
+  | 'requests'
+  | 'input'
+  | 'output'
+  | 'cache_read'
+  | 'cache_write'
+  | 'total_cost'
+  | 'tokens'
+  | 'cost';
 export type ModelCostSortDirection = 'asc' | 'desc';
 
 export type ModelCostEfficiencyRow = ModelEfficiencyRow;
@@ -27,7 +36,20 @@ const compareValues = (
   if (key === 'model') return left.model.localeCompare(right.model);
   if (key === 'requests') return left.requests - right.requests;
   if (key === 'tokens') return left.total_tokens - right.total_tokens;
-  return (left.costPerMillion ?? 0) - (right.costPerMillion ?? 0);
+  if (key === 'cost') return (left.costPerMillion ?? 0) - (right.costPerMillion ?? 0);
+  const costField =
+    key === 'input'
+      ? 'uncached_input_usd'
+      : key === 'output'
+        ? 'output_usd'
+        : key === 'cache_read'
+          ? 'cache_read_usd'
+          : key === 'cache_write'
+            ? 'cache_creation_usd'
+            : 'total_usd';
+  return (
+    Number(left.costComponents?.[costField] ?? 0) - Number(right.costComponents?.[costField] ?? 0)
+  );
 };
 
 export function sortModelCostEfficiency(

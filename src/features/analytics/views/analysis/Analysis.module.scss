@@ -103,8 +103,6 @@
 
 .refreshing {
   position: relative;
-  opacity: 0.58;
-  transition: opacity var(--dur-press) ease-out;
 }
 
 .refreshingLabel {
@@ -136,6 +134,13 @@
   min-width: 0;
   flex-direction: column;
   gap: $spacing-lg;
+}
+
+.costBreakdownBody {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: $spacing-md;
 }
 
 .costRadar {
@@ -208,15 +213,6 @@
   white-space: nowrap;
 }
 
-.numericHeader {
-  text-align: right;
-
-  button {
-    justify-content: flex-end;
-    text-align: right;
-  }
-}
-
 .costContribution {
   color: var(--text-tertiary);
   font-size: 11px;
@@ -227,9 +223,52 @@
   .costDistributionLayout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
+    align-items: stretch;
+
+    > :global(.card) {
+      height: 100%;
+      box-sizing: border-box;
+    }
+  }
+
+}
+
+.costBreakdownCard {
+  container-type: inline-size;
+}
+
+@container (min-width: 24rem) {
+  .costBreakdownBody {
+    grid-template-columns: minmax(170px, 0.84fr) minmax(180px, 1.16fr);
+    align-items: center;
+    gap: $spacing-md;
+  }
+
+  .costBreakdownBody .costList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .costTotal {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .costRadar {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+
+  .costList {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .blendedRate {
+    grid-column: 1;
+    grid-row: 3;
   }
 }
+
 
 .latencyMetrics {
   display: grid;
@@ -245,6 +284,15 @@
     padding: 8px 10px;
     border-radius: $radius-md;
     background: var(--muted-bg);
+  }
+
+  > span[tabindex='0'] {
+    cursor: help;
+
+    &:focus-visible {
+      outline: 2px solid var(--primary-active);
+      outline-offset: 2px;
+    }
   }
 
   small {
@@ -431,7 +479,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px 18px;
-  margin: 0 0 $spacing-md;
+  margin: 0;
 
   > div {
     display: flex;
@@ -465,7 +513,7 @@
 }
 
 .blendedRate {
-  padding-top: $spacing-md;
+  padding-top: $spacing-sm;
   border-top: 1px solid var(--border-color);
 
   strong small {

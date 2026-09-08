@@ -379,10 +379,6 @@ tbody tr:hover .stickyAction {
   flex-direction: column;
   gap: 20px;
 
-  &[aria-busy='true'] > :not(.refreshingIndicator) {
-    opacity: 0.58;
-    transition: opacity 160ms ease-out;
-  }
 }
 
 .refreshingIndicator {

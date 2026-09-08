@@ -24,6 +24,7 @@ import {
   heatmapChartHeight,
   keyModelHeatmapOption,
   latencyOption,
+  latencyRadarAxisOffset,
   latencyRadarOption,
   median,
   rampColor,
@@ -31,6 +32,7 @@ import {
   resolveTimingMetrics,
   selectHeatmapModels,
   slowestLatencySamples,
+  TIMING_METRIC_KEYS,
   tokenUsageOption,
   topModelColor,
   topModelsOption,
@@ -229,12 +231,25 @@ describe('analytics Analysis models', () => {
       total_tokens: (index + 1) * 1_000_000,
       known_cost_usd: String(11 - index),
     })) satisfies AnalysisModel[];
-    const rows = buildModelEfficiency(models);
+    const costs = models.map((model, index) => ({
+      model: model.model,
+      uncached_input_usd: String(index + 1),
+      cache_read_usd: String(index + 1),
+      cache_creation_usd: String(index + 1),
+      output_usd: String(index + 1),
+      total_usd: String(index + 1),
+    }));
+    const rows = buildModelEfficiency(models, costs);
     const filtered = filterModelCostEfficiency(rows, 'CLAUDE');
 
     expect(filtered.map((row) => row.model)).toEqual(['Claude-3']);
     expect(sortModelCostEfficiency(rows, 'cost', 'asc')[0]?.model).toBe('model-10');
     expect(sortModelCostEfficiency(rows, 'requests', 'desc')[0]?.requests).toBe(11);
+    expect(sortModelCostEfficiency(rows, 'input', 'desc')[0]?.model).toBe('model-10');
+    expect(sortModelCostEfficiency(rows, 'output', 'desc')[0]?.model).toBe('model-10');
+    expect(sortModelCostEfficiency(rows, 'cache_read', 'desc')[0]?.model).toBe('model-10');
+    expect(sortModelCostEfficiency(rows, 'cache_write', 'desc')[0]?.model).toBe('model-10');
+    expect(sortModelCostEfficiency(rows, 'total_cost', 'desc')[0]?.model).toBe('model-10');
     expect(sortModelCostEfficiency(rows, 'tokens', 'desc')[0]?.total_tokens).toBe(11_000_000);
     expect(sortModelCostEfficiency(rows, 'model', 'asc')[0]?.model).toBe('Claude-3');
 
@@ -371,8 +386,12 @@ describe('analytics Analysis models', () => {
     expect(markup).toContain('TTFT 100 ms');
     expect(markup).toContain('>1 sec<');
     expect(markup).toContain('Browse samples');
-    // The mode selector and the two persistent ECharts hosts each own one tab stop.
-    expect((markup.match(/tabindex="0"/g) ?? []).length).toBe(3);
+    // Six metric tiles expose their definitions, two ECharts hosts expose their summaries, and
+    // the selected mode button owns the selector's single tab stop.
+    expect((markup.match(/<span tabindex="0" title="/g) ?? []).length).toBe(6);
+    expect((markup.match(/role="img"/g) ?? []).length).toBe(2);
+    expect((markup.match(/aria-pressed="true"/g) ?? []).length).toBe(1);
+    expect((markup.match(/tabindex="0"/g) ?? []).length).toBe(9);
     const ariaLabels = [...markup.matchAll(/aria-label="([^"]+)"/g)].map((match) => match[1]);
     expect(Math.max(...ariaLabels.map((label) => label.length))).toBeLessThan(200);
   });
@@ -469,8 +488,12 @@ describe('analytics Analysis models', () => {
 
     expect((markup.match(/<li>/g) ?? []).length).toBe(LATENCY_SAMPLE_BROWSE_LIMIT);
     expect(markup).toContain('Showing the 25 slowest of 120 samples.');
-    // The segmented metric selector is adjacent to the persistent chart host.
-    expect((markup.match(/tabindex="0"/g) ?? []).length).toBe(3);
+    // Six metric tiles expose their definitions, two ECharts hosts expose their summaries, and
+    // the selected mode button owns the selector's single tab stop.
+    expect((markup.match(/<span tabindex="0" title="/g) ?? []).length).toBe(6);
+    expect((markup.match(/role="img"/g) ?? []).length).toBe(2);
+    expect((markup.match(/aria-pressed="true"/g) ?? []).length).toBe(1);
+    expect((markup.match(/tabindex="0"/g) ?? []).length).toBe(9);
   });
 
   test('keeps exact values visible for compact and currency output', () => {
@@ -776,6 +799,12 @@ describe('analysis ECharts options', () => {
   });
 
   test('keeps latency radar axes comparable and omits an incomplete polygon', () => {
+    // The custom radar follows the visual clockwise order E2E, provider, generation, TTFT,
+    // latency even though ECharts exposes the axes in its counterclockwise data order.
+    expect(TIMING_METRIC_KEYS.map((_, index) => latencyRadarAxisOffset(index))).toEqual([
+      0, 720, 540, 360, 180,
+    ]);
+
     const metric = (p95: number | null, max: number | null, medianValue: number | null) => ({
       p95_ms: p95,
       max_ms: max,

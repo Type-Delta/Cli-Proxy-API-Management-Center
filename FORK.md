@@ -572,3 +572,21 @@ Validation: the 673-test full verification passes. Desktop browser measurements 
 summary cards fill their tracks, with widths of about 369 and 749 pixels and equal 306-pixel heights
 at a 1440-pixel viewport. The KPI plots meet the card edges, and comparison explanations remain
 available through hover, keyboard focus, and touch. All four locales include the relevant scales.
+
+### DL036: Compact analysis cards and visible radar animation
+
+Cost Breakdown places totals and its category list beside the radar when the card has enough
+internal width, with a smaller blended-rate gap. Container sizing preserves the existing viewport
+breakpoint and avoids overflow at intermediate widths. Cost Breakdown and Usage Distribution fill
+the same row height. Both radars use more noticeable clockwise axis delays; currency values follow
+the cost geometry. Latency animation begins when visible, honors reduced motion, and correctly
+starts after an empty range becomes populated. Every latency summary metric has a short custom
+measurement explanation. Every model-efficiency column sorts through the shared table header.
+Refresh states retain their spinner without dimming cards or covering charts with a translucent fill.
+
+Validation: `bun run verify` passes 673 tests, lint, TypeScript, and production build. Browser checks
+at 390, 1024, and 1440 pixels show no page overflow; paired analysis cards have equal heights.
+All added cost sorts reorder displayed rows. Focus opens the latency metric explanations. An isolated
+actual-component probe changes empty timing data to populated data and verifies both chart hosts
+appear with final 10-second E2E and 1-second TTFT values. Radar order and all cost sort keys have
+focused regression coverage.

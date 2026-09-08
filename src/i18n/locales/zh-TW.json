@@ -879,7 +879,19 @@
       "timing_mode": "計時摘要",
       "timing_radar_summary": "{{mode}} 模式下端到端延遲、延遲、TTFT、生成和供應商延遲的比較",
       "total_cost": "總成本",
-      "unavailable": "不可用"
+      "unavailable": "不可用",
+      "metric_e2e_definition": "從記錄的請求開始到回應完成所經過的時間。",
+      "metric_e2e_calculation": "顯示此範圍請求的所選第 95 百分位、最長耗時或中位數。",
+      "metric_latency_definition": "從送出請求到供應商回報第一個回應 token 的時間（若可用）。",
+      "metric_latency_calculation": "針對供應商回報的觀測值顯示所選第 95 百分位、最長耗時或中位數。",
+      "metric_ttft_definition": "從請求開始到 CPA 收到第一個有效 token 的時間。",
+      "metric_ttft_calculation": "顯示此範圍請求的所選第 95 百分位、最長耗時或中位數。",
+      "metric_generation_definition": "從 CPA 收到第一個到最後一個有效 token 的時間。",
+      "metric_generation_calculation": "針對 token 計時完整的請求顯示所選第 95 百分位、最長耗時或中位數。",
+      "metric_provider_latency_definition": "直到供應商接受請求的時間（若上游提供此資料）。",
+      "metric_provider_latency_calculation": "針對供應商回報的觀測值顯示所選第 95 百分位、最長耗時或中位數。",
+      "metric_samples_definition": "所選範圍內記錄的端到端延遲觀測數量。",
+      "metric_samples_calculation": "計算所有端到端延遲觀測；可見樣本清單可能會限制數量。"
     },
     "maintenance": {
       "abandoned": "已放棄事件",

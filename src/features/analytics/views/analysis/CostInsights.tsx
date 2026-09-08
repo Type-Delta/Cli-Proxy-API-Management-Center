@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/Table';
 import type { AnalysisCostComponents, AnalysisModelByTime, AnalysisModelCost } from '@/types';
 import {
   formatCompactTokens,
@@ -81,11 +81,15 @@ export function CostBreakdown({
     ...amount,
     value: Number.isFinite(amount.value) ? Math.max(0, amount.value) : 0,
     color: palette.categorical[COST_SEGMENT_HUES[index]],
-    percent: total > 0 ? (Number.isFinite(amount.value) ? Math.max(0, amount.value) : 0) / total * 100 : 0,
+    percent:
+      total > 0
+        ? ((Number.isFinite(amount.value) ? Math.max(0, amount.value) : 0) / total) * 100
+        : 0,
   }));
 
   return (
     <AnalysisCard
+      className={styles.costBreakdownCard}
       title={t('analytics.analysis.cost_breakdown_title', { defaultValue: 'Cost Breakdown' })}
       description={t('analytics.analysis.cost_breakdown_description', {
         defaultValue: 'Known spend by billed token category.',
@@ -107,72 +111,74 @@ export function CostBreakdown({
       }
       onRetry={onRetry}
     >
-      <div className={styles.costTotal}>
-        <span>
-          {t('analytics.analysis.total_known_spend', { defaultValue: 'Total known spend' })}
-        </span>
-        <strong title={formatCostValue(total, locale).title}>
-          <AnimatedMetric
-            value={total}
-            scale={10_000}
-            format={(value) => formatCostValue(value, locale).text}
+      <div className={styles.costBreakdownBody}>
+        <div className={styles.costTotal}>
+          <span>
+            {t('analytics.analysis.total_known_spend', { defaultValue: 'Total known spend' })}
+          </span>
+          <strong title={formatCostValue(total, locale).title}>
+            <AnimatedMetric
+              value={total}
+              scale={10_000}
+              format={(value) => formatCostValue(value, locale).text}
+            />
+          </strong>
+        </div>
+        <div className={styles.costRadar}>
+          <CostRadar
+            segments={segments}
+            palette={palette}
+            locale={locale}
+            shareLabel={t('analytics.analysis.cost_breakdown_title', {
+              defaultValue: 'Cost Breakdown',
+            })}
+            ariaLabel={t('analytics.analysis.cost_chart_summary', {
+              defaultValue: '{{count}} billed token categories by known spend',
+              count: segments.length,
+            })}
           />
-        </strong>
-      </div>
-      <div className={styles.costRadar}>
-        <CostRadar
-          segments={segments}
-          palette={palette}
-          locale={locale}
-          shareLabel={t('analytics.analysis.cost_breakdown_title', {
-            defaultValue: 'Cost Breakdown',
-          })}
-          ariaLabel={t('analytics.analysis.cost_chart_summary', {
-            defaultValue: '{{count}} billed token categories by known spend',
-            count: segments.length,
-          })}
-        />
-      </div>
-      <dl className={styles.costList}>
-        {segments.map((segment) => (
-          <div key={segment.key}>
-            <dt>
-              {/* Data-driven fill: the swatch reads the resolved hue of its own bar. */}
-              <i style={{ background: segment.color }} aria-hidden="true" />
-              {segment.label}
-            </dt>
-            <dd title={formatCostValue(segment.value, locale).title}>
-              <AnimatedMetric
-                value={segment.value}
-                scale={10_000}
-                format={(value) => formatCostValue(value, locale).text}
-              />{' '}
-              ·{' '}
-              <AnimatedMetric
-                value={segment.percent}
-                scale={10}
-                format={(value) => formatPercent(value, locale)}
-              />
-            </dd>
-          </div>
-        ))}
-      </dl>
-      <div className={styles.blendedRate}>
-        <span>{t('analytics.analysis.blended_rate', { defaultValue: 'Blended rate' })}</span>
-        <strong title={formatCostValue(section?.blended_usd_per_million, locale).title}>
-          <AnimatedMetric
-            value={
-              section?.blended_usd_per_million == null || section.blended_usd_per_million === ''
-                ? null
-                : Number(section.blended_usd_per_million)
-            }
-            scale={10_000}
-            format={(value) => formatCostValue(value, locale).text}
-          />{' '}
-          <small>
-            {t('analytics.analysis.per_million_tokens', { defaultValue: 'per 1M tokens' })}
-          </small>
-        </strong>
+        </div>
+        <dl className={styles.costList}>
+          {segments.map((segment) => (
+            <div key={segment.key}>
+              <dt>
+                {/* Data-driven fill: the swatch reads the resolved hue of its own bar. */}
+                <i style={{ background: segment.color }} aria-hidden="true" />
+                {segment.label}
+              </dt>
+              <dd title={formatCostValue(segment.value, locale).title}>
+                <AnimatedMetric
+                  value={segment.value}
+                  scale={10_000}
+                  format={(value) => formatCostValue(value, locale).text}
+                />{' '}
+                ·{' '}
+                <AnimatedMetric
+                  value={segment.percent}
+                  scale={10}
+                  format={(value) => formatPercent(value, locale)}
+                />
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <div className={styles.blendedRate}>
+          <span>{t('analytics.analysis.blended_rate', { defaultValue: 'Blended rate' })}</span>
+          <strong title={formatCostValue(section?.blended_usd_per_million, locale).title}>
+            <AnimatedMetric
+              value={
+                section?.blended_usd_per_million == null || section.blended_usd_per_million === ''
+                  ? null
+                  : Number(section.blended_usd_per_million)
+              }
+              scale={10_000}
+              format={(value) => formatCostValue(value, locale).text}
+            />{' '}
+            <small>
+              {t('analytics.analysis.per_million_tokens', { defaultValue: 'per 1M tokens' })}
+            </small>
+          </strong>
+        </div>
       </div>
     </AnalysisCard>
   );
@@ -202,7 +208,10 @@ export function ModelEfficiency({
   const [sortKey, setSortKey] = useState<ModelCostSortKey>('cost');
   const [sortDirection, setSortDirection] = useState<ModelCostSortDirection>('asc');
   const [page, setPage] = useState(1);
-  const models = useMemo(() => buildModelEfficiency(section?.models ?? [], costs), [costs, section]);
+  const models = useMemo(
+    () => buildModelEfficiency(section?.models ?? [], costs),
+    [costs, section]
+  );
   const filteredModels = useMemo(() => filterModelCostEfficiency(models, search), [models, search]);
   const sortedModels = useMemo(
     () => sortModelCostEfficiency(filteredModels, sortKey, sortDirection),
@@ -236,7 +245,7 @@ export function ModelEfficiency({
       active={sortKey === key}
       direction={sortDirection}
       onClick={() => chooseSort(key)}
-      className={key === 'model' ? undefined : styles.numericHeader}
+      alignRight={key !== 'model'}
     >
       {t(labelKey, { defaultValue })}
     </SortableHeader>
@@ -314,21 +323,11 @@ export function ModelEfficiency({
               <TableRow>
                 {column('model', 'analytics.analysis.model_name', 'Model name')}
                 {column('requests', 'analytics.analysis.observed_requests', 'Observed requests')}
-                <TableHead alignRight title={t('analytics.analysis.model_cost_input_help', { defaultValue: 'Uncached input cost for this model.' })}>
-                  {t('analytics.analysis.cost_input', { defaultValue: 'Input' })}
-                </TableHead>
-                <TableHead alignRight title={t('analytics.analysis.model_cost_output_help', { defaultValue: 'Output cost for this model.' })}>
-                  {t('analytics.analysis.cost_output', { defaultValue: 'Output' })}
-                </TableHead>
-                <TableHead alignRight title={t('analytics.analysis.model_cost_cache_read_help', { defaultValue: 'Cache read cost for this model.' })}>
-                  {t('analytics.analysis.cost_cache_read', { defaultValue: 'Cache read' })}
-                </TableHead>
-                <TableHead alignRight title={t('analytics.analysis.model_cost_cache_write_help', { defaultValue: 'Cache write cost for this model.' })}>
-                  {t('analytics.analysis.cost_cache_write', { defaultValue: 'Cache write' })}
-                </TableHead>
-                <TableHead alignRight title={t('analytics.analysis.model_cost_total_help', { defaultValue: 'Total known cost for this model.' })}>
-                  {t('analytics.analysis.total_cost', { defaultValue: 'Total cost' })}
-                </TableHead>
+                {column('input', 'analytics.analysis.cost_input', 'Input')}
+                {column('output', 'analytics.analysis.cost_output', 'Output')}
+                {column('cache_read', 'analytics.analysis.cost_cache_read', 'Cache read')}
+                {column('cache_write', 'analytics.analysis.cost_cache_write', 'Cache write')}
+                {column('total_cost', 'analytics.analysis.total_cost', 'Total cost')}
                 {column('tokens', 'analytics.analysis.volume_tokens', 'Volume (tokens)')}
                 {column('cost', 'analytics.analysis.price_per_million', 'Price per million')}
               </TableRow>
@@ -356,14 +355,10 @@ export function ModelEfficiency({
                   <TableRow key={model.model}>
                     <TableCell title={model.model}>{model.model}</TableCell>
                     <TableCell alignRight>{formatNumber(model.requests, resolvedLocale)}</TableCell>
-                    <TableCell alignRight>
-                      {componentCell(component?.uncached_input_usd)}
-                    </TableCell>
+                    <TableCell alignRight>{componentCell(component?.uncached_input_usd)}</TableCell>
                     <TableCell alignRight>{componentCell(component?.output_usd)}</TableCell>
                     <TableCell alignRight>{componentCell(component?.cache_read_usd)}</TableCell>
-                    <TableCell alignRight>
-                      {componentCell(component?.cache_creation_usd)}
-                    </TableCell>
+                    <TableCell alignRight>{componentCell(component?.cache_creation_usd)}</TableCell>
                     <TableCell alignRight>
                       {component ? formatCostValue(component.total_usd, resolvedLocale).text : '—'}
                     </TableCell>

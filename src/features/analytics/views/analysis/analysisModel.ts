@@ -844,7 +844,15 @@ export type LatencyRadarOptionInput = {
   unavailableLabel: string;
   palette: AnalyticsPalette;
   formatDuration: (value: number) => string;
+  /** Animated values keep the custom partial radar and its numeric labels in lockstep. */
+  animatedValues?: readonly (number | null)[];
 };
+
+export const LATENCY_RADAR_AXIS_DELAY = 180;
+export const LATENCY_RADAR_AXIS_DURATION = 560;
+/** E2E is the top axis; the remaining native radar axes advance clockwise via reverse indices. */
+export const latencyRadarAxisOffset = (index: number) =>
+  ((TIMING_METRIC_KEYS.length - index) % TIMING_METRIC_KEYS.length) * LATENCY_RADAR_AXIS_DELAY;
 
 export function latencyRadarOption({
   metrics,
@@ -853,8 +861,14 @@ export function latencyRadarOption({
   unavailableLabel,
   palette,
   formatDuration,
+  animatedValues,
 }: LatencyRadarOptionInput): EChartsCoreOption {
-  const values = TIMING_METRIC_KEYS.map((key) => metricValue(metrics, key, mode));
+  const targetValues = TIMING_METRIC_KEYS.map((key) => metricValue(metrics, key, mode));
+  // Missing values stay missing while a mode change is settling. This prevents ECharts from
+  // interpreting a stale vertex as a real zero on the partial radar.
+  const values = targetValues.map((target, index) =>
+    target == null ? null : animatedValues ? (animatedValues[index] ?? 0) : target
+  );
   // Keep every axis in the same millisecond scale. Per-axis maxima make the max view a regular
   // pentagon and hide the actual differences between E2E, TTFT and the other timings.
   // Backend maxima keep the scale stable as the selector switches modes; a selected value is only
@@ -863,8 +877,10 @@ export function latencyRadarOption({
     const maximum = metrics?.[key]?.max_ms;
     return Number.isFinite(maximum) && maximum != null && maximum > 0
       ? maximum
-      : values[index] != null && Number.isFinite(values[index]) && values[index] > 0
-        ? values[index]
+      : targetValues[index] != null &&
+          Number.isFinite(targetValues[index]) &&
+          targetValues[index] > 0
+        ? targetValues[index]
         : null;
   }).filter((value): value is number => value !== null);
   const commonMaximum = Math.max(1, ...(scaleCandidates.length > 0 ? scaleCandidates : [1])) * 1.15;
@@ -872,7 +888,10 @@ export function latencyRadarOption({
   const indicatorLabels = TIMING_METRIC_KEYS.map((key, index) =>
     wrapRadarLabel(values[index] == null ? `${labels[key]}\n· ${unavailableLabel}` : labels[key])
   );
-  const hasCompleteValues = values.every(
+  const hasCompleteValues = targetValues.every(
+    (value): value is number => value != null && Number.isFinite(value)
+  );
+  const hasAnimatedCompleteValues = values.every(
     (value): value is number => value != null && Number.isFinite(value)
   );
   const renderKnownValues: CustomSeriesRenderItem = (_params, api) => {
@@ -930,6 +949,8 @@ export function latencyRadarOption({
     return { type: 'group', children };
   };
   return {
+    // React owns the per-axis stagger so the custom partial renderer and native polygon stay in sync.
+    animation: false,
     radar: {
       center: ['50%', '50%'],
       radius: '67%',
@@ -973,10 +994,10 @@ export function latencyRadarOption({
         // ECharts treats null radar vertices as zero, which would draw an unavailable measurement
         // at the centre of the chart. Keep the grid and unavailable labels; partial responses draw
         // only known axis spokes and nodes with the custom series below.
-        data: hasCompleteValues ? [{ value: values }] : [],
+        data: hasCompleteValues && hasAnimatedCompleteValues ? [{ value: values }] : [],
         animationDurationUpdate: 0,
       },
-      ...(hasCompleteValues
+      ...(hasCompleteValues && hasAnimatedCompleteValues
         ? []
         : [
             {

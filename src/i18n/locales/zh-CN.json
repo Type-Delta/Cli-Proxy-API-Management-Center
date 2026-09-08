@@ -879,7 +879,19 @@
       "timing_mode": "计时摘要",
       "timing_radar_summary": "{{mode}} 模式下端到端延迟、延迟、TTFT、生成和提供商延迟的对比",
       "total_cost": "总成本",
-      "unavailable": "不可用"
+      "unavailable": "不可用",
+      "metric_e2e_definition": "从记录的请求开始到响应完成所经过的时间。",
+      "metric_e2e_calculation": "显示此范围请求的所选第 95 百分位、最长耗时或中位数。",
+      "metric_latency_definition": "从发送请求到提供商报告第一个响应令牌的时间（如果可用）。",
+      "metric_latency_calculation": "对提供商报告的观测值显示所选第 95 百分位、最长耗时或中位数。",
+      "metric_ttft_definition": "从请求开始到 CPA 收到第一个有效令牌的时间。",
+      "metric_ttft_calculation": "显示此范围请求的所选第 95 百分位、最长耗时或中位数。",
+      "metric_generation_definition": "从 CPA 收到第一个到最后一个有效令牌的时间。",
+      "metric_generation_calculation": "对令牌计时完整的请求显示所选第 95 百分位、最长耗时或中位数。",
+      "metric_provider_latency_definition": "直到提供商接受请求的时间（如果上游提供该数据）。",
+      "metric_provider_latency_calculation": "对提供商报告的观测值显示所选第 95 百分位、最长耗时或中位数。",
+      "metric_samples_definition": "所选范围内记录的端到端延迟观测数量。",
+      "metric_samples_calculation": "统计所有端到端延迟观测；可见样本列表可能会限制数量。"
     },
     "maintenance": {
       "abandoned": "已放弃事件",

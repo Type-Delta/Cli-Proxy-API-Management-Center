@@ -730,7 +730,19 @@
       "timing_mode": "Timing summary",
       "timing_radar_summary": "{{mode}} timing comparison for E2E latency, latency, TTFT, generation, and provider latency",
       "total_cost": "Total cost",
-      "unavailable": "Unavailable"
+      "unavailable": "Unavailable",
+      "metric_e2e_definition": "Elapsed time from the recorded request start until the response finishes.",
+      "metric_e2e_calculation": "For requests in this range, shows the selected 95th percentile, longest duration, or median.",
+      "metric_latency_definition": "Time from sending the request until the provider reports its first response token, when available.",
+      "metric_latency_calculation": "For provider-reported observations, shows the selected 95th percentile, longest duration, or median.",
+      "metric_ttft_definition": "Time from request start until the first substantive token reaches CPA.",
+      "metric_ttft_calculation": "For requests in this range, shows the selected 95th percentile, longest duration, or median.",
+      "metric_generation_definition": "Time from the first to the last substantive token received by CPA.",
+      "metric_generation_calculation": "For requests with complete token timing, shows the selected 95th percentile, longest duration, or median.",
+      "metric_provider_latency_definition": "Time until the provider accepts the request, when the upstream reports it.",
+      "metric_provider_latency_calculation": "For provider-reported observations, shows the selected 95th percentile, longest duration, or median.",
+      "metric_samples_definition": "Count of recorded end-to-end latency observations in the selected range.",
+      "metric_samples_calculation": "Counts all end-to-end latency observations; the visible sample list may be capped."
     },
     "maintenance": {
       "abandoned": "Abandoned events",
