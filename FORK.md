@@ -635,3 +635,6 @@ hidden legend using merged ECharts updates. Stable category labels prevent unrel
 from replacing options. The chart reserves the largest dimension's height so resize does not
 cancel the transition. This supersedes the dimension-triggered clear-and-replay behavior above.
 Browser frame sampling confirms a continuous transition and the same ECharts instance.
+
+The near-total cache comparison and tooltip use the EUV lithography analogy in all four locales,
+matching the comparison model fallback.
