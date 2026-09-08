@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/Table';
-import type { AnalysisCostComponents, AnalysisModelByTime } from '@/types';
-import { AnalyticsChart } from '../../components/AnalyticsChart';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import type { AnalysisCostComponents, AnalysisModelByTime, AnalysisModelCost } from '@/types';
 import {
   formatCompactTokens,
   formatCostValue,
@@ -11,7 +10,8 @@ import {
 } from '../../components/analyticsFormatting';
 import { AnalysisCard } from './AnalysisCard';
 import { AnimatedMetric } from '../../components/AnimatedMetric';
-import { buildModelEfficiency, costBreakdownOption } from './analysisModel';
+import { buildModelEfficiency } from './analysisModel';
+import { CostRadar } from './CostRadar';
 import { SortableHeader } from '../../components/SortableHeader';
 import { TablePagination } from '../../components/TablePagination';
 import {
@@ -28,13 +28,9 @@ import styles from './Analysis.module.scss';
 
 /**
  * Cost segments borrow the token-category hues so a category means the same colour across
- * Token Usage, Cost Breakdown and Usage Distribution: uncached input, cache read, cache write,
- * output — indices 0, 2, 3, 1 of the categorical palette.
+ * Token Usage, Cost Breakdown and Usage Distribution: input, output, cache read, cache write.
  */
-const COST_SEGMENT_HUES = [0, 2, 3, 1] as const;
-
-/** Four rows at the shared band height, plus the x axis. */
-const COST_CHART_HEIGHT = 148;
+const COST_SEGMENT_HUES = [0, 1, 2, 3] as const;
 
 export function CostBreakdown({
   section,
@@ -62,19 +58,19 @@ export function CostBreakdown({
       value: Number(section?.uncached_input_usd ?? 0),
     },
     {
-      key: 'cache-read',
+      key: 'output',
+      label: t('analytics.analysis.cost_output', { defaultValue: 'Output' }),
+      value: Number(section?.output_usd ?? 0),
+    },
+    {
+      key: 'cache_read',
       label: t('analytics.analysis.cost_cache_read', { defaultValue: 'Cache read' }),
       value: Number(section?.cache_read_usd ?? 0),
     },
     {
-      key: 'cache-write',
+      key: 'cache_creation',
       label: t('analytics.analysis.cost_cache_write', { defaultValue: 'Cache write' }),
       value: Number(section?.cache_creation_usd ?? 0),
-    },
-    {
-      key: 'output',
-      label: t('analytics.analysis.cost_output', { defaultValue: 'Output' }),
-      value: Number(section?.output_usd ?? 0),
     },
   ];
   const total = amounts.reduce(
@@ -83,16 +79,10 @@ export function CostBreakdown({
   );
   const segments = amounts.map((amount, index) => ({
     ...amount,
+    value: Number.isFinite(amount.value) ? Math.max(0, amount.value) : 0,
     color: palette.categorical[COST_SEGMENT_HUES[index]],
-    percent: total > 0 ? (Math.max(0, amount.value) / total) * 100 : 0,
+    percent: total > 0 ? (Number.isFinite(amount.value) ? Math.max(0, amount.value) : 0) / total * 100 : 0,
   }));
-  const option = costBreakdownOption({
-    segments,
-    palette,
-    shareLabel: t('analytics.analysis.token_share', { defaultValue: 'token share' }),
-    formatCost: (value) => formatCostValue(value, locale).text,
-    formatPercent: (value) => formatPercent(value, locale),
-  });
 
   return (
     <AnalysisCard
@@ -129,23 +119,20 @@ export function CostBreakdown({
           />
         </strong>
       </div>
-      <AnalyticsChart
-        option={option}
-        height={COST_CHART_HEIGHT}
-        ariaLabel={t('analytics.analysis.cost_chart_summary', {
-          defaultValue: '{{count}} billed token categories by known spend',
-          count: segments.length,
-        })}
-      >
-        <ul>
-          {segments.map((segment) => (
-            <li key={segment.key}>
-              {segment.label}: {formatCostValue(segment.value, locale).text},{' '}
-              {formatPercent(segment.percent, locale)}
-            </li>
-          ))}
-        </ul>
-      </AnalyticsChart>
+      <div className={styles.costRadar}>
+        <CostRadar
+          segments={segments}
+          palette={palette}
+          locale={locale}
+          shareLabel={t('analytics.analysis.cost_breakdown_title', {
+            defaultValue: 'Cost Breakdown',
+          })}
+          ariaLabel={t('analytics.analysis.cost_chart_summary', {
+            defaultValue: '{{count}} billed token categories by known spend',
+            count: segments.length,
+          })}
+        />
+      </div>
       <dl className={styles.costList}>
         {segments.map((segment) => (
           <div key={segment.key}>
@@ -193,6 +180,7 @@ export function CostBreakdown({
 
 export function ModelEfficiency({
   section,
+  costs,
   loading,
   error,
   errorStatus,
@@ -201,6 +189,7 @@ export function ModelEfficiency({
   locale,
 }: {
   section: AnalysisModelByTime | null | undefined;
+  costs?: readonly AnalysisModelCost[] | null;
   loading: boolean;
   error: string;
   errorStatus?: number;
@@ -213,7 +202,7 @@ export function ModelEfficiency({
   const [sortKey, setSortKey] = useState<ModelCostSortKey>('cost');
   const [sortDirection, setSortDirection] = useState<ModelCostSortDirection>('asc');
   const [page, setPage] = useState(1);
-  const models = useMemo(() => buildModelEfficiency(section?.models ?? []), [section]);
+  const models = useMemo(() => buildModelEfficiency(section?.models ?? [], costs), [costs, section]);
   const filteredModels = useMemo(() => filterModelCostEfficiency(models, search), [models, search]);
   const sortedModels = useMemo(
     () => sortModelCostEfficiency(filteredModels, sortKey, sortDirection),
@@ -247,6 +236,7 @@ export function ModelEfficiency({
       active={sortKey === key}
       direction={sortDirection}
       onClick={() => chooseSort(key)}
+      className={key === 'model' ? undefined : styles.numericHeader}
     >
       {t(labelKey, { defaultValue })}
     </SortableHeader>
@@ -324,6 +314,21 @@ export function ModelEfficiency({
               <TableRow>
                 {column('model', 'analytics.analysis.model_name', 'Model name')}
                 {column('requests', 'analytics.analysis.observed_requests', 'Observed requests')}
+                <TableHead alignRight title={t('analytics.analysis.model_cost_input_help', { defaultValue: 'Uncached input cost for this model.' })}>
+                  {t('analytics.analysis.cost_input', { defaultValue: 'Input' })}
+                </TableHead>
+                <TableHead alignRight title={t('analytics.analysis.model_cost_output_help', { defaultValue: 'Output cost for this model.' })}>
+                  {t('analytics.analysis.cost_output', { defaultValue: 'Output' })}
+                </TableHead>
+                <TableHead alignRight title={t('analytics.analysis.model_cost_cache_read_help', { defaultValue: 'Cache read cost for this model.' })}>
+                  {t('analytics.analysis.cost_cache_read', { defaultValue: 'Cache read' })}
+                </TableHead>
+                <TableHead alignRight title={t('analytics.analysis.model_cost_cache_write_help', { defaultValue: 'Cache write cost for this model.' })}>
+                  {t('analytics.analysis.cost_cache_write', { defaultValue: 'Cache write' })}
+                </TableHead>
+                <TableHead alignRight title={t('analytics.analysis.model_cost_total_help', { defaultValue: 'Total known cost for this model.' })}>
+                  {t('analytics.analysis.total_cost', { defaultValue: 'Total cost' })}
+                </TableHead>
                 {column('tokens', 'analytics.analysis.volume_tokens', 'Volume (tokens)')}
                 {column('cost', 'analytics.analysis.price_per_million', 'Price per million')}
               </TableRow>
@@ -332,10 +337,36 @@ export function ModelEfficiency({
               {paginatedModels.pageItems.map((model) => {
                 const tokens = formatCompactTokens(model.total_tokens, resolvedLocale);
                 const cost = formatCostValue(model.costPerMillion, resolvedLocale);
+                const component = model.costComponents;
+                const totalCost = component ? Number(component.total_usd) : null;
+                const componentCell = (value: string | undefined) => {
+                  if (value == null || !Number.isFinite(Number(value))) return '—';
+                  const amount = Number(value);
+                  const share = totalCost && totalCost > 0 ? (amount / totalCost) * 100 : 0;
+                  return (
+                    <>
+                      <span>{formatCostValue(value, resolvedLocale).text}</span>{' '}
+                      <small className={styles.costContribution}>
+                        {formatPercent(share, resolvedLocale)}
+                      </small>
+                    </>
+                  );
+                };
                 return (
                   <TableRow key={model.model}>
                     <TableCell title={model.model}>{model.model}</TableCell>
                     <TableCell alignRight>{formatNumber(model.requests, resolvedLocale)}</TableCell>
+                    <TableCell alignRight>
+                      {componentCell(component?.uncached_input_usd)}
+                    </TableCell>
+                    <TableCell alignRight>{componentCell(component?.output_usd)}</TableCell>
+                    <TableCell alignRight>{componentCell(component?.cache_read_usd)}</TableCell>
+                    <TableCell alignRight>
+                      {componentCell(component?.cache_creation_usd)}
+                    </TableCell>
+                    <TableCell alignRight>
+                      {component ? formatCostValue(component.total_usd, resolvedLocale).text : '—'}
+                    </TableCell>
                     <TableCell alignRight title={tokens.title}>
                       {tokens.text}
                     </TableCell>

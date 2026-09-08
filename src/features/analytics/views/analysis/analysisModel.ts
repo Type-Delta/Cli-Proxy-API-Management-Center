@@ -1,4 +1,5 @@
 import type { EChartsCoreOption } from 'echarts/core';
+import type { CustomSeriesRenderItem } from 'echarts/types/dist/option';
 import {
   axisTooltipFormatter,
   snapAxisPointer,
@@ -10,8 +11,10 @@ import type {
   AnalysisLatency,
   AnalysisLatencySample,
   AnalysisMatrixCell,
+  AnalysisModelCost,
   AnalysisModel,
   AnalysisModelByTime,
+  AnalysisTimingMetrics,
   DimensionRow,
 } from '@/types';
 
@@ -244,7 +247,7 @@ export type RankedModelSeries = {
  * label for it. A leading space keeps it out of the namespace of real model ids.
  */
 export const TOP_MODEL_LIMIT = 6;
-export const OTHER_MODEL_ID = ' other';
+export const OTHER_MODEL_ID = '\0other';
 
 export function buildTopModelSeries(data: AnalysisModelByTime): RankedModelSeries[] {
   const buckets = data.buckets ?? [];
@@ -312,9 +315,16 @@ export function buildDistributionRows(rows: DimensionRow[]): DistributionRow[] {
     );
 }
 
-export type ModelEfficiencyRow = AnalysisModel & { costPerMillion: number | null };
+export type ModelEfficiencyRow = AnalysisModel & {
+  costPerMillion: number | null;
+  costComponents?: AnalysisModelCost;
+};
 
-export function buildModelEfficiency(models: AnalysisModel[]): ModelEfficiencyRow[] {
+export function buildModelEfficiency(
+  models: AnalysisModel[],
+  costComponents?: readonly AnalysisModelCost[] | null
+): ModelEfficiencyRow[] {
+  const byModel = new Map((costComponents ?? []).map((component) => [component.model, component]));
   return models
     .map((model) => {
       const tokens = nonNegative(model.total_tokens);
@@ -322,6 +332,7 @@ export function buildModelEfficiency(models: AnalysisModel[]): ModelEfficiencyRo
       return {
         ...model,
         costPerMillion: tokens > 0 && cost >= 0 ? (cost / tokens) * 1_000_000 : null,
+        costComponents: byModel.get(model.model),
       };
     })
     .filter((model) => model.costPerMillion !== null)
@@ -351,6 +362,74 @@ export function percentile(values: number[], percentage: number) {
   if (sorted.length === 0) return null;
   const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * percentage) - 1));
   return sorted[index];
+}
+
+/** Median for compatibility records; unlike percentile(0.5), even samples use both centres. */
+export function median(values: number[]) {
+  const sorted = values.filter(Number.isFinite).sort((left, right) => left - right);
+  if (sorted.length === 0) return null;
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
+}
+
+/** Compatibility view for servers that predate the additive timing metrics object. */
+export function resolveTimingMetrics(
+  latency: AnalysisLatency | null
+): AnalysisTimingMetrics | null {
+  if (!latency) return null;
+  if (latency.metrics) return latency.metrics;
+  const e2eValues = (latency.samples ?? [])
+    .map((sample) => sample.latency_ms)
+    .filter((value) => Number.isFinite(value) && value >= 0);
+  const ttftValues = (latency.samples ?? [])
+    .map((sample) => sample.ttft_ms)
+    .filter((value): value is number => value !== null && Number.isFinite(value) && value >= 0);
+  const legacy = (
+    values: number[],
+    p95: number | null | undefined,
+    max: number | null | undefined
+  ) => {
+    const explicitP95 = p95 != null && Number.isFinite(p95) && p95 >= 0 ? p95 : null;
+    const explicitMax = max != null && Number.isFinite(max) && max >= 0 ? max : null;
+    return {
+      // A sampled subset cannot establish a full-population percentile or maximum. Explicit values
+      // from the backend remain authoritative, while local fallbacks are only safe for full samples.
+      p95_ms: explicitP95 ?? (!latency.sampled ? percentile(values, 0.95) : null),
+      max_ms: explicitMax ?? (!latency.sampled && values.length > 0 ? Math.max(...values) : null),
+      median_ms: !latency.sampled ? median(values) : null,
+      total_ms: null,
+      sample_count: values.length,
+      source: 'observed',
+    };
+  };
+  return {
+    e2e: legacy(e2eValues, latency.p95_latency_ms, latency.max_latency_ms),
+    ttft: legacy(ttftValues, latency.p95_ttft_ms, latency.max_ttft_ms),
+    generation: {
+      p95_ms: null,
+      max_ms: null,
+      median_ms: null,
+      total_ms: null,
+      sample_count: 0,
+      source: 'unavailable',
+    },
+    latency: {
+      p95_ms: null,
+      max_ms: null,
+      median_ms: null,
+      total_ms: null,
+      sample_count: 0,
+      source: 'unavailable',
+    },
+    provider_latency: {
+      p95_ms: null,
+      max_ms: null,
+      median_ms: null,
+      total_ms: null,
+      sample_count: 0,
+      source: 'unavailable',
+    },
+  };
 }
 
 export type LatencyPresentation = {
@@ -411,6 +490,22 @@ export type HeatmapMatrix = {
   models: string[];
   rows: HeatmapMatrixRow[];
   maxTokens: number;
+  maxCost: number;
+  maxGeneration: number;
+};
+
+export type HeatmapMetric = 'tokens' | 'cost' | 'generation';
+
+export const heatmapMetricValue = (
+  cell: AnalysisMatrixCell | null | undefined,
+  metric: HeatmapMetric
+): number | null => {
+  if (!cell) return null;
+  if (metric === 'cost') return Math.max(0, finite(cell.known_cost_usd));
+  if (metric === 'generation') {
+    return cell.generation_time_ms == null ? null : nonNegative(cell.generation_time_ms);
+  }
+  return nonNegative(cell.total_tokens);
 };
 
 export function buildHeatmapMatrix(matrix: AnalysisKeyModelMatrix): HeatmapMatrix {
@@ -438,19 +533,39 @@ export function buildHeatmapMatrix(matrix: AnalysisKeyModelMatrix): HeatmapMatri
       (maximum, cell) => Math.max(maximum, nonNegative(cell.total_tokens)),
       0
     ),
+    maxCost: cells.reduce(
+      (maximum, cell) => Math.max(maximum, Math.max(0, finite(cell.known_cost_usd))),
+      0
+    ),
+    maxGeneration: cells.reduce(
+      (maximum, cell) =>
+        Math.max(
+          maximum,
+          cell.generation_time_ms == null ? 0 : nonNegative(cell.generation_time_ms)
+        ),
+      0
+    ),
   };
 }
 
-export function selectHeatmapModels(matrix: HeatmapMatrix, limit: number) {
+export function selectHeatmapModels(
+  matrix: HeatmapMatrix,
+  limit: number,
+  metric: HeatmapMetric = 'tokens'
+) {
   const totals = new Map(matrix.models.map((model) => [model, 0]));
   for (const row of matrix.rows) {
     for (const cell of row.cells) {
-      totals.set(cell.model, (totals.get(cell.model) ?? 0) + (cell.value?.total_tokens ?? 0));
+      const value = heatmapMetricValue(cell.value, metric);
+      if (value !== null) totals.set(cell.model, (totals.get(cell.model) ?? 0) + value);
     }
   }
   return {
     models: [...matrix.models]
-      .sort((left, right) => (totals.get(right) ?? 0) - (totals.get(left) ?? 0))
+      .sort(
+        (left, right) =>
+          (totals.get(right) ?? 0) - (totals.get(left) ?? 0) || left.localeCompare(right)
+      )
       .slice(0, Math.max(1, limit)),
     totalModels: matrix.models.length,
   };
@@ -515,6 +630,10 @@ export function tokenUsageOption({
   formatCost,
 }: TokenUsageOptionInput): EChartsCoreOption {
   const stackSize = categories.length;
+  const lineMarker = (color: string, dashed: boolean) =>
+    `<span data-tt-marker="true" style="display:inline-block;width:16px;height:0;border-top:2px ${
+      dashed ? 'dashed' : 'solid'
+    } ${escapeHtml(color)};border-radius:0"></span>`;
   // Requests are counted in the tens while tokens run to millions, so they cannot share the token
   // axis. They keep the hidden self-scaled axis the SVG chart gave them; the exact count is in
   // the tooltip, which is where it was read from before.
@@ -544,7 +663,12 @@ export function tokenUsageOption({
           rows.map((entry) => ({
             name: entry.param.seriesName ?? '',
             text: formatFor(entry.param.seriesIndex ?? 0)(entry.value as number),
-            marker: entry.param.marker,
+            marker:
+              (entry.param.seriesIndex ?? 0) === stackSize
+                ? lineMarker(palette.textSecondary, true)
+                : (entry.param.seriesIndex ?? 0) === stackSize + 1
+                  ? lineMarker(palette.lineCost, false)
+                  : entry.param.marker,
           })),
           // Only the token bands stack, so only they have a meaningful total.
           stacked.length > 0
@@ -665,79 +789,218 @@ export function topModelsOption({
   };
 }
 
-export type CostSegment = {
-  key: string;
-  label: string;
-  value: number;
-  percent: number;
-  /** Resolved fill; cost categories borrow hues out of order, so the index cannot supply it. */
-  color: string;
+export type TimingMode = 'p95' | 'max' | 'median';
+
+export type TimingMetricKey = keyof AnalysisTimingMetrics;
+
+export const TIMING_METRIC_KEYS: readonly TimingMetricKey[] = [
+  'e2e',
+  'latency',
+  'ttft',
+  'generation',
+  'provider_latency',
+];
+
+const metricValue = (
+  metrics: AnalysisTimingMetrics | null | undefined,
+  key: TimingMetricKey,
+  mode: TimingMode
+) => {
+  const metric = metrics?.[key];
+  if (!metric) return null;
+  const value = mode === 'p95' ? metric.p95_ms : mode === 'max' ? metric.max_ms : metric.median_ms;
+  return value != null && Number.isFinite(value) && value >= 0 ? value : null;
 };
 
-export type CostBreakdownOptionInput = {
-  segments: CostSegment[];
+export const timingMetricValue = metricValue;
+
+/** Keep radar axis names inside the card on narrow screens without changing their meaning. */
+export function wrapRadarLabel(label: string, maxCharacters = 13) {
+  return label
+    .split('\n')
+    .flatMap((line) => {
+      const words = line.trim().split(/\s+/).filter(Boolean);
+      if (words.length === 0) return [''];
+      const lines: string[] = [];
+      let current = words[0];
+      for (const word of words.slice(1)) {
+        const candidate = `${current} ${word}`;
+        if (candidate.length <= maxCharacters) current = candidate;
+        else {
+          lines.push(current);
+          current = word;
+        }
+      }
+      lines.push(current);
+      return lines;
+    })
+    .join('\n');
+}
+
+export type LatencyRadarOptionInput = {
+  metrics: AnalysisTimingMetrics | null | undefined;
+  mode: TimingMode;
+  labels: Record<TimingMetricKey, string>;
+  unavailableLabel: string;
   palette: AnalyticsPalette;
-  shareLabel: string;
-  formatCost: (value: number) => string;
-  formatPercent: (value: number) => string;
+  formatDuration: (value: number) => string;
 };
 
-export function costBreakdownOption({
-  segments,
+export function latencyRadarOption({
+  metrics,
+  mode,
+  labels,
+  unavailableLabel,
   palette,
-  shareLabel,
-  formatCost,
-  formatPercent,
-}: CostBreakdownOptionInput): EChartsCoreOption {
-  // Category axes run bottom-up, so the descending order the list shows is reversed here.
-  const ordered = [...segments].reverse();
+  formatDuration,
+}: LatencyRadarOptionInput): EChartsCoreOption {
+  const values = TIMING_METRIC_KEYS.map((key) => metricValue(metrics, key, mode));
+  // Keep every axis in the same millisecond scale. Per-axis maxima make the max view a regular
+  // pentagon and hide the actual differences between E2E, TTFT and the other timings.
+  // Backend maxima keep the scale stable as the selector switches modes; a selected value is only
+  // a fallback for a legacy metric that has no usable maximum.
+  const scaleCandidates = TIMING_METRIC_KEYS.map((key, index) => {
+    const maximum = metrics?.[key]?.max_ms;
+    return Number.isFinite(maximum) && maximum != null && maximum > 0
+      ? maximum
+      : values[index] != null && Number.isFinite(values[index]) && values[index] > 0
+        ? values[index]
+        : null;
+  }).filter((value): value is number => value !== null);
+  const commonMaximum = Math.max(1, ...(scaleCandidates.length > 0 ? scaleCandidates : [1])) * 1.15;
+  const maxima = TIMING_METRIC_KEYS.map(() => commonMaximum);
+  const indicatorLabels = TIMING_METRIC_KEYS.map((key, index) =>
+    wrapRadarLabel(values[index] == null ? `${labels[key]}\n· ${unavailableLabel}` : labels[key])
+  );
+  const hasCompleteValues = values.every(
+    (value): value is number => value != null && Number.isFinite(value)
+  );
+  const renderKnownValues: CustomSeriesRenderItem = (_params, api) => {
+    const width = api.getWidth();
+    const height = api.getHeight();
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) * 0.335;
+    const axisCount = TIMING_METRIC_KEYS.length;
+    const children = TIMING_METRIC_KEYS.flatMap((_key, index) => {
+      const value = values[index];
+      if (value == null || !Number.isFinite(value)) return [];
+      // ECharts starts at 90° and advances counterclockwise through radar indicators.
+      const angle = ((90 + (index * 360) / axisCount) * Math.PI) / 180;
+      const x = centerX + Math.cos(angle) * radius * Math.min(1, value / commonMaximum);
+      const y = centerY - Math.sin(angle) * radius * Math.min(1, value / commonMaximum);
+      const outwardX = Math.cos(angle);
+      const outwardY = -Math.sin(angle);
+      return [
+        {
+          type: 'line' as const,
+          shape: { x1: centerX, y1: centerY, x2: x, y2: y },
+          style: { stroke: palette.categorical[index], opacity: 0.45, lineWidth: 1.5 },
+        },
+        {
+          type: 'circle' as const,
+          shape: { cx: x, cy: y, r: 4 },
+          style: { fill: palette.categorical[index], stroke: palette.card, lineWidth: 1 },
+        },
+        {
+          type: 'text' as const,
+          x: x + outwardX * 8,
+          y: y + outwardY * 8,
+          style: {
+            text: formatDuration(value),
+            fill: palette.textPrimary,
+            fontSize: 10,
+            fontWeight: 600,
+            align:
+              outwardX > 0.2
+                ? ('left' as const)
+                : outwardX < -0.2
+                  ? ('right' as const)
+                  : ('center' as const),
+            verticalAlign:
+              outwardY > 0.2
+                ? ('top' as const)
+                : outwardY < -0.2
+                  ? ('bottom' as const)
+                  : ('middle' as const),
+          },
+        },
+      ];
+    });
+    return { type: 'group', children };
+  };
   return {
-    grid: { left: 104, right: 76, top: 6, bottom: 24, containLabel: false },
+    radar: {
+      center: ['50%', '50%'],
+      radius: '67%',
+      shape: 'polygon',
+      startAngle: 90,
+      splitNumber: 4,
+      indicator: indicatorLabels.map((name, index) => ({ name, max: maxima[index] })),
+      axisName: {
+        color: palette.textSecondary,
+        fontSize: 10,
+        lineHeight: 12,
+        width: 84,
+        overflow: 'break',
+        align: 'center',
+      },
+      axisLine: { lineStyle: { color: palette.border, width: 1 } },
+      splitLine: { lineStyle: { color: palette.border, width: 1 } },
+      splitArea: { areaStyle: { color: ['transparent'] } },
+    },
     tooltip: {
       trigger: 'item',
-      formatter: (input: unknown) => {
-        const param = tooltipParams(input)[0];
-        const segment = ordered[param?.dataIndex ?? 0];
-        if (!segment) return '';
-        return tooltipPanel(segment.label, [
-          { name: shareLabel, text: formatPercent(segment.percent), marker: param?.marker },
-          { name: '', text: formatCost(segment.value) },
-        ]);
-      },
-    },
-    xAxis: { type: 'value', axisLabel: { formatter: formatCost }, splitNumber: 4 },
-    yAxis: {
-      type: 'category',
-      data: ordered.map((segment) => segment.label),
-      axisLine: { lineStyle: { color: palette.border } },
-      splitLine: { show: false },
+      formatter: () =>
+        tooltipPanel(
+          mode.toUpperCase(),
+          TIMING_METRIC_KEYS.map((key, index) => ({
+            name: labels[key],
+            text:
+              values[index] == null ? unavailableLabel : formatDuration(values[index] as number),
+            color: palette.categorical[index],
+          }))
+        ),
     },
     series: [
       {
-        type: 'bar' as const,
-        barMaxWidth: 22,
-        label: {
-          show: true,
-          position: 'right',
-          color: palette.textSecondary,
-          fontSize: 11,
-          formatter: ({ dataIndex }: { dataIndex: number }) =>
-            formatPercent(ordered[dataIndex]?.percent ?? 0),
-        },
-        // Colour is per datum: the hue belongs to the token category, not to the row position.
-        data: ordered.map((segment) => ({
-          value: Math.max(0, segment.value),
-          itemStyle: { color: segment.color, borderRadius: [0, 3, 3, 0] },
-        })),
+        type: 'radar' as const,
+        symbol: 'circle',
+        symbolSize: 5,
+        lineStyle: { color: palette.lineCost, width: 2 },
+        itemStyle: { color: palette.lineCost },
+        areaStyle: { color: palette.lineCost, opacity: 0.14 },
+        // ECharts treats null radar vertices as zero, which would draw an unavailable measurement
+        // at the centre of the chart. Keep the grid and unavailable labels; partial responses draw
+        // only known axis spokes and nodes with the custom series below.
+        data: hasCompleteValues ? [{ value: values }] : [],
+        animationDurationUpdate: 0,
       },
+      ...(hasCompleteValues
+        ? []
+        : [
+            {
+              type: 'custom' as const,
+              coordinateSystem: 'none' as const,
+              renderItem: renderKnownValues,
+              data: [0],
+              animation: false,
+              z: 5,
+            },
+          ]),
     ],
   };
 }
 
 export type LatencyOptionInput = {
   samples: readonly AnalysisLatencySample[];
-  p95Ttft: number | null | undefined;
-  p95Latency: number | null | undefined;
+  p95Ttft?: number | null;
+  p95Latency?: number | null;
+  /** Marker values selected by the diagnostics mode. Legacy p95 fields remain the fallback. */
+  markerTtft?: number | null;
+  markerLatency?: number | null;
+  markerTtftLabel?: string;
+  markerLatencyLabel?: string;
   palette: AnalyticsPalette;
   succeededLabel: string;
   failedLabel: string;
@@ -753,6 +1016,10 @@ export function latencyOption({
   samples,
   p95Ttft,
   p95Latency,
+  markerTtft,
+  markerLatency,
+  markerTtftLabel,
+  markerLatencyLabel,
   palette,
   succeededLabel,
   failedLabel,
@@ -763,8 +1030,12 @@ export function latencyOption({
   formatDuration,
   formatTimestamp,
 }: LatencyOptionInput): EChartsCoreOption {
-  const ttftAxis = buildLogAxis([...samples.map((s) => s.ttft_ms ?? 0), p95Ttft ?? 0]);
-  const latencyAxis = buildLogAxis([...samples.map((s) => s.latency_ms), p95Latency ?? 0]);
+  const selectedTtft = markerTtft ?? p95Ttft;
+  const selectedLatency = markerLatency ?? p95Latency;
+  const selectedTtftText = markerTtftLabel ?? p95TtftLabel;
+  const selectedLatencyText = markerLatencyLabel ?? p95LatencyLabel;
+  const ttftAxis = buildLogAxis([...samples.map((s) => s.ttft_ms ?? 0), selectedTtft ?? 0]);
+  const latencyAxis = buildLogAxis([...samples.map((s) => s.latency_ms), selectedLatency ?? 0]);
   // A log axis cannot plot 0; the decade floor is the smallest value the axis can show anyway.
   const point = (sample: AnalysisLatencySample) => [
     Math.max(ttftAxis.min, sample.ttft_ms ?? 0),
@@ -777,12 +1048,12 @@ export function latencyOption({
     symbol: 'none',
     label: { color: palette.textSecondary, fontSize: 11, formatter: '{b}' },
     data: [
-      ...(p95Ttft == null
+      ...(selectedTtft == null
         ? []
         : [
             {
-              name: `${p95TtftLabel} ${formatDuration(p95Ttft)}`,
-              xAxis: p95Ttft,
+              name: `${selectedTtftText} ${formatDuration(selectedTtft)}`,
+              xAxis: selectedTtft,
               lineStyle: { color: palette.categorical[0], type: [6, 4] as number[] },
               // ECharts rotates a vertical markLine's label to follow the line by default, which
               // prints it through the point cloud; pin it flat above the plot instead.
@@ -795,12 +1066,12 @@ export function latencyOption({
               },
             },
           ]),
-      ...(p95Latency == null
+      ...(selectedLatency == null
         ? []
         : [
             {
-              name: `${p95LatencyLabel} ${formatDuration(p95Latency)}`,
-              yAxis: p95Latency,
+              name: `${selectedLatencyText} ${formatDuration(selectedLatency)}`,
+              yAxis: selectedLatency,
               lineStyle: { color: palette.categorical[3], type: [6, 4] as number[] },
               label: { position: 'insideStartTop' as const, distance: 4 },
             },
@@ -894,13 +1165,17 @@ export const heatmapChartHeight = (keyCount: number) =>
 export type KeyModelHeatmapOptionInput = {
   keys: string[];
   models: string[];
-  /** `[modelIndex, keyIndex, tokens]`, one entry per intersection. */
-  cells: Array<[number, number, number]>;
-  maxTokens: number;
+  /** `[modelIndex, keyIndex, metric value]`, one entry per measured intersection. */
+  cells: Array<[number, number, number | null]>;
+  /** Legacy name retained for callers/tests; use maxValue for non-token modes. */
+  maxTokens?: number;
+  maxValue?: number;
   palette: AnalyticsPalette;
   formatTokens: (value: number) => string;
+  formatValue?: (value: number) => string;
   formatKey: (value: string) => string;
   modelLabelWidth?: number;
+  unavailableLabel?: string;
   tooltip: (modelIndex: number, keyIndex: number) => { header: string; rows: TooltipRow[] };
 };
 
@@ -909,13 +1184,20 @@ export function keyModelHeatmapOption({
   models,
   cells,
   maxTokens,
+  maxValue,
   palette,
   formatTokens,
+  formatValue,
   formatKey,
   modelLabelWidth = 96,
+  unavailableLabel = 'Unavailable',
   tooltip,
 }: KeyModelHeatmapOptionInput): EChartsCoreOption {
-  const ceiling = Math.max(1, maxTokens);
+  const formatMetric = formatValue ?? formatTokens;
+  const requestedMax = maxValue ?? maxTokens ?? 0;
+  // Keep small cost ranges visible; a fixed one-dollar floor turns a 4¢ maximum into a nearly
+  // empty ramp. Only use one as the empty-data fallback.
+  const ceiling = Number.isFinite(requestedMax) && requestedMax > 0 ? requestedMax : 1;
   return {
     grid: { left: 85, right: 16, top: 46, bottom: 8, containLabel: false },
     tooltip: {
@@ -956,18 +1238,26 @@ export function keyModelHeatmapOption({
     series: [
       {
         type: 'heatmap' as const,
-        data: cells.map(([modelIndex, keyIndex, tokens]) => ({
-          value: [modelIndex, keyIndex, tokens],
+        data: cells.map(([modelIndex, keyIndex, value]) => ({
+          // ECharts skips null heatmap cells. Render an explicit zero placeholder while retaining
+          // the unavailable marker for the label and tooltip semantics.
+          value: [modelIndex, keyIndex, value ?? 0],
+          unavailable: value === null,
           label: {
             // Derived from the fill the visualMap will paint, so the pair always clears 4.5:1.
-            color: cellInk(rampColor(palette.neutral, tokens / ceiling)),
+            color:
+              value === null
+                ? palette.textTertiary
+                : cellInk(rampColor(palette.neutral, value / ceiling)),
           },
+          itemStyle: value === null ? { color: palette.emptyCell, opacity: 0.7 } : undefined,
         })),
         label: {
           show: true,
           fontSize: 11,
           fontWeight: 700,
-          formatter: ({ value }: { value: number[] }) => formatTokens(value[2]),
+          formatter: ({ value, data }: { value: number[]; data?: { unavailable?: boolean } }) =>
+            data?.unavailable ? unavailableLabel : formatMetric(value[2]),
         },
         itemStyle: { borderColor: palette.card, borderWidth: 2, borderRadius: 3 },
         emphasis: { itemStyle: { borderColor: palette.textPrimary, borderWidth: 2 } },

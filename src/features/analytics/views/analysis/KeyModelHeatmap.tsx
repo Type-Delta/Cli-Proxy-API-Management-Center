@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AnalysisKeyModelMatrix, AnalyticsKey } from '@/types';
 import { AnalyticsChart } from '../../components/AnalyticsChart';
+import { AnalyticsSegmented } from '../../components/AnalyticsSegmented';
 import {
+  formatAccumulatedDuration,
   formatCompactTokens,
   formatCostValue,
   formatNumber,
@@ -11,9 +13,11 @@ import { AnalysisCard } from './AnalysisCard';
 import {
   buildHeatmapMatrix,
   compactKeyId,
+  heatmapMetricValue,
   heatmapChartHeight,
   keyModelHeatmapOption,
   selectHeatmapModels,
+  type HeatmapMetric,
 } from './analysisModel';
 import { analyticsKeyIdentity } from '../../analyticsKeyFilterModel';
 import { useAnalysisPalette } from './useAnalysisPalette';
@@ -52,12 +56,13 @@ export function KeyModelHeatmap({
   const { t } = useTranslation();
   const palette = useAnalysisPalette();
   const [limit, setLimit] = useState(columnLimit);
+  const [metric, setMetric] = useState<HeatmapMetric>('tokens');
   const chartWrapRef = useRef<HTMLDivElement | null>(null);
   const [chartWidth, setChartWidth] = useState(0);
   const matrix = useMemo(() => (section ? buildHeatmapMatrix(section) : null), [section]);
   const selection = useMemo(
-    () => (matrix ? selectHeatmapModels(matrix, limit) : { models: [], totalModels: 0 }),
-    [limit, matrix]
+    () => (matrix ? selectHeatmapModels(matrix, limit, metric) : { models: [], totalModels: 0 }),
+    [limit, matrix, metric]
   );
   const visibleModels = selection.models;
   const keyLabel = useMemo(() => {
@@ -74,8 +79,17 @@ export function KeyModelHeatmap({
       return key ? analyticsKeyIdentity(key) : compactKeyId(keyId);
     };
   }, [keyCatalog]);
+  const metricLabels = useMemo<Record<HeatmapMetric, string>>(
+    () => ({
+      tokens: t('analytics.total_tokens', { defaultValue: 'Total tokens' }),
+      cost: t('analytics.known_cost', { defaultValue: 'Estimated API-equivalent cost' }),
+      generation: t('analytics.analysis.generation_time', { defaultValue: 'Generation time' }),
+    }),
+    [t]
+  );
   const tokensLabel = t('analytics.total_tokens', { defaultValue: 'tokens' });
   const requestsLabel = t('analytics.proxy_requests', { defaultValue: 'proxy requests' });
+  const unavailableLabel = t('analytics.analysis.unavailable', { defaultValue: 'Unavailable' });
 
   useEffect(() => {
     const update = () => setLimit(columnLimit());
@@ -100,18 +114,32 @@ export function KeyModelHeatmap({
           [
             modelIndex,
             keyIndex,
-            row.cells.find((cell) => cell.model === model)?.value?.total_tokens ?? 0,
-          ] as [number, number, number]
+            heatmapMetricValue(row.cells.find((cell) => cell.model === model)?.value, metric),
+          ] as [number, number, number | null]
       )
     );
+    const maxValue =
+      metric === 'tokens'
+        ? matrix.maxTokens
+        : metric === 'cost'
+          ? matrix.maxCost
+          : matrix.maxGeneration;
     return keyModelHeatmapOption({
       keys: matrix.keys,
       models: visibleModels,
       cells,
       maxTokens: matrix.maxTokens,
+      maxValue,
       palette,
       formatTokens: (value) => formatCompactTokens(value, locale).text,
+      formatValue:
+        metric === 'tokens'
+          ? (value) => formatCompactTokens(value, locale).text
+          : metric === 'cost'
+            ? (value) => formatCostValue(value, locale).text
+            : (value) => formatAccumulatedDuration(value, locale),
       formatKey: keyLabel,
+      unavailableLabel,
       modelLabelWidth:
         chartWidth > 0
           ? Math.max(24, Math.floor((chartWidth - 132) / Math.max(1, visibleModels.length)) - 4)
@@ -122,7 +150,17 @@ export function KeyModelHeatmap({
         return {
           header: `${keyTooltipLabel(matrix.keys[keyIndex] ?? '')} / ${model}`,
           rows: [
-            { name: tokensLabel, text: formatNumber(value?.total_tokens ?? 0, locale) },
+            {
+              name: metricLabels[metric],
+              text:
+                heatmapMetricValue(value, metric) == null
+                  ? unavailableLabel
+                  : metric === 'tokens'
+                    ? formatNumber(heatmapMetricValue(value, metric) ?? 0, locale)
+                    : metric === 'cost'
+                      ? formatCostValue(heatmapMetricValue(value, metric) ?? 0, locale).text
+                      : formatAccumulatedDuration(heatmapMetricValue(value, metric) ?? 0, locale),
+            },
             { name: requestsLabel, text: formatNumber(value?.requests ?? 0, locale) },
             {
               name: t('analytics.known_cost', { defaultValue: 'Estimated API-equivalent cost' }),
@@ -138,10 +176,12 @@ export function KeyModelHeatmap({
     keyTooltipLabel,
     locale,
     matrix,
+    metric,
+    metricLabels,
     palette,
     requestsLabel,
     t,
-    tokensLabel,
+    unavailableLabel,
     visibleModels,
   ]);
 
@@ -156,20 +196,20 @@ export function KeyModelHeatmap({
             .map((cell) => ({
               keyId: row.keyId,
               model: cell.model,
-              tokens: cell.value?.total_tokens ?? 0,
+              value: heatmapMetricValue(cell.value, metric),
             }))
         )
-        .filter((cell) => cell.tokens > 0)
-        .sort((left, right) => right.tokens - left.tokens)
+        .filter((cell) => cell.value !== null && cell.value > 0)
+        .sort((left, right) => (right.value ?? 0) - (left.value ?? 0))
         .slice(0, TOP_CELL_COUNT),
-    [matrix, visibleModels]
+    [matrix, metric, visibleModels]
   );
 
   return (
     <AnalysisCard
       title={t('analytics.analysis.heatmap_title', { defaultValue: 'Key × Model Heatmap' })}
       description={t('analytics.analysis.heatmap_description', {
-        defaultValue: 'Token concentration across API keys and models.',
+        defaultValue: 'Compare token volume, estimated cost, or observed generation time.',
       })}
       loading={loading}
       error={error}
@@ -190,12 +230,24 @@ export function KeyModelHeatmap({
     >
       {matrix && (
         <>
+          <AnalyticsSegmented
+            value={metric}
+            options={(['tokens', 'cost', 'generation'] as const).map((value) => ({
+              value,
+              label: metricLabels[value],
+            }))}
+            onChange={setMetric}
+            ariaLabel={t('analytics.analysis.heatmap_mode', {
+              defaultValue: 'Heatmap metric',
+            })}
+          />
           {visibleModels.length < selection.totalModels && (
             <p className={styles.heatmapLimit}>
               {t('analytics.analysis.heatmap_showing', {
-                defaultValue: 'Showing {{visible}} of {{total}} models by token volume.',
+                defaultValue: 'Showing {{visible}} of {{total}} models by {{metric}}.',
                 visible: visibleModels.length,
                 total: selection.totalModels,
+                metric: metricLabels[metric].toLocaleLowerCase(locale),
               })}
             </p>
           )}
@@ -204,16 +256,23 @@ export function KeyModelHeatmap({
               option={option}
               height={heatmapChartHeight(matrix.rows.length)}
               ariaLabel={t('analytics.analysis.heatmap_chart_summary', {
-                defaultValue: '{{keys}} API keys across {{models}} models by token volume',
+                defaultValue: '{{keys}} API keys across {{models}} models by {{metric}}',
                 keys: matrix.keys.length,
                 models: visibleModels.length,
+                metric: metricLabels[metric].toLocaleLowerCase(locale),
               })}
             >
               <ul>
                 {topCells.map((cell) => (
                   <li key={`${cell.keyId}/${cell.model}`}>
-                    {keyLabel(cell.keyId)} / {cell.model}: {formatNumber(cell.tokens, locale)}{' '}
-                    {tokensLabel}
+                    {keyLabel(cell.keyId)} / {cell.model}:{' '}
+                    {cell.value == null
+                      ? unavailableLabel
+                      : metric === 'tokens'
+                        ? `${formatNumber(cell.value, locale)} ${tokensLabel}`
+                        : metric === 'cost'
+                          ? formatCostValue(cell.value, locale).text
+                          : formatAccumulatedDuration(cell.value, locale)}
                   </li>
                 ))}
               </ul>

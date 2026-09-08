@@ -1,10 +1,11 @@
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AnalyticsDimensionPage, AnalyticsKey } from '@/types';
 import { useAnalyticsFilters } from '../../AnalyticsFilterContext';
 import { analyticsKeyIdentity } from '../../analyticsKeyFilterModel';
 import type { AnalyticsLoadResult } from '../../useAnalyticsLoad';
 import { AnalyticsChart } from '../../components/AnalyticsChart';
+import { AnalyticsSegmented } from '../../components/AnalyticsSegmented';
 import {
   formatCompactTokens,
   formatCostValue,
@@ -165,22 +166,6 @@ export function UsageDistribution({
     credential: t('analytics.analysis.distribution_credential', { defaultValue: 'Credential' }),
     provider: t('analytics.analysis.distribution_provider', { defaultValue: 'Provider' }),
   };
-  const moveTab = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    let next: number;
-    if (event.key === 'ArrowRight') next = (index + 1) % ANALYSIS_DISTRIBUTIONS.length;
-    else if (event.key === 'ArrowLeft') {
-      next = (index - 1 + ANALYSIS_DISTRIBUTIONS.length) % ANALYSIS_DISTRIBUTIONS.length;
-    } else if (event.key === 'Home') next = 0;
-    else if (event.key === 'End') next = ANALYSIS_DISTRIBUTIONS.length - 1;
-    else return;
-    event.preventDefault();
-    const dimension = ANALYSIS_DISTRIBUTIONS[next];
-    setActive(dimension);
-    event.currentTarget.parentElement
-      ?.querySelector<HTMLButtonElement>(`#analysis-distribution-${dimension}`)
-      ?.focus();
-  };
-
   return (
     <AnalysisCard
       title={t('analytics.analysis.distribution_title', { defaultValue: 'Usage Distribution' })}
@@ -198,35 +183,19 @@ export function UsageDistribution({
       })}
       onRetry={() => void result.refresh()}
     >
-      <div
-        className={styles.distributionTabs}
-        role="tablist"
-        aria-label={t('analytics.analysis.distribution_title', {
+      <AnalyticsSegmented
+        value={active}
+        options={ANALYSIS_DISTRIBUTIONS.map((dimension) => ({
+          value: dimension,
+          label: labels[dimension],
+        }))}
+        onChange={setActive}
+        ariaLabel={t('analytics.analysis.distribution_title', {
           defaultValue: 'Usage Distribution',
         })}
-      >
-        {ANALYSIS_DISTRIBUTIONS.map((dimension, index) => (
-          <button
-            key={dimension}
-            type="button"
-            role="tab"
-            id={`analysis-distribution-${dimension}`}
-            aria-controls={`analysis-distribution-panel-${dimension}`}
-            aria-selected={active === dimension}
-            tabIndex={active === dimension ? 0 : -1}
-            onClick={() => setActive(dimension)}
-            onKeyDown={(event) => moveTab(event, index)}
-          >
-            {labels[dimension]}
-            {results[dimension].loading && results[dimension].data && (
-              <span
-                className={styles.tabLoading}
-                aria-label={t('analytics.refreshing', { defaultValue: 'Refreshing' })}
-              />
-            )}
-          </button>
-        ))}
-      </div>
+        role="tablist"
+        idPrefix="analysis-distribution"
+      />
       <div
         id={`analysis-distribution-panel-${active}`}
         role="tabpanel"

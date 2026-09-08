@@ -131,6 +131,18 @@
   gap: $spacing-lg;
 }
 
+.costDistributionLayout {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.costRadar {
+  position: relative;
+  min-height: 260px;
+}
+
 .ranking {
   display: flex;
   min-width: 0;
@@ -196,9 +208,32 @@
   white-space: nowrap;
 }
 
+.numericHeader {
+  text-align: right;
+
+  button {
+    justify-content: flex-end;
+    text-align: right;
+  }
+}
+
+.costContribution {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: $breakpoint-tablet) {
+  .costDistributionLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
 .latencyMetrics {
   display: grid;
-  grid-template-columns: repeat(5, minmax(100px, 1fr));
+  grid-template-columns: repeat(6, minmax(100px, 1fr));
   gap: 6px;
   margin-bottom: $spacing-sm;
 
@@ -246,8 +281,37 @@
 
 .latencyPlot {
   width: 100%;
-  max-width: 960px;
   margin: 0 auto;
+}
+
+.latencyLayout {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.latencyRadar,
+.latencyPlotUnavailable {
+  min-width: 0;
+}
+
+.latencyCoverage {
+  margin: $spacing-sm 0 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.latencyPlotUnavailable {
+  display: grid;
+  min-height: 280px;
+  place-items: center;
+  border: 1px dashed var(--border-color);
+  border-radius: $radius-md;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: center;
 }
 
 .latencyMobileSummary {
@@ -301,34 +365,6 @@
   }
 }
 
-.distributionTabs {
-  display: flex;
-  max-width: 100%;
-  gap: 4px;
-  margin-bottom: $spacing-md;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--border-color);
-
-  button {
-    position: relative;
-    min-width: max-content;
-    min-height: 44px;
-    padding: 6px 14px;
-    border: 0;
-    border-bottom: 2px solid transparent;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 13px;
-    cursor: pointer;
-
-    &[aria-selected='true'] {
-      border-bottom-color: var(--text-primary);
-      color: var(--text-primary);
-      font-weight: 650;
-    }
-  }
-}
-
 .distributionLegend {
   display: flex;
   flex-wrap: wrap;
@@ -373,15 +409,6 @@
     flex: none;
     border-radius: 2px;
   }
-}
-
-.tabLoading {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-left: 6px;
-  border-radius: 50%;
-  background: var(--primary-active);
 }
 
 .costTotal,
@@ -495,10 +522,6 @@
     display: none;
   }
 
-  .latencyPlot {
-    display: none;
-  }
-
   .latencyMobileSummary {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -540,6 +563,14 @@
 
   .modelSearch {
     width: 100%;
+  }
+}
+
+@media (min-width: $breakpoint-tablet) {
+  .latencyLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+    align-items: start;
   }
 }
 

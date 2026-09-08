@@ -1,0 +1,46 @@
+@use '../../../styles/variables' as *;
+
+.segmented {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  background: var(--muted-bg);
+
+  button {
+    min-width: max-content;
+    min-height: 32px;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    border-radius: calc(#{$radius-md} - 3px);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+
+    &[aria-pressed='true'],
+    &[aria-selected='true'] {
+      border-color: var(--border-color);
+      background: var(--bg-primary);
+      box-shadow: var(--shadow-sm);
+      color: var(--text-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 1px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segmented button {
+    transition: none;
+  }
+}

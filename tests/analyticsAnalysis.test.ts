@@ -19,19 +19,22 @@ import {
   buildTopModelSeries,
   cellInk,
   contrastRatio,
-  costBreakdownOption,
   distributionChartHeight,
   distributionOption,
   heatmapChartHeight,
   keyModelHeatmapOption,
   latencyOption,
+  latencyRadarOption,
+  median,
   rampColor,
   resolveLatencyPresentation,
+  resolveTimingMetrics,
   selectHeatmapModels,
   slowestLatencySamples,
   tokenUsageOption,
   topModelColor,
   topModelsOption,
+  wrapRadarLabel,
   ANALYSIS_CHART_HEIGHT,
   ANALYSIS_GRID,
   CELL_INK_CONTRAST,
@@ -365,10 +368,11 @@ describe('analytics Analysis models', () => {
       })
     );
 
-    expect(markup).toContain('>100 ms<');
+    expect(markup).toContain('TTFT 100 ms');
     expect(markup).toContain('>1 sec<');
     expect(markup).toContain('Browse samples');
-    expect((markup.match(/tabindex="0"/g) ?? []).length).toBe(1);
+    // The mode selector and the two persistent ECharts hosts each own one tab stop.
+    expect((markup.match(/tabindex="0"/g) ?? []).length).toBe(3);
     const ariaLabels = [...markup.matchAll(/aria-label="([^"]+)"/g)].map((match) => match[1]);
     expect(Math.max(...ariaLabels.map((label) => label.length))).toBeLessThan(200);
   });
@@ -465,7 +469,8 @@ describe('analytics Analysis models', () => {
 
     expect((markup.match(/<li>/g) ?? []).length).toBe(LATENCY_SAMPLE_BROWSE_LIMIT);
     expect(markup).toContain('Showing the 25 slowest of 120 samples.');
-    expect((markup.match(/tabindex="0"/g) ?? []).length).toBe(1);
+    // The segmented metric selector is adjacent to the persistent chart host.
+    expect((markup.match(/tabindex="0"/g) ?? []).length).toBe(3);
   });
 
   test('keeps exact values visible for compact and currency output', () => {
@@ -537,8 +542,8 @@ describe('analytics Analysis models', () => {
     // R6-4: one ECharts image with one tab stop, not 2 keys x 2 models of roving gridcells.
     expect(markup).toContain('role="img"');
     expect(markup).not.toContain('role="gridcell"');
-    expect((markup.match(/tabindex="0"/g) ?? []).length).toBe(1);
-    expect((markup.match(/tabindex="-1"/g) ?? []).length).toBe(0);
+    expect((markup.match(/tabindex="0"/g) ?? []).length).toBe(2);
+    expect((markup.match(/tabindex="-1"/g) ?? []).length).toBe(2);
     expect(markup).toContain('aria-label="1 API keys across 2 models by token volume"');
   });
 });
@@ -719,32 +724,6 @@ describe('analysis ECharts options', () => {
     expect(option.series[1].itemStyle?.opacity).toBe(0.18);
   });
 
-  test('lays Cost Breakdown out horizontally with per-datum category hues', () => {
-    const segments = [
-      { key: 'input', label: 'Uncached input', value: 1, percent: 10, color: '#cat001' },
-      { key: 'cache-read', label: 'Cache read', value: 2, percent: 20, color: '#cat003' },
-      { key: 'output', label: 'Output', value: 7, percent: 70, color: '#cat002' },
-    ];
-    const option = costBreakdownOption({
-      segments,
-      palette: PALETTE,
-      shareLabel: 'token share',
-      formatCost: (value) => `$${value}`,
-      formatPercent: (value) => `${value}%`,
-    }) as unknown as Option;
-
-    expect((option.xAxis as Axis).type).toBe('value');
-    // A category axis runs bottom-up, so the rows are reversed to read top-down as ranked.
-    expect((option.yAxis as Axis).data).toEqual(['Output', 'Cache read', 'Uncached input']);
-    expect(
-      (option.series[0].data as Array<{ itemStyle: { color: string } }>).map(
-        (datum) => datum.itemStyle.color
-      )
-    ).toEqual(['#cat002', '#cat003', '#cat001']);
-    expect(option.tooltip.trigger).toBe('item');
-    expect(option.tooltip.formatter([{ dataIndex: 0 }])).toContain('70%');
-  });
-
   test('puts latency on decade log axes with labelled p95 markLines', () => {
     const option = latencyOption({
       samples: [
@@ -796,6 +775,123 @@ describe('analysis ECharts options', () => {
     expect(option.tooltip.formatter([{ value: [120, 900, 'model-a', 'ts'] }])).toContain('900ms');
   });
 
+  test('keeps latency radar axes comparable and omits an incomplete polygon', () => {
+    const metric = (p95: number | null, max: number | null, medianValue: number | null) => ({
+      p95_ms: p95,
+      max_ms: max,
+      median_ms: medianValue,
+      total_ms: null,
+      sample_count: p95 == null ? 0 : 2,
+      source: 'observed',
+    });
+    const metrics = {
+      e2e: metric(150, 200, 100),
+      latency: metric(40, 50, 30),
+      ttft: metric(60, 80, 40),
+      generation: metric(100, 120, 90),
+      provider_latency: metric(20, 30, 15),
+    };
+    const labels = {
+      e2e: 'E2E latency',
+      latency: 'Latency',
+      ttft: 'TTFT',
+      generation: 'Generation time',
+      provider_latency: 'Provider latency',
+    } as const;
+    const complete = latencyRadarOption({
+      metrics,
+      mode: 'max',
+      labels,
+      unavailableLabel: 'Unavailable',
+      palette: PALETTE,
+      formatDuration: (value) => `${value}ms`,
+    }) as unknown as {
+      radar: { indicator: Array<{ max: number }> };
+      series: Array<{ data: unknown[] }>;
+    };
+    expect(complete.radar.indicator.map((indicator) => indicator.max)).toEqual(
+      expect.arrayContaining([expect.closeTo(230, 1e-9)])
+    );
+    expect(new Set(complete.radar.indicator.map((indicator) => Math.round(indicator.max)))).toEqual(
+      new Set([230])
+    );
+    expect(complete.series[0].data).toHaveLength(1);
+
+    const partialMetrics = { ...metrics, provider_latency: metric(null, null, null) };
+    const partial = latencyRadarOption({
+      metrics: partialMetrics,
+      mode: 'p95',
+      labels,
+      unavailableLabel: 'Unavailable',
+      palette: PALETTE,
+      formatDuration: (value) => `${value}ms`,
+    }) as unknown as {
+      radar: { indicator: Array<{ name: string }> };
+      series: Array<{ data: unknown[] }>;
+    };
+    expect(partial.series[0].data).toEqual([]);
+    expect(partial.radar.indicator.at(-1)?.name).toBe('Provider\nlatency\n· Unavailable');
+    expect(wrapRadarLabel('Generation time')).toBe('Generation\ntime');
+    const custom = partial.series[1] as unknown as {
+      renderItem: (
+        params: unknown,
+        api: { getWidth: () => number; getHeight: () => number }
+      ) => { children: Array<{ type: string; shape?: { x2?: number } }> };
+    };
+    const rendered = custom.renderItem({}, { getWidth: () => 500, getHeight: () => 300 });
+    const spokeEnds = rendered.children
+      .filter((child) => child.type === 'line')
+      .map((child) => child.shape?.x2 ?? 0);
+    // 90° + index * 360°/5 matches ECharts' counterclockwise radar indicator order.
+    expect(spokeEnds).toHaveLength(4);
+    expect(spokeEnds[0]).toBeCloseTo(250);
+    expect(spokeEnds[1]).toBeLessThan(250);
+    expect(spokeEnds[2]).toBeLessThan(250);
+    expect(spokeEnds[3]).toBeGreaterThan(250);
+  });
+
+  test('uses a true median and avoids inferring population stats from sampled legacy data', () => {
+    expect(median([4, 2])).toBe(3);
+    expect(median([7, 1, 4])).toBe(4);
+    const base = {
+      meta: { partial: false },
+      samples: [
+        {
+          requested_at: '2026-09-01T00:00:00Z',
+          ttft_ms: 20,
+          latency_ms: 40,
+          model: 'model-a',
+          succeeded: true,
+        },
+        {
+          requested_at: '2026-09-01T00:01:00Z',
+          ttft_ms: 40,
+          latency_ms: 80,
+          model: 'model-a',
+          succeeded: true,
+        },
+        {
+          requested_at: '2026-09-01T00:02:00Z',
+          ttft_ms: 60,
+          latency_ms: 120,
+          model: 'model-a',
+          succeeded: true,
+        },
+      ],
+      p95_ttft_ms: null,
+      p95_latency_ms: null,
+      max_ttft_ms: null,
+      max_latency_ms: null,
+      sample_count: 3,
+    };
+    const full = resolveTimingMetrics({ ...base, sampled: false });
+    expect(full?.e2e).toMatchObject({ p95_ms: 120, max_ms: 120, median_ms: 80 });
+    expect(full?.ttft).toMatchObject({ p95_ms: 60, max_ms: 60, median_ms: 40 });
+    const sampled = resolveTimingMetrics({ ...base, sampled: true });
+    expect(sampled?.e2e).toMatchObject({ p95_ms: null, max_ms: null, median_ms: null });
+    expect(sampled?.ttft).toMatchObject({ p95_ms: null, max_ms: null, median_ms: null });
+  });
+
   test('shapes the key x model heatmap as [model, key, tokens] over the neutral ramp', () => {
     const option = keyModelHeatmapOption({
       keys: ['key-a', 'key-b'],
@@ -845,6 +941,35 @@ describe('analysis ECharts options', () => {
     expect(CELL_INK_CONTRAST).toBeGreaterThan(4.5);
     expect(option.tooltip.trigger).toBe('item');
     expect(option.tooltip.formatter([{ value: [1, 0, 0] }])).toContain('k0/m1');
+  });
+
+  test('renders unavailable heatmap cells as labelled placeholders and preserves small cost scales', () => {
+    const option = keyModelHeatmapOption({
+      keys: ['key-a'],
+      models: ['model-a'],
+      cells: [[0, 0, null]],
+      maxValue: 0.04,
+      palette: PALETTE,
+      formatTokens: identity,
+      formatValue: identity,
+      formatKey: identity,
+      unavailableLabel: 'Unavailable',
+      tooltip: () => ({
+        header: 'key-a / model-a',
+        rows: [{ name: 'cost', text: 'Unavailable' }],
+      }),
+    }) as unknown as Option & {
+      series: Array<{
+        data: Array<{ value: number[]; unavailable?: boolean; itemStyle?: { opacity?: number } }>;
+      }>;
+    };
+    expect(option.visualMap?.max).toBe(0.04);
+    expect(option.series[0].data[0]).toMatchObject({
+      value: [0, 0, 0],
+      unavailable: true,
+      itemStyle: { opacity: 0.7 },
+    });
+    expect(option.tooltip.formatter([{ value: [0, 0, 0] }])).toContain('Unavailable');
   });
 
   test('stacks Usage Distribution rows by category and reserves a band per row', () => {

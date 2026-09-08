@@ -73,6 +73,26 @@ export function formatDuration(milliseconds: number, locale?: string) {
   }).format(value);
 }
 
+/** Accumulated request durations use readable units; exact milliseconds belong in the tooltip. */
+export function formatAccumulatedDuration(milliseconds: number, locale?: string) {
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) return DASH;
+  const units = [
+    ['year', 31_557_600_000],
+    ['day', 86_400_000],
+    ['hour', 3_600_000],
+    ['minute', 60_000],
+    ['second', 1_000],
+    ['millisecond', 1],
+  ] as const;
+  const [unit, divisor] = units.find(([, threshold]) => milliseconds >= threshold) ?? units[5];
+  return new Intl.NumberFormat(locale, {
+    style: 'unit',
+    unit,
+    unitDisplay: 'short',
+    maximumFractionDigits: unit === 'millisecond' ? 0 : 1,
+  }).format(milliseconds / divisor);
+}
+
 const asDate = (value: Date | string | number) => {
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;

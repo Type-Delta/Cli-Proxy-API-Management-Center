@@ -505,3 +505,21 @@ to the active query generation so StrictMode and filter changes cannot leave a s
 
 Validation: nine refresh and shell tests pass. Isolated browser checks reproduced and verified
 StrictMode completion, newest-filter responses, and same-query refresh deduplication.
+
+### DL032: Cost and timing radar analytics
+
+Cost Breakdown and Usage Distribution share a row at the existing desktop breakpoint. The cost
+radar uses a four-axis diamond, category-colored gradients that fade toward the center, and
+clockwise staggered growth with synchronized currency labels. Totals and category details remain.
+Latency Diagnostics pairs its scatter plot with a timing radar. A shared segmented control selects
+p95, maximum, or median for both charts without replacing their ECharts instances. Missing timing
+stays unavailable and renders as partial spokes instead of invented zero values. All timing axes
+share one millisecond scale. Model efficiency includes each cost component and its dimmed share;
+numeric column headers align with values. Token-chart tooltips distinguish dashed requests from
+solid cost lines. The key-model heatmap switches between tokens, cost, and observed generation time.
+
+Validation: `bun run verify` passed 670 tests, ESLint, TypeScript, and the production build.
+Isolated Chrome CDP checks at 1440px and 390px verified colored gradients, staggered currency
+values, unclipped mobile timing labels, persistent chart instances across modes, explicit unavailable
+heatmap cells, and dashed/solid tooltip markers. Full timing data was checked using a browser-only
+fixture; the normal historical mock dataset correctly leaves missing timing unavailable.

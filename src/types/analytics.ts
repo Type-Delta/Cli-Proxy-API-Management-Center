@@ -77,6 +77,20 @@ export type AnalyticsMeta = {
   next_cursor?: string;
 };
 
+export type AnalyticsProcessingTime = {
+  e2e_ms: number | null;
+  ttft_ms: number | null;
+  generation_ms: number | null;
+  latency_ms: number | null;
+  provider_latency_ms: number | null;
+  sample_count: number;
+  ttft_sample_count: number;
+  generation_sample_count: number;
+  latency_sample_count: number;
+  provider_latency_sample_count: number;
+  partial: boolean;
+};
+
 export type AnalyticsSummary = {
   meta: AnalyticsMeta;
   proxy_requests: number;
@@ -95,6 +109,7 @@ export type AnalyticsSummary = {
   avg_tokens_per_day: string;
   avg_known_cost_usd_per_day: string;
   price_coverage_complete: boolean;
+  processing_time?: AnalyticsProcessingTime;
 };
 
 export type TimeseriesPoint = {
@@ -150,6 +165,7 @@ export type AnalyticsEvent = {
   error_class: string | null;
   latency_ms: number;
   time_to_first_token_ms: number | null;
+  generation_time_ms?: number | null;
   service_tier_requested: string | null;
   service_tier_used: string | null;
   generated: boolean;
@@ -184,6 +200,11 @@ export type AnalyticsKey = {
   unpriced_tokens: number;
   lifetime_first_activity_at: string | null;
   lifetime_last_activity_at: string | null;
+  requests?: number;
+  top_model?: string | null;
+  top_model_tokens?: number;
+  generation_time_ms?: number | null;
+  generation_sample_count?: number;
 };
 
 export type AnalyticsKeyPage = { meta: AnalyticsMeta; keys: AnalyticsKey[] };
@@ -278,6 +299,20 @@ export type AnalysisLatencySample = {
   succeeded: boolean;
 };
 
+export type AnalysisTimingMetric = {
+  p95_ms: number | null;
+  max_ms: number | null;
+  median_ms: number | null;
+  total_ms: number | null;
+  sample_count: number;
+  source: string;
+};
+
+export type AnalysisTimingMetrics = Record<
+  'e2e' | 'ttft' | 'generation' | 'latency' | 'provider_latency',
+  AnalysisTimingMetric
+>;
+
 export type AnalysisLatency = {
   meta: AnalysisSectionMeta;
   samples: AnalysisLatencySample[] | null;
@@ -288,6 +323,16 @@ export type AnalysisLatency = {
   max_latency_ms: number | null;
   sample_count: number;
   sampled: boolean;
+  metrics?: AnalysisTimingMetrics;
+};
+
+export type AnalysisModelCost = {
+  model: string;
+  uncached_input_usd: string;
+  cache_read_usd: string;
+  cache_creation_usd: string;
+  output_usd: string;
+  total_usd: string;
 };
 
 export type AnalysisCostComponents = {
@@ -297,6 +342,7 @@ export type AnalysisCostComponents = {
   cache_creation_usd: string;
   output_usd: string;
   blended_usd_per_million: string;
+  models?: AnalysisModelCost[] | null;
 };
 
 export type AnalysisMatrixCell = {
@@ -311,6 +357,8 @@ export type AnalysisMatrixCell = {
   reasoning_tokens: number;
   total_tokens: number;
   known_cost_usd: string;
+  generation_time_ms?: number | null;
+  generation_sample_count?: number;
 };
 
 export type AnalysisKeyModelMatrix = {

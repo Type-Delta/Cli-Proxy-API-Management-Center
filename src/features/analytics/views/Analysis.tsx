@@ -110,16 +110,18 @@ export function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: str
           onRetry={() => void tokenUsage.refresh()}
           locale={locale}
         />
-        <CostBreakdown
-          section={costBreakdown.data?.cost_components}
-          loading={costBreakdown.loading}
-          error={costBreakdown.error}
-          errorStatus={costBreakdown.errorStatus}
-          retryAt={costBreakdown.retryAt}
-          onRetry={() => void costBreakdown.refresh()}
-          locale={locale}
-        />
-        <UsageDistribution results={distributions} locale={locale} keyCatalog={keys} />
+        <div className={styles.costDistributionLayout}>
+          <CostBreakdown
+            section={costBreakdown.data?.cost_components}
+            loading={costBreakdown.loading}
+            error={costBreakdown.error}
+            errorStatus={costBreakdown.errorStatus}
+            retryAt={costBreakdown.retryAt}
+            onRetry={() => void costBreakdown.refresh()}
+            locale={locale}
+          />
+          <UsageDistribution results={distributions} locale={locale} keyCatalog={keys} />
+        </div>
       </section>
       <section className={styles.analysisSection} aria-labelledby="analytics-analysis-behaviour">
         <Eyebrow as="h2" id="analytics-analysis-behaviour">
@@ -127,6 +129,7 @@ export function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: str
         </Eyebrow>
         <ModelEfficiency
           section={modelEfficiency.data?.model_by_time}
+          costs={costBreakdown.data?.cost_components?.models}
           loading={modelEfficiency.loading}
           error={modelEfficiency.error}
           errorStatus={modelEfficiency.errorStatus}

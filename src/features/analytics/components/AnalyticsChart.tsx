@@ -1,12 +1,20 @@
 import { useEffect, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import * as echarts from 'echarts/core';
-import { BarChart, HeatmapChart, LineChart, ScatterChart } from 'echarts/charts';
+import {
+  BarChart,
+  CustomChart,
+  HeatmapChart,
+  LineChart,
+  RadarChart,
+  ScatterChart,
+} from 'echarts/charts';
 import {
   AxisPointerComponent,
   CalendarComponent,
   GridComponent,
   LegendComponent,
   MarkLineComponent,
+  RadarComponent,
   TooltipComponent,
   VisualMapComponent,
 } from 'echarts/components';
@@ -25,6 +33,8 @@ echarts.use([
   LineChart,
   BarChart,
   ScatterChart,
+  CustomChart,
+  RadarChart,
   HeatmapChart,
   GridComponent,
   TooltipComponent,
@@ -33,6 +43,7 @@ echarts.use([
   VisualMapComponent,
   AxisPointerComponent,
   MarkLineComponent,
+  RadarComponent,
   SVGRenderer,
 ]);
 
