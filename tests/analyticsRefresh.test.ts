@@ -1,7 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { analyticsRefreshFailure } from '@/features/analytics/analyticsRefreshState';
+import {
+  ANALYTICS_AUTO_REFRESH_INTERVAL_MS,
+  analyticsRefreshFailure,
+  canRunAnalyticsAutoRefresh,
+  registerAnalyticsAutoRefresher,
+  runAnalyticsAutoRefreshForTests,
+} from '@/features/analytics/analyticsRefreshState';
+import { buildAnalyticsKeyCatalogRange } from '@/features/analytics/AnalyticsFilterProvider';
 
 const shellSource = readFileSync(
   resolve(import.meta.dir, '../src/features/analytics/AnalyticsShell.tsx'),
@@ -50,5 +57,45 @@ describe('analytics global refresh wiring', () => {
     );
     expect(failure?.message).toBe('blocked query');
     expect(analyticsRefreshFailure(await Promise.allSettled([Promise.resolve()]))).toBeNull();
+  });
+
+  test('uses one 60-second coordinator cycle and does not refresh hidden pages', async () => {
+    expect(ANALYTICS_AUTO_REFRESH_INTERVAL_MS).toBe(60_000);
+    const now = Date.now() + 1_000_000;
+    expect(canRunAnalyticsAutoRefresh(now, 'hidden')).toBe(false);
+    expect(canRunAnalyticsAutoRefresh(now, 'visible')).toBe(true);
+
+    let calls = 0;
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const unregister = registerAnalyticsAutoRefresher(async () => {
+      calls += 1;
+      await pending;
+    });
+    try {
+      const first = runAnalyticsAutoRefreshForTests();
+      const second = runAnalyticsAutoRefreshForTests();
+      expect(calls).toBe(1);
+      release();
+      await Promise.all([first, second]);
+    } finally {
+      unregister();
+    }
+  });
+
+  test('resolves rolling key catalog bounds at refresh time', () => {
+    const range = {
+      preset: 'last_n_days' as const,
+      n: 7,
+      timeZone: 'UTC',
+      grain: '1d' as const,
+    };
+    const first = buildAnalyticsKeyCatalogRange(range, new Date('2026-09-08T12:00:00Z'));
+    const next = buildAnalyticsKeyCatalogRange(range, new Date('2026-09-08T12:01:00Z'));
+    expect(first.page_size).toBe(200);
+    expect(first.end).not.toBe(next.end);
+    expect(next.start).not.toBe(first.start);
   });
 });

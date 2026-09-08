@@ -495,3 +495,13 @@ the last category, all-off/re-enable behavior, and selection retention across di
 Vite listens on all network interfaces and accepts all host names so the existing mock-data
 workspace can be opened through a remote IP address or a custom development hostname.
 Validation: the running development server on port 18517 returned HTTP 200 with a custom Host header.
+
+### DL031: One-minute analytics refresh
+
+A shared one-minute refresh coordinator updates visible analytics, respects Retry-After, skips
+hidden documents, and avoids overlapping refreshes. Queries resolve rolling ranges at request time.
+Current chart data and selections remain while refreshing. In-flight request deduplication is scoped
+to the active query generation so StrictMode and filter changes cannot leave a stale loading state.
+
+Validation: nine refresh and shell tests pass. Isolated browser checks reproduced and verified
+StrictMode completion, newest-filter responses, and same-query refresh deduplication.

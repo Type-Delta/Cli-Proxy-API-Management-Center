@@ -16,6 +16,15 @@ import {
 } from './query';
 import { useAnalyticsLoad } from './useAnalyticsLoad';
 
+// The pure range builder is exported for the refresh contract tests.
+// eslint-disable-next-line react-refresh/only-export-components
+export function buildAnalyticsKeyCatalogRange(
+  range: AnalyticsRange,
+  now = new Date()
+): AnalyticsResolvedRange & { page_size: number } {
+  return { ...resolveAnalyticsRange(range, now), page_size: 200 };
+}
+
 export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -38,14 +47,10 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
     },
     [rangeKey]
   );
-  const catalogRange = useMemo(() => {
-    return {
-      ...resolveAnalyticsRange(urlState.range),
-      page_size: 200,
-    };
-  }, [urlState.range]);
   const keyCatalog = useAnalyticsLoad<AnalyticsKey[]>(
     async () => {
+      // Resolve rolling ranges at request time so a refresh advances the catalog window too.
+      const catalogRange = buildAnalyticsKeyCatalogRange(urlState.range);
       const keys: AnalyticsKey[] = [];
       let cursor = '';
       do {
@@ -55,7 +60,7 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
       } while (cursor && keys.length < 10_000);
       return keys;
     },
-    JSON.stringify(catalogRange),
+    `key-catalog:${rangeKey}`,
     enabled
   );
   const keysById = useMemo(

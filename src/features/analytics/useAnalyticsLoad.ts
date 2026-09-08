@@ -8,7 +8,16 @@ import {
 } from 'react';
 import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
 import type { ApiErrorWithRetry } from '@/services/api/client';
-import { useAnalyticsLoadRegistration } from './analyticsRefreshState';
+import {
+  canRunAnalyticsAutoRefresh,
+  getAnalyticsRetryAt,
+  noteAnalyticsRetryAt,
+  registerAnalyticsAutoRefresher,
+  subscribeAnalyticsRetryAt,
+  useAnalyticsLoadRegistration,
+} from './analyticsRefreshState';
+
+export { noteAnalyticsRetryAt } from './analyticsRefreshState';
 
 export type AnalyticsLoadResult<T> = {
   data: T | null;
@@ -56,39 +65,12 @@ export function analyticsRetryCountdown(
   return Math.max(0, Math.ceil((retryAt - now) / 1000));
 }
 
-// The server throttles per peer and route, so one throttled load means every analytics card is
-// throttled. The latest deadline is kept here and shared with every Retry affordance, which is
-// what stops an operator from hammering Retry across a page full of failed cards.
-let sharedRetryAt = 0;
-const retryListeners = new Set<() => void>();
-
-const emitRetryChange = () => {
-  for (const listener of retryListeners) listener();
-};
-
-export function noteAnalyticsRetryAt(retryAt: number | undefined) {
-  if (!retryAt || retryAt <= sharedRetryAt) return;
-  sharedRetryAt = retryAt;
-  emitRetryChange();
-}
-
-const subscribeRetryAt = (listener: () => void) => {
-  retryListeners.add(listener);
-  return () => {
-    retryListeners.delete(listener);
-  };
-};
-
 /**
  * Seconds an operator must wait before a Retry is worth pressing. Combines this load's own
  * `retryAt` with the shared throttle deadline and re-renders once a second while it counts down.
  */
 export function useAnalyticsRetryCountdown(retryAt?: number): number {
-  const shared = useSyncExternalStore(
-    subscribeRetryAt,
-    () => sharedRetryAt,
-    () => 0
-  );
+  const shared = useSyncExternalStore(subscribeAnalyticsRetryAt, getAnalyticsRetryAt, () => 0);
   const deadline = Math.max(retryAt ?? 0, shared);
   const [seconds, setSeconds] = useState(() => analyticsRetryCountdown(deadline));
 
@@ -144,6 +126,10 @@ export function useAnalyticsLoad<T>(
   const isCurrentLayer = layer?.isCurrentLayer ?? true;
   const isCurrentLayerRef = useRef(isCurrentLayer);
   const lastErrorRef = useRef('');
+  const activeRunRef = useRef<{
+    promise: Promise<boolean>;
+    token: AnalyticsLoadToken;
+  } | null>(null);
 
   useLayoutEffect(() => {
     loadRef.current = load;
@@ -160,44 +146,61 @@ export function useAnalyticsLoad<T>(
   // (unchanged behaviour for every existing caller) and the message is stashed in a ref so
   // `refreshOrThrow` can surface it synchronously after awaiting, without relying on a
   // possibly-stale `error` closure.
-  const runLoad = useCallback(async (): Promise<boolean> => {
+  const runLoad = useCallback(async (mode: 'manual' | 'auto' = 'manual'): Promise<boolean> => {
+    const activeRun = activeRunRef.current;
+    if (
+      activeRun &&
+      gateRef.current.isCurrent(activeRun.token, keyRef.current, enabledRef.current)
+    ) {
+      return activeRun.promise;
+    }
+    if (mode === 'auto' && !canRunAnalyticsAutoRefresh()) return true;
+
     const requestKey = keyRef.current;
     const requestEnabled = enabledRef.current;
     const token = gateRef.current.begin(requestKey);
-    if (!requestEnabled) {
-      setLoading(false);
-      return true;
-    }
-
-    setLoading(true);
-    setError('');
-    setFailure({});
-    let ok = true;
-    try {
-      const next = await loadRef.current();
-      if (!gateRef.current.isCurrent(token, keyRef.current, enabledRef.current)) return ok;
-      const updatedAt = new Date();
-      setData(next);
-      setLastUpdatedAt(updatedAt);
-      const { coordinator, kind } = registrationRef.current;
-      if (coordinator && kind && isCurrentLayerRef.current) {
-        coordinator.markUpdated(kind, updatedAt);
-      }
-    } catch (caught) {
-      ok = false;
-      const message = caught instanceof Error ? caught.message : 'Request failed';
-      lastErrorRef.current = message;
-      if (!gateRef.current.isCurrent(token, keyRef.current, enabledRef.current)) return ok;
-      setError(message);
-      const failed = analyticsLoadFailure(caught);
-      setFailure(failed);
-      noteAnalyticsRetryAt(failed.retryAt);
-    } finally {
-      if (gateRef.current.isCurrent(token, keyRef.current, enabledRef.current)) {
+    const currentRun = (async () => {
+      if (!requestEnabled) {
         setLoading(false);
+        return true;
       }
+
+      setLoading(true);
+      setError('');
+      setFailure({});
+      let ok = true;
+      try {
+        const next = await loadRef.current();
+        if (!gateRef.current.isCurrent(token, keyRef.current, enabledRef.current)) return ok;
+        const updatedAt = new Date();
+        setData(next);
+        setLastUpdatedAt(updatedAt);
+        const { coordinator, kind } = registrationRef.current;
+        if (coordinator && kind && isCurrentLayerRef.current) {
+          coordinator.markUpdated(kind, updatedAt);
+        }
+      } catch (caught) {
+        ok = false;
+        const message = caught instanceof Error ? caught.message : 'Request failed';
+        lastErrorRef.current = message;
+        if (!gateRef.current.isCurrent(token, keyRef.current, enabledRef.current)) return ok;
+        setError(message);
+        const failed = analyticsLoadFailure(caught);
+        setFailure(failed);
+        noteAnalyticsRetryAt(failed.retryAt);
+      } finally {
+        if (gateRef.current.isCurrent(token, keyRef.current, enabledRef.current)) {
+          setLoading(false);
+        }
+      }
+      return ok;
+    })();
+    activeRunRef.current = { promise: currentRun, token };
+    try {
+      return await currentRun;
+    } finally {
+      if (activeRunRef.current?.promise === currentRun) activeRunRef.current = null;
     }
-    return ok;
   }, []);
 
   const refresh = useCallback(async () => {
@@ -213,6 +216,13 @@ export function useAnalyticsLoad<T>(
     if (!coordinator || !kind || !isCurrentLayer) return;
     return coordinator.register(kind, registrationTokenRef.current, refreshOrThrow);
   }, [coordinator, isCurrentLayer, kind, refreshOrThrow]);
+
+  useEffect(() => {
+    if (!enabled || !isCurrentLayer || coordinator || kind) return;
+    return registerAnalyticsAutoRefresher(async () => {
+      await runLoad('auto');
+    });
+  }, [coordinator, enabled, isCurrentLayer, kind, runLoad]);
 
   useEffect(() => {
     if (!enabled) {

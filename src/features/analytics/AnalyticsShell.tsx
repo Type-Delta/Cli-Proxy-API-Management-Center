@@ -1,4 +1,12 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
@@ -11,6 +19,7 @@ import { AnalyticsLoadScope } from './AnalyticsLoadScope';
 import {
   AnalyticsRefreshContext,
   analyticsRefreshFailure,
+  registerAnalyticsAutoRefreshOwner,
   type AnalyticsRefreshCoordinator,
 } from './analyticsRefreshState';
 import { AnalyticsTabs } from './AnalyticsTabs';
@@ -91,6 +100,10 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
     }
   }, [capabilities, filters, kind]);
   useHeaderRefresh(refreshPage, isAnalyticsPath);
+  useEffect(() => {
+    if (!isAnalyticsPath) return;
+    return registerAnalyticsAutoRefreshOwner(refreshPage);
+  }, [isAnalyticsPath, refreshPage]);
   const value = useMemo(
     () => ({ capabilities, contentHost, shellKind: kind, setPortalPayloadPresent }),
     [capabilities, contentHost, kind, setPortalPayloadPresent]
