@@ -1211,6 +1211,15 @@ function getNextDirtyFields(
       areStringArraysEqual(nextValues.pluginStoreSources, baselineValues.pluginStoreSources)
     );
   }
+  if (Object.prototype.hasOwnProperty.call(patch, 'antigravitySensitiveWords')) {
+    updateDirty(
+      'antigravitySensitiveWords',
+      areStringArraysEqual(
+        nextValues.antigravitySensitiveWords,
+        baselineValues.antigravitySensitiveWords
+      )
+    );
+  }
   if (Object.prototype.hasOwnProperty.call(patch, 'pluginStoreAuth')) {
     updateDirty(
       'pluginStoreAuth',
@@ -1359,6 +1368,7 @@ export function useVisualConfig() {
       const analytics = asRecord(parsed.analytics);
       const analyticsPrivacy = asRecord(analytics?.privacy);
       const analyticsViewer = asRecord(analytics?.viewer);
+      const antigravity = asRecord(parsed.antigravity);
       const claudeHeaderDefaults = asRecord(parsed['claude-header-defaults']);
       const codexHeaderDefaults = asRecord(parsed['codex-header-defaults']);
 
@@ -1440,6 +1450,7 @@ export function useVisualConfig() {
             : '',
         authAutoRefreshWorkers: String(parsed['auth-auto-refresh-workers'] ?? ''),
         wsAuth: Boolean(parsed['ws-auth']),
+        antigravitySensitiveWords: parseStringList(antigravity?.['sensitive-words']),
         antigravitySignatureCacheEnabled: Boolean(
           parsed['antigravity-signature-cache-enabled'] ?? true
         ),
@@ -1796,6 +1807,15 @@ export function useVisualConfig() {
           setIntFromStringInDoc(doc, ['auth-auto-refresh-workers'], values.authAutoRefreshWorkers);
         }
         if (dirtyFields.has('wsAuth')) setBooleanInDoc(doc, ['ws-auth'], values.wsAuth);
+        if (dirtyFields.has('antigravitySensitiveWords')) {
+          ensureMapInDoc(doc, ['antigravity']);
+          setStringListInDoc(
+            doc,
+            ['antigravity', 'sensitive-words'],
+            values.antigravitySensitiveWords
+          );
+          deleteIfMapEmpty(doc, ['antigravity']);
+        }
         if (dirtyFields.has('antigravitySignatureCacheEnabled')) {
           if (
             docHas(doc, ['antigravity-signature-cache-enabled']) ||

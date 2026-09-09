@@ -2,19 +2,25 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-09-05
+Last updated: 2026-09-09
 
 ## Repository relationship
 
 - Fork: https://github.com/Type-Delta/Cli-Proxy-API-Management-Center
 - Upstream: https://github.com/router-for-me/Cli-Proxy-API-Management-Center
 - Initial fork head: `d249ff008e0bc2803deb23fb3e2c62418a1e8d17`
-- Current upstream base: `e0ee7123dfb5aa89a14ff73ac5a5c3bf4db658e0`
-- Upstream release at the base: `v1.22.10`
+- Current upstream base: `ed5f1c48e11ba7335f1e8f676f228c280196af85`
+- Upstream release at the base: `v1.22.15`
 
 The fork uses append-only merge history. Routine upstream syncs merge official history into `main`; they do not rebase or force-push published commits.
 
 ## Current divergence
+
+The 2026-09-09 sync preserves the divergence entries below while incorporating upstream's
+OAuth provider cards, quick-fill filtering, sidebar shortcut, Russian translations, and
+Antigravity sensitive-word settings. The fork's provider logos, analytics workspace, structured
+key handling, and YAML-preserving configuration updates remain active. The event detail sheet
+continues to read `upstream_usage_raw` and use arrival-to-response timing for its total.
 
 ### DL001: Fork maintenance convention
 
@@ -233,6 +239,9 @@ The four CPAMC locale files were re-synced for the round: the four `analytics.ra
 
 ## Upstream comparison
 
+The 2026-09-09 sync starts at `ef9606a` with 34 fork commits and 23 incoming upstream commits.
+It merges `ed5f1c4` without rewriting existing history.
+
 Before the initial sync, from `d249ff008e0bc2803deb23fb3e2c62418a1e8d17`:
 
 ```bash
@@ -254,6 +263,20 @@ Result: `1 0`. The merge-forward record was one commit ahead and no commits behi
 | Date | Fork before sync | Upstream merged | Merge commit | Before count | After count | Validation |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-08-31 | `d249ff008e0bc2803deb23fb3e2c62418a1e8d17` | `e0ee7123dfb5aa89a14ff73ac5a5c3bf4db658e0` | `c1a2044` | `0 2` | `1 0` | Bun 1.3.14: 424 tests, lint, type-check/build passed |
+
+### 2026-09-09 - Merge upstream `main` at `ed5f1c4`
+
+Merged 23 upstream commits into `ef9606a` with a single merge commit. Conflict resolutions
+combine the fork's `ProviderLogo` and analytics configuration handling with upstream's provider
+quick-fill filtering, Kimi styles, segmented toolbar styles, and Antigravity sensitive-word
+parsing. Repository guidance retains the fork sync rules and upstream testing guidance.
+
+Validation: `bun run verify` passes 708 tests, lint, TypeScript, and the production build.
+Isolated Chrome CDP checks against the existing server on port 18527 cover provider and config
+pages, OAuth editors, and analytics on desktop and mobile, with no reported browser errors or
+horizontal overflow. Event fixtures confirm raw payload rendering and the routing-inclusive
+total. These browser checks use the existing development backend; merged CPA behavior is
+validated separately with the Go test suite and build. Independent review found no additional frontend issues.
 
 ## Sync procedure
 
