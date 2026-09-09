@@ -13,6 +13,7 @@ import { AnalysisCard } from './AnalysisCard';
 import {
   buildHeatmapMatrix,
   compactKeyId,
+  heatmapCellMetricValue,
   heatmapMetricValue,
   heatmapChartHeight,
   keyModelHeatmapOption,
@@ -110,12 +111,14 @@ export function KeyModelHeatmap({
     if (!matrix) return {};
     const cells = matrix.rows.flatMap((row, keyIndex) =>
       visibleModels.map(
-        (model, modelIndex) =>
-          [
-            modelIndex,
-            keyIndex,
-            heatmapMetricValue(row.cells.find((cell) => cell.model === model)?.value, metric),
-          ] as [number, number, number | null]
+        (model, modelIndex) => {
+          const cell = row.cells.find((entry) => entry.model === model)?.value;
+          return [modelIndex, keyIndex, heatmapCellMetricValue(cell, metric)] as [
+            number,
+            number,
+            number | null,
+          ];
+        }
       )
     );
     const maxValue =
@@ -147,19 +150,20 @@ export function KeyModelHeatmap({
       tooltip: (modelIndex, keyIndex) => {
         const model = visibleModels[modelIndex] ?? '';
         const value = matrix.rows[keyIndex]?.cells.find((cell) => cell.model === model)?.value;
+        const metricValue = heatmapCellMetricValue(value, metric);
         return {
           header: `${keyTooltipLabel(matrix.keys[keyIndex] ?? '')} / ${model}`,
           rows: [
             {
               name: metricLabels[metric],
               text:
-                heatmapMetricValue(value, metric) == null
+                metricValue == null
                   ? unavailableLabel
                   : metric === 'tokens'
-                    ? formatNumber(heatmapMetricValue(value, metric) ?? 0, locale)
+                    ? formatNumber(metricValue, locale)
                     : metric === 'cost'
-                      ? formatCostValue(heatmapMetricValue(value, metric) ?? 0, locale).text
-                      : formatAccumulatedDuration(heatmapMetricValue(value, metric) ?? 0, locale),
+                      ? formatCostValue(metricValue, locale).text
+                      : formatAccumulatedDuration(metricValue, locale),
             },
             { name: requestsLabel, text: formatNumber(value?.requests ?? 0, locale) },
             {

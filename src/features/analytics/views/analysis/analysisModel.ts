@@ -536,12 +536,19 @@ export const heatmapMetricValue = (
   metric: HeatmapMetric
 ): number | null => {
   if (!cell) return null;
+  if (nonNegative(cell.requests) === 0) return 0;
   if (metric === 'cost') return Math.max(0, finite(cell.known_cost_usd));
   if (metric === 'generation') {
     return cell.generation_time_ms == null ? null : nonNegative(cell.generation_time_ms);
   }
   return nonNegative(cell.total_tokens);
 };
+
+/** Empty intersections represent zero requests; requested rows may still lack a metric. */
+export const heatmapCellMetricValue = (
+  cell: AnalysisMatrixCell | null | undefined,
+  metric: HeatmapMetric
+): number | null => (cell && nonNegative(cell.requests) > 0 ? heatmapMetricValue(cell, metric) : 0);
 
 export function buildHeatmapMatrix(matrix: AnalysisKeyModelMatrix): HeatmapMatrix {
   const keys = [...(matrix.keys ?? [])];
@@ -872,6 +879,37 @@ export function wrapRadarLabel(label: string, maxCharacters = 13) {
     .join('\n');
 }
 
+export const logScaleTooltipTitle = (title: string) => `${title} (log10)`;
+
+export type CostRadarScale = {
+  floor: number;
+  maximum: number;
+  toRadarScale: (value: number) => number;
+};
+
+/**
+ * Map USD amounts onto a shifted log10 scale. The floor sits one decade below the smallest
+ * positive amount, so sub-dollar values retain their relative shape while zero stays at the
+ * centre of the radar.
+ */
+export function costRadarScale(values: readonly number[]): CostRadarScale {
+  const positive = values.filter((value) => Number.isFinite(value) && value > 0);
+  const smallest = positive.length > 0 ? Math.min(...positive) : 1;
+  const candidateFloor = 10 ** (Math.floor(Math.log10(smallest)) - 1);
+  const floor =
+    Number.isFinite(candidateFloor) && candidateFloor > 0 ? candidateFloor : Number.MIN_VALUE;
+  const largest = Math.max(floor, ...positive);
+  const floorLog = Math.log10(floor);
+  const rawMaximum = Math.log10(largest) - floorLog + Math.log10(1.15);
+  const maximum = Number.isFinite(rawMaximum) && rawMaximum > 0 ? rawMaximum : 1;
+  const toRadarScale = (value: number) => {
+    if (!Number.isFinite(value) || value <= 0) return 0;
+    const scaled = Math.log10(Math.max(floor, value)) - floorLog;
+    return Number.isFinite(scaled) && scaled > 0 ? scaled : 0;
+  };
+  return { floor, maximum, toRadarScale };
+}
+
 export type LatencyRadarOptionInput = {
   metrics: AnalysisTimingMetrics | null | undefined;
   mode: TimingMode;
@@ -1012,7 +1050,7 @@ export function latencyRadarOption({
       trigger: 'item',
       formatter: () =>
         tooltipPanel(
-          mode.toUpperCase(),
+          logScaleTooltipTitle(mode.toUpperCase()),
           TIMING_METRIC_KEYS.map((key, index) => ({
             name: labels[key],
             text:

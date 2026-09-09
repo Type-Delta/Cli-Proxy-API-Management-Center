@@ -151,11 +151,11 @@ export function LatencyDiagnostics({
     latency: {
       definition: t('analytics.analysis.metric_latency_definition', {
         defaultValue:
-          'Time from sending the request until the provider reports its first response token, when available.',
+          'Time from dispatch until the first substantive token reaches CPA.',
       }),
       calculation: t('analytics.analysis.metric_latency_calculation', {
         defaultValue:
-          'For provider-reported observations, shows the selected 95th percentile, longest duration, or median.',
+          'For requests with a strict dispatch-to-first-token observation, shows the selected 95th percentile, longest duration, or median.',
       }),
     },
     ttft: {
@@ -178,11 +178,12 @@ export function LatencyDiagnostics({
     },
     provider_latency: {
       definition: t('analytics.analysis.metric_provider_latency_definition', {
-        defaultValue: 'Time until the provider accepts the request, when the upstream reports it.',
+        defaultValue:
+          'Time from dispatch until HTTP headers arrive or the first request-specific WebSocket response frame, including provider and network wait.',
       }),
       calculation: t('analytics.analysis.metric_provider_latency_calculation', {
         defaultValue:
-          'For provider-reported observations, shows the selected 95th percentile, longest duration, or median.',
+          'For requests with a dispatch-to-response observation, shows the selected 95th percentile, longest duration, or median.',
       }),
     },
     samples: {
@@ -427,7 +428,7 @@ export function LatencyDiagnostics({
               <p className={styles.latencyCoverage}>
                 {t('analytics.analysis.timing_coverage', {
                   defaultValue:
-                    'Generation time is measured from the first to the last substantive token received by CPA. Provider latency and provider-to-first-token latency appear only when the provider reports a duration with known semantics; created_at timestamps are excluded because clock drift and timestamp quantization make subtraction unsafe.',
+                    'Generation time runs from the first to the last substantive token received by CPA. Latency runs from dispatch to the first substantive token, without packet-only fallback. Provider latency runs from dispatch to HTTP headers or the first request-specific WebSocket response frame, including network and provider wait. Missing or legacy measurements remain unavailable; created_at timestamps are excluded because clock drift and timestamp quantization make subtraction unsafe.',
                 })}
               </p>
               <dl className={styles.latencyMobileSummary} aria-label={chartLabel}>

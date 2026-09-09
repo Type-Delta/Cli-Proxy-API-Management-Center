@@ -10,7 +10,7 @@ import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer'
 import { AnalyticsChart } from '../../components/AnalyticsChart';
 import type { AnalyticsPalette } from '../../components/chartTheme';
 import { formatCostValue, formatPercent } from '../../components/analyticsFormatting';
-import { tooltipPanel } from './analysisModel';
+import { costRadarScale, logScaleTooltipTitle, tooltipPanel } from './analysisModel';
 import styles from './CostRadar.module.scss';
 
 registerCharts([GraphicComponent]);
@@ -130,16 +130,13 @@ export function CostRadar({
 
   const option = useMemo<EChartsCoreOption>(() => {
     const items = AXES.map((key) => segments.find((segment) => segment.key === key));
-    const maximum = Math.max(
-      1e-9,
-      ...items.map((item) => Math.max(0, item?.value ?? 0)),
-      ...values
-    );
+    const scale = costRadarScale(items.map((item) => item?.value ?? 0));
+    const scaledValues = values.map(scale.toRadarScale);
     const center = size / 2;
     const radius = size * 0.29;
     const nodes = DIRECTIONS.map(([dx, dy], index) => [
-      center + (dx * radius * values[index]) / maximum,
-      center + (dy * radius * values[index]) / maximum,
+      center + (dx * radius * scaledValues[index]) / scale.maximum,
+      center + (dy * radius * scaledValues[index]) / scale.maximum,
     ]);
     const elements = items.flatMap((item, index) => {
       const [dx, dy] = DIRECTIONS[index];
@@ -227,7 +224,11 @@ export function CostRadar({
         radius,
         startAngle: 90,
         splitNumber: 4,
-        indicator: RADAR_ORDER.map((index) => ({ name: items[index]?.label ?? '', max: maximum })),
+        indicator: RADAR_ORDER.map((index) => ({
+          name: items[index]?.label ?? '',
+          min: 0,
+          max: scale.maximum,
+        })),
         axisName: { show: false },
         axisNameGap: 26,
         axisLine: { lineStyle: { color: palette.border, width: 0.7 } },
@@ -239,11 +240,14 @@ export function CostRadar({
         appendToBody: true,
         formatter: () =>
           tooltipPanel(
-            shareLabel,
+            logScaleTooltipTitle(shareLabel),
             items.map((item) => ({
               name: item?.label ?? '',
               color: item?.color,
-              text: `${formatCostValue(item?.value ?? 0, locale).text} · ${formatPercent(item?.percent ?? 0, locale)}`,
+              text: `${formatCostValue(item?.value ?? 0, locale).text} · ${formatPercent(
+                item?.percent ?? 0,
+                locale
+              )}`,
             }))
           ),
       },
@@ -256,7 +260,7 @@ export function CostRadar({
           lineStyle: { color: palette.textTertiary, width: 1, opacity: 0.7 },
           areaStyle: { color: 'transparent' },
           emphasis: { disabled: true },
-          data: [{ value: RADAR_ORDER.map((index) => values[index]) }],
+          data: [{ value: RADAR_ORDER.map((index) => scaledValues[index]) }],
         },
       ],
     };

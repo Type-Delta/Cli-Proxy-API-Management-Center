@@ -17,6 +17,7 @@ import {
   buildModelEfficiency,
   buildTokenSeries,
   buildTopModelSeries,
+  costRadarScale,
   cellInk,
   contrastRatio,
   deriveUnclassifiedTokens,
@@ -24,9 +25,11 @@ import {
   distributionOption,
   heatmapChartHeight,
   keyModelHeatmapOption,
+  heatmapCellMetricValue,
   latencyOption,
   latencyRadarAxisOffset,
   latencyRadarOption,
+  logScaleTooltipTitle,
   median,
   rampColor,
   resolveLatencyPresentation,
@@ -419,6 +422,31 @@ describe('analytics Analysis models', () => {
       models: ['model-a'],
       totalModels: 2,
     });
+  });
+
+  test('shows zero for empty heatmap intersections but keeps requested gaps unavailable', () => {
+    const cell = {
+      key_id: 'key-a',
+      model: 'model-a',
+      requests: 2,
+      input_tokens: 10,
+      output_tokens: 5,
+      cached_tokens: 0,
+      cache_read_tokens: 0,
+      cache_creation_tokens: 0,
+      reasoning_tokens: 0,
+      total_tokens: 15,
+      known_cost_usd: '0',
+      generation_time_ms: null,
+    } satisfies NonNullable<AnalysisKeyModelMatrix['cells']>[number];
+
+    expect(heatmapCellMetricValue(null, 'tokens')).toBe(0);
+    expect(heatmapCellMetricValue(null, 'cost')).toBe(0);
+    expect(heatmapCellMetricValue(null, 'generation')).toBe(0);
+    expect(heatmapCellMetricValue({ ...cell, requests: 0 }, 'generation')).toBe(0);
+    expect(heatmapCellMetricValue(cell, 'generation')).toBeNull();
+    expect(heatmapCellMetricValue(cell, 'cost')).toBe(0);
+    expect(heatmapCellMetricValue({ ...cell, known_cost_usd: '0.25' }, 'cost')).toBe(0.25);
   });
 
   test('renders latency as one chart stop with a separate sample browser', () => {
@@ -923,6 +951,7 @@ describe('analysis ECharts options', () => {
     }) as unknown as {
       radar: { indicator: Array<{ max: number }> };
       series: Array<{ data: unknown[] }>;
+      tooltip: { formatter: (input: unknown) => string };
     };
     expect(complete.radar.indicator.map((indicator) => indicator.max)).toEqual(
       expect.arrayContaining([expect.closeTo(Math.log10(230), 1e-9)])
@@ -948,6 +977,10 @@ describe('analysis ECharts options', () => {
     };
     expect(partial.series[0].data).toEqual([]);
     expect(partial.radar.indicator.at(-1)?.name).toBe('Provider\nlatency\n· Unavailable');
+    expect(logScaleTooltipTitle('MAX')).toBe('MAX (log10)');
+    expect((complete.tooltip as { formatter: (input: unknown) => string }).formatter({})).toContain(
+      'MAX (log10)'
+    );
     expect(wrapRadarLabel('Generation time')).toBe('Generation\ntime');
     const custom = partial.series[1] as unknown as {
       renderItem: (
@@ -965,6 +998,18 @@ describe('analysis ECharts options', () => {
     expect(spokeEnds[1]).toBeLessThan(250);
     expect(spokeEnds[2]).toBeLessThan(250);
     expect(spokeEnds[3]).toBeGreaterThan(250);
+  });
+
+  test('uses shifted log10 cost geometry with a finite zero baseline', () => {
+    const scale = costRadarScale([0, 0.001, 0.01, 1]);
+
+    expect(scale.floor).toBe(0.0001);
+    expect(scale.toRadarScale(0)).toBe(0);
+    expect(scale.toRadarScale(Number.NaN)).toBe(0);
+    expect(scale.toRadarScale(0.001)).toBeCloseTo(1, 10);
+    expect(scale.toRadarScale(0.01)).toBeCloseTo(2, 10);
+    expect(scale.toRadarScale(1)).toBeCloseTo(4, 10);
+    expect(scale.maximum).toBeCloseTo(Math.log10(1 / 0.0001) + Math.log10(1.15), 10);
   });
 
   test('uses a true median and avoids inferring population stats from sampled legacy data', () => {

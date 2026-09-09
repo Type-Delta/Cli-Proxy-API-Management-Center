@@ -726,3 +726,26 @@ Audit-fix validation: `bun run verify` passes 691 tests, lint, TypeScript, and t
 build. Isolated Chrome CDP checks at 1440x900 and 390x844 confirm the raw provider payload
 renders and a 3.47-second arrival-to-response span displays as 3.5 seconds, rather than the
 3.29-second attempt latency. Neither viewport has horizontal overflow. CPA compiles.
+
+
+### DL038: Observed timing descriptions and zero-request chart behavior
+
+CPAUK's latency metrics now describe locally measured dispatch-to-first-substantive-token and
+dispatch-to-response intervals. The latter ends at HTTP response headers or the first application
+response frame on supported WebSocket transports, including network and provider waiting time.
+The hints in all four locales distinguish these observations from provider-reported timestamps.
+Existing TTFT behavior is unchanged; unobserved historical measurements remain unavailable.
+
+Key × Model Heatmap intersections with no requests display zero, including generation time.
+Populated cells retain the existing handling of missing measurements and known costs.
+The Cost Breakdown radar uses a shifted log10 USD scale with a positive floor below the smallest
+positive amount. Zero remains at the center, and tooltips continue to show raw USD amounts and
+percentages. Cost and Latency Diagnostics radar tooltip titles both end with `(log10)`.
+
+Validation: `bun run verify` passes 710 tests, lint, TypeScript, and production build; the scoped
+Impeccable detector reports no findings. Independent Chrome CDP checks at desktop and 390px
+mobile verify no-request cells show 0 tokens/0 ms, requested missing generation stays Unavailable,
+sub-dollar costs occupy equal log-decade intervals, and both radar tooltips contain `(log10)`.
+The existing dev UI displays all timing values from a newly built isolated CPA backend after an
+actual streamed request, without console errors or horizontal overflow. QA stopped its temporary
+backend/mock and disposed only its isolated browser contexts.
