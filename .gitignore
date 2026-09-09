@@ -8,8 +8,6 @@ pnpm-debug.log*
 lerna-debug.log*
 api.md
 usage.json
-CLAUDE.md
-AGENTS.md
 management-api*
 antigravity_usage.json
 codex_usage.json
