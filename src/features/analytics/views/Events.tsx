@@ -67,39 +67,10 @@ import {
   loadEventDimensionRows,
   retentionCutoffFromError,
 } from './events/eventRequests';
+import { eventSpeed, eventSpeedIsEstimated } from './events/eventDiagnostics';
 import styles from './events/Events.module.scss';
 
 const eventSource = (event: AnalyticsEvent) => event.source?.trim() ?? '';
-
-// Pure helpers stay exported for focused metric tests; the remaining exports are React components.
-/* eslint-disable-next-line react-refresh/only-export-components */
-export const eventSpeed = (event: AnalyticsEvent) => {
-  const observedGenerationMs = event.generation_time_ms;
-  const ttftMs = event.time_to_first_token_ms;
-  const hasObservedGeneration =
-    typeof observedGenerationMs === 'number' &&
-    Number.isFinite(observedGenerationMs) &&
-    observedGenerationMs > 0;
-  const hasEstimatedGeneration =
-    typeof ttftMs === 'number' &&
-    Number.isFinite(ttftMs) &&
-    ttftMs >= 0 &&
-    Number.isFinite(event.latency_ms) &&
-    event.latency_ms > ttftMs;
-  const generationMs = hasObservedGeneration
-    ? observedGenerationMs
-    : hasEstimatedGeneration && typeof ttftMs === 'number'
-      ? event.latency_ms - ttftMs
-      : null;
-  if (generationMs === null || generationMs <= 0 || event.tokens.output <= 0) return null;
-  return event.tokens.output / (generationMs / 1000);
-};
-
-/* eslint-disable-next-line react-refresh/only-export-components */
-export const eventSpeedIsEstimated = (event: AnalyticsEvent) => {
-  const generationMs = event.generation_time_ms;
-  return !(typeof generationMs === 'number' && Number.isFinite(generationMs) && generationMs > 0);
-};
 
 const uniqueEvents = (pages: readonly AnalyticsEventPage[]) => {
   const seen = new Set<string>();
@@ -496,14 +467,31 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
           </span>
         );
       case 'speed':
-        return speed === null
-          ? t('analytics.unavailable', { defaultValue: 'Unavailable' })
-          : `${t('analytics.tokens_per_second', {
-              value: new Intl.NumberFormat(i18n.resolvedLanguage, {
-                maximumFractionDigits: 1,
-              }).format(speed),
-              defaultValue: '{{value}} tokens/s',
-            })}${eventSpeedIsEstimated(event) ? ` (${t('analytics.speed_estimate', { defaultValue: 'estimated' })})` : ''}`;
+        if (speed === null) return t('analytics.unavailable', { defaultValue: 'Unavailable' });
+        {
+          const speedText = t('analytics.tokens_per_second', {
+            value: new Intl.NumberFormat(i18n.resolvedLanguage, {
+              maximumFractionDigits: 1,
+            }).format(speed),
+            defaultValue: '{{value}} tokens/s',
+          });
+          const estimated = eventSpeedIsEstimated(event);
+          const estimateLabel = t('analytics.speed_estimate', { defaultValue: 'Estimated' });
+          return (
+            <span
+              className={estimated ? styles.speedWithEstimate : undefined}
+              title={estimated ? estimateLabel : undefined}
+              aria-label={estimated ? `${speedText}, ${estimateLabel}` : undefined}
+            >
+              {speedText}
+              {estimated ? (
+                <small className={styles.speedEstimateBadge} aria-hidden="true">
+                  {t('analytics.speed_estimate_badge', { defaultValue: 'EST' })}
+                </small>
+              ) : null}
+            </span>
+          );
+        }
       case 'total_tokens':
         return <span title={tokens.title}>{tokens.text}</span>;
       case 'cache_read_rate':

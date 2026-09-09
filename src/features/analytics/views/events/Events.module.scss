@@ -91,6 +91,19 @@
   }
 }
 
+.speedWithEstimate {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.speedEstimateBadge {
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 // The row is the interactive target: one tab stop for the whole body via roving tabIndex.
 .eventRow {
   cursor: pointer;

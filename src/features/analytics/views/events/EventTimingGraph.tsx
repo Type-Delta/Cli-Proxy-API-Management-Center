@@ -76,7 +76,10 @@ export function EventTimingGraph({
           timing.throughput.tokensPerSecond
         ),
         defaultValue: '{{tokens}} tokens \u00b7 {{rate}} tok/s',
-      })
+      }) +
+      (timing.throughput.estimated
+        ? ` · ${t('analytics.speed_estimate', { defaultValue: 'Estimated' })}`
+        : '')
     : null;
 
   return (

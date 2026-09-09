@@ -425,6 +425,8 @@
     "source": "Source",
     "source_loaded_fallback": "CPA did not return Source options; this control uses values from loaded events.",
     "speed": "Speed",
+    "speed_estimate": "Estimated",
+    "speed_estimate_badge": "EST",
     "status_code": "Status code",
     "tokens_per_second": "{{value}} tokens/s",
     "ttft": "TTFT",

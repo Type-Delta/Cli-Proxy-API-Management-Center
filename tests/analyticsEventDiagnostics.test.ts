@@ -171,7 +171,7 @@ describe('buildEventTiming', () => {
     expect(timing.rows.find((row) => row.id === 'generation')?.startMs).toBe(500);
     expect(timing.totalMs).toBe(2_000);
     expect(timing.scaleMs).toBe(2_000);
-    expect(timing.throughput).toEqual({ tokens: 150, tokensPerSecond: 100 });
+    expect(timing.throughput).toEqual({ tokens: 150, tokensPerSecond: 100, estimated: false });
   });
 
   test('marks unrecorded segments null instead of back-filling remaining time', () => {
@@ -194,6 +194,29 @@ describe('buildEventTiming', () => {
     expect(rows.generation.durationMs).toBeNull();
     expect(timing.totalMs).toBe(40);
     expect(timing.throughput).toBeNull();
+  });
+
+  test('uses the latency minus TTFT estimate when generation is missing', () => {
+    const timing = buildEventTiming(
+      makeEvent({ generation_time_ms: null, time_to_first_token_ms: 400, latency_ms: 1_000 })
+    );
+    expect(timing.throughput).toEqual({ tokens: 150, tokensPerSecond: 250, estimated: true });
+  });
+
+  test('marks estimated chart throughput explicitly when generation is missing', () => {
+    const timing = buildEventTiming(
+      makeEvent({ generation_time_ms: null, time_to_first_token_ms: 400, latency_ms: 1_000 })
+    );
+    const html = renderToStaticMarkup(
+      createElement(EventTimingGraph, {
+        timing,
+        providerLabel: 'Codex',
+        providerStatus: 200,
+        providerFailed: false,
+      })
+    );
+
+    expect(html).toContain('Estimated');
   });
 
   test('legacy event without hop stamps reports routing as not recorded', () => {

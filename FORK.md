@@ -800,3 +800,16 @@ browser errors; the new fact tooltips expose their dispatch boundary definitions
 The token breakdown also shows localized `Unclassified` tokens using the authoritative total
 minus normalized input and output counts, clamped at zero. This preserves total-only and Claude
 style partial usage without repairing historical events.
+
+### DL042: Shared event throughput calculation
+
+Event tables and detail timing charts now share one throughput calculation. Positive observed
+generation time is authoritative; when it is absent or invalid, a positive E2E-minus-TTFT duration
+is used as an estimate. Missing or non-positive fallbacks remain unavailable, with no arbitrary
+speed cutoff, and estimated table values carry a compact localized `EST` badge while the chart
+labels the estimate explicitly.
+
+Validation: focused speed and event diagnostics tests cover observed 750 TPS, estimated fallback,
+zero and invalid measurements, and unavailable output. `bun run verify` passes 723 tests, lint,
+TypeScript, and the production build. Isolated Chrome CDP checks at 1440x1050 and 390x844 show
+the live speed and generation detail without overflow or browser errors.

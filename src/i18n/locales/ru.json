@@ -575,6 +575,8 @@
     "source": "Источник",
     "source_loaded_fallback": "CPA не вернул варианты источника; этот элемент управления использует значения из загруженных событий.",
     "speed": "Скорость",
+    "speed_estimate": "Расчётная",
+    "speed_estimate_badge": "EST",
     "status_code": "Код состояния",
     "tokens_per_second": "{{value}} токенов/с",
     "ttft": "TTFT",

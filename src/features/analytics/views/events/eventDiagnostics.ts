@@ -49,7 +49,7 @@ export type EventTiming = {
   totalMs: number | null;
   /** Shared axis maximum for every bar; null when nothing at all was recorded. */
   scaleMs: number | null;
-  throughput: { tokens: number; tokensPerSecond: number } | null;
+  throughput: { tokens: number; tokensPerSecond: number; estimated: boolean } | null;
 };
 
 export const EVENT_STEP_IDS: readonly EventStepId[] = [
@@ -66,6 +66,29 @@ const text = (value: string | null | undefined) => {
 
 const finite = (value: number | null | undefined) =>
   typeof value === 'number' && Number.isFinite(value) ? value : null;
+
+/** Uses measured generation time, then a positive E2E-minus-TTFT estimate when needed. */
+export const eventSpeed = (event: AnalyticsEvent) => {
+  const generationMs = finite(event.generation_time_ms);
+  const observed = generationMs !== null && generationMs > 0 ? generationMs : null;
+  const ttftMs = finite(event.time_to_first_token_ms);
+  const totalMs = finite(event.latency_ms);
+  const estimated =
+    observed === null && ttftMs !== null && totalMs !== null && totalMs > ttftMs
+      ? totalMs - ttftMs
+      : null;
+  const durationMs = observed ?? estimated;
+  const outputTokens = finite(event.tokens?.output) ?? 0;
+  return durationMs !== null && durationMs > 0 && outputTokens > 0
+    ? outputTokens / (durationMs / 1000)
+    : null;
+};
+
+export const eventSpeedIsEstimated = (event: AnalyticsEvent) => {
+  const speed = eventSpeed(event);
+  const generationMs = finite(event.generation_time_ms);
+  return speed !== null && !(generationMs !== null && generationMs > 0);
+};
 
 const epochMs = (value: string | null | undefined) => {
   const raw = text(value);
@@ -291,10 +314,11 @@ export function buildEventTiming(event: AnalyticsEvent): EventTiming {
   const scale = Math.max(totalMs ?? 0, measuredEnd);
 
   const outputTokens = finite(event.tokens?.output ?? null) ?? 0;
+  const speed = eventSpeed(event);
   const throughput =
-    generationMs !== null && generationMs > 0 && outputTokens > 0
-      ? { tokens: outputTokens, tokensPerSecond: outputTokens / (generationMs / 1000) }
-      : null;
+    speed === null
+      ? null
+      : { tokens: outputTokens, tokensPerSecond: speed, estimated: eventSpeedIsEstimated(event) };
 
   return { rows, totalMs, scaleMs: scale > 0 ? scale : null, throughput };
 }
