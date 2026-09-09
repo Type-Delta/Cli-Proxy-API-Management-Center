@@ -1,6 +1,6 @@
+import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Sheet } from '@/components/ui/Sheet';
@@ -13,7 +13,32 @@ import {
   formatDuration,
 } from '../../components/analyticsFormatting';
 import { shortIdentifier } from './eventColumns';
-import styles from './Events.module.scss';
+import styles from './EventDetail.module.scss';
+import { CopyButton, Fact, RawPayload, StatusPill } from './EventDetailParts';
+import {
+  buildEventTiming,
+  buildEventTimeline,
+  eventFailureHop,
+  formatPreciseTime,
+  hasHopInstrumentation,
+  normalizeRawUsage,
+  type EventHopId,
+} from './eventDiagnostics';
+import { EventTimeline } from './EventTimeline';
+import { EventTimingGraph } from './EventTimingGraph';
+import sheetStyles from './Events.module.scss';
+
+const statusTone = (status: number | null | undefined) => {
+  if (typeof status !== 'number' || !Number.isFinite(status)) return 'neutral' as const;
+  if (status >= 500) return 'failure' as const;
+  if (status >= 400) return 'warning' as const;
+  return 'success' as const;
+};
+
+const trimmed = (value: string | null | undefined) => {
+  const text = typeof value === 'string' ? value.trim() : '';
+  return text ? text : null;
+};
 
 export function EventDetailSheet({
   open,
@@ -33,24 +58,53 @@ export function EventDetailSheet({
   onRetry: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const tokenRows = event
-    ? ([
-        [t('analytics.total_tokens'), event.tokens.total],
-        [t('analytics.input_tokens'), event.tokens.input],
-        [t('analytics.output_tokens'), event.tokens.output],
-        [t('analytics.reasoning_tokens'), event.tokens.reasoning],
-        [t('analytics.cached_tokens', { defaultValue: 'Cached tokens' }), event.tokens.cached],
-        [
-          t('analytics.cache_read_tokens', { defaultValue: 'Cache read tokens' }),
-          event.tokens.cache_read,
-        ],
-        [
-          t('analytics.cache_creation_tokens', { defaultValue: 'Cache creation tokens' }),
-          event.tokens.cache_creation,
-        ],
-      ] as const)
-    : [];
-  const cost = event ? formatCostValue(event.known_cost_usd, i18n.resolvedLanguage) : { text: '—' };
+  const locale = i18n.resolvedLanguage;
+
+  const steps = useMemo(() => (event ? buildEventTimeline(event) : []), [event]);
+  const timing = useMemo(() => (event ? buildEventTiming(event) : null), [event]);
+  const failureHop = useMemo(() => eventFailureHop(steps), [steps]);
+  const rawUsage = useMemo(() => normalizeRawUsage(event?.upstream_usage_raw), [event]);
+
+  const notRecorded = t('analytics.event_detail.not_recorded', { defaultValue: 'Not recorded' });
+  const cost = event ? formatCostValue(event.known_cost_usd, locale) : { text: '' };
+
+  const sectionTitle = (hop: EventHopId) => {
+    switch (hop) {
+      case 'client_to_cpa':
+        return t('analytics.event_detail.hop_client_to_cpa', { defaultValue: 'Client to CPA' });
+      case 'cpa_to_provider':
+        return t('analytics.event_detail.hop_cpa_to_provider', { defaultValue: 'CPA to provider' });
+      case 'provider_to_cpa':
+        return t('analytics.event_detail.hop_provider_to_cpa', { defaultValue: 'Provider to CPA' });
+      default:
+        return t('analytics.event_detail.hop_cpa_to_client', { defaultValue: 'CPA to client' });
+    }
+  };
+
+  const hopSection = (hop: EventHopId, children: ReactNode) => (
+    <section
+      className={[styles.section, failureHop === hop ? styles.sectionFailed : '']
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <div className={styles.sectionHead}>
+        <h3 className={styles.sectionTitle}>{sectionTitle(hop)}</h3>
+        {failureHop === hop ? (
+          <span className={styles.sectionHint}>
+            {t('analytics.event_detail.failure_point', { defaultValue: 'Failure point' })}
+          </span>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+
+  const requestLine = event
+    ? [trimmed(event.client_method), trimmed(event.client_path)].filter(Boolean).join(' ')
+    : '';
+  const upstreamLine = event
+    ? [trimmed(event.upstream_method), trimmed(event.upstream_url)].filter(Boolean).join(' ')
+    : '';
 
   return (
     <Sheet
@@ -59,10 +113,10 @@ export function EventDetailSheet({
       size="lg"
       eyebrow={t('analytics.event_detail_eyebrow', { defaultValue: 'Analytics event' })}
       title={event?.model || t('analytics.event_detail_title', { defaultValue: 'Event details' })}
-      description={event ? formatDateTime(event.requested_at, i18n.resolvedLanguage) : undefined}
+      description={event ? formatDateTime(event.requested_at, locale) : undefined}
     >
       {loading && !event ? (
-        <div className={styles.detailLoading} role="status">
+        <div className={sheetStyles.detailLoading} role="status">
           <LoadingSpinner />
           {t('common.loading')}
         </div>
@@ -78,134 +132,315 @@ export function EventDetailSheet({
             </Button>
           }
         />
-      ) : event ? (
-        <div className={styles.detailStack} aria-busy={loading || undefined}>
+      ) : event && timing ? (
+        <div className={styles.stack} aria-busy={loading || undefined}>
           {error && (
             <div className="error-box" role="alert">
               {error}
             </div>
           )}
-          <Card title={t('analytics.event_request', { defaultValue: 'Request' })}>
-            <dl className={styles.detailGrid}>
-              <div>
-                <dt>{t('analytics.key')}</dt>
-                <dd title={shortIdentifier(event.key_id)}>{keyIdentity}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.provider')}</dt>
-                <dd>{formatAnalyticsEnum(t, 'provider', event.provider)}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.model')}</dt>
-                <dd>{event.model || '—'}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.requested_alias', { defaultValue: 'Requested alias' })}</dt>
-                <dd>{event.requested_alias || '—'}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.endpoint', { defaultValue: 'Endpoint' })}</dt>
-                <dd>{formatAnalyticsEnum(t, 'endpoint', event.endpoint_class)}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.executor', { defaultValue: 'Executor' })}</dt>
-                <dd>{formatAnalyticsEnum(t, 'executor', event.executor_type)}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.auth_type', { defaultValue: 'Auth type' })}</dt>
-                <dd>{formatAnalyticsEnum(t, 'auth_type', event.auth_type)}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.credential', { defaultValue: 'Credential' })}</dt>
-                <dd title={shortIdentifier(event.credential_id)}>
-                  {shortIdentifier(event.credential_id)}
-                </dd>
-              </div>
-              <div>
-                <dt>{t('analytics.request_id', { defaultValue: 'Request ID' })}</dt>
-                <dd title={event.proxy_request_id}>{event.proxy_request_id || '—'}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.attempt_id', { defaultValue: 'Attempt ID' })}</dt>
-                <dd title={event.attempt_id}>{event.attempt_id}</dd>
-              </div>
+
+          <div className={styles.statusStrip}>
+            <StatusPill
+              value={event.succeeded ? t('common.success') : t('common.failure')}
+              tone={event.succeeded ? 'success' : 'failure'}
+            />
+            {event.error_class ? (
+              <StatusPill
+                caption={t('analytics.error_class', { defaultValue: 'Error class' })}
+                value={formatAnalyticsEnum(t, 'error_class', event.error_class)}
+                tone="failure"
+              />
+            ) : null}
+            <StatusPill
+              caption={t('analytics.event_detail.provider_status', {
+                defaultValue: 'Provider status',
+              })}
+              value={event.upstream_status_code ?? notRecorded}
+              tone={statusTone(event.upstream_status_code)}
+            />
+            <StatusPill
+              caption={t('analytics.event_detail.proxy_status', { defaultValue: 'CPA status' })}
+              value={event.proxy_status_code ?? notRecorded}
+              tone={statusTone(event.proxy_status_code)}
+            />
+            <StatusPill
+              caption={t('analytics.provider')}
+              value={formatAnalyticsEnum(t, 'provider', event.provider)}
+            />
+            <StatusPill
+              caption={t('analytics.endpoint', { defaultValue: 'Endpoint' })}
+              value={formatAnalyticsEnum(t, 'endpoint', event.endpoint_class)}
+            />
+          </div>
+
+          <section className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h3 className={styles.sectionTitle}>
+                {t('analytics.event_detail.timeline', { defaultValue: 'Request path' })}
+              </h3>
+              {hasHopInstrumentation(event) ? null : (
+                <span className={styles.sectionHint}>
+                  {t('analytics.event_detail.legacy_note', {
+                    defaultValue: 'Recorded before CPA tracked hops',
+                  })}
+                </span>
+              )}
+            </div>
+            <EventTimeline steps={steps} />
+          </section>
+
+          <section className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h3 className={styles.sectionTitle}>
+                {t('analytics.event_detail.timing', { defaultValue: 'Timing' })}
+              </h3>
+            </div>
+            <EventTimingGraph
+              timing={timing}
+              providerLabel={formatAnalyticsEnum(t, 'provider', event.provider)}
+              providerStatus={event.upstream_status_code}
+              providerFailed={steps.some((step) => step.id === 'provider' && step.state === 'failed')}
+            />
+          </section>
+
+          {hopSection(
+            'client_to_cpa',
+            <dl className={styles.factGrid}>
+              <Fact
+                label={t('analytics.event_detail.client_request_line', {
+                  defaultValue: 'Method and path',
+                })}
+                value={requestLine}
+                mono
+                wide
+                copyValue={requestLine || null}
+              />
+              <Fact
+                label={t('analytics.key')}
+                value={keyIdentity}
+                title={shortIdentifier(event.key_id)}
+              />
+              <Fact
+                label={t('analytics.requested_alias', { defaultValue: 'Requested alias' })}
+                value={event.requested_alias}
+              />
+              <Fact
+                label={t('analytics.endpoint', { defaultValue: 'Endpoint' })}
+                value={formatAnalyticsEnum(t, 'endpoint', event.endpoint_class)}
+              />
+              <Fact
+                label={t('analytics.request_id', { defaultValue: 'Request ID' })}
+                value={event.proxy_request_id}
+                mono
+                copyValue={event.proxy_request_id}
+                title={t(`analytics.event_detail.request_quality_${event.request_id_quality}`, {
+                  defaultValue:
+                    event.request_id_quality === 'observed'
+                      ? 'Observed from the client request'
+                      : 'Synthesized by CPA',
+                })}
+              />
+              <Fact
+                label={t('analytics.event_detail.received_at', { defaultValue: 'Received at' })}
+                value={formatPreciseTime(event.received_at, locale)}
+              />
+              <Fact
+                label={t('analytics.event_detail.requested_at', {
+                  defaultValue: 'Attempt started',
+                })}
+                value={formatPreciseTime(event.requested_at, locale)}
+              />
             </dl>
-          </Card>
-          <Card title={t('analytics.event_result', { defaultValue: 'Result and timing' })}>
-            <dl className={styles.detailGrid}>
-              <div>
-                <dt>{t('analytics.result', { defaultValue: 'Result' })}</dt>
-                <dd>{event.succeeded ? t('common.success') : t('common.failure')}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.error_class', { defaultValue: 'Error class' })}</dt>
-                <dd>{formatAnalyticsEnum(t, 'error_class', event.error_class)}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.status_code', { defaultValue: 'Status code' })}</dt>
-                <dd>{event.upstream_status_code ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.latency')}</dt>
-                <dd>{formatDuration(event.latency_ms, i18n.resolvedLanguage)}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.ttft', { defaultValue: 'TTFT' })}</dt>
-                <dd>
-                  {event.time_to_first_token_ms === null
-                    ? '—'
-                    : formatDuration(event.time_to_first_token_ms, i18n.resolvedLanguage)}
-                </dd>
-              </div>
-              <div>
-                <dt>{t('analytics.requested_tier', { defaultValue: 'Requested tier' })}</dt>
-                <dd>{formatAnalyticsEnum(t, 'service_tier', event.service_tier_requested)}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.used_tier', { defaultValue: 'Used tier' })}</dt>
-                <dd>{formatAnalyticsEnum(t, 'service_tier', event.service_tier_used)}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.generated', { defaultValue: 'Generated' })}</dt>
-                <dd>
-                  {event.generated
-                    ? t('common.yes', { defaultValue: 'Yes' })
-                    : t('common.no', { defaultValue: 'No' })}
-                </dd>
-              </div>
+          )}
+
+          {hopSection(
+            'cpa_to_provider',
+            <dl className={styles.factGrid}>
+              <Fact
+                label={t('analytics.event_detail.upstream_request_line', {
+                  defaultValue: 'Method and URL',
+                })}
+                value={upstreamLine}
+                mono
+                wide
+                copyValue={upstreamLine || null}
+              />
+              <Fact
+                label={t('analytics.provider')}
+                value={formatAnalyticsEnum(t, 'provider', event.provider)}
+              />
+              <Fact
+                label={t('analytics.executor', { defaultValue: 'Executor' })}
+                value={formatAnalyticsEnum(t, 'executor', event.executor_type)}
+              />
+              <Fact label={t('analytics.model')} value={event.model} />
+              <Fact
+                label={t('analytics.auth_type', { defaultValue: 'Auth type' })}
+                value={formatAnalyticsEnum(t, 'auth_type', event.auth_type)}
+              />
+              <Fact
+                label={t('analytics.credential', { defaultValue: 'Credential' })}
+                value={shortIdentifier(event.credential_id)}
+                mono
+              />
+              <Fact
+                label={t('analytics.requested_tier', { defaultValue: 'Requested tier' })}
+                value={formatAnalyticsEnum(t, 'service_tier', event.service_tier_requested)}
+              />
+              <Fact
+                label={t('analytics.attempt_id', { defaultValue: 'Attempt ID' })}
+                value={event.attempt_id}
+                mono
+                copyValue={event.attempt_id}
+              />
+              <Fact
+                label={t('analytics.event_detail.sent_at', { defaultValue: 'Sent upstream at' })}
+                value={formatPreciseTime(event.upstream_sent_at, locale)}
+              />
             </dl>
-          </Card>
-          <Card title={t('analytics.event_tokens_cost', { defaultValue: 'Tokens and cost' })}>
-            <dl className={styles.detailGrid}>
-              {tokenRows.map(([label, value]) => {
-                const formatted = formatCompactTokens(value, i18n.resolvedLanguage);
+          )}
+
+          {hopSection(
+            'provider_to_cpa',
+            <>
+              <dl className={styles.factGrid}>
+                <Fact
+                  label={t('analytics.status_code', { defaultValue: 'Status code' })}
+                  value={event.upstream_status_code}
+                  mono
+                />
+                <Fact
+                  label={t('analytics.ttft', { defaultValue: 'TTFT' })}
+                  value={
+                    event.time_to_first_token_ms === null
+                      ? null
+                      : formatDuration(event.time_to_first_token_ms, locale)
+                  }
+                />
+                <Fact
+                  label={t('analytics.used_tier', { defaultValue: 'Used tier' })}
+                  value={formatAnalyticsEnum(t, 'service_tier', event.service_tier_used)}
+                />
+                <Fact
+                  label={t('analytics.error_class', { defaultValue: 'Error class' })}
+                  value={formatAnalyticsEnum(t, 'error_class', event.error_class)}
+                />
+                <Fact
+                  label={t('analytics.generated', { defaultValue: 'Generated' })}
+                  value={
+                    event.generated
+                      ? t('common.yes', { defaultValue: 'Yes' })
+                      : t('common.no', { defaultValue: 'No' })
+                  }
+                />
+              </dl>
+              {rawUsage ? (
+                <RawPayload
+                  label={t('analytics.event_detail.raw_generation', {
+                    defaultValue: 'Raw generation data',
+                  })}
+                  source={rawUsage}
+                  language="json"
+                  defaultOpen={failureHop === null}
+                />
+              ) : null}
+              {trimmed(event.upstream_error_body) ? (
+                <RawPayload
+                  label={t('analytics.event_detail.raw_error', {
+                    defaultValue: 'Raw provider error body',
+                  })}
+                  source={String(event.upstream_error_body)}
+                  language="json"
+                  defaultOpen={failureHop === 'provider_to_cpa'}
+                />
+              ) : null}
+            </>
+          )}
+
+          {hopSection(
+            'cpa_to_client',
+            <>
+              <dl className={styles.factGrid}>
+                <Fact
+                  label={t('analytics.event_detail.proxy_status', { defaultValue: 'CPA status' })}
+                  value={event.proxy_status_code}
+                  mono
+                />
+                <Fact
+                  label={t('analytics.latency')}
+                  value={formatDuration(event.latency_ms, locale)}
+                />
+                <Fact
+                  label={t('analytics.event_detail.responded_at', {
+                    defaultValue: 'Responded at',
+                  })}
+                  value={formatPreciseTime(event.responded_at, locale)}
+                />
+              </dl>
+              {trimmed(event.proxy_error) ? (
+                <RawPayload
+                  label={t('analytics.event_detail.proxy_error', { defaultValue: 'CPA error' })}
+                  source={String(event.proxy_error)}
+                  language="text"
+                  tone="error"
+                  defaultOpen={failureHop === 'cpa_to_client' || failureHop === 'cpa_to_provider'}
+                />
+              ) : null}
+            </>
+          )}
+
+          <section className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h3 className={styles.sectionTitle}>
+                {t('analytics.event_tokens_cost', { defaultValue: 'Tokens and cost' })}
+              </h3>
+              <span className={styles.sectionHint}>
+                <CopyButton
+                  value={JSON.stringify(event, null, 2)}
+                  label={t('analytics.event_detail.copy_event', {
+                    defaultValue: 'Copy event JSON',
+                  })}
+                />
+              </span>
+            </div>
+            <dl className={styles.factGrid}>
+              {(
+                [
+                  [t('analytics.total_tokens'), event.tokens.total],
+                  [t('analytics.input_tokens'), event.tokens.input],
+                  [t('analytics.output_tokens'), event.tokens.output],
+                  [t('analytics.reasoning_tokens'), event.tokens.reasoning],
+                  [
+                    t('analytics.cached_tokens', { defaultValue: 'Cached tokens' }),
+                    event.tokens.cached,
+                  ],
+                  [
+                    t('analytics.cache_read_tokens', { defaultValue: 'Cache read tokens' }),
+                    event.tokens.cache_read,
+                  ],
+                  [
+                    t('analytics.cache_creation_tokens', { defaultValue: 'Cache creation tokens' }),
+                    event.tokens.cache_creation,
+                  ],
+                ] as const
+              ).map(([label, value]) => {
+                const formatted = formatCompactTokens(value, locale);
                 return (
-                  <div key={label}>
-                    <dt>{label}</dt>
-                    <dd title={formatted.title}>{formatted.text}</dd>
-                  </div>
+                  <Fact key={label} label={label} value={formatted.text} title={formatted.title} />
                 );
               })}
-              <div>
-                <dt>{t('analytics.known_cost')}</dt>
-                <dd title={cost.title}>{cost.text}</dd>
-              </div>
-              <div>
-                <dt>{t('analytics.unpriced_tokens')}</dt>
-                {(() => {
-                  const unpriced = formatCompactTokens(
-                    event.unpriced_tokens ?? 0,
-                    i18n.resolvedLanguage
-                  );
-                  return <dd title={unpriced.title}>{unpriced.text}</dd>;
-                })()}
-              </div>
-              <div>
-                <dt>{t('analytics.price_source', { defaultValue: 'Price source' })}</dt>
-                <dd>{formatAnalyticsEnum(t, 'source', event.price_source)}</dd>
-              </div>
+              <Fact label={t('analytics.known_cost')} value={cost.text} title={cost.title} />
+              <Fact
+                label={t('analytics.unpriced_tokens')}
+                value={formatCompactTokens(event.unpriced_tokens ?? 0, locale).text}
+              />
+              <Fact
+                label={t('analytics.price_source', { defaultValue: 'Price source' })}
+                value={formatAnalyticsEnum(t, 'source', event.price_source)}
+              />
             </dl>
-          </Card>
+          </section>
         </div>
       ) : null}
     </Sheet>

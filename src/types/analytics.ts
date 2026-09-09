@@ -176,6 +176,19 @@ export type AnalyticsEvent = {
   price_source?: string;
   import_batch_id?: string;
   source?: string;
+  // Hop instrumentation added by CPA schema v1 (additive, all nullable). Events recorded before
+  // the upgrade carry none of these, so every consumer must treat them as "not recorded".
+  client_method?: string | null;
+  client_path?: string | null;
+  received_at?: string | null;
+  upstream_method?: string | null;
+  upstream_url?: string | null;
+  upstream_sent_at?: string | null;
+  upstream_usage_raw?: unknown;
+  upstream_error_body?: string | null;
+  proxy_status_code?: number | null;
+  proxy_error?: string | null;
+  responded_at?: string | null;
 };
 
 export type AnalyticsEventPage = {

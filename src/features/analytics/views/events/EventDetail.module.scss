@@ -1,0 +1,599 @@
+@use '../../../../styles/variables' as *;
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+// Status strip -------------------------------------------------------------
+.statusStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 2px 9px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pillCaption {
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pillValue {
+  font-weight: 650;
+}
+
+.pillSuccess {
+  border-color: var(--success-badge-border);
+  background: var(--success-badge-bg);
+  color: var(--success-badge-text);
+
+  .pillCaption {
+    color: inherit;
+    opacity: 0.75;
+  }
+}
+
+.pillFailure {
+  border-color: var(--failure-badge-border);
+  background: var(--failure-badge-bg);
+  color: var(--failure-badge-text);
+
+  .pillCaption {
+    color: inherit;
+    opacity: 0.75;
+  }
+}
+
+.pillWarning {
+  border-color: var(--amber-30);
+  background: var(--amber-10);
+  color: var(--amber-text);
+
+  .pillCaption {
+    color: inherit;
+    opacity: 0.75;
+  }
+}
+
+// Sections -----------------------------------------------------------------
+.section {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sectionHint {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  text-align: right;
+}
+
+.sectionFailed {
+  padding-left: 12px;
+  border-left: 2px solid var(--error-color);
+
+  .sectionTitle {
+    color: var(--error-color);
+  }
+}
+
+// Timeline -----------------------------------------------------------------
+.timeline {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.node {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border-radius: 6px;
+  outline: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+.rail {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+.line {
+  height: 2px;
+  flex: 1;
+  background: var(--border-color);
+}
+
+.lineHidden {
+  background: transparent;
+}
+
+.dot {
+  display: flex;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--border-primary);
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.nodeText {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.nodeLabel {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nodeCaption {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stateComplete {
+  .dot {
+    border-color: var(--success-badge-border);
+    background: var(--success-badge-bg);
+    color: var(--success-badge-text);
+  }
+
+  .line {
+    background: var(--success-badge-border);
+  }
+}
+
+.stateFailed {
+  .dot {
+    border-color: var(--failure-badge-border);
+    background: var(--failure-badge-bg);
+    color: var(--failure-badge-text);
+  }
+
+  .line {
+    background: var(--failure-badge-border);
+  }
+
+  .nodeLabel {
+    color: var(--error-color);
+  }
+}
+
+.stateSkipped {
+  .dot {
+    border-color: var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-quaternary);
+  }
+
+  .nodeLabel,
+  .nodeCaption {
+    color: var(--text-tertiary);
+  }
+}
+
+.stateUnknown {
+  .dot {
+    border-style: dashed;
+    border-color: var(--border-primary);
+    background: transparent;
+    color: var(--text-tertiary);
+  }
+
+  .line {
+    height: 0;
+    border-top: 2px dashed var(--border-primary);
+    background: transparent;
+  }
+
+  .nodeLabel,
+  .nodeCaption {
+    color: var(--text-tertiary);
+  }
+}
+
+// Timing graph -------------------------------------------------------------
+.timing {
+  display: flex;
+  flex-direction: column;
+}
+
+.timingRow {
+  display: grid;
+  align-items: center;
+  gap: 4px 8px;
+  grid-template-areas: 'label pill track value';
+  grid-template-columns: 92px 44px minmax(0, 1fr) 62px;
+  min-height: 24px;
+}
+
+.timingLabel {
+  overflow: hidden;
+  grid-area: label;
+  color: var(--text-primary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timingLabelMuted {
+  color: var(--text-tertiary);
+}
+
+.timingPill {
+  display: flex;
+  grid-area: pill;
+  justify-content: flex-start;
+}
+
+.timingStatus {
+  display: inline-flex;
+  min-width: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-family: $font-mono;
+  font-size: 11px;
+}
+
+.timingStatusOk {
+  border-color: var(--success-badge-border);
+  background: var(--success-badge-bg);
+  color: var(--success-badge-text);
+}
+
+.timingStatusBad {
+  border-color: var(--failure-badge-border);
+  background: var(--failure-badge-bg);
+  color: var(--failure-badge-text);
+}
+
+.timingTrack {
+  position: relative;
+  height: 18px;
+  grid-area: track;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+}
+
+.timingBar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--border-primary);
+}
+
+.barProvider {
+  background: var(--viz-success);
+}
+
+.barProviderFailed {
+  background: var(--viz-failure);
+}
+
+.barGeneration {
+  background: var(--viz-cat-1);
+}
+
+.barLabel {
+  display: flex;
+  overflow: hidden;
+  height: 100%;
+  align-items: center;
+  padding: 0 6px;
+  color: #fff;
+  font-family: $font-mono;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.timingValue {
+  grid-area: value;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.timingValueMuted {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.timingNote {
+  grid-area: note;
+  color: var(--text-secondary);
+  font-family: $font-mono;
+  font-size: 11px;
+}
+
+.timingRowNote {
+  grid-template-areas:
+    'label pill track value'
+    'note note note note';
+}
+
+.timingTotal {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+// Fact lists ---------------------------------------------------------------
+.factGrid {
+  display: grid;
+  overflow: hidden;
+  margin: 0;
+  gap: 0 18px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.fact {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  // Clip the first row divider at the grid edge, regardless of column count or wide facts.
+  margin-top: -1px;
+  padding: 7px 0 6px;
+  border-top: 1px solid var(--border-color);
+}
+
+.factWide {
+  grid-column: 1 / -1;
+}
+
+.factLabel {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.factValue {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.factValueMuted {
+  color: var(--text-tertiary);
+}
+
+.mono {
+  min-width: 0;
+  font-family: $font-mono;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.copyButton {
+  min-height: 22px;
+  flex: 0 0 auto;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 0;
+}
+
+// Raw payload blocks -------------------------------------------------------
+.raw {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rawHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rawToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+.rawChevron {
+  display: inline-flex;
+  transition: transform 140ms ease;
+}
+
+.rawChevronOpen {
+  transform: rotate(180deg);
+}
+
+.rawPre {
+  max-height: 260px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: $font-mono;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.jsonKey {
+  color: var(--viz-cat-3);
+}
+
+.jsonString {
+  color: var(--viz-cat-2);
+}
+
+.jsonNumber {
+  color: var(--viz-cat-1);
+}
+
+.jsonKeyword {
+  color: var(--viz-cat-4);
+}
+
+.jsonPunctuation {
+  color: var(--text-tertiary);
+}
+
+.errorText {
+  color: var(--failure-badge-text);
+}
+
+@media (max-width: 640px) {
+  .timeline {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .node {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .rail {
+    width: auto;
+    min-height: 44px;
+    flex: 0 0 auto;
+    flex-direction: column;
+  }
+
+  .line {
+    width: 2px;
+    height: auto;
+    min-height: 8px;
+  }
+
+  .stateUnknown .line {
+    width: 0;
+    height: auto;
+    border-top: 0;
+    border-left: 2px dashed var(--border-primary);
+  }
+
+  .nodeText {
+    align-items: flex-start;
+    padding-bottom: 10px;
+    text-align: left;
+  }
+
+  .timingRow {
+    grid-template-areas:
+      'label pill value'
+      'track track track';
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .timingRowNote {
+    grid-template-areas:
+      'label pill value'
+      'track track track'
+      'note note note';
+  }
+
+  .timingPill {
+    justify-content: flex-end;
+  }
+}

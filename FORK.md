@@ -638,3 +638,68 @@ Browser frame sampling confirms a continuous transition and the same ECharts ins
 
 The near-total cache comparison and tooltip use the EUV lithography analogy in all four locales,
 matching the comparison model fallback.
+
+### DL037: Per-hop event detail sheet with request-path timeline and timing graph
+
+Status: shipped
+
+Files: `src/features/analytics/views/events/EventDetailSheet.tsx`,
+`src/features/analytics/views/events/EventDetailParts.tsx`,
+`src/features/analytics/views/events/EventTimeline.tsx`,
+`src/features/analytics/views/events/EventTimingGraph.tsx`,
+`src/features/analytics/views/events/eventDiagnostics.ts`,
+`src/features/analytics/views/events/EventDetail.module.scss`, `src/types/analytics.ts`,
+`src/i18n/locales/{en,ru,zh-CN,zh-TW}.json`, `tests/analyticsEventDiagnostics.test.ts`
+
+The analytics event detail sheet keeps every field the previous sheet showed and adds the four
+CPA hops. `src/types/analytics.ts` gains nullable, additive fields for the client request
+(`client_method`, `client_path`, `received_at`), the upstream request (`upstream_method`,
+`upstream_url`, `upstream_sent_at`), the provider response (`upstream_status_code` on success,
+`upstream_usage_raw`, `upstream_error_body`), and the CPA response (`proxy_status_code`,
+`proxy_error`, `responded_at`). Every field may be null for events recorded before the upgrade.
+
+`eventDiagnostics.ts` holds the React- and i18n-free derivations. `buildEventTimeline` marks the
+failure point across Client, CPA, Provider, CPA: a failure before dispatch fails the CPA
+node, a provider error status fails the Provider node, and a broken relay after a usable upstream
+response fails the return CPA node. Steps after the failure are `skipped`; steps CPA never recorded
+stay `unknown` rather than being guessed. `buildEventTiming` derives Routing, Provider, and
+Generation on one latency scale plus a Total, leaving unrecorded segments null instead of
+back-filling. A minimal JSON tokenizer highlights the stored provider usage node read-only, and raw
+provider error and CPA error bodies render in collapsible copyable blocks.
+
+The sheet stays utilitarian and dense: a status strip, a four-node request-path timeline with
+green complete, red failed, grey never reached, and dashed unknown states, a timing bar graph with
+a provider status pill and an inline "N tokens - X tok/s" generation label, four hop sections as
+two-column definition lists with the failed hop flagged and expanded, and the existing tokens and
+cost rows. Timeline nodes are keyboard focusable and reuse the shared tooltip that promotes the
+`title` attribute, so hover and focus both surface a timestamp and one-line summary. The timeline
+wraps to vertical on mobile. All new strings resolve through i18n with defaults in English, Russian,
+Simplified Chinese, and Traditional Chinese.
+
+Validation: `bun run verify` passes 689 tests, lint, TypeScript, and the production build.
+`analyticsEventDiagnostics.test.ts` covers success with every field, a provider 429, a CPA-side
+failure without `upstream_sent_at`, a mid-stream failure after a 200, and a legacy event with no
+new fields, plus the timing and raw-payload helpers. Isolated CDP browser checks at 1440x900 and
+390x844 in light and dark, with event-detail fixtures injected through the Fetch domain over a
+legacy backend, confirm the failed provider node, the timing pill and muted "not recorded" rows,
+the all-green success path with the generation label, keyboard-focus tooltips, and no overflow or
+overlap.
+
+Event detail follow-up: the timeline ends at CPA, where the recorded response status and timestamp
+are shown, including error statuses after an earlier failure. There is no inferred client delivery
+node. Fact grids clip the first row divider at their top edge across responsive column counts and
+full-width facts, avoiding a second line below section headings.
+
+Follow-up validation: 689 tests, lint, TypeScript, and the production build pass. Isolated Chrome
+CDP checks against the dev server on port 18527 at 1440x900 and 390x844 in light and dark themes
+confirm four timeline nodes, CPA status 200/429 on the final node, the first fact-row divider
+clipped, and no horizontal overflow. The CPA server compile check also passes.
+
+Audit corrections: event details read CPA's `upstream_usage_raw` field directly. Timing totals
+prefer the recorded arrival-to-response span, including routing, and fall back to attempt latency
+for legacy events. Regression coverage checks the API field name and routing-inclusive total.
+
+Audit-fix validation: `bun run verify` passes 691 tests, lint, TypeScript, and the production
+build. Isolated Chrome CDP checks at 1440x900 and 390x844 confirm the raw provider payload
+renders and a 3.47-second arrival-to-response span displays as 3.5 seconds, rather than the
+3.29-second attempt latency. Neither viewport has horizontal overflow. CPA compiles.
