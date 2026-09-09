@@ -159,11 +159,19 @@ export type AnalyticsEvent = {
   endpoint_class: string;
   auth_type: string | null;
   credential_id: string | null;
+  /** Optional admin-only filename resolved from currently loaded credentials. */
+  credential_filename?: string | null;
   credential_id_algorithm: string | null;
   succeeded: boolean;
   upstream_status_code: number | null;
   error_class: string | null;
   latency_ms: number;
+  /** Strict CPA measurement from upstream dispatch to the first substantive token. */
+  first_token_latency_ms?: number | null;
+  /** Provider acknowledgement from dispatch to headers or the first request-specific frame. */
+  provider_latency_ms?: number | null;
+  /** CPA receipt to the first provider dispatch, including CPA routing work. */
+  routing_time_ms?: number | null;
   time_to_first_token_ms: number | null;
   generation_time_ms?: number | null;
   service_tier_requested: string | null;

@@ -6,6 +6,7 @@ import styles from './EventDetail.module.scss';
 const BAR_CLASS: Record<TimingRowId, string | undefined> = {
   routing: undefined,
   provider: styles.barProvider,
+  waiting: styles.barWaiting,
   generation: styles.barGeneration,
 };
 
@@ -30,10 +31,42 @@ export function EventTimingGraph({
   const rowLabel = (id: TimingRowId) => {
     if (id === 'routing')
       return t('analytics.event_detail.row_routing', { defaultValue: 'Routing' });
+    if (id === 'provider') {
+      return t('analytics.event_detail.row_provider_ack', { defaultValue: 'Provider ACK' });
+    }
+    if (id === 'waiting') {
+      return t('analytics.event_detail.row_waiting', { defaultValue: 'Waiting' });
+    }
     if (id === 'generation') {
       return t('analytics.event_detail.row_generation', { defaultValue: 'Generation' });
     }
     return providerLabel;
+  };
+
+  const rowTooltip = (id: TimingRowId, durationMs: number | null) => {
+    const duration =
+      durationMs === null
+        ? t('analytics.event_detail.not_recorded', { defaultValue: 'Not recorded' })
+        : formatDuration(durationMs, locale);
+    const key =
+      id === 'routing'
+        ? 'timing_routing_tooltip'
+        : id === 'provider'
+          ? 'timing_provider_ack_tooltip'
+          : id === 'waiting'
+            ? 'timing_waiting_tooltip'
+            : 'timing_generation_tooltip';
+    return `${rowLabel(id)} · ${duration}\n${t(`analytics.event_detail.${key}`, {
+      provider: providerLabel,
+      defaultValue:
+        id === 'routing'
+          ? 'CPA processing and routing from receipt to the first provider dispatch.'
+          : id === 'provider'
+            ? '{{provider}} acknowledgement from dispatch to HTTP headers or the first request-specific WebSocket frame.'
+            : id === 'waiting'
+              ? "Post-ACK wait until CPA's first substantive token. Queueing, encoder prefill, or cache activity may contribute and is not separately measured."
+              : "From CPA's first substantive token to the last substantive token.",
+    })}`;
   };
 
   const generationLabel = timing.throughput
@@ -49,7 +82,8 @@ export function EventTimingGraph({
   return (
     <div className={styles.timing}>
       {timing.rows.map((row) => {
-        const recorded = row.durationMs !== null && row.startMs !== null && scale !== null;
+        const measured = row.durationMs !== null;
+        const recorded = measured && row.startMs !== null && scale !== null;
         const startPercent = recorded ? Math.min(100, (row.startMs! / scale!) * 100) : 0;
         const widthPercent = recorded
           ? Math.max(1.5, Math.min(100 - startPercent, (row.durationMs! / scale!) * 100))
@@ -72,9 +106,11 @@ export function EventTimingGraph({
             className={[styles.timingRow, noteLabel ? styles.timingRowNote : '']
               .filter(Boolean)
               .join(' ')}
+            tabIndex={0}
+            title={rowTooltip(row.id, row.durationMs)}
           >
             <span
-              className={[styles.timingLabel, recorded ? '' : styles.timingLabelMuted]
+              className={[styles.timingLabel, measured ? '' : styles.timingLabelMuted]
                 .filter(Boolean)
                 .join(' ')}
             >
@@ -103,11 +139,11 @@ export function EventTimingGraph({
               ) : null}
             </span>
             <span
-              className={[styles.timingValue, recorded ? '' : styles.timingValueMuted]
+              className={[styles.timingValue, measured ? '' : styles.timingValueMuted]
                 .filter(Boolean)
                 .join(' ')}
             >
-              {recorded
+              {measured
                 ? formatDuration(row.durationMs!, locale)
                 : t('analytics.event_detail.not_recorded', { defaultValue: 'Not recorded' })}
             </span>

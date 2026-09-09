@@ -35,7 +35,7 @@ export type EventStep = {
 
 export type EventHopId = 'client_to_cpa' | 'cpa_to_provider' | 'provider_to_cpa' | 'cpa_to_client';
 
-export type TimingRowId = 'routing' | 'provider' | 'generation';
+export type TimingRowId = 'routing' | 'provider' | 'waiting' | 'generation';
 
 export type TimingRow = {
   id: TimingRowId;
@@ -222,20 +222,30 @@ export function eventFailureHop(steps: readonly EventStep[]): EventHopId | null 
 }
 
 /**
- * Routing / provider / generation on one scale, plus the total. A segment is null when its inputs
- * were not recorded; nothing is back-filled from the remaining time.
+ * Routing / provider acknowledgement / post-ack wait / generation on one scale, plus the total.
+ * A segment is null when its inputs were not recorded; nothing is back-filled from the remaining
+ * time. The strict local first-token measurement is deliberately separate from legacy TTFT, whose
+ * value may use a packet fallback.
  */
 export function buildEventTiming(event: AnalyticsEvent): EventTiming {
   const startedAt = epochMs(event.received_at) ?? epochMs(event.requested_at);
   const sentAt = epochMs(event.upstream_sent_at);
+  const routingMeasurement = finite(event.routing_time_ms);
   const routingMs =
-    startedAt !== null && sentAt !== null && sentAt >= startedAt ? sentAt - startedAt : null;
+    routingMeasurement !== null && routingMeasurement >= 0 ? routingMeasurement : null;
 
-  const ttft = finite(event.time_to_first_token_ms);
-  const providerMs = ttft !== null && ttft >= 0 ? ttft : null;
+  const firstToken = finite(event.first_token_latency_ms);
+  const firstTokenMs = firstToken !== null && firstToken >= 0 ? firstToken : null;
+  const providerMeasurement = finite(event.provider_latency_ms);
+  const providerMs =
+    providerMeasurement !== null && providerMeasurement >= 0 ? providerMeasurement : null;
+  const waitingMs =
+    firstTokenMs !== null && providerMs !== null && firstTokenMs >= providerMs
+      ? firstTokenMs - providerMs
+      : null;
 
   const generation = finite(event.generation_time_ms ?? null);
-  const generationMs = generation !== null && generation > 0 ? generation : null;
+  const generationMs = generation !== null && generation >= 0 ? generation : null;
 
   const latency = finite(event.latency_ms);
   const respondedAt = epochMs(event.responded_at);
@@ -246,11 +256,24 @@ export function buildEventTiming(event: AnalyticsEvent): EventTiming {
   const totalMs = spanMs ?? (latency !== null && latency >= 0 ? latency : null);
 
   const routingStart = 0;
-  const providerStart = routingMs ?? 0;
-  const generationStart = providerStart + (providerMs ?? 0);
+  // upstream_sent_at is the current dispatch. It can be later than the first dispatch recorded
+  // by routing_time_ms when retries occurred, so leave that gap visible on the shared axis.
+  const dispatchOffset =
+    startedAt !== null && sentAt !== null && sentAt >= startedAt ? sentAt - startedAt : null;
+  const providerStart =
+    dispatchOffset !== null && (routingMs === null || dispatchOffset >= routingMs)
+      ? dispatchOffset
+      : null;
+  const firstTokenPositioned =
+    firstTokenMs !== null && (providerMs === null || firstTokenMs >= providerMs);
+  const waitingStart =
+    providerStart !== null && providerMs !== null ? providerStart + providerMs : null;
+  const generationStart =
+    providerStart !== null && firstTokenPositioned ? providerStart + firstTokenMs! : null;
   const rows: TimingRow[] = [
     { id: 'routing', startMs: routingMs === null ? null : routingStart, durationMs: routingMs },
     { id: 'provider', startMs: providerMs === null ? null : providerStart, durationMs: providerMs },
+    { id: 'waiting', startMs: waitingMs === null ? null : waitingStart, durationMs: waitingMs },
     {
       id: 'generation',
       startMs: generationMs === null ? null : generationStart,
@@ -269,7 +292,7 @@ export function buildEventTiming(event: AnalyticsEvent): EventTiming {
 
   const outputTokens = finite(event.tokens?.output ?? null) ?? 0;
   const throughput =
-    generationMs !== null && outputTokens > 0
+    generationMs !== null && generationMs > 0 && outputTokens > 0
       ? { tokens: outputTokens, tokensPerSecond: outputTokens / (generationMs / 1000) }
       : null;
 

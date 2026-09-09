@@ -272,6 +272,12 @@
   grid-template-areas: 'label pill track value';
   grid-template-columns: 92px 44px minmax(0, 1fr) 62px;
   min-height: 24px;
+  border-radius: 4px;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
 }
 
 .timingLabel {
@@ -338,6 +344,10 @@
 
 .barProvider {
   background: var(--viz-success);
+}
+
+.barWaiting {
+  background: var(--viz-cat-2);
 }
 
 .barProviderFailed {

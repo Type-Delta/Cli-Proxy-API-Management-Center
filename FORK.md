@@ -749,3 +749,54 @@ sub-dollar costs occupy equal log-decade intervals, and both radar tooltips cont
 The existing dev UI displays all timing values from a newly built isolated CPA backend after an
 actual streamed request, without console errors or horizontal overflow. QA stopped its temporary
 backend/mock and disposed only its isolated browser contexts.
+
+
+### DL039: Separate event timing phases
+
+The event detail timing chart separates Routing, Provider ACK, Waiting, and Generation.
+Routing uses CPA's measured `routing_time_ms` before the first provider dispatch. Provider ACK
+uses `provider_latency_ms`, from the current dispatch to response headers or the first request
+response frame. Waiting subtracts ACK from local `first_token_latency_ms`, and Generation uses
+the first-to-last substantive-token duration. Current dispatch timestamps position provider
+phases, leaving retry intervals unassigned rather than attributing them to routing.
+
+Focusable phase tooltips in all four locales explain the boundaries. Waiting refers to CPA's
+local first-token interval as TTFT; queueing, prefill and cache work are possible contributors,
+not separately observed stages. No provider-reported duration replaces the local timeline.
+Missing or inconsistent observations do not create fabricated bars, and zero generation duration
+does not produce infinite throughput.
+
+Validation: 714 frontend tests, lint, TypeScript, and production build pass. Independent Chrome
+CDP verification at 1440x1050 and 390x844 uses an event from a fresh CPA instance and real local
+stream: Routing 0 ms, Provider ACK 121 ms, Waiting 260 ms, Generation 80 ms. Mouse, keyboard
+focus and touch show the explanations with the final TTFT wording. Missing-position fixtures
+retain measured durations and omit only bars; neither viewport has overflow or console errors.
+QA disposed its browser contexts and stopped its temporary servers.
+
+### DL040: Credential filenames in event details
+
+The event detail Credential field uses the authenticated API's `credential_filename`
+when available, matching the filename users manage in Auth Files. Missing or deleted
+credentials retain the shortened ID fallback. No extra credential catalog request is made.
+
+Validation: `bun run verify` passes 715 tests, lint, TypeScript, and the production
+build. Isolated desktop/mobile Chrome CDP fixtures verify the filename and a roughly
+39 KiB raw generation payload without horizontal page overflow.
+
+### DL041: Event detail latency boundaries
+
+The event detail sheet now shows three distinct latency measurements: strict `Latency` from
+provider dispatch to CPA's first substantive token (`first_token_latency_ms`), `Provider latency`
+from dispatch to provider acknowledgement (`provider_latency_ms`), and the existing `E2E latency`
+from the recorded request start through the response (`latency_ms`). The new measurements reuse
+the localized Analytics labels and boundary definitions. Missing values show the localized
+unavailable text, while measured zero values remain visible as `0 ms`.
+
+Validation: `bun run verify` passes 718 tests, lint, TypeScript, and the production build.
+Focused SSR coverage includes zero and missing measurements. Isolated Chrome CDP checks at
+1440x1050 and 390x844 show the three labels and live values without horizontal overflow or
+browser errors; the new fact tooltips expose their dispatch boundary definitions.
+
+The token breakdown also shows localized `Unclassified` tokens using the authoritative total
+minus normalized input and output counts, clamped at zero. This preserves total-only and Claude
+style partial usage without repairing historical events.

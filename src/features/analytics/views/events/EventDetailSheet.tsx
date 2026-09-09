@@ -12,6 +12,7 @@ import {
   formatDateTime,
   formatDuration,
 } from '../../components/analyticsFormatting';
+import { deriveUnclassifiedTokens } from '../analysis/analysisModel';
 import { shortIdentifier } from './eventColumns';
 import styles from './EventDetail.module.scss';
 import { CopyButton, Fact, RawPayload, StatusPill } from './EventDetailParts';
@@ -281,7 +282,7 @@ export function EventDetailSheet({
               />
               <Fact
                 label={t('analytics.credential', { defaultValue: 'Credential' })}
-                value={shortIdentifier(event.credential_id)}
+                value={event.credential_filename ?? shortIdentifier(event.credential_id)}
                 mono
               />
               <Fact
@@ -317,6 +318,33 @@ export function EventDetailSheet({
                       ? null
                       : formatDuration(event.time_to_first_token_ms, locale)
                   }
+                />
+                <Fact
+                  label={t('analytics.analysis.provider_latency_to_first_token', {
+                    defaultValue: 'Latency',
+                  })}
+                  value={
+                    event.first_token_latency_ms == null
+                      ? notRecorded
+                      : formatDuration(event.first_token_latency_ms, locale)
+                  }
+                  title={t('analytics.analysis.metric_latency_definition', {
+                    defaultValue: 'Time from dispatch until the first substantive token reaches CPA.',
+                  })}
+                />
+                <Fact
+                  label={t('analytics.analysis.provider_latency', {
+                    defaultValue: 'Provider latency',
+                  })}
+                  value={
+                    event.provider_latency_ms == null
+                      ? notRecorded
+                      : formatDuration(event.provider_latency_ms, locale)
+                  }
+                  title={t('analytics.analysis.metric_provider_latency_definition', {
+                    defaultValue:
+                      'Time from dispatch until HTTP headers arrive or the first request-specific WebSocket response frame, including provider and network wait.',
+                  })}
                 />
                 <Fact
                   label={t('analytics.used_tier', { defaultValue: 'Used tier' })}
@@ -368,7 +396,7 @@ export function EventDetailSheet({
                   mono
                 />
                 <Fact
-                  label={t('analytics.latency')}
+                  label={t('analytics.analysis.e2e_latency', { defaultValue: 'E2E latency' })}
                   value={formatDuration(event.latency_ms, locale)}
                 />
                 <Fact
@@ -411,6 +439,14 @@ export function EventDetailSheet({
                   [t('analytics.input_tokens'), event.tokens.input],
                   [t('analytics.output_tokens'), event.tokens.output],
                   [t('analytics.reasoning_tokens'), event.tokens.reasoning],
+                  [
+                    t('analytics.analysis.unclassified', { defaultValue: 'Unclassified' }),
+                    deriveUnclassifiedTokens(
+                      event.tokens.total,
+                      event.tokens.input,
+                      event.tokens.output
+                    ),
+                  ],
                   [
                     t('analytics.cached_tokens', { defaultValue: 'Cached tokens' }),
                     event.tokens.cached,
