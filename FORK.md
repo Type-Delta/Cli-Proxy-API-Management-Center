@@ -831,7 +831,7 @@ shortened ID.
 
 The Quota page gains a Z.AI tab. Auth-file entries with `usage_probe: zai` are polled through
 `/api-call` against the Z.ai monitor endpoint and rendered as one meter per credit window
-(five-hour and weekly) with remaining credits, plan level, and reset countdowns. Quota cards use
+(five-hour and weekly) with plan level and reset countdowns; the remaining-credits text lives in the shared tooltip on the percentage so narrow cards do not overflow. Quota cards use
 `display_name` as their title. Auth Files cards lead with a user-set label and the details sheet
 offers a "Rename / set label" action that patches the auth file `label`.
 

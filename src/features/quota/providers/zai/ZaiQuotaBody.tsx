@@ -45,6 +45,14 @@ export function ZaiQuotaBody({ quota, classes }: QuotaBodyProps<ZaiQuotaState>) 
         const rowLabel = row.labelKey
           ? t(row.labelKey, (row.labelParams ?? {}) as Record<string, string | number>)
           : (row.label ?? '');
+        // Credits live in the shared tooltip (title -> TooltipProvider); the
+        // inline row only carries the percentage so narrow cards do not overflow.
+        const creditsLabel = t('zai_quota.remaining_credits', {
+          remaining: formatCredits(
+            row.remaining ?? (row.limit !== null && row.used !== null ? row.limit - row.used : null)
+          ),
+          limit: formatCredits(row.limit),
+        });
         const resetDisplay = buildResetDisplay(null, row.resetAtMs, now, i18n.resolvedLanguage);
         const soon = row.id === soonestRowId;
 
@@ -57,15 +65,8 @@ export function ZaiQuotaBody({ quota, classes }: QuotaBodyProps<ZaiQuotaState>) 
             <div className={classes.quotaRowHeader}>
               <span className={classes.quotaModel}>{rowLabel}</span>
               <div className={classes.quotaMeta}>
-                <span className={classes.quotaPercent}>{percentLabel}</span>
-                <span className={classes.quotaAmount}>
-                  {t('zai_quota.remaining_credits', {
-                    remaining: formatCredits(
-                      row.remaining ??
-                        (row.limit !== null && row.used !== null ? row.limit - row.used : null)
-                    ),
-                    limit: formatCredits(row.limit),
-                  })}
+                <span className={classes.quotaPercent} title={creditsLabel}>
+                  {percentLabel}
                 </span>
                 {resetDisplay && (
                   <QuotaResetLabel display={resetDisplay} classes={classes} soon={soon} />

@@ -204,7 +204,8 @@ describe('ZaiQuotaBody', () => {
     // Remaining share of each window (100 - usedPercent).
     expect(markup).toContain('84%');
     expect(markup).toContain('68%');
-    // Remaining / limit credits with locale grouping.
+    // Remaining / limit credits with locale grouping, carried by the tooltip title.
+    expect(markup).toContain('title="1,682 / 2,000 credits left"');
     expect(markup).toContain('1,682');
     expect(markup).toContain('6,765');
     expect(markup).toContain('2,000');
