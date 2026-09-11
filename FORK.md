@@ -813,3 +813,30 @@ Validation: focused speed and event diagnostics tests cover observed 750 TPS, es
 zero and invalid measurements, and unavailable output. `bun run verify` passes 723 tests, lint,
 TypeScript, and the production build. Isolated Chrome CDP checks at 1440x1050 and 390x844 show
 the live speed and generation detail without overflow or browser errors.
+
+### DL043: Credential labels, catalog-bound pricing, and Z.AI usage windows
+
+Provider forms accept an optional `label` on every API-key entry (Claude, Codex, Gemini,
+Interactions, xAI, Vertex, and OpenAI-compatible key entries). The OpenAI-compatible form adds a
+searchable `Pricing catalog` select populated from the persisted models.dev provider list served by
+`GET /v0/management/analytics/pricing/catalog-providers`, cached once per session so no request is
+made per keystroke, and a `Usage probe` select (None or Z.ai). Provider tables and detail views show
+the label next to the masked key.
+
+Analytics credential rows lead with the backend `display_name`, keeping the short hashed identity
+as a tooltip and as muted secondary text in the detail table. When a credential row carries
+`quota.windows`, the Quota cell renders one compact meter per window with its label and reset time.
+The event detail Credential field prefers `credential_label`, then `credential_filename`, then the
+shortened ID.
+
+The Quota page gains a Z.AI tab. Auth-file entries with `usage_probe: zai` are polled through
+`/api-call` against the Z.ai monitor endpoint and rendered as one meter per credit window
+(five-hour and weekly) with remaining credits, plan level, and reset countdowns. Quota cards use
+`display_name` as their title. Auth Files cards lead with a user-set label and the details sheet
+offers a "Rename / set label" action that patches the auth file `label`.
+
+Validation: `bun run verify` passes 731 tests, lint (one pre-existing warning), TypeScript, and the
+production build. The built bundle was served by a local CPA at 1360x900 through isolated Chrome CDP
+contexts: provider edit sheet with the catalog dropdown, Z.AI quota card with live windows, analytics
+credential rows with per-window meters, and an auth-file rename round trip, all without browser
+errors or horizontal overflow.

@@ -33,6 +33,16 @@
   gap: 6px;
 }
 
+.renameLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  > button {
+    align-self: flex-start;
+  }
+}
+
 .label {
   font-family: $font-mono;
   font-size: 10.5px;

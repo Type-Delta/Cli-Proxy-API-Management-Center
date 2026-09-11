@@ -397,3 +397,51 @@ export interface XaiQuotaState {
   error?: string;
   errorStatus?: number;
 }
+
+// Z.AI usage-probe payload types
+export interface ZaiQuotaLimit {
+  type?: string;
+  unit?: number | string;
+  number?: number | string;
+  usage?: number | string;
+  currentValue?: number | string;
+  remaining?: number | string;
+  percentage?: number | string;
+  nextResetTime?: number | string;
+}
+
+export interface ZaiQuotaData {
+  limits?: ZaiQuotaLimit[];
+  level?: string;
+}
+
+export interface ZaiQuotaPayload {
+  code?: number;
+  data?: ZaiQuotaData | null;
+  success?: boolean;
+}
+
+export interface ZaiQuotaWindow {
+  id: string;
+  label?: string;
+  labelKey?: string;
+  labelParams?: Record<string, string | number>;
+  /** Used share of the window, 0–100; null when the payload omitted it. */
+  usedPercent: number | null;
+  used: number | null;
+  limit: number | null;
+  remaining: number | null;
+  /** Reset instant in epoch ms; null when absent/invalid. */
+  resetAtMs?: number | null;
+  /** Window length in hours, derived from the unit + number pair. */
+  periodHours?: number | null;
+}
+
+export interface ZaiQuotaState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  windows: ZaiQuotaWindow[];
+  /** Plan tier reported by the probe (e.g. "lite"); null when absent. */
+  level?: string | null;
+  error?: string;
+  errorStatus?: number;
+}

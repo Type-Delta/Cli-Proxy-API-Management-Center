@@ -103,6 +103,7 @@ export function ResourceDetailView({ resource, usageByProvider }: ResourceDetail
 
   const primary: Array<[string, string]> = [
     ['identifier', resource.identifier],
+    ['label', resource.label ?? t('providersPage.status.none')],
     ['baseUrl', resource.baseUrl ?? t('providersPage.status.notSet')],
     ['proxyUrl', resource.proxyUrl ?? t('providersPage.status.notSet')],
     ['prefix', resource.prefix ?? t('providersPage.status.none')],
@@ -153,6 +154,11 @@ export function ResourceDetailView({ resource, usageByProvider }: ResourceDetail
               return (
                 <div key={`${entry.apiKey}-${entryIndex}`} className={styles.apiKeyEntryCard}>
                   <span className={styles.apiKeyEntryIndex}>{entryIndex + 1}</span>
+                  {entry.label ? (
+                    <span className={styles.apiKeyEntryLabel} title={entry.label}>
+                      {entry.label}
+                    </span>
+                  ) : null}
                   <span className={styles.apiKeyEntryKey}>{maskApiKey(entry.apiKey)}</span>
                   {entry.proxyUrl ? (
                     <span className={styles.apiKeyEntryProxy}>{entry.proxyUrl}</span>

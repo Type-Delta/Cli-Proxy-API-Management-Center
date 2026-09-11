@@ -112,6 +112,7 @@ const normalizeApiKeyEntry = (entry: unknown): ApiKeyEntry | null => {
   const proxyUrl = record?.['proxy-url'];
   const weight = readCredentialWeight(record?.weight);
   const authIndex = normalizeAuthIndex(record?.['auth-index']);
+  const label = normalizePrefix(record?.label);
 
   const result: ApiKeyEntry = {
     apiKey: trimmed,
@@ -119,6 +120,7 @@ const normalizeApiKeyEntry = (entry: unknown): ApiKeyEntry | null => {
   };
   if (weight !== undefined) result.weight = weight;
   if (authIndex) result.authIndex = authIndex;
+  if (label) result.label = label;
   return result;
 };
 
@@ -130,6 +132,8 @@ const normalizeProviderKeyConfig = (item: unknown): ProviderKeyConfig | null => 
   if (!trimmed) return null;
 
   const config: ProviderKeyConfig = { apiKey: trimmed };
+  const label = normalizePrefix(record?.label);
+  if (label) config.label = label;
   const weight = readCredentialWeight(record?.weight);
   if (weight !== undefined) config.weight = weight;
   const priority = record?.priority;
@@ -200,6 +204,8 @@ const normalizeGeminiKeyConfig = (item: unknown): GeminiKeyConfig | null => {
   if (!trimmed) return null;
 
   const config: GeminiKeyConfig = { apiKey: trimmed };
+  const label = normalizePrefix(record?.label);
+  if (label) config.label = label;
   const weight = readCredentialWeight(record?.weight);
   if (weight !== undefined) config.weight = weight;
   const priority = record?.priority;
@@ -264,6 +270,11 @@ const normalizeOpenAIProvider = (
   if (models.length) result.models = models;
   if (priority !== undefined) result.priority = Number(priority);
   if (testModel) result.testModel = String(testModel);
+  const pricingCatalog = normalizePrefix(provider['pricing-catalog']);
+  if (pricingCatalog) result.pricingCatalog = pricingCatalog;
+  if (provider['usage-probe'] === '' || provider['usage-probe'] === 'zai') {
+    result.usageProbe = provider['usage-probe'];
+  }
   const authIndex = normalizeAuthIndex(provider['auth-index']);
   if (authIndex) result.authIndex = authIndex;
   if (sourceIndex !== undefined) result.sourceIndex = sourceIndex;

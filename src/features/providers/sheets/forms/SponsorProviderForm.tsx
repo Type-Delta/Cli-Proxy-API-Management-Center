@@ -88,6 +88,7 @@ const emptySponsorKeyEntry = (
   protocol,
   apiKey: '',
   existingApiKey: '',
+  label: '',
   baseUrl: definition.baseUrlOptions[0]?.baseUrl ?? '',
   proxyUrl: '',
   prefix: '',
@@ -100,6 +101,7 @@ const emptySponsorKeyEntry = (
 
 const emptySponsorForm = (definition: SponsorProviderDefinition): ProviderEntryFormInput => ({
   apiKey: '',
+  label: '',
   name: '',
   baseUrl: '',
   proxyUrl: '',
@@ -176,6 +178,7 @@ const sponsorEntryFromProviderKey = (
 ): SponsorKeyEntryInput => ({
   ...emptySponsorKeyEntry(definition, protocol),
   existingApiKey: config.apiKey ?? '',
+  label: config.label ?? '',
   baseUrl: definition.resolveBaseUrl(config.baseUrl),
   proxyUrl: config.proxyUrl ?? '',
   prefix: config.prefix ?? '',
@@ -194,6 +197,7 @@ const sponsorEntryFromOpenAI = (
   return {
     ...emptySponsorKeyEntry(definition, 'openai'),
     existingApiKey: firstEntry?.apiKey ?? '',
+    label: firstEntry?.label ?? '',
     baseUrl: definition.resolveBaseUrl(config.baseUrl),
     proxyUrl: firstEntry?.proxyUrl ?? '',
     prefix: config.prefix ?? '',
@@ -429,6 +433,11 @@ function SponsorKeyEntryCard({
             <strong>{protocolLabel}</strong>
           </span>
           <span className={styles.sponsorGroupSummary}>
+            {entry.label?.trim() ? (
+              <span className={styles.entryBadge} title={entry.label.trim()}>
+                {entry.label.trim()}
+              </span>
+            ) : null}
             <span className={styles.sponsorSummaryKey}>{summaryKeyLabel}</span>
             <span className={styles.sponsorSummaryUrl}>{endpointUrl}</span>
           </span>
@@ -572,6 +581,20 @@ function SponsorKeyEntryCard({
               </button>
             </div>
             <span className={styles.labelHint}>{t('providersPage.sponsor.apiKeyHint')}</span>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor={`${formId}-group-${index}-label`}>
+              {t('providersPage.form.label')}
+            </label>
+            <input
+              id={`${formId}-group-${index}-label`}
+              className={styles.input}
+              value={entry.label ?? ''}
+              onChange={(event) => updateEntry({ label: event.target.value })}
+              placeholder={t('providersPage.form.labelPlaceholder')}
+              disabled={mutating}
+            />
           </div>
 
           {definition.supportsUsageCheck ? (

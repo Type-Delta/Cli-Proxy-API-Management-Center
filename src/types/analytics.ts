@@ -161,6 +161,7 @@ export type AnalyticsEvent = {
   credential_id: string | null;
   /** Optional admin-only filename resolved from currently loaded credentials. */
   credential_filename?: string | null;
+  credential_label?: string | null;
   credential_id_algorithm: string | null;
   succeeded: boolean;
   upstream_status_code: number | null;
@@ -495,6 +496,16 @@ export type PricingMissing = {
   unpriced_tokens: number;
 };
 
+export type PricingCatalogProvider = {
+  id: string;
+  name: string;
+};
+
+export type PricingCatalogProvidersResponse = {
+  providers: PricingCatalogProvider[] | null;
+  catalog_updated_at: string | null;
+};
+
 export type PricingSnapshot = {
   currency_unit: string;
   rounding: string;
@@ -525,10 +536,21 @@ export type ProviderQuota = {
   used: number | null;
   remaining: number | null;
   resets_at: string | null;
+  windows?: ProviderQuotaWindow[] | null;
+};
+
+export type ProviderQuotaWindow = {
+  label: string;
+  limit: number | null;
+  used: number | null;
+  remaining: number | null;
+  percent: number | null;
+  resets_at: string | null;
 };
 
 export type ProviderCredential = {
   credential_id: string;
+  display_name?: string;
   provider: string;
   auth_type: string;
   status: string;

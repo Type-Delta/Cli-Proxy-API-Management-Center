@@ -17,6 +17,7 @@ export interface ApiKeyEntry {
   proxyUrl?: string;
   weight?: number;
   authIndex?: string;
+  label?: string;
 }
 
 export interface CloakConfig {
@@ -28,6 +29,7 @@ export interface CloakConfig {
 
 export interface GeminiKeyConfig {
   apiKey: string;
+  label?: string;
   priority?: number;
   weight?: number;
   prefix?: string;
@@ -42,6 +44,7 @@ export interface GeminiKeyConfig {
 
 export interface ProviderKeyConfig {
   apiKey: string;
+  label?: string;
   priority?: number;
   weight?: number;
   prefix?: string;
@@ -62,6 +65,8 @@ export interface OpenAIProviderConfig {
   prefix?: string;
   baseUrl: string;
   apiKeyEntries: ApiKeyEntry[];
+  pricingCatalog?: string;
+  usageProbe?: '' | 'zai';
   disabled?: boolean;
   headers?: Record<string, string>;
   models?: ModelAlias[];

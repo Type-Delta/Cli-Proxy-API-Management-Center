@@ -16,7 +16,13 @@ import {
 } from '@/components/ui/Table';
 import { Meter } from '@/features/dashboard/components/Meter';
 import { analyticsApi } from '@/services/api';
-import type { ProviderCredential, ProviderQuota, ProviderStatus, QuotaStatus } from '@/types';
+import type {
+  ProviderCredential,
+  ProviderQuota,
+  ProviderQuotaWindow,
+  ProviderStatus,
+  QuotaStatus,
+} from '@/types';
 import { formatDateTime, formatNumber } from '../components/analyticsFormatting';
 import { ANALYTICS_TABLE_PAGE_SIZE, TablePagination } from '../components/TablePagination';
 import { useAnalyticsLoad as useLoad } from '../useAnalyticsLoad';
@@ -110,8 +116,69 @@ function ProviderLoadCard({
   );
 }
 
+/** Used share (0–100) of a single quota window: the supplied percent, else derived. */
+function windowPercent(window: ProviderQuotaWindow): number | null {
+  if (typeof window.percent === 'number' && Number.isFinite(window.percent)) {
+    return Math.min(100, Math.max(0, window.percent));
+  }
+  if (
+    typeof window.limit === 'number' &&
+    window.limit > 0 &&
+    typeof window.used === 'number' &&
+    Number.isFinite(window.used)
+  ) {
+    return Math.min(100, Math.max(0, (window.used / window.limit) * 100));
+  }
+  return null;
+}
+
 function QuotaCell({ quota, locale }: { quota: ProviderQuota | null; locale?: string }) {
   const { t } = useTranslation();
+  const windows = quota?.windows ?? null;
+  if (windows && windows.length > 0) {
+    return (
+      <span className={styles.quotaWindows}>
+        {windows.map((window, index) => {
+          const percent = windowPercent(window);
+          const used = formatNumber(window.used ?? 0, locale);
+          const limit = formatNumber(window.limit ?? 0, locale);
+          const percentLabel = percent === null ? '—' : `${Math.round(percent)}%`;
+          return (
+            <span
+              key={`${window.label}:${index}`}
+              className={styles.quotaWindow}
+              title={`${used} / ${limit}`}
+            >
+              <span className={styles.quotaWindowLabel}>{window.label}</span>
+              <Meter
+                value={percent}
+                tone={quotaTone(percent)}
+                ariaLabel={t('analytics.quota_used_label', {
+                  defaultValue: 'Quota used: {{percent}} ({{used}} of {{limit}})',
+                  percent: percentLabel,
+                  used,
+                  limit,
+                })}
+                className={styles.quotaMeter}
+              />
+              <span className={styles.quotaWindowValue}>
+                {percentLabel} ({used}/{limit})
+              </span>
+              {window.resets_at && (
+                <span className={styles.quotaWindowReset}>
+                  {t('analytics.quota_window_reset', {
+                    defaultValue: 'Resets {{time}}',
+                    time: formatDateTime(window.resets_at, locale),
+                  })}
+                </span>
+              )}
+            </span>
+          );
+        })}
+      </span>
+    );
+  }
+
   const progress = calculateQuotaProgress(quota);
   if (progress.percent === null) {
     return <span>{t('analytics.quota_unknown', { defaultValue: 'Not observed' })}</span>;
@@ -135,6 +202,49 @@ function QuotaCell({ quota, locale }: { quota: ProviderQuota | null; locale?: st
       {percentLabel} ({used}/{limit})
     </span>
   );
+}
+
+/**
+ * Credential identity: the backend display_name leads when present, keeping the
+ * short non-reversible hash as a tooltip (inline) or muted secondary line
+ * (detail). Falls back to the hash alone for history-only rows.
+ */
+function CredentialIdentityCell({
+  row,
+  variant = 'inline',
+}: {
+  row: ProviderCredential;
+  variant?: 'inline' | 'detail';
+}) {
+  const { t } = useTranslation();
+  const hash = shortCredentialIdentity(row.credential_id);
+  const displayName = (row.display_name ?? '').trim();
+  const hashHint = t('analytics.credential_identity_hint', {
+    defaultValue: 'Short hashed identity',
+  });
+
+  if (!displayName) {
+    return <code title={hashHint}>{hash}</code>;
+  }
+
+  if (variant === 'detail') {
+    return (
+      <span className={styles.credentialIdentity}>
+        <span
+          title={t('analytics.credential_display_name_hint', {
+            defaultValue: 'Friendly credential name',
+          })}
+        >
+          {displayName}
+        </span>
+        <code className={styles.credentialHash} title={hashHint}>
+          {hash}
+        </code>
+      </span>
+    );
+  }
+
+  return <span title={`${displayName} · ${hash}`}>{displayName}</span>;
 }
 
 function ProviderSummaryTable({
@@ -260,13 +370,7 @@ function CredentialTable({
           {visibleRows.map((row) => (
             <TableRow key={`${row.provider}:${shortCredentialIdentity(row.credential_id)}`}>
               <TableCell>
-                <code
-                  title={t('analytics.credential_identity_hint', {
-                    defaultValue: 'Short hashed identity',
-                  })}
-                >
-                  {shortCredentialIdentity(row.credential_id)}
-                </code>
+                <CredentialIdentityCell row={row} />
               </TableCell>
               <TableCell>{providerLabel(t, row.provider)}</TableCell>
               <TableCell>{localizedValue(t, 'auth_type', row.auth_type)}</TableCell>
@@ -318,7 +422,7 @@ function CredentialDetail({ row }: { row: ProviderCredential }) {
             {t('analytics.credential_identity', { defaultValue: 'Credential' })}
           </TableHead>
           <TableCell>
-            <code>{shortCredentialIdentity(row.credential_id)}</code>
+            <CredentialIdentityCell row={row} variant="detail" />
           </TableCell>
         </TableRow>
         <TableRow>

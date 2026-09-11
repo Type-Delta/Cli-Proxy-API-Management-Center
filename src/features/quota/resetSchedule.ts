@@ -129,6 +129,10 @@ export function collectQuotaRowInstants(
     return collectRows((quota as { rows?: WindowLike[] }).rows ?? [], 'row');
   }
 
+  if (provider === 'zai') {
+    return collectRows((quota as { windows?: WindowLike[] }).windows ?? [], 'window');
+  }
+
   return [];
 }
 

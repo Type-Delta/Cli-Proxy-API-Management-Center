@@ -8,6 +8,7 @@ export * from './apiKeys';
 export * from './capabilities';
 export * from './analytics';
 export * from './providers';
+export * from './pricingCatalog';
 export * from './authFiles';
 export * from './oauth';
 export * from './logs';

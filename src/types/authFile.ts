@@ -21,6 +21,14 @@ export type AuthFileType =
 
 export interface AuthFileItem {
   name: string;
+  /** Friendly OAuth credential label returned by the backend as display_name. */
+  displayName?: string;
+  /** User-set credential label; empty/absent when only the file name is available. */
+  label?: string;
+  /** Usage probe identifier returned by the backend. */
+  usageProbe?: string;
+  /** Pricing catalog provider identifier returned by the backend. */
+  pricingCatalog?: string;
   type?: AuthFileType | string;
   provider?: string;
   /**

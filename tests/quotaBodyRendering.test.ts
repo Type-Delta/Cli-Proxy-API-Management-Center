@@ -14,10 +14,11 @@ import i18n from '@/i18n';
 import { CodexQuotaBody } from '@/features/quota/providers/codex/CodexQuotaBody';
 import { ClaudeQuotaBody } from '@/features/quota/providers/claude/ClaudeQuotaBody';
 import { KimiQuotaBody } from '@/features/quota/providers/kimi/KimiQuotaBody';
+import { ZaiQuotaBody } from '@/features/quota/providers/zai/ZaiQuotaBody';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses } from '@/features/quota/types';
 import { formatInstantShort } from '@/utils/quota';
 import { DAY_MS, HOUR_MS } from '@/utils/time/durations';
-import type { ClaudeQuotaState, CodexQuotaState, KimiQuotaState } from '@/types';
+import type { ClaudeQuotaState, CodexQuotaState, KimiQuotaState, ZaiQuotaState } from '@/types';
 
 const classes = bindQuotaClasses(
   Object.fromEntries(QUOTA_CLASS_KEYS.map((key) => [key, key])),
@@ -163,6 +164,60 @@ describe('KimiQuotaBody', () => {
     expect(markup).toContain('quotaResetRelative');
     expect(markup).toMatch(/3 hours/);
     expect(markup).not.toContain('resets in 3h');
+  });
+});
+
+describe('ZaiQuotaBody', () => {
+  test('renders one meter per credit window with credits, plan level and countdown', () => {
+    const quota: ZaiQuotaState = {
+      status: 'success',
+      level: 'lite',
+      windows: [
+        {
+          id: 'zai-hour-5',
+          labelKey: 'zai_quota.five_hour',
+          labelParams: { number: 5 },
+          used: 318,
+          limit: 2000,
+          remaining: 1682,
+          usedPercent: 16,
+          resetAtMs: now + 2 * HOUR_MS,
+          periodHours: 5,
+        },
+        {
+          id: 'zai-week-1',
+          labelKey: 'zai_quota.weekly',
+          used: 3235,
+          limit: 10000,
+          remaining: 6765,
+          usedPercent: 32,
+          resetAtMs: now + 4 * DAY_MS,
+          periodHours: 168,
+        },
+      ],
+    };
+    const markup = renderToStaticMarkup(createElement(ZaiQuotaBody, { quota, classes }));
+
+    expect(markup).toContain('5-hour');
+    expect(markup).toContain('Weekly');
+    expect(markup).toContain('Plan level: lite');
+    // Remaining share of each window (100 - usedPercent).
+    expect(markup).toContain('84%');
+    expect(markup).toContain('68%');
+    // Remaining / limit credits with locale grouping.
+    expect(markup).toContain('1,682');
+    expect(markup).toContain('6,765');
+    expect(markup).toContain('2,000');
+    expect(markup).toContain('10,000');
+    expect(markup).toContain('quotaResetRelative');
+    expect(markup).toMatch(/2 hours/);
+    expect(markup).toMatch(/4 days/);
+  });
+
+  test('shows the empty message when no windows are present', () => {
+    const quota: ZaiQuotaState = { status: 'success', windows: [], level: null };
+    const markup = renderToStaticMarkup(createElement(ZaiQuotaBody, { quota, classes }));
+    expect(markup).toContain('No Z.AI quota data available');
   });
 });
 

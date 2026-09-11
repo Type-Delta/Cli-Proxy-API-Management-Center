@@ -38,6 +38,7 @@ import { ModelEntriesEditor } from './ModelEntriesEditor';
 import styles from './sharedForm.module.scss';
 import { CLAUDE_API_BASE_URL } from '../../claudeApi';
 import { MAX_CREDENTIAL_WEIGHT } from '@/utils/credentialWeight';
+import { getPricingCatalogCache, loadPricingCatalogProviders } from '../../pricingCatalogCache';
 
 /** 模块级常量，免得每次渲染都给 picker 一个新数组引用。 */
 const DISABLE_ALL_RULES = [DISABLE_ALL_RULE];
@@ -56,6 +57,7 @@ const emptyHeader = () => ({ key: '', value: '' });
 const emptyModel = (): ModelEntryInput => ({ name: '', alias: '' });
 const emptyApiKeyEntry = (): ApiKeyEntryInput => ({
   apiKey: '',
+  label: '',
   proxyUrl: '',
   weight: undefined,
 });
@@ -69,6 +71,11 @@ const formatJsonObject = (value?: Record<string, unknown>): string => {
   return JSON.stringify(value, null, 2);
 };
 
+const formatCatalogUpdatedAt = (value: string): string => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+};
+
 const isClaudeLikeBrand = (brand: ProviderBrand): boolean =>
   brand === 'claude' || brand === 'claudeApi';
 
@@ -80,6 +87,7 @@ function buildInitialForm(
   if (mode === 'create' || !resource) {
     return {
       apiKey: '',
+      label: '',
       name: '',
       baseUrl:
         brand === 'claudeApi' ? CLAUDE_API_BASE_URL : brand === 'xai' ? XAI_API_BASE_URL : '',
@@ -106,6 +114,8 @@ function buildInitialForm(
         brand === 'interactions'
           ? ''
           : undefined,
+      pricingCatalog: brand === 'openaiCompatibility' ? '' : undefined,
+      usageProbe: brand === 'openaiCompatibility' ? '' : undefined,
       apiKeyEntries: brand === 'openaiCompatibility' ? [emptyApiKeyEntry()] : undefined,
     };
   }
@@ -115,6 +125,7 @@ function buildInitialForm(
     const cfg = raw as OpenAIProviderConfig;
     return {
       apiKey: '',
+      label: '',
       name: cfg.name ?? '',
       baseUrl: cfg.baseUrl ?? '',
       proxyUrl: '',
@@ -142,11 +153,14 @@ function buildInitialForm(
         ? cfg.apiKeyEntries.map((entry) => ({
             apiKey: '',
             existingApiKey: entry.apiKey,
+            label: entry.label ?? '',
             proxyUrl: entry.proxyUrl ?? '',
             weight: entry.weight,
             authIndex: entry.authIndex,
           }))
         : [emptyApiKeyEntry()],
+      pricingCatalog: cfg.pricingCatalog ?? '',
+      usageProbe: cfg.usageProbe ?? '',
     };
   }
 
@@ -159,6 +173,7 @@ function buildInitialForm(
     // overwrite it) and defeats the "leave empty = keep unchanged" contract; an
     // empty field is preserved on save via buildProviderKeyConfig's existing fallback.
     apiKey: '',
+    label: cfg.label ?? '',
     name: '',
     baseUrl: cfg.baseUrl ?? '',
     proxyUrl: cfg.proxyUrl ?? '',
@@ -227,6 +242,62 @@ export function BaseProviderForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [showSingleApiKey, setShowSingleApiKey] = useState(false);
+  const [pricingCatalogState, setPricingCatalogState] = useState(getPricingCatalogCache);
+
+  useEffect(() => {
+    if (brand !== 'openaiCompatibility') return;
+    const cached = getPricingCatalogCache();
+    setPricingCatalogState(cached);
+    if (cached.loaded) return;
+
+    let active = true;
+    void loadPricingCatalogProviders()
+      .then(() => {
+        if (active) setPricingCatalogState(getPricingCatalogCache());
+      })
+      .catch(() => {
+        if (active) setPricingCatalogState(getPricingCatalogCache());
+      });
+    return () => {
+      active = false;
+    };
+  }, [brand]);
+
+  const pricingCatalogOptions = useMemo(() => {
+    const options = [
+      {
+        value: '',
+        label: t('providersPage.status.none'),
+        description: t('providersPage.form.pricingCatalogClear'),
+      },
+      ...pricingCatalogState.providers.map((provider) => ({
+        value: provider.id,
+        label: provider.name,
+        description: provider.id,
+        searchText: provider.id,
+      })),
+    ];
+    const selected = form.pricingCatalog?.trim();
+    if (selected && !options.some((option) => option.value === selected)) {
+      options.push({
+        value: selected,
+        label: selected,
+        description: selected,
+        searchText: selected,
+      });
+    }
+    return options;
+  }, [form.pricingCatalog, pricingCatalogState.providers, t]);
+
+  const usageProbeOptions = useMemo(
+    () => [
+      { value: '', label: t('providersPage.form.usageProbeNone') },
+      { value: 'zai', label: t('providersPage.form.usageProbeZai') },
+    ],
+    [t]
+  );
+
+  const pricingCatalogLoading = pricingCatalogState.loading;
 
   const isDirty = useMemo(
     () => JSON.stringify(form) !== initialFormSignature,
@@ -573,6 +644,22 @@ export function BaseProviderForm({
           </div>
         ) : null}
 
+        {descriptor.supportsApiKey ? (
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor={`${fid}-label`}>
+              {t('providersPage.form.label')}
+            </label>
+            <input
+              id={`${fid}-label`}
+              className={styles.input}
+              value={form.label}
+              onChange={(e) => updateField('label', e.target.value)}
+              placeholder={t('providersPage.form.labelPlaceholder')}
+              disabled={mutating}
+            />
+          </div>
+        ) : null}
+
         {descriptor.supportsBaseUrl ? (
           <div className={styles.field}>
             <label className={styles.label} htmlFor={`${fid}-baseUrl`}>
@@ -806,6 +893,56 @@ export function BaseProviderForm({
             onTestAll={() => void connectivity.runOpenAIAllKeys()}
           />
         </Collapsible>
+      ) : null}
+
+      {brand === 'openaiCompatibility' ? (
+        <div className={styles.section}>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor={`${fid}-pricing-catalog`}>
+              {t('providersPage.form.pricingCatalog')}
+            </label>
+            <Select
+              id={`${fid}-pricing-catalog`}
+              value={form.pricingCatalog ?? ''}
+              options={pricingCatalogOptions}
+              onChange={(value) => updateField('pricingCatalog', value)}
+              disabled={mutating || pricingCatalogLoading}
+              ariaLabel={t('providersPage.form.pricingCatalog')}
+              placeholder={t('providersPage.form.pricingCatalogPlaceholder')}
+              searchable
+              searchPlaceholder={t('providersPage.form.pricingCatalogSearchPlaceholder')}
+              emptyLabel={t('providersPage.form.pricingCatalogEmpty')}
+              loading={pricingCatalogLoading}
+              loadingLabel={t('providersPage.form.pricingCatalogLoading')}
+            />
+            <span className={styles.labelHint}>{t('providersPage.form.pricingCatalogHint')}</span>
+            {pricingCatalogState.catalogUpdatedAt ? (
+              <span className={styles.labelHint}>
+                {t('providersPage.form.pricingCatalogUpdated', {
+                  time: formatCatalogUpdatedAt(pricingCatalogState.catalogUpdatedAt),
+                })}
+              </span>
+            ) : null}
+            {!pricingCatalogLoading && pricingCatalogState.providers.length === 0 ? (
+              <span className={styles.labelHint}>
+                {t('providersPage.form.pricingCatalogEmpty')}
+              </span>
+            ) : null}
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor={`${fid}-usage-probe`}>
+              {t('providersPage.form.usageProbe')}
+            </label>
+            <Select
+              id={`${fid}-usage-probe`}
+              value={form.usageProbe ?? ''}
+              options={usageProbeOptions}
+              onChange={(value) => updateField('usageProbe', value as '' | 'zai')}
+              disabled={mutating}
+              ariaLabel={t('providersPage.form.usageProbe')}
+            />
+          </div>
+        </div>
       ) : null}
 
       {descriptor.supportsHeaders ? (

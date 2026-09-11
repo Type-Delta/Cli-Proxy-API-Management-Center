@@ -35,6 +35,12 @@ interface CommonSelectProps {
   fullWidth?: boolean;
   size?: 'sm' | 'md' | 'lg';
   id?: string;
+  /** Enables the same keyboard-friendly search field used by multi-selects. */
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  emptyLabel?: string;
+  loading?: boolean;
+  loadingLabel?: string;
 }
 
 interface SingleSelectProps extends CommonSelectProps {
@@ -55,8 +61,6 @@ interface MultiSelectProps extends CommonSelectProps {
   maxRendered?: number;
   limitLabel?: string;
   truncatedLabel?: string | ((filteredCount: number) => string);
-  loading?: boolean;
-  loadingLabel?: string;
   error?: string;
   retryLabel?: string;
   onRetry?: () => void;
@@ -124,6 +128,7 @@ export function Select(props: SelectProps) {
     id,
   } = props;
   const multiple = props.mode === 'multiple';
+  const searchable = multiple || props.searchable === true;
   const generatedId = useId().replace(/:/g, '');
   const selectId = id ?? generatedId;
   const valueId = `${selectId}-value`;
@@ -137,14 +142,14 @@ export function Select(props: SelectProps) {
   const searchRef = useRef<HTMLInputElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const [dropdownStyle, setDropdownStyle] = useState<CSSProperties | null>(null);
-  const isDisabled = disabled || (multiple && props.loading);
+  const isDisabled = disabled || Boolean(props.loading);
   const isOpen = open && !isDisabled;
 
   const filteredOptions = useMemo(() => {
-    if (!multiple) return options;
+    if (!searchable) return options;
     const needle = query.normalize('NFKC').trim().toLocaleLowerCase();
     return needle ? options.filter((option) => optionSearchText(option).includes(needle)) : options;
-  }, [multiple, options, query]);
+  }, [options, query, searchable]);
   const maxRendered = multiple
     ? (props.maxRendered ?? filteredOptions.length)
     : filteredOptions.length;
@@ -171,7 +176,7 @@ export function Select(props: SelectProps) {
 
   useEffect(() => {
     if (!isOpen) return;
-    const focusFrame = multiple
+    const focusFrame = searchable
       ? window.requestAnimationFrame(() => searchRef.current?.focus())
       : 0;
     const outside = (event: MouseEvent) => {
@@ -183,7 +188,7 @@ export function Select(props: SelectProps) {
       if (focusFrame) window.cancelAnimationFrame(focusFrame);
       document.removeEventListener('mousedown', outside);
     };
-  }, [close, isOpen, multiple]);
+  }, [close, isOpen, searchable]);
 
   const updatePosition = useCallback(() => {
     if (wrapRef.current) setDropdownStyle(resolveDropdownStyle(wrapRef.current, multiple));
@@ -221,8 +226,10 @@ export function Select(props: SelectProps) {
       ?.scrollIntoView({ block: 'nearest' });
   }, [isOpen, resolvedIndex, selectId]);
   useEffect(() => {
-    if (multiple) setHighlightedIndex(query && visibleOptions.length ? 1 : 0);
-  }, [multiple, query, visibleOptions.length]);
+    if (searchable) {
+      setHighlightedIndex(query && visibleOptions.length ? (multiple ? 1 : 0) : multiple ? 0 : -1);
+    }
+  }, [multiple, query, searchable, visibleOptions.length]);
 
   const commit = useCallback(
     (index: number) => {
@@ -274,13 +281,24 @@ export function Select(props: SelectProps) {
         else if (resolvedIndex >= 0) commit(resolvedIndex);
       } else if (event.key === 'Escape' && isOpen) {
         event.preventDefault();
-        if (multiple && query) {
+        if (searchable && query) {
           setQuery('');
           setHighlightedIndex(0);
         } else close(true);
       } else if (event.key === 'Tab' && isOpen) close();
     },
-    [close, commit, isDisabled, isOpen, move, multiple, optionCount, query, resolvedIndex]
+    [
+      close,
+      commit,
+      isDisabled,
+      isOpen,
+      move,
+      multiple,
+      optionCount,
+      query,
+      resolvedIndex,
+      searchable,
+    ]
   );
 
   const selectedOptions = multiple
@@ -296,7 +314,7 @@ export function Select(props: SelectProps) {
         selectedOptions.map((option) => option.label).join(', '))
     : (selectedOption?.label ?? placeholder ?? '');
   const isPlaceholder = !multiple && !selectedOption && placeholder;
-  const loading = multiple && Boolean(props.loading);
+  const loading = Boolean(props.loading);
   const accessibleText = loading ? props.loadingLabel : displayText;
   const triggerLabelledBy = ariaLabelledBy ? `${ariaLabelledBy} ${valueId}` : undefined;
   const triggerAriaLabel = triggerLabelledBy
@@ -371,9 +389,9 @@ export function Select(props: SelectProps) {
           </button>
         );
       })}
-      {multiple && visibleOptions.length === 0 && (
+      {searchable && visibleOptions.length === 0 && (
         <div className={styles.empty} role="status">
-          {props.emptyLabel}
+          {props.emptyLabel ?? ''}
         </div>
       )}
     </div>
@@ -404,10 +422,10 @@ export function Select(props: SelectProps) {
           </div>
         ) : (
           <>
-            {multiple && (
+            {searchable && (
               <label className={styles.search}>
                 <IconSearch size={15} aria-hidden="true" />
-                <span className={styles.srOnly}>{props.searchPlaceholder}</span>
+                <span className={styles.srOnly}>{props.searchPlaceholder ?? ''}</span>
                 <input
                   ref={searchRef}
                   type="search"

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
@@ -6,6 +6,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Input } from '@/components/ui/Input';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { useNotificationStore } from '@/stores';
+import { authFilesApi } from '@/services/api';
 import type {
   PrefixProxyEditorField,
   PrefixProxyEditorFieldValue,
@@ -41,6 +42,10 @@ export type AuthFileDetailsSheetProps = {
   onCopyText: (text: string) => void | Promise<void>;
   onSave: () => void;
   onChange: (field: PrefixProxyEditorField, value: PrefixProxyEditorFieldValue) => void;
+  /** Current credential label for the open file (empty when only the file name is set). */
+  currentLabel?: string;
+  /** Reload the file list after a label change so titles reflect the new value. */
+  onRefresh: () => void | Promise<void>;
 };
 
 /**
@@ -49,9 +54,45 @@ export type AuthFileDetailsSheetProps = {
  */
 export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
   const { t } = useTranslation();
-  const { disableControls, editor, updatedText, dirty, onClose, onCopyText, onSave, onChange } =
-    props;
+  const {
+    disableControls,
+    editor,
+    updatedText,
+    dirty,
+    onClose,
+    onCopyText,
+    onSave,
+    onChange,
+    currentLabel,
+    onRefresh,
+  } = props;
   const showConfirmation = useNotificationStore((state) => state.showConfirmation);
+  const showNotification = useNotificationStore((state) => state.showNotification);
+
+  const fileName = editor?.fileName ?? '';
+  const savedLabel = (currentLabel ?? '').trim();
+  const [labelDraft, setLabelDraft] = useState(savedLabel);
+  const [savingLabel, setSavingLabel] = useState(false);
+  // Reset the draft whenever a different file opens or the saved label changes.
+  useEffect(() => {
+    setLabelDraft(savedLabel);
+  }, [fileName, savedLabel]);
+  const labelDirty = labelDraft.trim() !== savedLabel;
+
+  const handleSaveLabel = useCallback(async () => {
+    if (!editor || savingLabel) return;
+    setSavingLabel(true);
+    try {
+      await authFilesApi.patchFields(editor.fileName, { label: labelDraft.trim() });
+      showNotification(t('auth_files.rename_label_success'), 'success');
+      await onRefresh();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      showNotification(t('auth_files.rename_label_failed', { message }), 'error');
+    } finally {
+      setSavingLabel(false);
+    }
+  }, [editor, labelDraft, onRefresh, savingLabel, showNotification, t]);
 
   const confirmClose = useCallback((): boolean | Promise<boolean> => {
     if (!dirty || editor?.saving === true) return true;
@@ -157,6 +198,24 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
           ) : (
             <>
               {editor.error && <div className={styles.error}>{editor.error}</div>}
+              <div className={styles.renameLabel}>
+                <Input
+                  label={t('auth_files.rename_label')}
+                  value={labelDraft}
+                  placeholder={t('auth_files.rename_label_placeholder')}
+                  hint={t('auth_files.rename_label_hint')}
+                  disabled={disableControls || savingLabel}
+                  onChange={(e) => setLabelDraft(e.target.value)}
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => void handleSaveLabel()}
+                  loading={savingLabel}
+                  disabled={disableControls || savingLabel || !labelDirty}
+                >
+                  {t('auth_files.rename_label_save')}
+                </Button>
+              </div>
               <div className={styles.jsonWrapper}>
                 <label className={styles.label}>{t('auth_files.prefix_proxy_info_label')}</label>
                 <textarea className={styles.textarea} rows={8} readOnly value={displayInfoText} />

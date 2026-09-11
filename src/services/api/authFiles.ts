@@ -17,6 +17,7 @@ type StatusError = { status?: number };
 type AuthFileStatusResponse = { status: string; disabled: boolean };
 type AuthFileEntry = AuthFilesResponse['files'][number];
 export type AuthFileFieldsPatch = {
+  label?: string;
   prefix?: string;
   proxy_url?: string;
   headers?: Record<string, string>;
@@ -249,6 +250,10 @@ const normalizeAuthFileEntry = (entry: AuthFileEntry): AuthFileEntry => {
   // account / account_type 故意不归一化：api-key 类凭证的 account 就是 API key 本身
   // （sdk/cliproxy/auth/types.go AccountInfo），不能进入展示与搜索路径。
   const projectId = readTextField(entry, 'project_id');
+  const displayName = readTextField(entry, 'display_name') || readTextField(entry, 'name');
+  const label = readTextField(entry, 'label');
+  const usageProbe = readTextField(entry, 'usage_probe');
+  const pricingCatalog = readTextField(entry, 'pricing_catalog');
   const modified = readDateField(entry);
   const priority = readIntegerField(entry['priority']);
   const weight = readIntegerField(entry['weight']);
@@ -267,6 +272,10 @@ const normalizeAuthFileEntry = (entry: AuthFileEntry): AuthFileEntry => {
     ...(note ? { note } : {}),
     ...(email ? { email } : {}),
     ...(projectId ? { projectId } : {}),
+    displayName,
+    ...(label ? { label } : {}),
+    ...(usageProbe ? { usageProbe } : {}),
+    ...(pricingCatalog ? { pricingCatalog } : {}),
   };
 };
 

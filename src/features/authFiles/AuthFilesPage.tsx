@@ -786,6 +786,8 @@ export function AuthFilesPage() {
         onCopyText={copyTextWithNotification}
         onSave={handlePrefixProxySave}
         onChange={handlePrefixProxyChange}
+        currentLabel={files.find((file) => file.name === prefixProxyEditor?.fileName)?.label ?? ''}
+        onRefresh={loadFiles}
       />
 
       <BatchActionBar

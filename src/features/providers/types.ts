@@ -105,6 +105,8 @@ export interface ProviderResource {
   originalIndex: number;
   /** 表格 key 列显示名(OpenAI=name,其余=null) */
   name: string | null;
+  /** Friendly label for the credential represented by this resource, when configured. */
+  label: string | null;
   /** 备用展示文字(API 密钥脱敏或 fallback) */
   identifier: string;
   /** apiKey 脱敏预览,展示用 */
@@ -173,6 +175,7 @@ export interface SponsorKeyEntryInput {
   protocol: SponsorProtocol;
   apiKey: string;
   existingApiKey?: string;
+  label?: string;
   baseUrl: string;
   proxyUrl: string;
   prefix: string;
@@ -186,6 +189,7 @@ export interface SponsorKeyEntryInput {
 export interface ApiKeyEntryInput {
   apiKey: string;
   existingApiKey?: string;
+  label?: string;
   proxyUrl: string;
   weight?: number;
   authIndex?: string;
@@ -201,6 +205,8 @@ export interface CloakInput {
 export interface ProviderEntryFormInput {
   /** OpenAI 创建时只在 apiKeyEntries 中传 */
   apiKey: string;
+  /** Friendly label for single-key provider entries. */
+  label: string;
   /** OpenAI 必填,其余 brand 不展示 */
   name: string;
   baseUrl: string;
@@ -223,6 +229,9 @@ export interface ProviderEntryFormInput {
   fingerprintProfile?: string;
   /** OpenAI persists this; Gemini/Claude use it for one-off connectivity tests. */
   testModel?: string;
+  /** OpenAI compatibility provider metadata. */
+  pricingCatalog?: string;
+  usageProbe?: '' | 'zai';
   apiKeyEntries?: ApiKeyEntryInput[];
   /** APIKEY.FUN stores one grouped key per platform protocol. */
   sponsorKeyEntries?: SponsorKeyEntryInput[];

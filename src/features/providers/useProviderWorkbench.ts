@@ -191,6 +191,7 @@ const buildProviderKeyConfig = (
   const apiKeyChanged = input.apiKey.trim().length > 0;
   const next: ProviderKeyConfig = {
     apiKey: apiKeyChanged ? input.apiKey.trim() : (existing?.apiKey ?? ''),
+    label: input.label.trim() || undefined,
     priority: input.priority,
     weight: input.weight,
     prefix: input.prefix.trim() || undefined,
@@ -245,6 +246,7 @@ const buildOpenAIConfig = (
           entry.existingApiKey?.trim() || existing?.apiKeyEntries?.[index]?.apiKey?.trim() || '';
         return {
           apiKey: entry.apiKey.trim() || fallbackApiKey,
+          label: entry.label?.trim() || undefined,
           proxyUrl: entry.proxyUrl.trim() || undefined,
           weight: entry.weight,
           authIndex: entry.authIndex?.trim() || undefined,
@@ -264,6 +266,8 @@ const buildOpenAIConfig = (
     models: models.length ? models : undefined,
     priority: input.priority,
     testModel: input.testModel?.trim() || undefined,
+    pricingCatalog: input.pricingCatalog?.trim() || undefined,
+    usageProbe: input.usageProbe ?? '',
   };
 };
 
@@ -285,6 +289,7 @@ const buildSponsorOpenAIConfig = (
         {
           ...(firstExistingEntry ?? {}),
           apiKey,
+          label: entry.label?.trim() || undefined,
           proxyUrl: entry.proxyUrl.trim() || undefined,
           weight: entry.weight,
         },
@@ -320,6 +325,7 @@ const buildSponsorProviderKeyConfig = (
   return {
     ...(existing ?? {}),
     apiKey,
+    label: entry.label?.trim() || undefined,
     baseUrl: protocol === 'claude' ? urls.anthropic : urls.codex,
     proxyUrl: entry.proxyUrl.trim() || undefined,
     prefix: entry.prefix.trim() || undefined,
@@ -346,6 +352,7 @@ const buildSponsorGeminiConfig = (
   return {
     ...(existing ?? {}),
     apiKey,
+    label: entry.label?.trim() || undefined,
     baseUrl: urls.gemini,
     proxyUrl: entry.proxyUrl.trim() || undefined,
     prefix: entry.prefix.trim() || undefined,

@@ -106,6 +106,7 @@ function providerKeyToResource(
     brand,
     originalIndex: index,
     name: null,
+    label: config.label?.trim() || null,
     identifier: maskApiKey(apiKey) || `#${index + 1}`,
     apiKeyPreview: apiKey ? maskApiKey(apiKey) : null,
     apiKey: apiKey || null,
@@ -168,6 +169,7 @@ export function openaiToResource(config: OpenAIProviderConfig, index: number): P
     brand: 'openaiCompatibility',
     originalIndex: sourceIndex,
     name: name || null,
+    label: firstEntry?.label?.trim() || null,
     identifier: name || `#${sourceIndex + 1}`,
     apiKeyPreview: previewApiKey,
     apiKey: null,
@@ -231,6 +233,12 @@ function sponsorRawToResource(
     firstClaude?.config.apiKey ??
     firstGemini?.config.apiKey ??
     '';
+  const label =
+    firstOpenAIEntry?.label ??
+    firstCodex?.config.label ??
+    firstClaude?.config.label ??
+    firstGemini?.config.label ??
+    '';
   const openaiDisabled =
     raw.openai.length > 0 && raw.openai.every((item) => item.config.disabled === true);
   const codexDisabled =
@@ -282,6 +290,7 @@ function sponsorRawToResource(
     brand,
     originalIndex: 0,
     name: options.displayName,
+    label: label.trim() || null,
     identifier: options.displayName,
     apiKeyPreview: apiKey ? maskApiKey(apiKey) : null,
     apiKey: apiKey || null,

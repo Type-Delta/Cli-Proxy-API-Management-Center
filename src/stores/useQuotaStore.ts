@@ -9,6 +9,7 @@ import type {
   CodexQuotaState,
   KimiQuotaState,
   XaiQuotaState,
+  ZaiQuotaState,
 } from '@/types';
 
 type QuotaUpdater<T> = T | ((prev: T) => T);
@@ -20,11 +21,13 @@ interface QuotaStoreState {
   codexQuota: Record<string, CodexQuotaState>;
   kimiQuota: Record<string, KimiQuotaState>;
   xaiQuota: Record<string, XaiQuotaState>;
+  zaiQuota: Record<string, ZaiQuotaState>;
   setAntigravityQuota: (updater: QuotaUpdater<Record<string, AntigravityQuotaState>>) => void;
   setClaudeQuota: (updater: QuotaUpdater<Record<string, ClaudeQuotaState>>) => void;
   setCodexQuota: (updater: QuotaUpdater<Record<string, CodexQuotaState>>) => void;
   setKimiQuota: (updater: QuotaUpdater<Record<string, KimiQuotaState>>) => void;
   setXaiQuota: (updater: QuotaUpdater<Record<string, XaiQuotaState>>) => void;
+  setZaiQuota: (updater: QuotaUpdater<Record<string, ZaiQuotaState>>) => void;
   clearQuotaCache: () => void;
 }
 
@@ -42,6 +45,7 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
   codexQuota: {},
   kimiQuota: {},
   xaiQuota: {},
+  zaiQuota: {},
   setAntigravityQuota: (updater) =>
     set((state) => ({
       antigravityQuota: resolveUpdater(updater, state.antigravityQuota),
@@ -62,6 +66,10 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
     set((state) => ({
       xaiQuota: resolveUpdater(updater, state.xaiQuota),
     })),
+  setZaiQuota: (updater) =>
+    set((state) => ({
+      zaiQuota: resolveUpdater(updater, state.zaiQuota),
+    })),
   clearQuotaCache: () =>
     set((state) => ({
       cacheGeneration: state.cacheGeneration + 1,
@@ -70,16 +78,13 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
       codexQuota: {},
       kimiQuota: {},
       xaiQuota: {},
+      zaiQuota: {},
     })),
 }));
 
-export const captureQuotaCacheGeneration = (): number =>
-  useQuotaStore.getState().cacheGeneration;
+export const captureQuotaCacheGeneration = (): number => useQuotaStore.getState().cacheGeneration;
 
-export const commitIfQuotaCacheCurrent = (
-  generation: number,
-  commit: () => void
-): boolean => {
+export const commitIfQuotaCacheCurrent = (generation: number, commit: () => void): boolean => {
   if (useQuotaStore.getState().cacheGeneration !== generation) return false;
   commit();
   return true;

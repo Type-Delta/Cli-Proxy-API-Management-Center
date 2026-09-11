@@ -201,7 +201,9 @@ export function EventDetailSheet({
               timing={timing}
               providerLabel={formatAnalyticsEnum(t, 'provider', event.provider)}
               providerStatus={event.upstream_status_code}
-              providerFailed={steps.some((step) => step.id === 'provider' && step.state === 'failed')}
+              providerFailed={steps.some(
+                (step) => step.id === 'provider' && step.state === 'failed'
+              )}
             />
           </section>
 
@@ -282,7 +284,11 @@ export function EventDetailSheet({
               />
               <Fact
                 label={t('analytics.credential', { defaultValue: 'Credential' })}
-                value={event.credential_filename ?? shortIdentifier(event.credential_id)}
+                value={
+                  event.credential_label ??
+                  event.credential_filename ??
+                  shortIdentifier(event.credential_id)
+                }
                 mono
               />
               <Fact
@@ -329,7 +335,8 @@ export function EventDetailSheet({
                       : formatDuration(event.first_token_latency_ms, locale)
                   }
                   title={t('analytics.analysis.metric_latency_definition', {
-                    defaultValue: 'Time from dispatch until the first substantive token reaches CPA.',
+                    defaultValue:
+                      'Time from dispatch until the first substantive token reaches CPA.',
                   })}
                 />
                 <Fact

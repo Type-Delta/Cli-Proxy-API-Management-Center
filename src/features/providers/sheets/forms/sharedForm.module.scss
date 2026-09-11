@@ -1238,6 +1238,21 @@
   word-break: break-all;
 }
 
+.apiKeyEntryLabel {
+  color: var(--text-primary);
+  font-weight: 600;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &::after {
+    content: ' · ';
+    color: var(--text-quaternary);
+  }
+}
+
 .apiKeyEntryProxy {
   color: var(--text-tertiary);
   font-size: 11px;

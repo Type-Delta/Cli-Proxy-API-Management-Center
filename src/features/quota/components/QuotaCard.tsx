@@ -98,7 +98,7 @@ export function QuotaCard(props: QuotaCardProps) {
           )}
         </span>
         <span className={styles.fileName} title={file.name}>
-          {file.name}
+          {file.displayName?.trim() || file.name}
         </span>
       </header>
 

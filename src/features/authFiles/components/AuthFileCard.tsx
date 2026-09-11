@@ -33,7 +33,7 @@ import {
   type QuotaProviderType,
   type ResolvedTheme,
 } from '@/features/authFiles/constants';
-import { deriveAuthFileIdentity } from '@/features/authFiles/identity';
+import { deriveAuthFileIdentity, stripJsonExtension } from '@/features/authFiles/identity';
 import type { AuthFileStatusBarData } from '@/features/authFiles/hooks/useAuthFilesStatusBarCache';
 import { AuthFileQuotaSection } from '@/features/authFiles/components/AuthFileQuotaSection';
 import styles from './AuthFileCard.module.scss';
@@ -118,8 +118,18 @@ export function AuthFileCard(props: AuthFileCardProps) {
   const priorityValue = Number.isSafeInteger(file.priority) ? file.priority : undefined;
   const weightValue = Number.isSafeInteger(file.weight) ? file.weight : undefined;
   const noteValue = typeof file.note === 'string' ? file.note.trim() : '';
-  // 主行显示账号（email/项目 ID），文件名降为满卡宽的 mono 副行
-  const identity = deriveAuthFileIdentity(file);
+  // 主行显示账号（email/项目 ID），文件名降为满卡宽的 mono 副行；
+  // 用户设置了标签时，标签（后端 display_name）领衔主行，文件名退居副行。
+  const baseIdentity = deriveAuthFileIdentity(file);
+  const credentialLabel = typeof file.label === 'string' ? file.label.trim() : '';
+  const identity = credentialLabel
+    ? {
+        primary: (file.displayName ?? '').trim() || credentialLabel,
+        kind: 'email' as const,
+        secondary: stripJsonExtension(file.name),
+        fullName: baseIdentity.fullName,
+      }
+    : baseIdentity;
 
   const stateLabel = isRuntimeOnly
     ? t('auth_files.type_virtual')

@@ -133,10 +133,7 @@ export function ProviderResourceTable({
       if ((r.brand === 'claude' || r.brand === 'claudeApi') && r.flags.cloakEnabled) {
         items.push(renderFlagTag('cloak', t('providersPage.table.cloakTag')));
       }
-      if (
-        (r.brand === 'claude' || r.brand === 'claudeApi') &&
-        r.flags.claudeCodeCliProfile
-      ) {
+      if ((r.brand === 'claude' || r.brand === 'claudeApi') && r.flags.claudeCodeCliProfile) {
         items.push(renderFlagTag('cli-profile', t('providersPage.table.cliProfileTag')));
       }
     }
@@ -166,6 +163,7 @@ export function ProviderResourceTable({
         <div className={styles.primaryCell}>
           <span className={styles.primaryName}>{r.name ?? r.identifier}</span>
           <span className={styles.primarySub}>
+            {r.label ? `${r.label} · ` : ''}
             {r.apiKeyPreview ?? t('providersPage.status.notConfigured')}
           </span>
         </div>
@@ -176,13 +174,21 @@ export function ProviderResourceTable({
       return (
         <div className={styles.primaryCell}>
           <span className={styles.primaryName}>{r.name ?? r.identifier}</span>
-          <span className={styles.primarySub}>{(r.apiKeyPreview ?? '—') + extra}</span>
+          <span className={styles.primarySub}>
+            {r.label ? `${r.label} · ` : ''}
+            {(r.apiKeyPreview ?? '—') + extra}
+          </span>
         </div>
       );
     }
     return (
       <div className={styles.primaryCell}>
-        <span className={styles.primaryName}>{r.apiKeyPreview ?? '—'}</span>
+        <span className={styles.primaryName} title={r.label ?? undefined}>
+          {r.label ?? r.apiKeyPreview ?? '—'}
+        </span>
+        {r.label && r.apiKeyPreview ? (
+          <span className={styles.primarySub}>{r.apiKeyPreview}</span>
+        ) : null}
         {r.authIndex ? <span className={styles.primarySub}>auth: {r.authIndex}</span> : null}
       </div>
     );

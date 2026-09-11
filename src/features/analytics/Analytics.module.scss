@@ -566,6 +566,49 @@ tbody tr:hover .stickyAction {
   width: 72px;
 }
 
+.quotaWindows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 40px;
+  justify-content: center;
+}
+
+.quotaWindow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+}
+
+.quotaWindowLabel {
+  min-width: 3rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.quotaWindowValue {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.quotaWindowReset {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+}
+
+.credentialIdentity {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.credentialHash {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+}
+
 @media (max-width: 639px) {
   .ready,
   .degraded {
