@@ -803,16 +803,22 @@ style partial usage without repairing historical events.
 
 ### DL042: Shared event throughput calculation
 
-Event tables and detail timing charts now share one throughput calculation. Positive observed
-generation time is authoritative; when it is absent or invalid, a positive E2E-minus-TTFT duration
-is used as an estimate. Missing or non-positive fallbacks remain unavailable, with no arbitrary
-speed cutoff, and estimated table values carry a compact localized `EST` badge while the chart
-labels the estimate explicitly.
+Event tables and detail timing charts render one CPA-derived throughput. A recorded generation
+interval below eight percent of the pre-generation wait is not physically reachable, so CPA
+publishes `output tokens / (provider_latency_ms + wait + generation_time_ms - median provider
+latency)` for those events instead, where the wait is the first-token latency minus the
+acknowledgement and the median is that credential's own provider acknowledgement over the trailing
+day. The estimate stays unavailable without a usable acknowledgement, a credential baseline, or a
+positive span; events that keep a plausible generation interval report their measured rate.
 
-Validation: focused speed and event diagnostics tests cover observed 750 TPS, estimated fallback,
-zero and invalid measurements, and unavailable output. `bun run verify` passes 723 tests, lint,
-TypeScript, and the production build. Isolated Chrome CDP checks at 1440x1050 and 390x844 show
-the live speed and generation detail without overflow or browser errors.
+The panel no longer derives throughput itself. It renders `tokens_per_second`, marks
+`speed_estimated` with the compact localized `EST` badge, and shows `Unavailable` when the server
+publishes no rate, so the table and the detail chart cannot disagree. A server that predates the
+field publishes nothing and the column stays unavailable instead of falling back to a local guess.
+
+Validation: focused speed tests cover the measured rate, the estimate label, a null rate, and
+servers that publish no field, and the event diagnostics tests render the published estimate.
+`bun run verify` passes the full suite, lint, TypeScript, and the production build.
 
 ### DL043: Credential labels, catalog-bound pricing, and Z.AI usage windows
 

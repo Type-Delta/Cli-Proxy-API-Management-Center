@@ -15,47 +15,38 @@ const makeEvent = (overrides: Partial<AnalyticsEvent> = {}) =>
   }) as AnalyticsEvent;
 
 describe('analytics event speed', () => {
-  test('uses observed generation time for tokens per second', () => {
-    expect(eventSpeed(makeEvent())).toBe(100);
-    expect(eventSpeedIsEstimated(makeEvent())).toBe(false);
-  });
-
-  test('keeps fast observed generation speeds measured', () => {
-    const event = makeEvent({ generation_time_ms: 400, tokens: { output: 300 } });
+  test('renders the measured throughput CPA published', () => {
+    const event = makeEvent({ tokens_per_second: 750, speed_estimated: false });
 
     expect(eventSpeed(event)).toBe(750);
     expect(eventSpeedIsEstimated(event)).toBe(false);
   });
 
-  test('does not invent speed when both generation time and TTFT are unavailable', () => {
-    const event = makeEvent({ generation_time_ms: null, time_to_first_token_ms: null });
+  test('labels the throughput CPA estimated', () => {
+    const event = makeEvent({ tokens_per_second: 500, speed_estimated: true });
+
+    expect(eventSpeed(event)).toBe(500);
+    expect(eventSpeedIsEstimated(event)).toBe(true);
+  });
+
+  test('stays unavailable when CPA publishes no rate', () => {
+    const event = makeEvent({ tokens_per_second: null, speed_estimated: true });
 
     expect(eventSpeed(event)).toBeNull();
     expect(eventSpeedIsEstimated(event)).toBe(false);
   });
 
-  test('uses a positive fallback when generation is zero', () => {
-    const event = makeEvent({ generation_time_ms: 0, time_to_first_token_ms: 500 });
+  test('stays unavailable for servers that do not publish throughput', () => {
+    const event = makeEvent();
 
-    expect(eventSpeed(event)).toBeCloseTo(10.5263157895, 8);
-    expect(eventSpeedIsEstimated(event)).toBe(true);
+    expect(eventSpeed(event)).toBeNull();
+    expect(eventSpeedIsEstimated(event)).toBe(false);
   });
 
-  test('labels the latency-minus-TTFT fallback as estimated', () => {
-    const event = makeEvent({ generation_time_ms: null });
+  test('ignores non-finite throughput', () => {
+    const event = makeEvent({ tokens_per_second: Number.NaN });
 
-    expect(eventSpeed(event)).toBeCloseTo(11.111111, 5);
-    expect(eventSpeedIsEstimated(event)).toBe(true);
-  });
-
-  test('uses the fallback for invalid generation and rejects non-positive fallback durations', () => {
-    expect(eventSpeed(makeEvent({ generation_time_ms: Number.NaN }))).toBeCloseTo(11.111111, 5);
-    expect(eventSpeedIsEstimated(makeEvent({ generation_time_ms: Number.NaN }))).toBe(true);
-    expect(
-      eventSpeed(makeEvent({ generation_time_ms: 0, time_to_first_token_ms: 10_000 }))
-    ).toBeNull();
-    expect(
-      eventSpeedIsEstimated(makeEvent({ generation_time_ms: 0, time_to_first_token_ms: 10_000 }))
-    ).toBe(false);
+    expect(eventSpeed(event)).toBeNull();
+    expect(eventSpeedIsEstimated(event)).toBe(false);
   });
 });

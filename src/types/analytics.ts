@@ -184,6 +184,10 @@ export type AnalyticsEvent = {
   routing_time_ms?: number | null;
   time_to_first_token_ms: number | null;
   generation_time_ms?: number | null;
+  /** CPA-derived output throughput; absent when no observed or estimated rate is publishable. */
+  tokens_per_second?: number | null;
+  /** True when the throughput came from CPA's compressed-generation estimate. */
+  speed_estimated?: boolean | null;
   service_tier_requested: string | null;
   service_tier_used: string | null;
   generated: boolean;

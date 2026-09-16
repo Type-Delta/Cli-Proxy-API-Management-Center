@@ -52,6 +52,7 @@ const fullyInstrumented = (overrides: Partial<AnalyticsEvent> = {}) =>
     upstream_status_code: 200,
     proxy_status_code: 200,
     upstream_usage_raw: { total_tokens: 150, completion_tokens: 150 },
+    tokens_per_second: 100,
     ...overrides,
   });
 
@@ -196,17 +197,12 @@ describe('buildEventTiming', () => {
     expect(timing.throughput).toBeNull();
   });
 
-  test('uses the latency minus TTFT estimate when generation is missing', () => {
+  test('renders the throughput CPA published as an estimate', () => {
     const timing = buildEventTiming(
-      makeEvent({ generation_time_ms: null, time_to_first_token_ms: 400, latency_ms: 1_000 })
+      makeEvent({ generation_time_ms: 10, tokens_per_second: 250, speed_estimated: true })
     );
     expect(timing.throughput).toEqual({ tokens: 150, tokensPerSecond: 250, estimated: true });
-  });
 
-  test('marks estimated chart throughput explicitly when generation is missing', () => {
-    const timing = buildEventTiming(
-      makeEvent({ generation_time_ms: null, time_to_first_token_ms: 400, latency_ms: 1_000 })
-    );
     const html = renderToStaticMarkup(
       createElement(EventTimingGraph, {
         timing,
@@ -217,6 +213,13 @@ describe('buildEventTiming', () => {
     );
 
     expect(html).toContain('Estimated');
+  });
+
+  test('keeps throughput unavailable when CPA publishes no rate', () => {
+    const timing = buildEventTiming(
+      makeEvent({ generation_time_ms: null, time_to_first_token_ms: 400, latency_ms: 1_000 })
+    );
+    expect(timing.throughput).toBeNull();
   });
 
   test('legacy event without hop stamps reports routing as not recorded', () => {

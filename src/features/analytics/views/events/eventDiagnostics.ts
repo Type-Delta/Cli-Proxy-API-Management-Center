@@ -67,28 +67,15 @@ const text = (value: string | null | undefined) => {
 const finite = (value: number | null | undefined) =>
   typeof value === 'number' && Number.isFinite(value) ? value : null;
 
-/** Uses measured generation time, then a positive E2E-minus-TTFT estimate when needed. */
-export const eventSpeed = (event: AnalyticsEvent) => {
-  const generationMs = finite(event.generation_time_ms);
-  const observed = generationMs !== null && generationMs > 0 ? generationMs : null;
-  const ttftMs = finite(event.time_to_first_token_ms);
-  const totalMs = finite(event.latency_ms);
-  const estimated =
-    observed === null && ttftMs !== null && totalMs !== null && totalMs > ttftMs
-      ? totalMs - ttftMs
-      : null;
-  const durationMs = observed ?? estimated;
-  const outputTokens = finite(event.tokens?.output) ?? 0;
-  return durationMs !== null && durationMs > 0 && outputTokens > 0
-    ? outputTokens / (durationMs / 1000)
-    : null;
-};
+/**
+ * Output throughput CPA derived for the attempt. CPA owns the derivation because the estimate
+ * needs the credential's acknowledgement baseline; the sheet and the table only render what the
+ * server published.
+ */
+export const eventSpeed = (event: AnalyticsEvent) => finite(event.tokens_per_second ?? null);
 
-export const eventSpeedIsEstimated = (event: AnalyticsEvent) => {
-  const speed = eventSpeed(event);
-  const generationMs = finite(event.generation_time_ms);
-  return speed !== null && !(generationMs !== null && generationMs > 0);
-};
+export const eventSpeedIsEstimated = (event: AnalyticsEvent) =>
+  eventSpeed(event) !== null && event.speed_estimated === true;
 
 const epochMs = (value: string | null | undefined) => {
   const raw = text(value);
