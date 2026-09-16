@@ -1,14 +1,15 @@
 /**
- * 额度渲染层的类型化样式契约。
+ * Typed style contract for quota rendering.
  *
- * 额度 body 在两个宿主穿不同外衣：额度页（QuotaBody.module.scss）与
- * 认证文件卡片（AuthFileQuota.module.scss）。宿主通过 bindQuotaClasses
- * 把自己的 CSS Module 绑定成 QuotaClassMap —— 缺任何一个类名会在模块
- * 初始化时抛错并列出缺失清单，替代旧字符串 styleMap 的静默 class="undefined"。
+ * A quota body wears a different skin in each host: the quota page
+ * (QuotaBody.module.scss) and the auth-file card (AuthFileQuota.module.scss). Each host binds
+ * its own CSS Module into a QuotaClassMap through `bindQuotaClasses`, which throws at module
+ * init with the list of missing keys. That replaces the old string styleMap, where a missing
+ * entry silently produced class="undefined".
  */
 
 export interface QuotaClassMap {
-  // 额度行（五个提供商共用）
+  // Quota rows (shared by every provider)
   quotaRow: string;
   quotaRowHeader: string;
   quotaModel: string;
@@ -19,15 +20,15 @@ export interface QuotaClassMap {
   quotaResetRelativeSoon: string;
   quotaAmount: string;
   quotaMessage: string;
-  // 套餐 chip 行（codex 命名，claude/antigravity/kimi/xai 复用；
-  // premium=金卡、elite=Pro 20x 液态铂金 —— 均为定稿资产，样式不可改）
+  // Plan chip rows (named for codex, reused by claude/antigravity/kimi/xai;
+  // premium = gold card, elite = Pro 20x liquid platinum. Final artwork, do not restyle.)
   codexPlan: string;
   codexPlanItem: string;
   codexPlanLabel: string;
   codexPlanValue: string;
   premiumPlanValue: string;
   elitePlanValue: string;
-  // Codex 重置积分
+  // Codex manual reset credits
   codexResetCredits: string;
   codexResetCreditsTitle: string;
   codexResetCreditRow: string;
@@ -35,17 +36,19 @@ export interface QuotaClassMap {
   codexResetCreditLabel: string;
   codexResetCreditTime: string;
   codexResetCreditsError: string;
-  // Antigravity 分组
+  // Antigravity groups
   antigravityQuotaGroup: string;
   antigravityQuotaGroupHeader: string;
   antigravityQuotaGroupTitle: string;
   antigravityQuotaGroupDescription: string;
-  // 水位条（QuotaMeter）
+  // Level bars (QuotaMeter)
   quotaBar: string;
   quotaBarFill: string;
   quotaBarFillHigh: string;
   quotaBarFillMedium: string;
   quotaBarFillLow: string;
+  /** Candy-striped fill for an allowance another window on the credential has blocked. */
+  quotaBarFillDisabled: string;
 }
 
 export const QUOTA_CLASS_KEYS: readonly (keyof QuotaClassMap)[] = [
@@ -81,13 +84,14 @@ export const QUOTA_CLASS_KEYS: readonly (keyof QuotaClassMap)[] = [
   'quotaBarFillHigh',
   'quotaBarFillMedium',
   'quotaBarFillLow',
+  'quotaBarFillDisabled',
 ];
 
-/** 宿主 CSS Module → 类型化契约。缺键即抛（fail-loud），`source` 用于报错定位。 */
+/** Host CSS Module to typed contract. Missing keys throw, and `source` locates the host. */
 export function bindQuotaClasses(module: Record<string, string>, source: string): QuotaClassMap {
   const missing = QUOTA_CLASS_KEYS.filter((key) => !module[key]);
   if (missing.length > 0) {
-    throw new Error(`[quota] ${source} 缺少额度契约类名: ${missing.join(', ')}`);
+    throw new Error(`[quota] ${source} is missing quota contract classes: ${missing.join(', ')}`);
   }
   const bound = {} as Record<keyof QuotaClassMap, string>;
   for (const key of QUOTA_CLASS_KEYS) {

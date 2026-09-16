@@ -120,6 +120,8 @@ export type TimeseriesPoint = {
   tokens: TokenUsage;
   known_cost_usd: string;
   unpriced_tokens: number;
+  generation_time_ms?: number | null;
+  generation_sample_count?: number;
 };
 
 export type AnalyticsTimeseries = { meta: AnalyticsMeta; points: TimeseriesPoint[] };
@@ -134,6 +136,13 @@ export type DimensionRow = {
   tokens: TokenUsage;
   known_cost_usd: string;
   unpriced_tokens: number;
+  /**
+   * Admin-only display name resolved from currently loaded credentials. Only the `credential`
+   * dimension carries these; every other dimension groups by a value that is already readable.
+   */
+  credential_label?: string | null;
+  /** Admin-only credential file name, resolved the same way as `credential_label`. */
+  credential_filename?: string | null;
 };
 
 export type AnalyticsDimensionPage = {
@@ -305,6 +314,8 @@ export type AnalysisModel = {
   total_tokens: number;
   known_cost_usd: string;
   unpriced_tokens?: number;
+  generation_time_ms?: number | null;
+  generation_sample_count?: number;
 };
 
 export type AnalysisModelBucket = { start: string; models: AnalysisModel[] | null };

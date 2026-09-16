@@ -218,9 +218,15 @@ function KeyStatus({
     identity_conflict:
       'Conflicting key identities were detected; attribution cannot be resolved reliably.',
   };
+  const statusClass =
+    status === 'active'
+      ? `success ${styles.statusBadgeActive}`
+      : status === 'deleted'
+        ? 'error'
+        : '';
   return (
     <span
-      className={`status-badge ${styles.statusBadge} ${status === 'active' ? 'success' : status === 'deleted' ? 'error' : ''}`}
+      className={`status-badge ${styles.statusBadge} ${statusClass}`}
       title={t(`analytics.key_status_help.${status}`, { defaultValue: descriptions[status] })}
     >
       {t(`analytics.enums.key_status.${status}`)}

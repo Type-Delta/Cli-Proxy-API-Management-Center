@@ -1,6 +1,6 @@
 /**
- * Claude 额度数据层：用量窗口 + 套餐 + 额外用量。
- * React-free / SCSS-free —— 由 tests/claudeFableQuota.test.ts 直接消费。
+ * Claude quota data layer: usage windows, plan, and extra usage.
+ * React-free / SCSS-free; tests/claudeFableQuota.test.ts consumes it directly.
  */
 
 import type { TFunction } from 'i18next';
@@ -29,6 +29,7 @@ import {
   isDisabledAuthFile,
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
+import { blockedQuotaWindowIds } from '../../windowGating';
 import type { QuotaProviderData } from '../types';
 
 export type ClaudeQuotaData = {
@@ -36,6 +37,14 @@ export type ClaudeQuotaData = {
   extraUsage?: ClaudeExtraUsage | null;
   planType?: string | null;
 };
+
+/**
+ * The rolling window and the weekly window gate every model, so they are the only blockers.
+ * Model- and app-scoped allowances (`seven-day-opus`, `seven-day-sonnet`, `seven-day-fable`,
+ * and friends) draw on those same two limits: they go unusable when either base window is
+ * spent, while exhausting a scoped allowance leaves the base allowances alone.
+ */
+const CLAUDE_BASE_WINDOW_IDS = ['five-hour', 'seven-day'] as const;
 
 const findFableUsageLimit = (payload: ClaudeUsagePayload) => {
   if (!Array.isArray(payload.limits)) return null;
@@ -96,7 +105,13 @@ export const buildClaudeQuotaWindows = (
     }
   }
 
-  return windows;
+  const blockers = CLAUDE_BASE_WINDOW_IDS.filter((id) =>
+    windows.some((window) => window.id === id)
+  );
+  const blocked = blockedQuotaWindowIds(windows, [
+    { blockers, members: windows.map((window) => window.id) },
+  ]);
+  return windows.map((window) => (blocked.has(window.id) ? { ...window, disabled: true } : window));
 };
 
 const normalizeFlagValue = (value: unknown): boolean | undefined => {

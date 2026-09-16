@@ -182,7 +182,8 @@ describe('analytics Analysis models', () => {
         locale: 'en',
       })
     );
-    expect((markup.match(/tabindex="0"/g) ?? []).length).toBe(2);
+    // Chart, metric selector, and the active ranking row.
+    expect((markup.match(/tabindex="0"/g) ?? []).length).toBe(3);
   });
 
   test('calculates token share and cost per million without rounding the source values', () => {
@@ -839,12 +840,13 @@ describe('analysis ECharts options', () => {
     const option = topModelsOption({
       ranked,
       buckets: ['2026-09-01T00:00:00Z'],
+      metric: 'tokens',
       palette: PALETTE,
       otherLabel: 'Other models',
       totalLabel: 'Total',
       highlighted: 'model-0',
       formatBucket: identity,
-      formatTokens: identity,
+      formatValue: identity,
     }) as unknown as Option;
 
     // Six ranks plus the folded "Other" band, which takes the achromatic slot.
@@ -859,6 +861,87 @@ describe('analysis ECharts options', () => {
     // The ranking's hover dims every other band rather than hiding it.
     expect(option.series[0].itemStyle?.opacity).toBe(1);
     expect(option.series[1].itemStyle?.opacity).toBe(0.18);
+  });
+
+  test('switches Top Models between cost and observed generation time', () => {
+    const model = {
+      requests: 1,
+      input_tokens: 0,
+      output_tokens: 0,
+      cached_tokens: 0,
+      cache_read_tokens: 0,
+      cache_creation_tokens: 0,
+      reasoning_tokens: 0,
+    };
+    const section = {
+      meta: { partial: false },
+      models: [
+        {
+          ...model,
+          model: 'model-a',
+          total_tokens: 100,
+          known_cost_usd: '1',
+          generation_time_ms: 1_000,
+          generation_sample_count: 2,
+        },
+        {
+          ...model,
+          model: 'model-b',
+          total_tokens: 300,
+          known_cost_usd: '3',
+          generation_time_ms: 3_000,
+          generation_sample_count: 3,
+        },
+      ],
+      buckets: [
+        {
+          start: '2026-09-01T00:00:00Z',
+          models: [
+            { ...model, model: 'model-a', total_tokens: 40, known_cost_usd: '0.4', generation_time_ms: 400, generation_sample_count: 1 },
+            { ...model, model: 'model-b', total_tokens: 120, known_cost_usd: '1.2', generation_time_ms: 900, generation_sample_count: 1 },
+          ],
+        },
+        {
+          start: '2026-09-01T01:00:00Z',
+          models: [
+            { ...model, model: 'model-a', total_tokens: 60, known_cost_usd: '0.6', generation_time_ms: 600, generation_sample_count: 1 },
+            { ...model, model: 'model-b', total_tokens: 180, known_cost_usd: '1.8', generation_time_ms: 2_100, generation_sample_count: 2 },
+          ],
+        },
+      ],
+    } satisfies AnalysisModelByTime;
+
+    expect(buildTopModelSeries(section, 'cost')).toMatchObject([
+      { model: 'model-b', metricValue: 3, values: [1.2, 1.8], share: 75 },
+      { model: 'model-a', metricValue: 1, values: [0.4, 0.6], share: 25 },
+    ]);
+    const ranked = buildTopModelSeries(section, 'generation');
+    expect(ranked).toMatchObject([
+      {
+        model: 'model-b',
+        metricValue: 1_000,
+        generationSampleCount: 3,
+        values: [900, 1_050],
+      },
+      {
+        model: 'model-a',
+        metricValue: 500,
+        generationSampleCount: 2,
+        values: [400, 600],
+      },
+    ]);
+    const option = topModelsOption({
+      ranked,
+      buckets: ['2026-09-01T00:00:00Z', '2026-09-01T01:00:00Z'],
+      metric: 'generation',
+      palette: PALETTE,
+      otherLabel: 'Other models',
+      totalLabel: 'Total',
+      formatBucket: identity,
+      formatValue: identity,
+    }) as unknown as Option;
+    expect(option.series.every((series) => series.type === 'line')).toBe(true);
+    expect(option.series.every((series) => series.stack === undefined)).toBe(true);
   });
 
   test('puts latency on decade log axes with labelled p95 markLines', () => {
@@ -912,7 +995,7 @@ describe('analysis ECharts options', () => {
     expect(option.tooltip.formatter([{ value: [120, 900, 'model-a', 'ts'] }])).toContain('900ms');
   });
 
-  test('uses shared log10 latency radar axes and omits an incomplete polygon', () => {
+  test('uses shared linear latency radar axes and omits an incomplete polygon', () => {
     // The custom radar follows the visual clockwise order E2E, provider, generation, TTFT,
     // latency even though ECharts exposes the axes in its counterclockwise data order.
     expect(TIMING_METRIC_KEYS.map((_, index) => latencyRadarAxisOffset(index))).toEqual([
@@ -953,15 +1036,15 @@ describe('analysis ECharts options', () => {
       series: Array<{ data: unknown[] }>;
       tooltip: { formatter: (input: unknown) => string };
     };
+    // A linear axis keeps the slowest observation at the rim, so 200 of a 230ms maximum is
+    // 87% of the radius instead of the ~99% a log10 axis would draw.
     expect(complete.radar.indicator.map((indicator) => indicator.max)).toEqual(
-      expect.arrayContaining([expect.closeTo(Math.log10(230), 1e-9)])
+      expect.arrayContaining([expect.closeTo(230, 1e-9)])
     );
     expect(new Set(complete.radar.indicator.map((indicator) => Math.round(indicator.max)))).toEqual(
-      new Set([Math.round(Math.log10(230))])
+      new Set([230])
     );
-    expect(complete.series[0].data).toEqual([
-      { value: [200, 50, 80, 120, 30].map((value) => Math.log10(value)) },
-    ]);
+    expect(complete.series[0].data).toEqual([{ value: [200, 50, 80, 120, 30] }]);
 
     const partialMetrics = { ...metrics, provider_latency: metric(null, null, null) };
     const partial = latencyRadarOption({
@@ -978,9 +1061,11 @@ describe('analysis ECharts options', () => {
     expect(partial.series[0].data).toEqual([]);
     expect(partial.radar.indicator.at(-1)?.name).toBe('Provider\nlatency\n· Unavailable');
     expect(logScaleTooltipTitle('MAX')).toBe('MAX (log10)');
-    expect((complete.tooltip as { formatter: (input: unknown) => string }).formatter({})).toContain(
-      'MAX (log10)'
+    const radarTooltip = (complete.tooltip as { formatter: (input: unknown) => string }).formatter(
+      {}
     );
+    expect(radarTooltip).toContain('MAX');
+    expect(radarTooltip).not.toContain('log10');
     expect(wrapRadarLabel('Generation time')).toBe('Generation\ntime');
     const custom = partial.series[1] as unknown as {
       renderItem: (

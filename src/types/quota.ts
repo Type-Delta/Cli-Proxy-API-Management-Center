@@ -155,6 +155,11 @@ export interface ClaudeQuotaWindow {
   label: string;
   labelKey?: string;
   usedPercent: number | null;
+  /**
+   * True when another window on the same credential is already spent, so this allowance
+   * cannot be spent either. The remaining amount stays visible; only its availability changes.
+   */
+  disabled?: boolean;
   resetLabel: string;
   /**
    * Reset instant in epoch ms, kept alongside the display label so callers that
@@ -225,6 +230,12 @@ export interface CodexQuotaWindow {
   labelKey?: string;
   labelParams?: Record<string, string | number>;
   usedPercent: number | null;
+  /**
+   * True when another window in the same family is spent. Families are independent: the
+   * standard allowance, the code-review allowance, and each additional model allowance
+   * (for example Codex Spark) gate only themselves.
+   */
+  disabled?: boolean;
   resetLabel: string;
   /** Reset instant in epoch ms; null when the payload carried no timestamp. */
   resetAtMs?: number | null;
@@ -435,6 +446,8 @@ export interface ZaiQuotaWindow {
   resetAtMs?: number | null;
   /** Window length in hours, derived from the unit + number pair. */
   periodHours?: number | null;
+  /** True when another window drawing on the same credit pool is already spent. */
+  disabled?: boolean;
 }
 
 export interface ZaiQuotaState {

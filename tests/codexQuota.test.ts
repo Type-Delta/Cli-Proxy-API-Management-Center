@@ -87,3 +87,65 @@ describe('Codex current usage payload', () => {
     expect(CODEX_CONFIG.canResetQuota?.(quota)).toBeTrue();
   });
 });
+
+/**
+ * A window pair with the standard allowance and one additional model allowance, so a test can
+ * spend either family and read which rows the card would grey.
+ */
+const windowPair = (usedPercent: number) => ({
+  used_percent: usedPercent,
+  limit_window_seconds: 604800,
+});
+
+const familyPayload = (
+  standard: number,
+  spark: number
+): CodexUsagePayload => ({
+  plan_type: 'pro',
+  rate_limit: {
+    allowed: true,
+    limit_reached: false,
+    primary_window: { used_percent: standard, limit_window_seconds: 18000 },
+    secondary_window: windowPair(standard),
+  },
+  additional_rate_limits: [
+    {
+      limit_name: 'GPT-5.3-Codex-Spark',
+      metered_feature: 'codex_bengalfox',
+      rate_limit: {
+        allowed: true,
+        limit_reached: false,
+        primary_window: { used_percent: spark, limit_window_seconds: 18000 },
+        secondary_window: windowPair(spark),
+      },
+    },
+  ],
+});
+
+describe('Codex window families', () => {
+  test('greys the standard pair when the weekly limit is spent', () => {
+    const windows = buildCodexQuotaWindows(familyPayload(100, 10), t);
+    const byId = new Map(windows.map((window) => [window.id, window]));
+
+    // The 5-hour window still has headroom, but the credential cannot use it until reset.
+    expect(byId.get('five-hour')?.disabled).toBeTrue();
+    expect(byId.get('five-hour')?.usedPercent).toBe(100);
+    expect(byId.get('gpt-5-3-codex-spark-five-hour-0')?.disabled).toBeUndefined();
+    expect(byId.get('gpt-5-3-codex-spark-weekly-0')?.disabled).toBeUndefined();
+  });
+
+  test('greys only the Spark pair when Spark runs out', () => {
+    const windows = buildCodexQuotaWindows(familyPayload(10, 100), t);
+    const byId = new Map(windows.map((window) => [window.id, window]));
+
+    expect(byId.get('five-hour')?.disabled).toBeUndefined();
+    expect(byId.get('weekly')?.disabled).toBeUndefined();
+    expect(byId.get('gpt-5-3-codex-spark-five-hour-0')?.disabled).toBeTrue();
+    expect(byId.get('gpt-5-3-codex-spark-weekly-0')?.disabled).toBeTrue();
+  });
+
+  test('leaves every row usable while both families have headroom', () => {
+    const windows = buildCodexQuotaWindows(familyPayload(10, 10), t);
+    expect(windows.every((window) => window.disabled === undefined)).toBeTrue();
+  });
+});

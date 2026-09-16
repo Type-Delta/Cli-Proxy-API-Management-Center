@@ -140,3 +140,33 @@
 .statusBadge {
   margin-bottom: 0;
 }
+
+/**
+ * The Active badge breathes. A key configured and used in the last five minutes is the one
+ * state worth noticing while scanning the table, and the badge is small enough that a static
+ * fill disappears into the row. Only colour moves, so the badge never resizes or shifts.
+ */
+.statusBadgeActive {
+  animation: key-status-breathe 2800ms ease-in-out infinite;
+}
+
+@keyframes key-status-breathe {
+  0%,
+  100% {
+    color: var(--success-color);
+    border-color: color-mix(in srgb, var(--success-color) 32%, transparent);
+    background: color-mix(in srgb, var(--success-color) 8%, transparent);
+  }
+
+  50% {
+    color: color-mix(in srgb, var(--success-color) 74%, var(--text-primary));
+    border-color: color-mix(in srgb, var(--success-color) 55%, transparent);
+    background: color-mix(in srgb, var(--success-color) 18%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statusBadgeActive {
+    animation: none;
+  }
+}

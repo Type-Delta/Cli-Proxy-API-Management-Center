@@ -244,11 +244,21 @@ export function buildTokenSeries(buckets: ActivityBucket[]): TokenSeriesPoint[] 
 export type RankedModelSeries = {
   model: string;
   totalTokens: number;
-  share: number;
-  values: number[];
+  totalCost: number;
+  generationTimeMS: number;
+  generationSampleCount: number;
+  /** Value used for the selected metric's ranking and primary label. */
+  metricValue: number | null;
+  /** Share of the selected metric's raw total; null when the metric has no observations. */
+  share: number | null;
+  /** Bucket values for the selected metric. Generation gaps stay null. */
+  values: Array<number | null>;
   /** Set on the aggregate band that stands for every model past the cap. */
   other?: boolean;
 };
+
+export const TOP_MODEL_METRICS = ['tokens', 'cost', 'generation'] as const;
+export type TopModelMetric = (typeof TOP_MODEL_METRICS)[number];
 
 /**
  * How many models get their own hue in Top Models. The server returns ten, but a stacked bar
@@ -260,54 +270,147 @@ export type RankedModelSeries = {
 export const TOP_MODEL_LIMIT = 6;
 export const OTHER_MODEL_ID = '\0other';
 
-export function buildTopModelSeries(data: AnalysisModelByTime): RankedModelSeries[] {
+type ModelAccumulator = {
+  model: string;
+  totalTokens: number;
+  totalCost: number;
+  generationTimeMS: number;
+  generationSampleCount: number;
+  tokenValues: number[];
+  costValues: number[];
+  generationValues: number[];
+  generationCounts: number[];
+};
+
+const emptyValues = (length: number) => Array.from({ length }, () => 0);
+
+const addModelTotals = (accumulator: ModelAccumulator, model: AnalysisModel) => {
+  accumulator.totalTokens += nonNegative(model.total_tokens);
+  accumulator.totalCost += nonNegative(model.known_cost_usd);
+  accumulator.generationTimeMS += nonNegative(model.generation_time_ms);
+  accumulator.generationSampleCount += nonNegative(model.generation_sample_count);
+};
+
+const addBucketModel = (accumulator: ModelAccumulator, model: AnalysisModel, index: number) => {
+  accumulator.tokenValues[index] += nonNegative(model.total_tokens);
+  accumulator.costValues[index] += nonNegative(model.known_cost_usd);
+  accumulator.generationValues[index] += nonNegative(model.generation_time_ms);
+  accumulator.generationCounts[index] += nonNegative(model.generation_sample_count);
+};
+
+const mergeAccumulators = (left: ModelAccumulator, right: ModelAccumulator): ModelAccumulator => ({
+  model: OTHER_MODEL_ID,
+  totalTokens: left.totalTokens + right.totalTokens,
+  totalCost: left.totalCost + right.totalCost,
+  generationTimeMS: left.generationTimeMS + right.generationTimeMS,
+  generationSampleCount: left.generationSampleCount + right.generationSampleCount,
+  tokenValues: left.tokenValues.map((value, index) => value + (right.tokenValues[index] ?? 0)),
+  costValues: left.costValues.map((value, index) => value + (right.costValues[index] ?? 0)),
+  generationValues: left.generationValues.map(
+    (value, index) => value + (right.generationValues[index] ?? 0)
+  ),
+  generationCounts: left.generationCounts.map(
+    (value, index) => value + (right.generationCounts[index] ?? 0)
+  ),
+});
+
+const accumulatorMetricTotal = (accumulator: ModelAccumulator, metric: TopModelMetric) =>
+  metric === 'tokens'
+    ? accumulator.totalTokens
+    : metric === 'cost'
+      ? accumulator.totalCost
+      : accumulator.generationTimeMS;
+
+const accumulatorMetricValue = (accumulator: ModelAccumulator, metric: TopModelMetric) =>
+  metric === 'generation'
+    ? accumulator.generationSampleCount > 0
+      ? accumulator.generationTimeMS / accumulator.generationSampleCount
+      : null
+    : accumulatorMetricTotal(accumulator, metric);
+
+const accumulatorBucketValues = (accumulator: ModelAccumulator, metric: TopModelMetric) => {
+  if (metric === 'tokens') return accumulator.tokenValues;
+  if (metric === 'cost') return accumulator.costValues;
+  return accumulator.generationValues.map((value, index) =>
+    accumulator.generationCounts[index] > 0 ? value / accumulator.generationCounts[index] : null
+  );
+};
+
+const toRankedModel = (
+  accumulator: ModelAccumulator,
+  metric: TopModelMetric,
+  metricTotal: number,
+  other = false
+): RankedModelSeries => {
+  const rawTotal = accumulatorMetricTotal(accumulator, metric);
+  return {
+    model: accumulator.model,
+    totalTokens: accumulator.totalTokens,
+    totalCost: accumulator.totalCost,
+    generationTimeMS: accumulator.generationTimeMS,
+    generationSampleCount: accumulator.generationSampleCount,
+    metricValue: accumulatorMetricValue(accumulator, metric),
+    share: metricTotal > 0 ? (rawTotal / metricTotal) * 100 : null,
+    values: accumulatorBucketValues(accumulator, metric),
+    ...(other ? { other: true } : {}),
+  };
+};
+
+export function buildTopModelSeries(
+  data: AnalysisModelByTime,
+  metric: TopModelMetric = 'tokens'
+): RankedModelSeries[] {
   const buckets = data.buckets ?? [];
   const models = data.models ?? [];
   const bucketIndexes = new Map(buckets.map((bucket, index) => [bucket.start, index]));
-  const totals = new Map<string, number>();
-  const values = new Map<string, number[]>();
+  const accumulators = new Map<string, ModelAccumulator>();
 
   for (const model of models) {
-    totals.set(model.model, nonNegative(model.total_tokens));
-    values.set(
-      model.model,
-      Array.from({ length: buckets.length }, () => 0)
-    );
+    const accumulator: ModelAccumulator = {
+      model: model.model,
+      totalTokens: 0,
+      totalCost: 0,
+      generationTimeMS: 0,
+      generationSampleCount: 0,
+      tokenValues: emptyValues(buckets.length),
+      costValues: emptyValues(buckets.length),
+      generationValues: emptyValues(buckets.length),
+      generationCounts: emptyValues(buckets.length),
+    };
+    addModelTotals(accumulator, model);
+    accumulators.set(model.model, accumulator);
   }
 
   for (const bucket of buckets) {
     const index = bucketIndexes.get(bucket.start);
     if (index === undefined) continue;
     for (const model of bucket.models ?? []) {
-      const series = values.get(model.model);
-      if (series) series[index] += nonNegative(model.total_tokens);
+      const accumulator = accumulators.get(model.model);
+      if (accumulator) addBucketModel(accumulator, model, index);
     }
   }
 
-  const rangeTotal = Array.from(totals.values()).reduce((sum, value) => sum + value, 0);
-  const ranked = Array.from(totals, ([model, totalTokens]) => ({
-    model,
-    totalTokens,
-    share: rangeTotal > 0 ? (totalTokens / rangeTotal) * 100 : 0,
-    values: values.get(model) ?? [],
-  })).sort(
-    (left, right) => right.totalTokens - left.totalTokens || left.model.localeCompare(right.model)
+  const metricTotal = Array.from(accumulators.values()).reduce(
+    (sum, accumulator) => sum + accumulatorMetricTotal(accumulator, metric),
+    0
   );
-  if (ranked.length <= TOP_MODEL_LIMIT) return ranked;
+  const ordered = Array.from(accumulators.values()).sort(
+    (left, right) =>
+      (accumulatorMetricValue(right, metric) ?? -1) -
+        (accumulatorMetricValue(left, metric) ?? -1) || left.model.localeCompare(right.model)
+  );
+  if (ordered.length <= TOP_MODEL_LIMIT) {
+    return ordered.map((accumulator) => toRankedModel(accumulator, metric, metricTotal));
+  }
 
   // Fold the tail into one band so the chart never needs a seventh hue.
-  const tail = ranked.slice(TOP_MODEL_LIMIT);
+  const tail = ordered.slice(TOP_MODEL_LIMIT);
+  const other = tail.reduce(mergeAccumulators);
   return [
-    ...ranked.slice(0, TOP_MODEL_LIMIT),
-    {
-      model: OTHER_MODEL_ID,
-      totalTokens: tail.reduce((sum, item) => sum + item.totalTokens, 0),
-      share: tail.reduce((sum, item) => sum + item.share, 0),
-      values: Array.from({ length: buckets.length }, (_, index) =>
-        tail.reduce((sum, item) => sum + (item.values[index] ?? 0), 0)
-      ),
-      other: true,
-    },
+    ...ordered
+      .slice(0, TOP_MODEL_LIMIT)
+      .map((accumulator) => toRankedModel(accumulator, metric, metricTotal)),
+    toRankedModel(other, metric, metricTotal, true),
   ];
 }
 
@@ -781,6 +884,7 @@ export function tokenUsageOption({
 export type TopModelsOptionInput = {
   ranked: RankedModelSeries[];
   buckets: string[];
+  metric: TopModelMetric;
   palette: AnalyticsPalette;
   /** Localized name for the folded "Other" band. */
   otherLabel: string;
@@ -788,38 +892,45 @@ export type TopModelsOptionInput = {
   /** Model id the ranking is pointing at; every other band dims. */
   highlighted?: string | null;
   formatBucket: (value: string) => string;
-  formatTokens: (value: number) => string;
+  formatValue: (value: number) => string;
 };
 
 export function topModelsOption({
   ranked,
   buckets,
+  metric,
   palette,
   otherLabel,
   totalLabel,
   highlighted,
   formatBucket,
-  formatTokens,
+  formatValue,
 }: TopModelsOptionInput): EChartsCoreOption {
+  const generation = metric === 'generation';
   return {
     grid: { ...ANALYSIS_GRID, right: 18, top: 12, containLabel: false },
     tooltip: {
       trigger: 'axis',
       axisPointer: snapAxisPointer,
       formatter: axisTooltipFormatter({
-        format: formatTokens,
-        stacked: true,
+        format: formatValue,
+        stacked: !generation,
         totalLabel,
         header: bucketHeader(formatBucket),
       }),
     },
     xAxis: categoryAxis(buckets, formatBucket, palette.border),
-    yAxis: { type: 'value', axisLabel: { formatter: formatTokens }, splitNumber: 4 },
+    yAxis: { type: 'value', axisLabel: { formatter: formatValue }, splitNumber: 4 },
     series: ranked.map((model, index) => ({
       name: model.other ? otherLabel : model.model,
-      type: 'bar' as const,
-      stack: 'models',
-      barMaxWidth: 34,
+      ...(generation
+        ? {
+            type: 'line' as const,
+            symbolSize: 5,
+            connectNulls: false,
+            lineStyle: { width: 2 },
+          }
+        : { type: 'bar' as const, stack: 'models', barMaxWidth: 34 }),
       itemStyle: {
         color: topModelColor(palette, index, model.other),
         borderColor: palette.card,
@@ -957,10 +1068,10 @@ export function latencyRadarOption({
         : null;
   }).filter((value): value is number => value !== null);
   const commonMaximum = Math.max(1, ...(scaleCandidates.length > 0 ? scaleCandidates : [1])) * 1.15;
-  // Radar geometry uses log10 milliseconds so short timings remain visible beside E2E totals.
-  const logMaximum = Math.log10(commonMaximum);
-  const toRadarScale = (value: number) => Math.log10(Math.max(1, value));
-  const maxima = TIMING_METRIC_KEYS.map(() => logMaximum);
+  // Radar geometry runs on a linear millisecond axis, so a vertex sits at the share of the
+  // slowest observed timing that it actually represents.
+  const toRadarScale = (value: number) => Math.max(0, value);
+  const maxima = TIMING_METRIC_KEYS.map(() => commonMaximum);
   const indicatorLabels = TIMING_METRIC_KEYS.map((key, index) =>
     wrapRadarLabel(values[index] == null ? `${labels[key]}\n· ${unavailableLabel}` : labels[key])
   );
@@ -982,8 +1093,8 @@ export function latencyRadarOption({
       if (value == null || !Number.isFinite(value)) return [];
       // ECharts starts at 90° and advances counterclockwise through radar indicators.
       const angle = ((90 + (index * 360) / axisCount) * Math.PI) / 180;
-      const x = centerX + Math.cos(angle) * radius * Math.min(1, toRadarScale(value) / logMaximum);
-      const y = centerY - Math.sin(angle) * radius * Math.min(1, toRadarScale(value) / logMaximum);
+      const x = centerX + Math.cos(angle) * radius * Math.min(1, toRadarScale(value) / commonMaximum);
+      const y = centerY - Math.sin(angle) * radius * Math.min(1, toRadarScale(value) / commonMaximum);
       const outwardX = Math.cos(angle);
       const outwardY = -Math.sin(angle);
       return [
@@ -1050,7 +1161,7 @@ export function latencyRadarOption({
       trigger: 'item',
       formatter: () =>
         tooltipPanel(
-          logScaleTooltipTitle(mode.toUpperCase()),
+          mode.toUpperCase(),
           TIMING_METRIC_KEYS.map((key, index) => ({
             name: labels[key],
             text:

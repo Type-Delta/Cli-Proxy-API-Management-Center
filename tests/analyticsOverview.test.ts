@@ -407,6 +407,13 @@ describe('analytics overview model', () => {
     expect(requestHealthLevel(990, 10)).toBe(5);
   });
 
+  test('keeps any day below a 90% success rate out of the green bands', () => {
+    // Amber covers 70-90%, so 89% never reads healthy even at low volume.
+    expect(requestHealthLevel(89, 11)).toBe(3);
+    expect(requestHealthLevel(70, 30)).toBe(3);
+    expect(requestHealthLevel(90, 10)).toBe(4);
+  });
+
   test('places Sunday first and preserves missing days across year boundaries', () => {
     expect(
       calendarHeatmapCells([

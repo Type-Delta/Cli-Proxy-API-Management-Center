@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { BarSeriesOption } from 'echarts/charts';
 import { useTranslation } from 'react-i18next';
-import type { AnalyticsDimensionPage, AnalyticsKey } from '@/types';
+import type { AnalyticsDimensionPage, AnalyticsKey, DimensionRow } from '@/types';
 import { useAnalyticsFilters } from '../../AnalyticsFilterContext';
 import { analyticsKeyIdentity } from '../../analyticsKeyFilterModel';
 import type { AnalyticsLoadResult } from '../../useAnalyticsLoad';
@@ -39,28 +39,39 @@ const categoryMix = (row: DistributionRow) => [
   deriveUnclassifiedTokens(row.tokens.total, row.tokens.input, row.tokens.output),
 ];
 
+/**
+ * Axis label for one grouped value. Keys resolve through the key catalog and credentials through
+ * the label the backend attached to the row; both fall back to a short non-reversible id so a
+ * row whose credential is no longer configured still names something.
+ */
 const safeDimensionValue = (
   dimension: AnalysisDistribution,
-  value: string,
+  row: Pick<DimensionRow, 'value' | 'credential_label' | 'credential_filename'>,
   keyCatalog: readonly AnalyticsKey[]
 ) => {
   if (dimension === 'key') {
-    const key = keyCatalog.find((entry) => entry.key_id === value);
-    return key ? key.label || key.short_key_id : compactKeyId(value);
+    const key = keyCatalog.find((entry) => entry.key_id === row.value);
+    return key ? key.label || key.short_key_id : compactKeyId(row.value);
   }
-  return dimension === 'credential' ? compactKeyId(value) : value || '—';
+  if (dimension === 'credential') {
+    const label = row.credential_label?.trim() || row.credential_filename?.trim();
+    return label || compactKeyId(row.value);
+  }
+  return row.value || '—';
 };
 
 const safeDimensionTooltipValue = (
   dimension: AnalysisDistribution,
-  value: string,
+  row: Pick<DimensionRow, 'value' | 'credential_label' | 'credential_filename'>,
   keyCatalog: readonly AnalyticsKey[]
 ) => {
   if (dimension === 'key') {
-    const key = keyCatalog.find((entry) => entry.key_id === value);
-    return key ? analyticsKeyIdentity(key) : compactKeyId(value);
+    const key = keyCatalog.find((entry) => entry.key_id === row.value);
+    return key ? analyticsKeyIdentity(key) : compactKeyId(row.value);
   }
-  return safeDimensionValue(dimension, value, keyCatalog);
+  // Every other dimension already groups by something readable, so the tooltip repeats the axis
+  // label instead of adding a second identity.
+  return safeDimensionValue(dimension, row, keyCatalog);
 };
 
 export function UsageDistribution({
@@ -119,7 +130,7 @@ export function UsageDistribution({
   const option = useMemo(() => {
     const base = distributionOption({
       rows: rows.map((row) => ({
-        label: safeDimensionValue(active, row.value, keyCatalog),
+        label: safeDimensionValue(active, row, keyCatalog),
         categories: categoryMix(row),
       })),
       categoryLabels,
@@ -135,7 +146,7 @@ export function UsageDistribution({
           0
         );
         return {
-          header: safeDimensionTooltipValue(active, row.value, keyCatalog),
+          header: safeDimensionTooltipValue(active, row, keyCatalog),
           rows: [
             { name: shareLabel, text: formatPercent(row.percent, locale) },
             ...categoryLabels.flatMap((name, category) =>
@@ -172,7 +183,7 @@ export function UsageDistribution({
     const series = ANALYSIS_DISTRIBUTIONS.flatMap((dimension) => {
       const dimensionOption = distributionOption({
         rows: dimensionRows[dimension].map((row) => ({
-          label: safeDimensionValue(dimension, row.value, keyCatalog),
+          label: safeDimensionValue(dimension, row, keyCatalog),
           categories: categoryMix(row),
         })),
         categoryLabels,
@@ -309,7 +320,7 @@ export function UsageDistribution({
               const categories = categoryMix(row);
               return (
                 <li key={row.value}>
-                  {safeDimensionValue(active, row.value, keyCatalog)}:{' '}
+                  {safeDimensionValue(active, row, keyCatalog)}:{' '}
                   {formatPercent(row.percent, locale)} {shareLabel},{' '}
                   {categoryLabels
                     .map(

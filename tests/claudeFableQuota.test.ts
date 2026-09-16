@@ -167,6 +167,51 @@ describe('Claude Fable quota', () => {
     ]);
   });
 
+  test('greys Fable when a base allowance is spent', () => {
+    const windows = buildClaudeQuotaWindows(
+      {
+        five_hour: { utilization: 100, resets_at: null },
+        seven_day: { utilization: 20, resets_at: legacyReset },
+        limits: [
+          {
+            kind: 'weekly_scoped',
+            percent: 30,
+            resets_at: modernReset,
+            is_active: true,
+            scope: { model: { display_name: 'Fable' } },
+          },
+        ],
+      },
+      t
+    );
+    const byId = new Map(windows.map((window) => [window.id, window]));
+
+    // Fable still has 70% left, but it draws on the exhausted rolling window.
+    expect(byId.get('seven-day-fable')?.disabled).toBeTrue();
+    expect(byId.get('seven-day')?.disabled).toBeTrue();
+  });
+
+  test('spending Fable never greys the base allowances', () => {
+    const windows = buildClaudeQuotaWindows(
+      {
+        five_hour: { utilization: 20, resets_at: null },
+        seven_day: { utilization: 30, resets_at: legacyReset },
+        limits: [
+          {
+            kind: 'weekly_scoped',
+            percent: 100,
+            resets_at: modernReset,
+            is_active: true,
+            scope: { model: { display_name: 'Fable' } },
+          },
+        ],
+      },
+      t
+    );
+
+    expect(windows.every((window) => window.disabled === undefined)).toBeTrue();
+  });
+
   test('ignores malformed and unrelated limits while preserving standard windows', () => {
     const payload = {
       five_hour: { utilization: 10, resets_at: null },

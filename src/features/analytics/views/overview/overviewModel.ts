@@ -87,16 +87,25 @@ export function healthGreenThreshold(total: number): number {
   return Math.min(0.99, 0.9 + 0.045 * Math.max(0, Math.log10(total / 10)));
 }
 
-/** Red (1) through green (5); 0 means the bucket recorded no requests at all. */
+/**
+ * Red (1) through green (5); 0 means the bucket recorded no requests at all.
+ * Amber is the caution band and reaches all the way to 90% success, so a day that lost more
+ * than one request in ten never reads as healthy. The two failure bands below it split the
+ * remaining range evenly.
+ */
+export const HEALTH_AMBER_MAX_RATE = 0.9;
+export const HEALTH_ORANGE_MAX_RATE = 0.7;
+export const HEALTH_RED_MAX_RATE = 0.5;
+
 export function requestHealthLevel(succeeded: number, failed: number): number {
   const success = Number.isFinite(succeeded) && succeeded > 0 ? succeeded : 0;
   const failure = Number.isFinite(failed) && failed > 0 ? failed : 0;
   const total = success + failure;
   if (total === 0) return 0;
   const successRate = success / total;
-  if (successRate < 0.5) return 1;
-  if (successRate < 0.65) return 2;
-  if (successRate < 0.8) return 3;
+  if (successRate < HEALTH_RED_MAX_RATE) return 1;
+  if (successRate < HEALTH_ORANGE_MAX_RATE) return 2;
+  if (successRate < HEALTH_AMBER_MAX_RATE) return 3;
   if (successRate < healthGreenThreshold(total)) return 4;
   return HEATMAP_LEVELS;
 }

@@ -224,7 +224,7 @@ describe('top model ranking cap', () => {
     // The band carries the tail's totals, so the stack still sums to the range total.
     expect(ranked[TOP_MODEL_LIMIT].totalTokens).toBe(40 + 30 + 20 + 10);
     expect(ranked[TOP_MODEL_LIMIT].values).toEqual([100]);
-    expect(ranked.reduce((sum, item) => sum + item.share, 0)).toBeCloseTo(100, 6);
+    expect(ranked.reduce((sum, item) => sum + (item.share ?? 0), 0)).toBeCloseTo(100, 6);
   });
 
   test('a ranking within the cap is left alone', () => {

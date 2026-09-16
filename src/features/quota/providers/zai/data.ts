@@ -25,6 +25,7 @@ import {
   resolveResetMs,
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
+import { blockedQuotaWindowIds } from '../../windowGating';
 import type { QuotaProviderData } from '../types';
 
 export const ZAI_USAGE_URL = 'https://api.z.ai/api/monitor/usage/quota/limit';
@@ -87,10 +88,16 @@ export function parseZaiUsagePayload(raw: unknown): ZaiQuotaPayload | null {
   return value as ZaiQuotaPayload;
 }
 
-/** Build one window row per reported limit. */
+/**
+ * Build one window row per reported limit.
+ *
+ * Every row draws on the same credit pool, so the rolling and weekly windows gate each other:
+ * whichever runs out first decides when the credential works again, and the other row is
+ * marked unusable even when it still reports credits left.
+ */
 export function buildZaiQuotaWindows(payload: ZaiQuotaPayload): ZaiQuotaWindow[] {
   const limits = Array.isArray(payload.data?.limits) ? payload.data.limits : [];
-  return limits.map((limit: ZaiQuotaLimit, index): ZaiQuotaWindow => {
+  const windows = limits.map((limit: ZaiQuotaLimit, index): ZaiQuotaWindow => {
     const unit = normalizeNumberValue(limit.unit);
     const number = normalizeNumberValue(limit.number);
     const { id, labelKey, labelParams, periodHours } = resolveZaiWindowLabel(unit, number, index);
@@ -106,6 +113,9 @@ export function buildZaiQuotaWindows(payload: ZaiQuotaPayload): ZaiQuotaWindow[]
       periodHours,
     };
   });
+  const ids = windows.map((window) => window.id);
+  const blocked = blockedQuotaWindowIds(windows, [{ blockers: ids, members: ids }]);
+  return windows.map((window) => (blocked.has(window.id) ? { ...window, disabled: true } : window));
 }
 
 /** Plan tier reported alongside the windows. */

@@ -138,7 +138,7 @@ button.quotaMessageAction {
   color: var(--text-secondary);
 }
 
-/* ---------- 进度条（QuotaProgressBar 注入，Meter 风 6px 轨道） ---------- */
+/* ---------- Level bars (injected by QuotaMeter, 6px meter-style track) ---------- */
 
 .quotaBar {
   height: 6px;
@@ -165,7 +165,17 @@ button.quotaMessageAction {
   background: var(--viz-failure);
 }
 
-/* ---------- 计划徽章（codexPlan*：antigravity/claude/xai 复用） ---------- */
+/* Another window on this credential is spent, so this level cannot be used even though it
+ * still has headroom. See QuotaBody.module.scss for the full-page twin. */
+.quotaBarFillDisabled {
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--text-secondary) 58%, transparent) 0 3px,
+    color-mix(in srgb, var(--text-secondary) 18%, transparent) 3px 6px
+  );
+}
+
+/* ---------- Plan chips (codexPlan*: reused by antigravity/claude/xai) ---------- */
 
 .codexPlan {
   display: flex;

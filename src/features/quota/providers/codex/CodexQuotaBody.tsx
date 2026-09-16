@@ -1,6 +1,6 @@
 /**
- * Codex 额度渲染体：套餐 chip 行（elite=Pro 20x 液态铂金 / premium=金卡）、
- * 重置积分明细、用量窗口水位条。
+ * Codex quota body: plan chips (elite = Pro 20x liquid platinum, premium = gold card), the
+ * manual reset credit list, and the usage-window level bars.
  */
 
 import { useMemo } from 'react';
@@ -21,6 +21,7 @@ import { useNow } from '@/hooks/useNow';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId, resetCreditRowId } from '../../resetSchedule';
+import { quotaWindowTitle } from '../../windowGating';
 import type { QuotaBodyProps, QuotaClassMap } from '../../types';
 
 const getPlanValueClass = (planType: string | null, classes: QuotaClassMap): string => {
@@ -172,7 +173,7 @@ export function CodexQuotaBody({ quota, classes }: QuotaBodyProps<CodexQuotaStat
             <div
               key={window.id}
               className={classes.quotaRow}
-              title={soon ? t('quota_management.soonest_row_hint') : undefined}
+              title={quotaWindowTitle(t, { soon, disabled: window.disabled })}
             >
               <div className={classes.quotaRowHeader}>
                 <span className={classes.quotaModel}>{windowLabel}</span>
@@ -183,7 +184,12 @@ export function CodexQuotaBody({ quota, classes }: QuotaBodyProps<CodexQuotaStat
                   )}
                 </div>
               </div>
-              <QuotaMeter percent={remaining} classes={classes} index={index} />
+              <QuotaMeter
+                percent={remaining}
+                classes={classes}
+                index={index}
+                disabled={window.disabled}
+              />
             </div>
           );
         })

@@ -89,6 +89,28 @@ describe('Z.AI quota parser', () => {
     expect(row.resetAtMs).toBeNull();
   });
 
+  test('greys the rolling window once the weekly pool is spent', () => {
+    const windows = buildZaiQuotaWindows({
+      data: {
+        limits: [
+          { unit: 3, number: 5, usage: 2000, currentValue: 400, percentage: 20 },
+          {
+            unit: 6,
+            number: 1,
+            usage: 10000,
+            currentValue: 10000,
+            percentage: 100,
+          },
+        ],
+      },
+    });
+
+    expect(windows.map(({ id, disabled }) => ({ id, disabled }))).toEqual([
+      { id: 'zai-hour-5', disabled: true },
+      { id: 'zai-week-1', disabled: true },
+    ]);
+  });
+
   test('matches credentials by the Z.AI usage probe only', () => {
     expect(isZaiUsageProbeFile({ name: 'a', usageProbe: 'zai' } as AuthFileItem)).toBeTrue();
     expect(isZaiUsageProbeFile({ name: 'b', usage_probe: 'zai' } as AuthFileItem)).toBeTrue();

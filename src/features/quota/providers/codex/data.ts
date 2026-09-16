@@ -1,6 +1,6 @@
 /**
- * Codex 额度数据层：用量窗口 + 套餐 + 重置积分（含消费流程）。
- * React-free / SCSS-free —— 由 tests/codexQuota.test.ts 直接消费。
+ * Codex quota data layer: usage windows, plan, and manual reset credits (including the
+ * consume flow). React-free / SCSS-free; tests/codexQuota.test.ts consumes it directly.
  */
 
 import type { TFunction } from 'i18next';
@@ -36,6 +36,7 @@ import {
   isDisabledAuthFile,
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
+import { blockedQuotaWindowIds, type QuotaWindowFamily } from '../../windowGating';
 import type { QuotaProviderData } from '../types';
 
 const CODEX_RESET_CREDITS_REQUEST_TIMEOUT_MS = 8000;
@@ -88,8 +89,14 @@ export const buildCodexQuotaWindows = (
     payload.code_review_rate_limit ?? payload.codeReviewRateLimit ?? undefined;
   const additionalRateLimits = payload.additional_rate_limits ?? payload.additionalRateLimits ?? [];
   const windows: CodexQuotaWindow[] = [];
+  // Windows in one family gate the same requests, so whichever runs out first decides when
+  // the credential works again. The standard allowance, the code-review allowance, and each
+  // additional model allowance (for example Codex Spark) are independent families.
+  const families = new Map<string, string[]>();
+  const windowFamilies: QuotaWindowFamily[] = [];
 
   const addWindow = (
+    family: string,
     id: string,
     label: string,
     labelKey: string | undefined,
@@ -120,6 +127,13 @@ export const buildCodexQuotaWindows = (
       periodHours,
       resetLabel,
     });
+    const members = families.get(family);
+    if (members) members.push(id);
+    else {
+      const created = [id];
+      families.set(family, created);
+      windowFamilies.push({ blockers: created, members: created });
+    }
   };
 
   const getWindowSeconds = (window?: CodexUsageWindow | null): number | null => {
@@ -182,6 +196,7 @@ export const buildCodexQuotaWindows = (
 
   const rateWindows = pickClassifiedWindows(rateLimit);
   addWindow(
+    'standard',
     WINDOW_META.codeFiveHour.id,
     t(WINDOW_META.codeFiveHour.labelKey),
     WINDOW_META.codeFiveHour.labelKey,
@@ -196,6 +211,7 @@ export const buildCodexQuotaWindows = (
     WINDOW_META.codeMonthly
   );
   addWindow(
+    'standard',
     codeSecondaryWindowMeta.id,
     t(codeSecondaryWindowMeta.labelKey),
     codeSecondaryWindowMeta.labelKey,
@@ -209,6 +225,7 @@ export const buildCodexQuotaWindows = (
   const codeReviewLimitReached = codeReviewLimit?.limit_reached ?? codeReviewLimit?.limitReached;
   const codeReviewAllowed = codeReviewLimit?.allowed;
   addWindow(
+    'code-review',
     WINDOW_META.codeReviewFiveHour.id,
     t(WINDOW_META.codeReviewFiveHour.labelKey),
     WINDOW_META.codeReviewFiveHour.labelKey,
@@ -223,6 +240,7 @@ export const buildCodexQuotaWindows = (
     WINDOW_META.codeReviewMonthly
   );
   addWindow(
+    'code-review',
     codeReviewSecondaryWindowMeta.id,
     t(codeReviewSecondaryWindowMeta.labelKey),
     codeReviewSecondaryWindowMeta.labelKey,
@@ -254,7 +272,9 @@ export const buildCodexQuotaWindows = (
       const additionalLimitReached = rateInfo.limit_reached ?? rateInfo.limitReached;
       const additionalAllowed = rateInfo.allowed;
 
+      const family = `additional:${idPrefix}`;
       addWindow(
+        family,
         `${idPrefix}-five-hour-${index}`,
         t('codex_quota.additional_primary_window', { name: limitName }),
         'codex_quota.additional_primary_window',
@@ -269,6 +289,7 @@ export const buildCodexQuotaWindows = (
         { id: 'monthly', labelKey: 'codex_quota.additional_team_secondary_window' }
       );
       addWindow(
+        family,
         `${idPrefix}-${additionalSecondaryMeta.id}-${index}`,
         t(additionalSecondaryMeta.labelKey, { name: limitName }),
         additionalSecondaryMeta.labelKey,
@@ -280,7 +301,8 @@ export const buildCodexQuotaWindows = (
     });
   }
 
-  return windows;
+  const blocked = blockedQuotaWindowIds(windows, windowFamilies);
+  return windows.map((window) => (blocked.has(window.id) ? { ...window, disabled: true } : window));
 };
 
 const buildCodexRequestHeader = (file: AuthFileItem): Record<string, string> => {

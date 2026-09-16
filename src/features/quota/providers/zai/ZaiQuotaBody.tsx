@@ -11,6 +11,7 @@ import { useNow } from '@/hooks/useNow';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
+import { quotaWindowTitle } from '../../windowGating';
 import type { QuotaBodyProps } from '../../types';
 
 const formatCredits = (value: number | null): string =>
@@ -60,7 +61,7 @@ export function ZaiQuotaBody({ quota, classes }: QuotaBodyProps<ZaiQuotaState>) 
           <div
             key={row.id}
             className={classes.quotaRow}
-            title={soon ? t('quota_management.soonest_row_hint') : undefined}
+            title={quotaWindowTitle(t, { soon, disabled: row.disabled })}
           >
             <div className={classes.quotaRowHeader}>
               <span className={classes.quotaModel}>{rowLabel}</span>
@@ -73,7 +74,12 @@ export function ZaiQuotaBody({ quota, classes }: QuotaBodyProps<ZaiQuotaState>) 
                 )}
               </div>
             </div>
-            <QuotaMeter percent={remaining} classes={classes} index={index} />
+            <QuotaMeter
+              percent={remaining}
+              classes={classes}
+              index={index}
+              disabled={row.disabled}
+            />
           </div>
         );
       })}

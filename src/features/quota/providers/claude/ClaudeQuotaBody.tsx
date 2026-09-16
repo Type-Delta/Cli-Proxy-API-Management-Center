@@ -1,5 +1,5 @@
 /**
- * Claude 额度渲染体：套餐/额外用量 chip 行 + 用量窗口水位条。
+ * Claude quota body: plan and extra-usage chips plus the usage-window level bars.
  */
 
 import { useMemo } from 'react';
@@ -10,6 +10,7 @@ import { useNow } from '@/hooks/useNow';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
+import { quotaWindowTitle } from '../../windowGating';
 import type { QuotaBodyProps } from '../../types';
 
 export function ClaudeQuotaBody({ quota, classes }: QuotaBodyProps<ClaudeQuotaState>) {
@@ -62,7 +63,7 @@ export function ClaudeQuotaBody({ quota, classes }: QuotaBodyProps<ClaudeQuotaSt
             <div
               key={window.id}
               className={classes.quotaRow}
-              title={soon ? t('quota_management.soonest_row_hint') : undefined}
+              title={quotaWindowTitle(t, { soon, disabled: window.disabled })}
             >
               <div className={classes.quotaRowHeader}>
                 <span className={classes.quotaModel}>{windowLabel}</span>
@@ -73,7 +74,12 @@ export function ClaudeQuotaBody({ quota, classes }: QuotaBodyProps<ClaudeQuotaSt
                   )}
                 </div>
               </div>
-              <QuotaMeter percent={remaining} classes={classes} index={index} />
+              <QuotaMeter
+                percent={remaining}
+                classes={classes}
+                index={index}
+                disabled={window.disabled}
+              />
             </div>
           );
         })

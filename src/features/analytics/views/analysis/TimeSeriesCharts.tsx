@@ -2,10 +2,12 @@ import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AnalysisModelByTime, AnalysisSeriesByCategory } from '@/types';
 import { AnalyticsChart } from '../../components/AnalyticsChart';
+import { AnalyticsSegmented } from '../../components/AnalyticsSegmented';
 import {
   formatCompactTokens,
   formatCostValue,
   formatDateTime,
+  formatDuration,
   formatNumber,
   formatPercent,
 } from '../../components/analyticsFormatting';
@@ -18,7 +20,9 @@ import {
   tokenUsageOption,
   topModelColor,
   topModelsOption,
+  TOP_MODEL_METRICS,
   TOKEN_CATEGORY_KEYS,
+  type TopModelMetric,
   type TokenCategoryKey,
 } from './analysisModel';
 import { useAnalysisPalette } from './useAnalysisPalette';
@@ -141,29 +145,56 @@ export function TopModelsChart({
 }) {
   const { t } = useTranslation();
   const palette = useAnalysisPalette();
+  const [metric, setMetric] = useState<TopModelMetric>('tokens');
   const [rankFocus, setRankFocus] = useState(0);
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const rankRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const ranked = useMemo(() => (section ? buildTopModelSeries(section) : []), [section]);
+  const ranked = useMemo(() => (section ? buildTopModelSeries(section, metric) : []), [metric, section]);
   const buckets = useMemo(
     () => (section?.buckets ?? []).map((bucket) => bucket.start),
     [section?.buckets]
   );
   const otherLabel = t('analytics.analysis.other_models', { defaultValue: 'Other models' });
-  const tokensLabel = t('analytics.total_tokens', { defaultValue: 'tokens' });
+  const samplesLabel = t('analytics.analysis.sample_count', { defaultValue: 'Samples' });
+  const metricLabels: Record<TopModelMetric, string> = {
+    tokens: t('analytics.analysis.top_models_metric_tokens', { defaultValue: 'Tokens' }),
+    cost: t('analytics.analysis.top_models_metric_price', { defaultValue: 'Price' }),
+    generation: t('analytics.analysis.top_models_metric_generation', {
+      defaultValue: 'Generation time',
+    }),
+  };
+  const formatMetricValue = (value: number | null) => {
+    if (value === null || !Number.isFinite(value)) return '—';
+    if (metric === 'tokens') return formatCompactTokens(value, locale).text;
+    if (metric === 'cost') return formatCostValue(value, locale).text;
+    return formatDuration(value, locale);
+  };
+  const formatMetricValueTitle = (value: number | null) => {
+    if (value === null || !Number.isFinite(value)) return undefined;
+    if (metric === 'tokens') return formatNumber(value, locale);
+    if (metric === 'cost') return `${String(value)} USD`;
+    return `${formatNumber(value, locale)} ms`;
+  };
+  const formatSecondaryValue = (model: (typeof ranked)[number]) =>
+    metric === 'generation'
+      ? `${formatNumber(model.generationSampleCount, locale)} ${samplesLabel}`
+      : formatPercent(model.share ?? 0, locale);
   const option = useMemo(
     () =>
       topModelsOption({
         ranked,
         buckets,
+        metric,
         palette,
         otherLabel,
         totalLabel: t('analytics.analysis.chart_total', { defaultValue: 'Total' }),
         highlighted,
         formatBucket: (value) => formatDateTime(value, locale),
-        formatTokens: (value) => formatCompactTokens(value, locale).text,
+        formatValue: (value) => formatMetricValue(value),
       }),
-    [buckets, highlighted, locale, otherLabel, palette, ranked, t]
+    // formatMetricValue is derived from locale and the selected metric.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [buckets, highlighted, locale, metric, otherLabel, palette, ranked, t]
   );
   const moveRank = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     let next: number;
@@ -180,41 +211,74 @@ export function TopModelsChart({
   return (
     <AnalysisCard
       title={t('analytics.analysis.top_models_title', { defaultValue: 'Top Models' })}
-      description={t('analytics.analysis.top_models_description', {
-        defaultValue: 'Model share over time, synchronized with the ranking.',
-      })}
+      description={
+        metric === 'generation'
+          ? t('analytics.analysis.top_models_generation_description', {
+              defaultValue:
+                'Average observed generation time over time, synchronized with the ranking.',
+            })
+          : metric === 'cost'
+            ? t('analytics.analysis.top_models_cost_description', {
+                defaultValue:
+                  'Estimated API-equivalent cost over time, synchronized with the ranking.',
+              })
+          : t('analytics.analysis.top_models_description', {
+              defaultValue: 'Model metric over time, synchronized with the ranking.',
+            })
+      }
       loading={loading}
       error={error}
       errorStatus={errorStatus}
       retryAt={retryAt}
-      hasData={ranked.length > 0 && buckets.length > 0}
+      hasData={ranked.some((model) => model.metricValue !== null) && buckets.length > 0}
       partial={section?.meta.partial}
       emptyDescription={
         section === null
           ? t('analytics.analysis.section_unavailable_description', {
               defaultValue: 'The server did not return this analysis section.',
             })
-          : t('analytics.analysis.no_models', {
-              defaultValue: 'Model usage will appear after requests are recorded in this range.',
-            })
+          : metric === 'generation'
+            ? t('analytics.analysis.no_generation_timing', {
+                defaultValue:
+                  'Generation time will appear after requests with observed generation timing are recorded in this range.',
+              })
+            : t('analytics.analysis.no_models', {
+                defaultValue: 'Model usage will appear after requests are recorded in this range.',
+              })
       }
       onRetry={onRetry}
+      extra={
+        <AnalyticsSegmented
+          value={metric}
+          options={TOP_MODEL_METRICS.map((value) => ({
+            value,
+            label: metricLabels[value],
+          }))}
+          onChange={(value) => {
+            setMetric(value);
+            setRankFocus(0);
+          }}
+          ariaLabel={t('analytics.analysis.top_models_metric', { defaultValue: 'Model metric' })}
+        />
+      }
     >
       <div className={styles.topModelsLayout}>
         <AnalyticsChart
           option={option}
           height={ANALYSIS_CHART_HEIGHT}
           ariaLabel={t('analytics.analysis.top_models_chart_summary', {
-            defaultValue: '{{count}} models ranked across {{buckets}} time buckets',
+            defaultValue:
+              '{{count}} models ranked by {{metric}} across {{buckets}} time buckets',
             count: ranked.length,
             buckets: buckets.length,
+            metric: metricLabels[metric],
           })}
         >
           <ul>
             {ranked.map((model) => (
               <li key={model.model}>
-                {model.other ? otherLabel : model.model}: {formatNumber(model.totalTokens, locale)}{' '}
-                {tokensLabel}, {formatPercent(model.share, locale)}
+                {model.other ? otherLabel : model.model}: {formatMetricValue(model.metricValue)},{' '}
+                {formatSecondaryValue(model)}
               </li>
             ))}
           </ul>
@@ -237,7 +301,7 @@ export function TopModelsChart({
                   className={styles.rankButton}
                   tabIndex={rankFocus === index ? 0 : -1}
                   aria-pressed={highlighted === model.model}
-                  aria-label={`${index + 1}. ${accessibleModel}, ${formatNumber(model.totalTokens, locale)} ${tokensLabel}, ${formatPercent(model.share, locale)}`.slice(
+                  aria-label={`${index + 1}. ${accessibleModel}, ${formatMetricValue(model.metricValue)}, ${formatSecondaryValue(model)}`.slice(
                     0,
                     199
                   )}
@@ -262,19 +326,29 @@ export function TopModelsChart({
                   <span className={styles.rankName} title={name}>
                     {name}
                   </span>
-                  <strong title={formatNumber(model.totalTokens, locale)}>
+                  <strong title={formatMetricValueTitle(model.metricValue)}>
                     <AnimatedMetric
-                      value={model.totalTokens}
-                      format={(value) => formatCompactTokens(value, locale).text}
+                      value={model.metricValue}
+                      format={(value) => formatMetricValue(value)}
                     />
                   </strong>
-                  <span>
-                    <AnimatedMetric
-                      value={model.share}
-                      scale={10}
-                      format={(value) => formatPercent(value, locale)}
-                    />
-                  </span>
+                  {metric === 'generation' ? (
+                    <span>
+                      <AnimatedMetric
+                        value={model.generationSampleCount}
+                        format={(value) => formatNumber(value, locale)}
+                      />{' '}
+                      {samplesLabel}
+                    </span>
+                  ) : (
+                    <span>
+                      <AnimatedMetric
+                        value={model.share ?? 0}
+                        scale={10}
+                        format={(value) => formatPercent(value, locale)}
+                      />
+                    </span>
+                  )}
                 </button>
               </li>
             );

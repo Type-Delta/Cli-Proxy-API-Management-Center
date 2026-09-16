@@ -91,9 +91,9 @@
   padding: 6px 4px;
 }
 
-/* ---------- 水位条（QuotaMeter）----------
- * 轨道退居背景（8% 墨色），填充按剩余量三档着色；
- * percent === null 时宽度为 0 —— 未知不着色。 */
+/* ---------- Level bars (QuotaMeter) ----------
+ * The track stays in the background (8% ink) and the fill takes one of three
+ * remaining-amount tones. percent === null renders zero width: unknown is never painted. */
 
 .quotaBar {
   height: 6px;
@@ -105,10 +105,10 @@
 .quotaBarFill {
   height: 100%;
   border-radius: $radius-full;
-  /* 刷新时平滑重定向到新水位（可中断） */
+  /* Redirect smoothly to a new level on refresh; the transition stays interruptible. */
   transition: width 360ms var(--ease-out-strong, ease);
-  /* 数据到达是本页的高潮时刻：水位逐行铺开（每行 40ms 级差）。
-   * 走 scaleX 而非 width，避免与上面的 width 过渡互相抢夺同一属性。 */
+  /* Arriving data is this page's high point: levels unroll row by row, 40ms apart.
+   * scaleX rather than width, so this never fights the width transition above. */
   transform-origin: left center;
   animation: quota-meter-fill 480ms var(--ease-out-strong, ease-out) both;
   animation-delay: calc(var(--meter-index, 0) * 40ms);
@@ -132,7 +132,18 @@
   background: var(--viz-failure);
 }
 
-/* ---------- Antigravity 分组 ---------- */
+/* Another window on this credential is spent, so this level cannot be used even though it
+ * still has headroom. Killing the tone keeps it from reading as available, and the diagonal
+ * stripes carry the remaining-amount shape without borrowing a health colour. */
+.quotaBarFillDisabled {
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--text-secondary) 58%, transparent) 0 3px,
+    color-mix(in srgb, var(--text-secondary) 18%, transparent) 3px 6px
+  );
+}
+
+/* ---------- Antigravity groups ---------- */
 
 .antigravityQuotaGroup {
   display: flex;
