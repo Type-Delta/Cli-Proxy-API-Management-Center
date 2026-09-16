@@ -203,6 +203,12 @@ const buildProviderKeyConfig = (
     disableCooling: input.disableCooling === true,
     authIndex: existing?.authIndex,
   };
+  if (input.pricingCatalog !== undefined) {
+    next.pricingCatalog = input.pricingCatalog.trim() || undefined;
+  }
+  if (input.usageProbe !== undefined) {
+    next.usageProbe = input.usageProbe;
+  }
   if ((brand === 'codex' || brand === 'xai') && input.websockets !== undefined) {
     next.websockets = input.websockets;
   }

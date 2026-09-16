@@ -8,6 +8,7 @@ import { ANTIGRAVITY_CONFIG } from './providers/antigravity/data';
 import { CLAUDE_CONFIG } from './providers/claude/data';
 import { CODEX_CONFIG } from './providers/codex/data';
 import { KIMI_CONFIG } from './providers/kimi/data';
+import { OPENCODE_GO_CONFIG } from './providers/opencode-go/data';
 import { XAI_CONFIG } from './providers/xai/data';
 import { ZAI_CONFIG } from './providers/zai/data';
 import type { QuotaProviderType } from './providers/types';
@@ -18,6 +19,7 @@ const QUOTA_FILTER_MAP: Record<QuotaProviderType, (file: AuthFileItem) => boolea
   claude: CLAUDE_CONFIG.filterFn,
   codex: CODEX_CONFIG.filterFn,
   kimi: KIMI_CONFIG.filterFn,
+  'opencode-go': OPENCODE_GO_CONFIG.filterFn,
   xai: XAI_CONFIG.filterFn,
   zai: ZAI_CONFIG.filterFn,
 };

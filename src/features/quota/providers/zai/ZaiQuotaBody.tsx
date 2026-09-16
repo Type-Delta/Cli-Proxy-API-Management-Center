@@ -36,7 +36,8 @@ export function ZaiQuotaBody({ quota, classes }: QuotaBodyProps<ZaiQuotaState>) 
     <>
       {level && (
         <div className={classes.codexPlan}>
-          <span className={classes.codexPlanLabel}>{t('zai_quota.plan_level', { level })}</span>
+          <span className={classes.codexPlanLabel}>{t('zai_quota.plan_label')}</span>
+          <span className={classes.codexPlanValue}>{level}</span>
         </div>
       )}
       {windows.map((row, index) => {

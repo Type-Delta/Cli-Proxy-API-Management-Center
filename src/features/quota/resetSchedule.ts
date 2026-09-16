@@ -133,6 +133,10 @@ export function collectQuotaRowInstants(
     return collectRows((quota as { windows?: WindowLike[] }).windows ?? [], 'window');
   }
 
+  if (provider === 'opencode-go') {
+    return collectRows((quota as { windows?: WindowLike[] }).windows ?? [], 'window');
+  }
+
   return [];
 }
 

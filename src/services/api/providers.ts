@@ -30,6 +30,8 @@ const PROVIDER_COMMON_KEY_FIELDS = [
   'models',
   'excluded-models',
   'disable-cooling',
+  'pricing-catalog',
+  'usage-probe',
 ] as const;
 
 const GEMINI_KEY_FIELDS = PROVIDER_COMMON_KEY_FIELDS;
@@ -54,6 +56,8 @@ const VERTEX_KEY_FIELDS = [
   'headers',
   'models',
   'excluded-models',
+  'pricing-catalog',
+  'usage-probe',
 ] as const;
 
 const OPENAI_PROVIDER_FIELDS = [
@@ -344,6 +348,8 @@ const serializeProviderKey = (config: ProviderKeyConfig) => {
   if (config.excludedModels && config.excludedModels.length) {
     payload['excluded-models'] = config.excludedModels;
   }
+  if (config.pricingCatalog?.trim()) payload['pricing-catalog'] = config.pricingCatalog.trim();
+  if (config.usageProbe !== undefined) payload['usage-probe'] = config.usageProbe;
   if (config.cloak) {
     const cloakPayload: Record<string, unknown> = {};
     const mode = config.cloak.mode?.trim();
@@ -397,6 +403,8 @@ const serializeVertexKey = (config: ProviderKeyConfig) => {
   if (config.excludedModels && config.excludedModels.length) {
     payload['excluded-models'] = config.excludedModels;
   }
+  if (config.pricingCatalog?.trim()) payload['pricing-catalog'] = config.pricingCatalog.trim();
+  if (config.usageProbe !== undefined) payload['usage-probe'] = config.usageProbe;
   return payload;
 };
 
@@ -416,6 +424,8 @@ const serializeGeminiKey = (config: GeminiKeyConfig) => {
   if (config.excludedModels && config.excludedModels.length) {
     payload['excluded-models'] = config.excludedModels;
   }
+  if (config.pricingCatalog?.trim()) payload['pricing-catalog'] = config.pricingCatalog.trim();
+  if (config.usageProbe !== undefined) payload['usage-probe'] = config.usageProbe;
   return payload;
 };
 

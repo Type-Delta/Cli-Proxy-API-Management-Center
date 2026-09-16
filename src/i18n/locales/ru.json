@@ -1482,7 +1482,23 @@
     "five_hour": "{{number}}-часовое окно",
     "weekly": "Недельное окно",
     "remaining_credits": "осталось {{remaining}} / {{limit}} кредитов",
-    "plan_level": "Уровень плана: {{level}}"
+    "plan_label": "План"
+  },
+  "opencode_go_quota": {
+    "title": "Квота OpenCode Go",
+    "empty_title": "Нет учётных данных OpenCode Go",
+    "empty_desc": "Задайте для учётных данных зонд использования OpenCode Go, чтобы видеть окна использования.",
+    "idle": "Нажмите, чтобы обновить квоту",
+    "loading": "Загрузка квоты...",
+    "load_failed": "Не удалось загрузить квоту: {{message}}",
+    "missing_auth_index": "В файле авторизации отсутствует auth_index",
+    "empty_data": "Данные квоты OpenCode Go отсутствуют",
+    "rolling": "Скользящее окно",
+    "weekly": "Недельное окно",
+    "monthly": "Месячное окно",
+    "percent_used": "использовано {{percent}}%",
+    "plan_label": "План",
+    "plan_value": "Go"
   },
   "xai_quota": {
     "title": "Квота Grok",
@@ -2715,6 +2731,7 @@
       "usageProbe": "Зонд использования",
       "usageProbeNone": "Нет",
       "usageProbeZai": "Z.ai",
+      "usageProbeOpenCodeGo": "OpenCode Go",
       "showApiKey": "Показать ключ API",
       "hideApiKey": "Скрыть ключ API",
       "disableCooling": "Отключить cooldown",

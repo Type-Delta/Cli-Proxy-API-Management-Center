@@ -17,6 +17,8 @@ export interface ProviderDescriptor {
   supportsWebsockets: boolean;
   supportsCloak: boolean;
   supportsApiKeyEntries: boolean;
+  supportsPricingCatalog: boolean;
+  supportsUsageProbe: boolean;
   /** Sheet 默认宽度 */
   sheetSize: 'md' | 'lg' | 'xl';
 }
@@ -39,6 +41,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: false,
     supportsCloak: false,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: true,
+    supportsUsageProbe: true,
     sheetSize: 'md',
   },
   interactions: {
@@ -58,6 +62,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: false,
     supportsCloak: false,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: true,
+    supportsUsageProbe: true,
     sheetSize: 'md',
   },
   codex: {
@@ -77,6 +83,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: true,
     supportsCloak: false,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: true,
+    supportsUsageProbe: true,
     sheetSize: 'md',
   },
   xai: {
@@ -96,6 +104,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: true,
     supportsCloak: false,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: true,
+    supportsUsageProbe: true,
     sheetSize: 'md',
   },
   claude: {
@@ -115,6 +125,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: false,
     supportsCloak: true,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: true,
+    supportsUsageProbe: true,
     sheetSize: 'md',
   },
   claudeApi: {
@@ -134,6 +146,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: false,
     supportsCloak: true,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: true,
+    supportsUsageProbe: true,
     sheetSize: 'md',
   },
   vertex: {
@@ -153,6 +167,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: false,
     supportsCloak: false,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: true,
+    supportsUsageProbe: true,
     sheetSize: 'md',
   },
   openaiCompatibility: {
@@ -172,6 +188,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: false,
     supportsCloak: false,
     supportsApiKeyEntries: true,
+    supportsPricingCatalog: true,
+    supportsUsageProbe: true,
     sheetSize: 'lg',
   },
   apikeyFun: {
@@ -191,6 +209,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: false,
     supportsCloak: false,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: false,
+    supportsUsageProbe: false,
     sheetSize: 'md',
   },
   code0: {
@@ -210,6 +230,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: false,
     supportsCloak: false,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: false,
+    supportsUsageProbe: false,
     sheetSize: 'md',
   },
   fennoAI: {
@@ -229,6 +251,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: false,
     supportsCloak: false,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: false,
+    supportsUsageProbe: false,
     sheetSize: 'md',
   },
   qiniuCloud: {
@@ -248,6 +272,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: false,
     supportsCloak: false,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: false,
+    supportsUsageProbe: false,
     sheetSize: 'md',
   },
   lmuAI: {
@@ -267,6 +293,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: false,
     supportsCloak: false,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: false,
+    supportsUsageProbe: false,
     sheetSize: 'md',
   },
   infistar: {
@@ -286,6 +314,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: false,
     supportsCloak: false,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: false,
+    supportsUsageProbe: false,
     sheetSize: 'md',
   },
   kimi: {
@@ -305,6 +335,8 @@ export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
     supportsWebsockets: false,
     supportsCloak: false,
     supportsApiKeyEntries: false,
+    supportsPricingCatalog: false,
+    supportsUsageProbe: false,
     sheetSize: 'md',
   },
 };

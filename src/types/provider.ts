@@ -40,6 +40,8 @@ export interface GeminiKeyConfig {
   excludedModels?: string[];
   disableCooling?: boolean;
   authIndex?: string;
+  pricingCatalog?: string;
+  usageProbe?: '' | 'zai' | 'opencode-go';
 }
 
 export interface ProviderKeyConfig {
@@ -58,6 +60,8 @@ export interface ProviderKeyConfig {
   cloak?: CloakConfig;
   fingerprintProfile?: string;
   authIndex?: string;
+  pricingCatalog?: string;
+  usageProbe?: '' | 'zai' | 'opencode-go';
 }
 
 export interface OpenAIProviderConfig {
@@ -66,7 +70,7 @@ export interface OpenAIProviderConfig {
   baseUrl: string;
   apiKeyEntries: ApiKeyEntry[];
   pricingCatalog?: string;
-  usageProbe?: '' | 'zai';
+  usageProbe?: '' | 'zai' | 'opencode-go';
   disabled?: boolean;
   headers?: Record<string, string>;
   models?: ModelAlias[];

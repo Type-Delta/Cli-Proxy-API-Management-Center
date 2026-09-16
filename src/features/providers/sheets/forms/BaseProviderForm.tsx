@@ -84,6 +84,7 @@ function buildInitialForm(
   resource: ProviderResource | null,
   mode: 'create' | 'edit'
 ): ProviderEntryFormInput {
+  const descriptor = PROVIDER_DESCRIPTORS[brand];
   if (mode === 'create' || !resource) {
     return {
       apiKey: '',
@@ -114,8 +115,8 @@ function buildInitialForm(
         brand === 'interactions'
           ? ''
           : undefined,
-      pricingCatalog: brand === 'openaiCompatibility' ? '' : undefined,
-      usageProbe: brand === 'openaiCompatibility' ? '' : undefined,
+      pricingCatalog: descriptor.supportsPricingCatalog ? '' : undefined,
+      usageProbe: descriptor.supportsUsageProbe ? '' : undefined,
       apiKeyEntries: brand === 'openaiCompatibility' ? [emptyApiKeyEntry()] : undefined,
     };
   }
@@ -219,6 +220,8 @@ function buildInitialForm(
       brand === 'interactions'
         ? ''
         : undefined,
+    pricingCatalog: descriptor.supportsPricingCatalog ? (cfg.pricingCatalog ?? '') : undefined,
+    usageProbe: descriptor.supportsUsageProbe ? (cfg.usageProbe ?? '') : undefined,
   };
 }
 
@@ -245,7 +248,7 @@ export function BaseProviderForm({
   const [pricingCatalogState, setPricingCatalogState] = useState(getPricingCatalogCache);
 
   useEffect(() => {
-    if (brand !== 'openaiCompatibility') return;
+    if (!descriptor.supportsPricingCatalog) return;
     const cached = getPricingCatalogCache();
     setPricingCatalogState(cached);
     if (cached.loaded) return;
@@ -261,7 +264,7 @@ export function BaseProviderForm({
     return () => {
       active = false;
     };
-  }, [brand]);
+  }, [descriptor.supportsPricingCatalog]);
 
   const pricingCatalogOptions = useMemo(() => {
     const options = [
@@ -293,6 +296,7 @@ export function BaseProviderForm({
     () => [
       { value: '', label: t('providersPage.form.usageProbeNone') },
       { value: 'zai', label: t('providersPage.form.usageProbeZai') },
+      { value: 'opencode-go', label: t('providersPage.form.usageProbeOpenCodeGo') },
     ],
     [t]
   );
@@ -895,53 +899,57 @@ export function BaseProviderForm({
         </Collapsible>
       ) : null}
 
-      {brand === 'openaiCompatibility' ? (
+      {descriptor.supportsPricingCatalog || descriptor.supportsUsageProbe ? (
         <div className={styles.section}>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor={`${fid}-pricing-catalog`}>
-              {t('providersPage.form.pricingCatalog')}
-            </label>
-            <Select
-              id={`${fid}-pricing-catalog`}
-              value={form.pricingCatalog ?? ''}
-              options={pricingCatalogOptions}
-              onChange={(value) => updateField('pricingCatalog', value)}
-              disabled={mutating || pricingCatalogLoading}
-              ariaLabel={t('providersPage.form.pricingCatalog')}
-              placeholder={t('providersPage.form.pricingCatalogPlaceholder')}
-              searchable
-              searchPlaceholder={t('providersPage.form.pricingCatalogSearchPlaceholder')}
-              emptyLabel={t('providersPage.form.pricingCatalogEmpty')}
-              loading={pricingCatalogLoading}
-              loadingLabel={t('providersPage.form.pricingCatalogLoading')}
-            />
-            <span className={styles.labelHint}>{t('providersPage.form.pricingCatalogHint')}</span>
-            {pricingCatalogState.catalogUpdatedAt ? (
-              <span className={styles.labelHint}>
-                {t('providersPage.form.pricingCatalogUpdated', {
-                  time: formatCatalogUpdatedAt(pricingCatalogState.catalogUpdatedAt),
-                })}
-              </span>
-            ) : null}
-            {!pricingCatalogLoading && pricingCatalogState.providers.length === 0 ? (
-              <span className={styles.labelHint}>
-                {t('providersPage.form.pricingCatalogEmpty')}
-              </span>
-            ) : null}
-          </div>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor={`${fid}-usage-probe`}>
-              {t('providersPage.form.usageProbe')}
-            </label>
-            <Select
-              id={`${fid}-usage-probe`}
-              value={form.usageProbe ?? ''}
-              options={usageProbeOptions}
-              onChange={(value) => updateField('usageProbe', value as '' | 'zai')}
-              disabled={mutating}
-              ariaLabel={t('providersPage.form.usageProbe')}
-            />
-          </div>
+          {descriptor.supportsPricingCatalog ? (
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor={`${fid}-pricing-catalog`}>
+                {t('providersPage.form.pricingCatalog')}
+              </label>
+              <Select
+                id={`${fid}-pricing-catalog`}
+                value={form.pricingCatalog ?? ''}
+                options={pricingCatalogOptions}
+                onChange={(value) => updateField('pricingCatalog', value)}
+                disabled={mutating || pricingCatalogLoading}
+                ariaLabel={t('providersPage.form.pricingCatalog')}
+                placeholder={t('providersPage.form.pricingCatalogPlaceholder')}
+                searchable
+                searchPlaceholder={t('providersPage.form.pricingCatalogSearchPlaceholder')}
+                emptyLabel={t('providersPage.form.pricingCatalogEmpty')}
+                loading={pricingCatalogLoading}
+                loadingLabel={t('providersPage.form.pricingCatalogLoading')}
+              />
+              <span className={styles.labelHint}>{t('providersPage.form.pricingCatalogHint')}</span>
+              {pricingCatalogState.catalogUpdatedAt ? (
+                <span className={styles.labelHint}>
+                  {t('providersPage.form.pricingCatalogUpdated', {
+                    time: formatCatalogUpdatedAt(pricingCatalogState.catalogUpdatedAt),
+                  })}
+                </span>
+              ) : null}
+              {!pricingCatalogLoading && pricingCatalogState.providers.length === 0 ? (
+                <span className={styles.labelHint}>
+                  {t('providersPage.form.pricingCatalogEmpty')}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+          {descriptor.supportsUsageProbe ? (
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor={`${fid}-usage-probe`}>
+                {t('providersPage.form.usageProbe')}
+              </label>
+              <Select
+                id={`${fid}-usage-probe`}
+                value={form.usageProbe ?? ''}
+                options={usageProbeOptions}
+                onChange={(value) => updateField('usageProbe', value as '' | 'zai' | 'opencode-go')}
+                disabled={mutating}
+                ariaLabel={t('providersPage.form.usageProbe')}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
 

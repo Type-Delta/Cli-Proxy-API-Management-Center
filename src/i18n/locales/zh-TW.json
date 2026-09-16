@@ -1483,7 +1483,23 @@
     "five_hour": "{{number}} 小時",
     "weekly": "每週",
     "remaining_credits": "剩餘 {{remaining}} / {{limit}} 點數",
-    "plan_level": "方案等級：{{level}}"
+    "plan_label": "方案"
+  },
+  "opencode_go_quota": {
+    "title": "OpenCode Go 配額",
+    "empty_title": "沒有 OpenCode Go 憑證",
+    "empty_desc": "為憑證設定 OpenCode Go 用量探針後即可查看用量視窗。",
+    "idle": "點擊此處重新整理配額",
+    "loading": "正在載入配額...",
+    "load_failed": "配額取得失敗：{{message}}",
+    "missing_auth_index": "驗證檔案缺少 auth_index",
+    "empty_data": "暫無 OpenCode Go 配額資料",
+    "rolling": "滾動視窗",
+    "weekly": "每週",
+    "monthly": "每月",
+    "percent_used": "已用 {{percent}}%",
+    "plan_label": "方案",
+    "plan_value": "Go"
   },
   "xai_quota": {
     "title": "Grok 配額",
@@ -2751,6 +2767,7 @@
       "usageProbe": "用量探針",
       "usageProbeNone": "無",
       "usageProbeZai": "Z.ai",
+      "usageProbeOpenCodeGo": "OpenCode Go",
       "showApiKey": "顯示金鑰",
       "hideApiKey": "隱藏金鑰",
       "disableCooling": "停用冷卻調度",

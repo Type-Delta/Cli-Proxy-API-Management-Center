@@ -229,9 +229,9 @@ export interface ProviderEntryFormInput {
   fingerprintProfile?: string;
   /** OpenAI persists this; Gemini/Claude use it for one-off connectivity tests. */
   testModel?: string;
-  /** OpenAI compatibility provider metadata. */
+  /** Provider pricing catalog metadata. */
   pricingCatalog?: string;
-  usageProbe?: '' | 'zai';
+  usageProbe?: '' | 'zai' | 'opencode-go';
   apiKeyEntries?: ApiKeyEntryInput[];
   /** APIKEY.FUN stores one grouped key per platform protocol. */
   sponsorKeyEntries?: SponsorKeyEntryInput[];

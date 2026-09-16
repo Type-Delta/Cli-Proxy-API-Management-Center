@@ -1483,7 +1483,23 @@
     "five_hour": "{{number}}-hour",
     "weekly": "Weekly",
     "remaining_credits": "{{remaining}} / {{limit}} credits left",
-    "plan_level": "Plan level: {{level}}"
+    "plan_label": "Plan"
+  },
+  "opencode_go_quota": {
+    "title": "OpenCode Go quota",
+    "empty_title": "No OpenCode Go credentials",
+    "empty_desc": "Add a credential with the OpenCode Go usage probe to view its usage windows.",
+    "idle": "Click here to refresh quota",
+    "loading": "Loading quota...",
+    "load_failed": "Failed to load quota: {{message}}",
+    "missing_auth_index": "Auth file missing auth_index",
+    "empty_data": "No OpenCode Go quota data available",
+    "rolling": "Rolling",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "percent_used": "{{percent}}% used",
+    "plan_label": "Plan",
+    "plan_value": "Go"
   },
   "xai_quota": {
     "title": "Grok Quota",
@@ -2725,6 +2741,7 @@
       "usageProbe": "Usage probe",
       "usageProbeNone": "None",
       "usageProbeZai": "Z.ai",
+      "usageProbeOpenCodeGo": "OpenCode Go",
       "showApiKey": "Show API key",
       "hideApiKey": "Hide API key",
       "disableCooling": "Disable cooling",

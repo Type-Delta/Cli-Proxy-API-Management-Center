@@ -14,11 +14,18 @@ import i18n from '@/i18n';
 import { CodexQuotaBody } from '@/features/quota/providers/codex/CodexQuotaBody';
 import { ClaudeQuotaBody } from '@/features/quota/providers/claude/ClaudeQuotaBody';
 import { KimiQuotaBody } from '@/features/quota/providers/kimi/KimiQuotaBody';
+import { OpenCodeGoQuotaBody } from '@/features/quota/providers/opencode-go/OpenCodeGoQuotaBody';
 import { ZaiQuotaBody } from '@/features/quota/providers/zai/ZaiQuotaBody';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses } from '@/features/quota/types';
 import { formatInstantShort } from '@/utils/quota';
 import { DAY_MS, HOUR_MS } from '@/utils/time/durations';
-import type { ClaudeQuotaState, CodexQuotaState, KimiQuotaState, ZaiQuotaState } from '@/types';
+import type {
+  ClaudeQuotaState,
+  CodexQuotaState,
+  KimiQuotaState,
+  OpenCodeGoQuotaState,
+  ZaiQuotaState,
+} from '@/types';
 
 const classes = bindQuotaClasses(
   Object.fromEntries(QUOTA_CLASS_KEYS.map((key) => [key, key])),
@@ -200,7 +207,10 @@ describe('ZaiQuotaBody', () => {
 
     expect(markup).toContain('5-hour');
     expect(markup).toContain('Weekly');
-    expect(markup).toContain('Plan level: lite');
+    expect(markup).toContain(
+      'class="codexPlanLabel">Plan</span><span class="codexPlanValue">lite</span>'
+    );
+    expect(markup).not.toContain('Plan level:');
     // Remaining share of each window (100 - usedPercent).
     expect(markup).toContain('84%');
     expect(markup).toContain('68%');
@@ -219,6 +229,38 @@ describe('ZaiQuotaBody', () => {
     const quota: ZaiQuotaState = { status: 'success', windows: [], level: null };
     const markup = renderToStaticMarkup(createElement(ZaiQuotaBody, { quota, classes }));
     expect(markup).toContain('No Z.AI quota data available');
+  });
+});
+
+describe('OpenCodeGoQuotaBody', () => {
+  test('renders the Go plan, used percentages, and remaining meters', () => {
+    const quota: OpenCodeGoQuotaState = {
+      status: 'success',
+      windows: [
+        {
+          id: 'opencode-go-rolling',
+          labelKey: 'opencode_go_quota.rolling',
+          usedPercent: 64,
+          resetAtMs: now + 2 * HOUR_MS,
+        },
+        {
+          id: 'opencode-go-weekly',
+          labelKey: 'opencode_go_quota.weekly',
+          usedPercent: 65,
+          resetAtMs: now + 4 * DAY_MS,
+        },
+      ],
+    };
+    const markup = renderToStaticMarkup(createElement(OpenCodeGoQuotaBody, { quota, classes }));
+
+    expect(markup).toContain(
+      'class="codexPlanLabel">Plan</span><span class="codexPlanValue">Go</span>'
+    );
+    expect(markup).toContain('64% used');
+    expect(markup).toContain('65% used');
+    expect(markup).toContain('width:36%');
+    expect(markup).toContain('width:35%');
+    expect(markup).toContain('quotaResetRelative');
   });
 });
 

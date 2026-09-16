@@ -2,7 +2,7 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-09-09
+Last updated: 2026-09-16
 
 ## Repository relationship
 
@@ -846,3 +846,21 @@ production build. The built bundle was served by a local CPA at 1360x900 through
 contexts: provider edit sheet with the catalog dropdown, Z.AI quota card with live windows, analytics
 credential rows with per-window meters, and an auth-file rename round trip, all without browser
 errors or horizontal overflow.
+
+### DL044: Provider selectors and OpenCode Go usage
+
+Every API-key provider form now exposes the optional `Pricing catalog` selector instead of limiting
+it to OpenAI-compatible providers: Claude, Codex, Gemini, Interactions, xAI, and Vertex. The same
+forms expose `Usage probe` with the Z.AI and OpenCode Go choices. Multi-protocol sponsor forms stay
+unchanged because their configuration is composed from the same underlying API-key sections.
+
+The Quota page adds an OpenCode Go tab. Credentials with `usage_probe: opencode-go` call
+`https://opencode.ai/zen/go/v1/usage` through the existing management API-call path and render
+rolling, weekly, and monthly usage meters with reset countdowns. The card uses the shared OAuth
+usage-card plan style with the literal `Go` plan value; Z.AI now uses the same `Plan` label and bold
+tier value instead of the older inline `Plan level:` text.
+
+Validation: `bun run verify` passes 753 tests, TypeScript, and the production build; lint has only
+the pre-existing `Select.tsx` warning. Focused tests cover provider-form gating and serialization,
+usage-probe normalization, quota parsing, exhausted-window gating, reset scheduling, and all four
+locales.

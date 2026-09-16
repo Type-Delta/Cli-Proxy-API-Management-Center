@@ -1483,7 +1483,23 @@
     "five_hour": "{{number}} 小时",
     "weekly": "每周",
     "remaining_credits": "剩余 {{remaining}} / {{limit}} 积分",
-    "plan_level": "套餐等级：{{level}}"
+    "plan_label": "套餐"
+  },
+  "opencode_go_quota": {
+    "title": "OpenCode Go 额度",
+    "empty_title": "没有 OpenCode Go 凭证",
+    "empty_desc": "为凭证设置 OpenCode Go 用量探针后即可查看用量窗口。",
+    "idle": "点击此处刷新额度",
+    "loading": "正在加载额度...",
+    "load_failed": "额度获取失败：{{message}}",
+    "missing_auth_index": "认证文件缺少 auth_index",
+    "empty_data": "暂无 OpenCode Go 额度数据",
+    "rolling": "滚动窗口",
+    "weekly": "每周",
+    "monthly": "每月",
+    "percent_used": "已用 {{percent}}%",
+    "plan_label": "套餐",
+    "plan_value": "Go"
   },
   "xai_quota": {
     "title": "Grok 额度",
@@ -2725,6 +2741,7 @@
       "usageProbe": "用量探针",
       "usageProbeNone": "无",
       "usageProbeZai": "Z.ai",
+      "usageProbeOpenCodeGo": "OpenCode Go",
       "showApiKey": "显示密钥",
       "hideApiKey": "隐藏密钥",
       "disableCooling": "禁用冷却调度",

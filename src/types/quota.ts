@@ -437,7 +437,7 @@ export interface ZaiQuotaWindow {
   label?: string;
   labelKey?: string;
   labelParams?: Record<string, string | number>;
-  /** Used share of the window, 0–100; null when the payload omitted it. */
+  /** Used share of the window, 0-100; null when the payload omitted it. */
   usedPercent: number | null;
   used: number | null;
   limit: number | null;
@@ -455,6 +455,41 @@ export interface ZaiQuotaState {
   windows: ZaiQuotaWindow[];
   /** Plan tier reported by the probe (e.g. "lite"); null when absent. */
   level?: string | null;
+  error?: string;
+  errorStatus?: number;
+}
+
+// OpenCode Go usage-probe payload types
+export interface OpenCodeGoQuotaWindowPayload {
+  status?: string;
+  percent?: number | string;
+  resetsAt?: string;
+}
+
+export interface OpenCodeGoQuotaUsage {
+  rolling?: OpenCodeGoQuotaWindowPayload | null;
+  weekly?: OpenCodeGoQuotaWindowPayload | null;
+  monthly?: OpenCodeGoQuotaWindowPayload | null;
+}
+
+export interface OpenCodeGoQuotaPayload {
+  usage?: OpenCodeGoQuotaUsage | null;
+}
+
+export interface OpenCodeGoQuotaWindow {
+  id: string;
+  labelKey: string;
+  /** Used share of the window, 0–100; null when the payload omitted it. */
+  usedPercent: number | null;
+  /** Reset instant in epoch ms; null when absent/invalid. */
+  resetAtMs: number | null;
+  /** True when this window or another window in the shared quota family is spent. */
+  disabled?: boolean;
+}
+
+export interface OpenCodeGoQuotaState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  windows: OpenCodeGoQuotaWindow[];
   error?: string;
   errorStatus?: number;
 }

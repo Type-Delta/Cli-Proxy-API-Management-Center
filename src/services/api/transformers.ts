@@ -96,6 +96,15 @@ const normalizePrefix = (value: unknown): string | undefined => {
   return trimmed ? trimmed : undefined;
 };
 
+const normalizeUsageProbe = (value: unknown): '' | 'zai' | 'opencode-go' | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === '' || normalized === 'zai' || normalized === 'opencode-go') {
+    return normalized;
+  }
+  return undefined;
+};
+
 const normalizeAuthIndex = (value: unknown): string | undefined => {
   if (value === undefined || value === null) return undefined;
   const trimmed = String(value).trim();
@@ -161,6 +170,10 @@ const normalizeProviderKeyConfig = (item: unknown): ProviderKeyConfig | null => 
   if (excludedModels.length) config.excludedModels = excludedModels;
   const authIndex = normalizeAuthIndex(record?.['auth-index']);
   if (authIndex) config.authIndex = authIndex;
+  const pricingCatalog = normalizePrefix(record?.['pricing-catalog']);
+  if (pricingCatalog) config.pricingCatalog = pricingCatalog;
+  const usageProbe = normalizeUsageProbe(record?.['usage-probe']);
+  if (usageProbe !== undefined) config.usageProbe = usageProbe;
 
   const cloakRaw = record?.cloak;
   if (isRecord(cloakRaw)) {
@@ -231,6 +244,10 @@ const normalizeGeminiKeyConfig = (item: unknown): GeminiKeyConfig | null => {
   if (excludedModels.length) config.excludedModels = excludedModels;
   const authIndex = normalizeAuthIndex(record?.['auth-index']);
   if (authIndex) config.authIndex = authIndex;
+  const pricingCatalog = normalizePrefix(record?.['pricing-catalog']);
+  if (pricingCatalog) config.pricingCatalog = pricingCatalog;
+  const usageProbe = normalizeUsageProbe(record?.['usage-probe']);
+  if (usageProbe !== undefined) config.usageProbe = usageProbe;
   return config;
 };
 
@@ -272,9 +289,8 @@ const normalizeOpenAIProvider = (
   if (testModel) result.testModel = String(testModel);
   const pricingCatalog = normalizePrefix(provider['pricing-catalog']);
   if (pricingCatalog) result.pricingCatalog = pricingCatalog;
-  if (provider['usage-probe'] === '' || provider['usage-probe'] === 'zai') {
-    result.usageProbe = provider['usage-probe'];
-  }
+  const usageProbe = normalizeUsageProbe(provider['usage-probe']);
+  if (usageProbe !== undefined) result.usageProbe = usageProbe;
   const authIndex = normalizeAuthIndex(provider['auth-index']);
   if (authIndex) result.authIndex = authIndex;
   if (sourceIndex !== undefined) result.sourceIndex = sourceIndex;
