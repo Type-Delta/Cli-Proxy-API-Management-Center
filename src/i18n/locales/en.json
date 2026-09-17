@@ -1281,7 +1281,7 @@
     "rename_label_failed": "Failed to update credential label: {{message}}",
     "rename_label_hint": "The label is shown in credential lists. Leave it empty to use the file name.",
     "filter_unknown": "Other",
-    "type_virtual": "Virtual auth file",
+    "type_virtual": "VAuth file",
     "models_button": "Models",
     "models_title": "Supported models",
     "models_loading": "Loading model list...",
