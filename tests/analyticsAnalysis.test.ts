@@ -851,6 +851,9 @@ describe('analysis ECharts options', () => {
 
     // Six ranks plus the folded "Other" band, which takes the achromatic slot.
     expect(option.series).toHaveLength(7);
+    expect(
+      option.series.every((series) => series.type === 'bar' && series.stack === 'models')
+    ).toBe(true);
     for (const series of option.series) {
       expect(series.itemStyle).toMatchObject({ borderColor: PALETTE.card, borderWidth: 1 });
     }
@@ -940,7 +943,8 @@ describe('analysis ECharts options', () => {
       formatBucket: identity,
       formatValue: identity,
     }) as unknown as Option;
-    expect(option.series.every((series) => series.type === 'line')).toBe(true);
+    // Generation is an average per bucket, so it draws grouped bars instead of a line or a stack.
+    expect(option.series.every((series) => series.type === 'bar')).toBe(true);
     expect(option.series.every((series) => series.stack === undefined)).toBe(true);
   });
 

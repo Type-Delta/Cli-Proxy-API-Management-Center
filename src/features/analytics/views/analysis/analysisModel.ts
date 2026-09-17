@@ -923,13 +923,10 @@ export function topModelsOption({
     yAxis: { type: 'value', axisLabel: { formatter: formatValue }, splitNumber: 4 },
     series: ranked.map((model, index) => ({
       name: model.other ? otherLabel : model.model,
+      // Generation time is an average, so its bars stay grouped: stacking per-bucket averages
+      // would produce a meaningless total.
       ...(generation
-        ? {
-            type: 'line' as const,
-            symbolSize: 5,
-            connectNulls: false,
-            lineStyle: { width: 2 },
-          }
+        ? { type: 'bar' as const, barMaxWidth: 14 }
         : { type: 'bar' as const, stack: 'models', barMaxWidth: 34 }),
       itemStyle: {
         color: topModelColor(palette, index, model.other),

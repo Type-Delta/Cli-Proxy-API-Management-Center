@@ -2,7 +2,7 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-09-16
+Last updated: 2026-09-17
 
 ## Repository relationship
 
@@ -864,3 +864,23 @@ Validation: `bun run verify` passes 753 tests, TypeScript, and the production bu
 the pre-existing `Select.tsx` warning. Focused tests cover provider-form gating and serialization,
 usage-probe normalization, quota parsing, exhausted-window gating, reset scheduling, and all four
 locales.
+
+### DL045: Top Models generation time uses bars
+
+The Analysis page Top Models card draws every metric with bars. Generation time previously used a
+line series because its per-bucket value is an average of the observations in that bucket, which
+cannot be stacked. It now draws grouped bars: each model keeps its own column inside the bucket,
+one value per model, so the card reads the same as the token and price modes without adding
+average durations into a meaningless total. The tooltip keeps listing per-model values without
+a total row, and a bucket where a model has no observed timing leaves that model's bar empty
+instead of drawing a zero.
+
+Validation: focused analysis option tests assert that token and price series stay stacked bars while
+generation series are unstacked bars. TypeScript, lint (the pre-existing `Select.tsx` warning only),
+and the production build pass. An isolated Chrome CDP run against a fresh local CPA with a real
+streamed mock upstream rendered the card at 1440x1050 and 390x844: token and price modes stayed
+stacked, generation mode drew grouped bars for 1.6 s / 600 ms / 100 ms with no tooltip total, and
+neither viewport had console errors or horizontal overflow. `bun test` keeps one pre-existing
+failure in `uses shared linear latency radar axes and omits an incomplete polygon`, which asserts
+the linear radar geometry that commit `83fe7be` deliberately replaced with log10; it fails before
+this change too and is unrelated to Top Models.
