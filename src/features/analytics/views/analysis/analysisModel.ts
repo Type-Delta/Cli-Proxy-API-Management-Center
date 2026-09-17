@@ -1068,10 +1068,9 @@ export function latencyRadarOption({
         : null;
   }).filter((value): value is number => value !== null);
   const commonMaximum = Math.max(1, ...(scaleCandidates.length > 0 ? scaleCandidates : [1])) * 1.15;
-  // Radar geometry runs on a linear millisecond axis, so a vertex sits at the share of the
-  // slowest observed timing that it actually represents.
-  const toRadarScale = (value: number) => Math.max(0, value);
-  const maxima = TIMING_METRIC_KEYS.map(() => commonMaximum);
+  const logMaximum = Math.log10(commonMaximum);
+  const toRadarScale = (value: number) => Math.log10(Math.max(1, value));
+  const maxima = TIMING_METRIC_KEYS.map(() => logMaximum);
   const indicatorLabels = TIMING_METRIC_KEYS.map((key, index) =>
     wrapRadarLabel(values[index] == null ? `${labels[key]}\n· ${unavailableLabel}` : labels[key])
   );
@@ -1093,8 +1092,8 @@ export function latencyRadarOption({
       if (value == null || !Number.isFinite(value)) return [];
       // ECharts starts at 90° and advances counterclockwise through radar indicators.
       const angle = ((90 + (index * 360) / axisCount) * Math.PI) / 180;
-      const x = centerX + Math.cos(angle) * radius * Math.min(1, toRadarScale(value) / commonMaximum);
-      const y = centerY - Math.sin(angle) * radius * Math.min(1, toRadarScale(value) / commonMaximum);
+      const x = centerX + Math.cos(angle) * radius * Math.min(1, toRadarScale(value) / logMaximum);
+      const y = centerY - Math.sin(angle) * radius * Math.min(1, toRadarScale(value) / logMaximum);
       const outwardX = Math.cos(angle);
       const outwardY = -Math.sin(angle);
       return [
@@ -1161,7 +1160,7 @@ export function latencyRadarOption({
       trigger: 'item',
       formatter: () =>
         tooltipPanel(
-          mode.toUpperCase(),
+          logScaleTooltipTitle(mode.toUpperCase()),
           TIMING_METRIC_KEYS.map((key, index) => ({
             name: labels[key],
             text:
