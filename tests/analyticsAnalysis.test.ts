@@ -999,7 +999,7 @@ describe('analysis ECharts options', () => {
     expect(option.tooltip.formatter([{ value: [120, 900, 'model-a', 'ts'] }])).toContain('900ms');
   });
 
-  test('uses shared linear latency radar axes and omits an incomplete polygon', () => {
+  test('uses shared log10 latency radar axes and omits an incomplete polygon', () => {
     // The custom radar follows the visual clockwise order E2E, provider, generation, TTFT,
     // latency even though ECharts exposes the axes in its counterclockwise data order.
     expect(TIMING_METRIC_KEYS.map((_, index) => latencyRadarAxisOffset(index))).toEqual([
@@ -1040,15 +1040,17 @@ describe('analysis ECharts options', () => {
       series: Array<{ data: unknown[] }>;
       tooltip: { formatter: (input: unknown) => string };
     };
-    // A linear axis keeps the slowest observation at the rim, so 200 of a 230ms maximum is
-    // 87% of the radius instead of the ~99% a log10 axis would draw.
+    // Log10 keeps short timings visible beside the slowest one: the shared axis max is the log
+    // of the slowest maximum, so 120ms still lands at 88% of the radius instead of a linear 52%.
     expect(complete.radar.indicator.map((indicator) => indicator.max)).toEqual(
-      expect.arrayContaining([expect.closeTo(230, 1e-9)])
+      expect.arrayContaining([expect.closeTo(Math.log10(230), 1e-9)])
     );
     expect(new Set(complete.radar.indicator.map((indicator) => Math.round(indicator.max)))).toEqual(
-      new Set([230])
+      new Set([Math.round(Math.log10(230))])
     );
-    expect(complete.series[0].data).toEqual([{ value: [200, 50, 80, 120, 30] }]);
+    expect(complete.series[0].data).toEqual([
+      { value: [200, 50, 80, 120, 30].map((value) => Math.log10(value)) },
+    ]);
 
     const partialMetrics = { ...metrics, provider_latency: metric(null, null, null) };
     const partial = latencyRadarOption({
@@ -1065,11 +1067,9 @@ describe('analysis ECharts options', () => {
     expect(partial.series[0].data).toEqual([]);
     expect(partial.radar.indicator.at(-1)?.name).toBe('Provider\nlatency\n· Unavailable');
     expect(logScaleTooltipTitle('MAX')).toBe('MAX (log10)');
-    const radarTooltip = (complete.tooltip as { formatter: (input: unknown) => string }).formatter(
-      {}
+    expect((complete.tooltip as { formatter: (input: unknown) => string }).formatter({})).toContain(
+      'MAX (log10)'
     );
-    expect(radarTooltip).toContain('MAX');
-    expect(radarTooltip).not.toContain('log10');
     expect(wrapRadarLabel('Generation time')).toBe('Generation\ntime');
     const custom = partial.series[1] as unknown as {
       renderItem: (

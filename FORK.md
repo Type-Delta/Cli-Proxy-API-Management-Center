@@ -880,7 +880,14 @@ generation series are unstacked bars. TypeScript, lint (the pre-existing `Select
 and the production build pass. An isolated Chrome CDP run against a fresh local CPA with a real
 streamed mock upstream rendered the card at 1440x1050 and 390x844: token and price modes stayed
 stacked, generation mode drew grouped bars for 1.6 s / 600 ms / 100 ms with no tooltip total, and
-neither viewport had console errors or horizontal overflow. `bun test` keeps one pre-existing
-failure in `uses shared linear latency radar axes and omits an incomplete polygon`, which asserts
-the linear radar geometry that commit `83fe7be` deliberately replaced with log10; it fails before
-this change too and is unrelated to Top Models.
+neither viewport had console errors or horizontal overflow.
+
+### DL046: Log10 latency radar test coverage
+
+The latency radar has run on a log10 millisecond axis since DL038, but its test still asserted the
+linear axis that commit `2bb3c54` introduced and commit `83fe7be` reverted. The test asserts the
+log10 indicator maxima, the log10 vertex values, and the `(log10)` tooltip title again, so it goes
+red if the radar returns to a linear axis. The axis-offset and partial-polygon checks are unchanged.
+
+Validation: `bun run verify` passes 753 tests, lint (the pre-existing `Select.tsx` warning only),
+TypeScript, and the production build.
