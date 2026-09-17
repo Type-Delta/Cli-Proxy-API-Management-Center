@@ -1496,7 +1496,6 @@
     "rolling": "Скользящее окно",
     "weekly": "Недельное окно",
     "monthly": "Месячное окно",
-    "percent_used": "использовано {{percent}}%",
     "plan_label": "План",
     "plan_value": "Go"
   },

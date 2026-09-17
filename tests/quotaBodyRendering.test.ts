@@ -233,7 +233,7 @@ describe('ZaiQuotaBody', () => {
 });
 
 describe('OpenCodeGoQuotaBody', () => {
-  test('renders the Go plan, used percentages, and remaining meters', () => {
+  test('renders the Go plan, remaining percentages, and remaining meters', () => {
     const quota: OpenCodeGoQuotaState = {
       status: 'success',
       windows: [
@@ -256,8 +256,9 @@ describe('OpenCodeGoQuotaBody', () => {
     expect(markup).toContain(
       'class="codexPlanLabel">Plan</span><span class="codexPlanValue">Go</span>'
     );
-    expect(markup).toContain('64% used');
-    expect(markup).toContain('65% used');
+    expect(markup).toContain('36%');
+    expect(markup).toContain('35%');
+    expect(markup).not.toContain('% used');
     expect(markup).toContain('width:36%');
     expect(markup).toContain('width:35%');
     expect(markup).toContain('quotaResetRelative');

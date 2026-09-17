@@ -1497,7 +1497,6 @@
     "rolling": "滾動視窗",
     "weekly": "每週",
     "monthly": "每月",
-    "percent_used": "已用 {{percent}}%",
     "plan_label": "方案",
     "plan_value": "Go"
   },

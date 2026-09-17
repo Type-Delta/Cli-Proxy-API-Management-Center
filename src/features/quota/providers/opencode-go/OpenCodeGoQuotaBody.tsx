@@ -33,12 +33,7 @@ export function OpenCodeGoQuotaBody({ quota, classes }: QuotaBodyProps<OpenCodeG
       {windows.map((row, index) => {
         const used = row.usedPercent;
         const remaining = used === null ? null : Math.max(0, Math.min(100, 100 - used));
-        const percentLabel =
-          used === null
-            ? '--'
-            : t('opencode_go_quota.percent_used', {
-                percent: Math.round(used),
-              });
+        const percentLabel = remaining === null ? '--' : `${Math.round(remaining)}%`;
         const resetDisplay = buildResetDisplay(null, row.resetAtMs, now, i18n.resolvedLanguage);
         const soon = row.id === soonestRowId;
 

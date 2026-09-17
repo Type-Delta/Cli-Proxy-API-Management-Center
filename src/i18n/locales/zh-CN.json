@@ -1497,7 +1497,6 @@
     "rolling": "滚动窗口",
     "weekly": "每周",
     "monthly": "每月",
-    "percent_used": "已用 {{percent}}%",
     "plan_label": "套餐",
     "plan_value": "Go"
   },

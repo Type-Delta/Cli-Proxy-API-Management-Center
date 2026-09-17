@@ -1497,7 +1497,6 @@
     "rolling": "Rolling",
     "weekly": "Weekly",
     "monthly": "Monthly",
-    "percent_used": "{{percent}}% used",
     "plan_label": "Plan",
     "plan_value": "Go"
   },
