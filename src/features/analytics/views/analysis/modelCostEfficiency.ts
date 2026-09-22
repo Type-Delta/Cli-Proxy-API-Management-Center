@@ -23,9 +23,10 @@ export type ModelCostPage = {
 };
 
 export function filterModelCostEfficiency(rows: readonly ModelCostEfficiencyRow[], query: string) {
+  const priced = rows.filter((row) => row.pricingStatus !== 'unknown');
   const needle = query.trim().toLocaleLowerCase();
-  if (!needle) return [...rows];
-  return rows.filter((row) => row.model.toLocaleLowerCase().includes(needle));
+  if (!needle) return priced;
+  return priced.filter((row) => row.model.toLocaleLowerCase().includes(needle));
 }
 
 const compareValues = (

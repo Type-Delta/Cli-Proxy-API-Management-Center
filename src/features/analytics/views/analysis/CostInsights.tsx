@@ -211,8 +211,8 @@ export function ModelEfficiency({
   const [sortDirection, setSortDirection] = useState<ModelCostSortDirection>('asc');
   const [page, setPage] = useState(1);
   const models = useMemo(
-    () => buildModelEfficiency(section?.models ?? [], costs, costPartial),
-    [costPartial, costs, section]
+    () => buildModelEfficiency(section?.models ?? [], costs),
+    [costs, section]
   );
   const filteredModels = useMemo(() => filterModelCostEfficiency(models, search), [models, search]);
   const sortedModels = useMemo(
@@ -265,7 +265,7 @@ export function ModelEfficiency({
       error={error}
       errorStatus={errorStatus}
       retryAt={retryAt}
-      hasData={models.length > 0}
+      hasData={filteredModels.length > 0}
       partial={section?.meta.partial || costPartial}
       emptyDescription={
         section === null

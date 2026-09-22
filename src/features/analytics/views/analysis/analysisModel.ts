@@ -447,8 +447,7 @@ export const compareModelEfficiencyCost = (
 
 export function buildModelEfficiency(
   models: AnalysisModel[],
-  costComponents?: readonly AnalysisModelCost[] | null,
-  costSectionPartial = false
+  costComponents?: readonly AnalysisModelCost[] | null
 ): ModelEfficiencyRow[] {
   const byModel = new Map((costComponents ?? []).map((component) => [component.model, component]));
   return models
@@ -456,13 +455,13 @@ export function buildModelEfficiency(
       const tokens = nonNegative(model.total_tokens);
       const cost = finite(model.known_cost_usd);
       const unpriced = model.unpriced_tokens;
-      const coverageUnknown = unpriced == null;
       const unpricedCount = nonNegative(unpriced);
-      const whollyUnpriced = tokens > 0 && !coverageUnknown && unpricedCount >= tokens;
+      const whollyUnpriced = tokens > 0 && unpriced != null && unpricedCount >= tokens;
+      const coverageUnknown = unpriced == null && !(tokens > 0 && cost >= 0);
       const pricingStatus: ModelEfficiencyRow['pricingStatus'] =
         coverageUnknown || whollyUnpriced
           ? 'unknown'
-          : costSectionPartial || unpricedCount > 0
+          : unpricedCount > 0
             ? 'partial'
             : 'complete';
       return {

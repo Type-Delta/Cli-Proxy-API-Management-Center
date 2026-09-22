@@ -891,3 +891,15 @@ red if the radar returns to a linear axis. The axis-offset and partial-polygon c
 
 Validation: `bun run verify` passes 753 tests, lint (the pre-existing `Select.tsx` warning only),
 TypeScript, and the production build.
+
+### DL047: Model cost pricing is isolated per row
+
+Model Cost Efficiency calculates the price-per-million cell from each model's own token coverage.
+A wholly unpriced model no longer marks every other model as partially priced or removes its
+calculated cell. The table excludes wholly unpriced models, keeps partially priced models with
+their localized qualifier, and falls back to the card empty state when no priced models remain.
+Legacy rows that omit `unpriced_tokens` but report a known nonnegative cost remain priced.
+
+Validation: focused analysis tests cover independent per-row pricing, wholly unpriced exclusion,
+partial-row retention, and legacy missing coverage. `bun run verify` passes 754 tests, lint (the
+pre-existing `Select.tsx` warning only), TypeScript, and the production build.

@@ -274,7 +274,69 @@ describe('analytics Analysis models', () => {
         locale: 'en',
       })
     );
-    expect(markup).toContain('Price unknown');
+    expect(markup).not.toContain('Price unknown');
+  });
+
+  test('does not let one unpriced model hide pricing for other models', () => {
+    const models = [
+      {
+        model: 'unpriced',
+        requests: 1,
+        input_tokens: 100,
+        output_tokens: 0,
+        cached_tokens: 0,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        reasoning_tokens: 0,
+        total_tokens: 100,
+        known_cost_usd: '0',
+        unpriced_tokens: 100,
+      },
+      {
+        model: 'known',
+        requests: 1,
+        input_tokens: 100,
+        output_tokens: 0,
+        cached_tokens: 0,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        reasoning_tokens: 0,
+        total_tokens: 100,
+        known_cost_usd: '0.001',
+        unpriced_tokens: 0,
+      },
+      {
+        model: 'partial',
+        requests: 1,
+        input_tokens: 100,
+        output_tokens: 0,
+        cached_tokens: 0,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        reasoning_tokens: 0,
+        total_tokens: 200,
+        known_cost_usd: '0.001',
+        unpriced_tokens: 100,
+      },
+    ] satisfies AnalysisModel[];
+
+    const rows = buildModelEfficiency(models);
+    expect(rows.find((row) => row.model === 'known')).toMatchObject({
+      costPerMillion: 10,
+      pricingStatus: 'complete',
+    });
+    expect(rows.find((row) => row.model === 'unpriced')).toMatchObject({
+      costPerMillion: null,
+      pricingStatus: 'unknown',
+    });
+    expect(rows.find((row) => row.model === 'partial')).toMatchObject({
+      costPerMillion: null,
+      pricingStatus: 'partial',
+    });
+    expect(filterModelCostEfficiency(rows, '').map((row) => row.model)).toEqual([
+      'known',
+      'partial',
+    ]);
   });
 
   test('derives the unclassified remainder from the authoritative total', () => {
