@@ -2058,7 +2058,7 @@
           "stabilize_device": "Stabilize Device Profile",
           "stabilize_device_desc": "Pin OS/Arch and stabilize the software fingerprint per credential/API key",
           "oauth_safeguard": "OAuth Safeguard",
-          "oauth_safeguard_desc": "Before enabling, run cli-proxy-api --claude-capture on the CPA host to capture a Claude Code OAuth profile. Direct OAuth requests to api.anthropic.com must match that local profile; requests are blocked before Anthropic if the capture is missing or stale.",
+          "oauth_safeguard_desc": "CPA privately captures its own Claude Code reference using a CPA Claude OAuth credential and checks for updates every 24 hours. It never uses global Claude data. When enabled, direct OAuth requests to api.anthropic.com must match the active reference. A failed update keeps the last successful reference; requests are blocked before Anthropic only if no valid active reference is available.",
           "beta_features": "Beta Features"
         },
         "network": {

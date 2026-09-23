@@ -927,13 +927,18 @@ the production build; lint reports only the pre-existing `Select.tsx` warning.
 ### DL049: Claude OAuth capture safeguard setting
 
 The Claude Header Defaults section exposes CPA's optional `oauth-safeguard`
-setting. Its description directs the operator to run `cli-proxy-api
---claude-capture` as the CPA service user before enabling it and explains that
-missing or stale captures block direct Anthropic OAuth requests. Visual config
-loading and saving preserve the boolean; the setting appears in search and all
-four supported locales. Shared toggle controls show keyboard focus and connect
-descriptions to their checkboxes for assistive technology.
+setting. CPA privately captures its own Claude Code reference with a CPA Claude
+OAuth credential and checks for updates every 24 hours; it never uses global
+Claude data. The description explains that direct Anthropic OAuth requests must
+match the active reference and fail closed only if no valid active reference
+exists. A failed candidate update preserves the last successfully captured
+active reference. Visual config loading and saving preserve the boolean; the
+setting appears in search and all four supported locales. Shared toggle controls
+show keyboard focus and connect descriptions to their checkboxes for assistive
+technology.
 
-Validation: focused config and accessibility tests pass. `bun run verify` passes
-757 tests, TypeScript, and the production build; lint retains the existing
-`Select.tsx` warning.
+Validation: focused config, accessibility, and four-locale copy tests pass.
+`bun run verify` passes 758 tests, TypeScript, and the production build; lint
+retains the existing `Select.tsx` warning. Chrome CDP verified the rendered
+description on desktop and at a 390px mobile viewport without horizontal
+overflow.

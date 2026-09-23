@@ -2058,7 +2058,7 @@
           "stabilize_device": "稳定设备指纹",
           "stabilize_device_desc": "固定 OS/Arch，并按凭据/API Key 稳定软件指纹",
           "oauth_safeguard": "OAuth 安全保护",
-          "oauth_safeguard_desc": "启用前，请在 CPA 主机上运行 cli-proxy-api --claude-capture，捕获 Claude Code OAuth 配置。发往 api.anthropic.com 的 OAuth 直连请求必须与本地配置相匹配；如果未捕获配置或配置已过期，请求会在发送至 Anthropic 前被拦截。",
+          "oauth_safeguard_desc": "CPA 使用自身的 Claude OAuth 凭据捕获并私下保存 Claude Code 参考配置，每 24 小时检查一次更新，且不会使用全局 Claude 数据。启用后，发往 api.anthropic.com 的 OAuth 直连请求必须与当前有效参考配置相匹配。候选更新失败时会保留最近一次成功捕获的参考配置；仅当没有有效的当前参考配置时，才会在发送至 Anthropic 前拦截请求。",
           "beta_features": "Beta Features"
         },
         "network": {
