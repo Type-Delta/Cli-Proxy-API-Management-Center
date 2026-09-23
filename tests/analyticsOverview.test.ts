@@ -17,12 +17,12 @@ import {
   calendarHeatmapCells,
   METRIC_ICONS,
   overviewSparklines,
-  requestHealthLevel,
+  requestHealthIntensity,
   sparklineOption,
   summarizeActivityYear,
   summarizeTrend,
   toneForCacheRate,
-  tokenActivityLevels,
+  tokenActivityIntensities,
 } from '@/features/analytics/views/overview/overviewModel';
 import {
   buildComparison,
@@ -387,31 +387,26 @@ describe('analytics overview model', () => {
     expect(toneForCacheRate(50)).toBe('good');
   });
 
-  test('quantizes token intensity without letting outliers flatten active buckets', () => {
-    const levels = tokenActivityLevels([0, 1, 10, 100, 1_000, 10_000, Number.NaN]);
-    expect(levels[0]).toBe(0);
-    expect(levels[6]).toBe(0);
-    expect(levels.slice(1, 6)).toEqual([...levels.slice(1, 6)].sort((a, b) => a - b));
-    expect(levels[1]).toBeGreaterThanOrEqual(1);
-    expect(levels[5]).toBe(5);
-    expect(tokenActivityLevels([0, 7, 7])).toEqual([0, 5, 5]);
+  test('maps token intensity continuously without letting outliers flatten active buckets', () => {
+    const intensities = tokenActivityIntensities([0, 1, 10, 100, 1_000, 10_000, Number.NaN]);
+    expect(intensities[0]).toBe(0);
+    expect(intensities[6]).toBe(0);
+    expect(intensities.slice(1, 6)).toEqual([...intensities.slice(1, 6)].sort((a, b) => a - b));
+    expect(intensities[1]).toBeGreaterThan(0);
+    expect(intensities[1]).toBeLessThan(intensities[5]);
+    expect(intensities[5]).toBe(1);
+    expect(tokenActivityIntensities([0, 7, 7])).toEqual([0, 1, 1]);
   });
 
-  test('maps request health from failure red to volume-aware green', () => {
-    expect(requestHealthLevel(0, 0)).toBe(0);
-    expect(requestHealthLevel(4, 6)).toBe(1);
-    expect(requestHealthLevel(6, 4)).toBe(2);
-    expect(requestHealthLevel(7, 3)).toBe(3);
-    expect(requestHealthLevel(9, 1)).toBe(5);
-    expect(requestHealthLevel(900, 100)).toBe(4);
-    expect(requestHealthLevel(990, 10)).toBe(5);
-  });
-
-  test('keeps any day below a 90% success rate out of the green bands', () => {
-    // Amber covers 70-90%, so 89% never reads healthy even at low volume.
-    expect(requestHealthLevel(89, 11)).toBe(3);
-    expect(requestHealthLevel(70, 30)).toBe(3);
-    expect(requestHealthLevel(90, 10)).toBe(4);
+  test('maps request health continuously from unhealthy to healthy', () => {
+    expect(requestHealthIntensity(0, 0)).toBe(-1);
+    expect(requestHealthIntensity(0, 10)).toBe(0);
+    expect(requestHealthIntensity(4, 6)).toBe(0.4);
+    expect(requestHealthIntensity(96, 4)).toBe(0.96);
+    expect(requestHealthIntensity(100, 0)).toBe(1);
+    expect(requestHealthIntensity(70, 30)).toBe(0.7);
+    expect(requestHealthIntensity(96, 4)).toBeLessThan(requestHealthIntensity(100, 0));
+    expect(requestHealthIntensity(97, 3)).toBeGreaterThan(requestHealthIntensity(96, 4));
   });
 
   test('places Sunday first and preserves missing days across year boundaries', () => {
@@ -422,9 +417,9 @@ describe('analytics overview model', () => {
         ['2026-01-03', 3],
       ])
     ).toEqual([
-      { day: '2025-12-31', level: 2, row: 3, column: 0 },
-      { day: '2026-01-03', level: 3, row: 6, column: 0 },
-      { day: '2026-01-04', level: 5, row: 0, column: 1 },
+      { day: '2025-12-31', intensity: 2, row: 3, column: 0 },
+      { day: '2026-01-03', intensity: 3, row: 6, column: 0 },
+      { day: '2026-01-04', intensity: 5, row: 0, column: 1 },
     ]);
     expect(calendarHeatmapCells([])).toEqual([]);
   });
@@ -440,8 +435,8 @@ describe('analytics overview model', () => {
     expect(windowed.columnCount).toBe(3);
     expect(windowed.cells).toHaveLength(20);
     expect(windowed.cells[0]).toMatchObject({ column: 0, day: '2026-08-16' });
-    expect(windowed.cells.at(-1)).toMatchObject({ column: 2, day: '2026-09-04', level: 5 });
-    expect(windowed.cells.filter((cell) => cell.level === 0)).toHaveLength(19);
+    expect(windowed.cells.at(-1)).toMatchObject({ column: 2, day: '2026-09-04', intensity: 5 });
+    expect(windowed.cells.filter((cell) => cell.intensity === 0)).toHaveLength(19);
     expect(fitActivityHeatmapWindow(cells, 10_000).columnCount).toBe(53);
   });
 
@@ -577,7 +572,10 @@ describe('analytics overview model', () => {
   });
 
   test('renders both year heatmaps as one chart each with a hidden month table', () => {
-    const day = (start: string): AnalyticsActivity['buckets'][number] => ({
+    const day = (
+      start: string,
+      fields: Partial<AnalyticsActivity['buckets'][number]> = {}
+    ): AnalyticsActivity['buckets'][number] => ({
       start,
       end: start,
       requests: 5,
@@ -591,6 +589,7 @@ describe('analytics overview model', () => {
       reasoning_tokens: 100,
       total_tokens: 1_800,
       known_cost_usd: '0.10',
+      ...fields,
     });
     const activity: AnalyticsActivity = {
       meta: summary().meta,
@@ -623,6 +622,50 @@ describe('analytics overview model', () => {
     expect(markup).toContain('<caption>Request health by month</caption>');
     expect(markup).toContain('2026-08');
     expect(markup).toContain('2026-09');
+    expect(markup).toContain('color-mix(in oklab');
+    expect(markup).not.toContain('linear-gradient(in oklab');
+    expect(markup).not.toContain('%%');
+    expect(markup.match(/<i /g)).toHaveLength(12);
+    const ninetyPercentMarkup = renderToStaticMarkup(
+      createElement(
+        I18nextProvider,
+        { i18n },
+        createElement(ActivityHeatmaps, {
+          activity: {
+            ...activity,
+            buckets: [day('2026-09-01T00:00:00Z', { succeeded: 9, failed: 1 })],
+          },
+          loading: false,
+          error: '',
+        })
+      )
+    );
+    expect(ninetyPercentMarkup).toContain(
+      'color-mix(in oklab, var(--viz-health-3) 100%, var(--viz-health-1))'
+    );
+    const healthBoundaryMarkup = renderToStaticMarkup(
+      createElement(
+        I18nextProvider,
+        { i18n },
+        createElement(ActivityHeatmaps, {
+          activity: {
+            ...activity,
+            buckets: [
+              day('2026-08-30T00:00:00Z', { succeeded: 0, failed: 0 }),
+              day('2026-08-31T00:00:00Z', { succeeded: 0, failed: 10 }),
+              day('2026-09-01T00:00:00Z', { succeeded: 4, failed: 6 }),
+              day('2026-09-02T00:00:00Z', { succeeded: 41, failed: 59 }),
+            ],
+          },
+          loading: false,
+          error: '',
+        })
+      )
+    );
+    expect(healthBoundaryMarkup).toContain('background:var(--viz-health-1)');
+    expect(healthBoundaryMarkup).toContain(
+      'color-mix(in oklab, var(--viz-health-3) 2%, var(--viz-health-1))'
+    );
     // R6-3: the window Select is gone from the section header.
     expect(markup).not.toContain(i18n.t('analytics.overview.activity_window'));
     expect(markup).not.toContain('<button');

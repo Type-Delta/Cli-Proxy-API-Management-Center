@@ -2,7 +2,7 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-09-17
+Last updated: 2026-09-23
 
 ## Repository relationship
 
@@ -903,3 +903,23 @@ Legacy rows that omit `unpriced_tokens` but report a known nonnegative cost rema
 Validation: focused analysis tests cover independent per-row pricing, wholly unpriced exclusion,
 partial-row retention, and legacy missing coverage. `bun run verify` passes 754 tests, lint (the
 pre-existing `Select.tsx` warning only), TypeScript, and the production build.
+
+### DL048: Continuous activity heatmap colors
+
+Token Activity and Request Health map each nonempty daily value to a continuous color intensity
+instead of choosing from five preset classes. Token volume retains its logarithmic P5-P95 scaling
+so spikes do not flatten ordinary days, while request health uses the exact success ratio. The
+component interpolates the existing theme visualization tokens in OKLab, and empty days retain the
+dedicated empty-cell color. Both legends show six representative swatches sampled from the matching
+continuous ramp.
+
+Request Health stays at the unhealthy red through 40% success, interpolates from red to yellow over
+40-90%, and anchors yellow at exactly 90%. The final 90-100% band interpolates from yellow to healthy
+green. A no-request day remains visually empty instead of being treated as a 0% success day.
+
+Validation: the focused Overview suite passes 26 tests, including continuous ordering, exact 96%
+request-health intensity, and rendered CSS without malformed double-percent values. Isolated Chrome
+CDP checks at 1440x1050 and 390x844 found no transparent cells or page overflow. The desktop mock
+render produced 17 distinct Token Activity colors and 280 distinct Request Health colors; the
+mobile window produced 17 and 106 respectively. `bun run verify` passes 753 tests, TypeScript, and
+the production build; lint reports only the pre-existing `Select.tsx` warning.

@@ -430,53 +430,6 @@
   padding-block: 2px 8px;
 }
 
-.tokenLevel0,
-.healthLevel0 {
-  background: var(--viz-empty-cell);
-}
-
-// The grid and legend share the same cell classes and colour ramp.
-.tokenLevel1 {
-  background: var(--viz-activity-1);
-}
-
-.tokenLevel2 {
-  background: var(--viz-activity-2);
-}
-
-.tokenLevel3 {
-  background: var(--viz-activity-3);
-}
-
-.tokenLevel4 {
-  background: var(--viz-activity-4);
-}
-
-.tokenLevel5 {
-  background: var(--viz-activity-5);
-}
-
-// Theme-specific coral, amber, and emerald levels are shared by cells and their legend.
-.healthLevel1 {
-  background: var(--viz-health-1);
-}
-
-.healthLevel2 {
-  background: var(--viz-health-2);
-}
-
-.healthLevel3 {
-  background: var(--viz-health-3);
-}
-
-.healthLevel4 {
-  background: var(--viz-health-4);
-}
-
-.healthLevel5 {
-  background: var(--viz-health-5);
-}
-
 .srOnly {
   position: absolute;
   width: 1px;

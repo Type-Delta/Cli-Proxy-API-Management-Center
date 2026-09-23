@@ -22,8 +22,6 @@ import type { ComparisonMetric } from './comparisonModel';
 
 /** Fixed calendar grid: seven day rows, one column per Sunday-first week, as GitHub draws it. */
 export const HEATMAP_ROWS = 7;
-export const HEATMAP_LEVELS = 5;
-
 /** The rolling contribution window: one year of daily buckets, always. */
 export const ACTIVITY_YEAR_DAYS = 365;
 
@@ -59,10 +57,10 @@ const rate = (part: number, whole: number): number | null =>
   whole > 0 ? (part / whole) * 100 : null;
 
 /**
- * Quantizes bucket totals into six levels over the P5–P95 band on a log scale,
- * so a handful of spikes cannot flatten every other bucket into one shade.
+ * Maps bucket totals onto 0-1 over the P5-P95 band on a log scale, so a handful of spikes cannot
+ * flatten every other bucket while neighboring days still receive neighboring shades.
  */
-export function tokenActivityLevels(values: readonly number[]): number[] {
+export function tokenActivityIntensities(values: readonly number[]): number[] {
   const positive = values
     .filter((value) => Number.isFinite(value) && value > 0)
     .sort((left, right) => left - right);
@@ -70,7 +68,7 @@ export function tokenActivityLevels(values: readonly number[]): number[] {
   const low = positive[Math.max(0, Math.ceil(positive.length * 0.05) - 1)];
   const high = positive[Math.max(0, Math.ceil(positive.length * 0.95) - 1)];
   if (low === high) {
-    return values.map((value) => (Number.isFinite(value) && value > 0 ? HEATMAP_LEVELS : 0));
+    return values.map((value) => (Number.isFinite(value) && value > 0 ? 1 : 0));
   }
   const logLow = Math.log1p(low);
   const logRange = Math.log1p(high) - logLow;
@@ -78,40 +76,22 @@ export function tokenActivityLevels(values: readonly number[]): number[] {
     if (!Number.isFinite(value) || value <= 0) return 0;
     const clamped = Math.min(Math.max(value, low), high);
     const ratio = (Math.log1p(clamped) - logLow) / logRange;
-    return Math.max(1, Math.min(HEATMAP_LEVELS, 1 + Math.floor(ratio * HEATMAP_LEVELS)));
+    // Keep the quietest active day clear of the empty-cell color.
+    return Math.min(1, Math.max(0.02, ratio));
   });
 }
 
-/** The more attempts a bucket holds, the higher the success rate a green cell demands. */
-export function healthGreenThreshold(total: number): number {
-  return Math.min(0.99, 0.9 + 0.045 * Math.max(0, Math.log10(total / 10)));
-}
-
-/**
- * Red (1) through green (5); 0 means the bucket recorded no requests at all.
- * Amber is the caution band and reaches all the way to 90% success, so a day that lost more
- * than one request in ten never reads as healthy. The two failure bands below it split the
- * remaining range evenly.
- */
-export const HEALTH_AMBER_MAX_RATE = 0.9;
-export const HEALTH_ORANGE_MAX_RATE = 0.7;
-export const HEALTH_RED_MAX_RATE = 0.5;
-
-export function requestHealthLevel(succeeded: number, failed: number): number {
+export function requestHealthIntensity(succeeded: number, failed: number): number {
   const success = Number.isFinite(succeeded) && succeeded > 0 ? succeeded : 0;
   const failure = Number.isFinite(failed) && failed > 0 ? failed : 0;
   const total = success + failure;
-  if (total === 0) return 0;
-  const successRate = success / total;
-  if (successRate < HEALTH_RED_MAX_RATE) return 1;
-  if (successRate < HEALTH_ORANGE_MAX_RATE) return 2;
-  if (successRate < HEALTH_AMBER_MAX_RATE) return 3;
-  if (successRate < healthGreenThreshold(total)) return 4;
-  return HEATMAP_LEVELS;
+  // Negative intensity keeps no-attempt days distinct from real 0% success days in the renderer.
+  if (total === 0) return -1;
+  return success / total;
 }
 
-export const requestHealthLevels = (buckets: readonly ActivityBucket[]): number[] =>
-  buckets.map((bucket) => requestHealthLevel(bucket.succeeded, bucket.failed));
+export const requestHealthIntensities = (buckets: readonly ActivityBucket[]): number[] =>
+  buckets.map((bucket) => requestHealthIntensity(bucket.succeeded, bucket.failed));
 
 export type OverviewMetricKey = Exclude<ComparisonMetric, 'processing'>;
 
@@ -326,7 +306,7 @@ export const roundToTenth = (value: number) => Math.round(value * 10) / 10;
 
 /* ------------------------------------------------------------------ chart options */
 
-/** One heatmap cell: the local day, and the quantized level. */
+/** One heatmap cell: the local day, and its continuous color intensity. */
 export type CalendarDatum = [string, number];
 
 /** A local YYYY-MM-DD key; the calendar coordinate matches cells to days by this string. */
@@ -354,7 +334,7 @@ export function calendarHeatmapCells(data: CalendarDatum[]) {
     const date = new Date(`${day}T00:00:00Z`);
     return {
       day,
-      level,
+      intensity: level,
       row: date.getUTCDay(),
       column: Math.floor((date.getTime() - origin) / 604_800_000),
     };

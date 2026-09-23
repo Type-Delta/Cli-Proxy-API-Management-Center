@@ -20,9 +20,9 @@ import { formatNumber, formatPercent } from '../../components/analyticsFormattin
 import {
   calendarDay,
   calendarHeatmapCells,
-  requestHealthLevels,
+  requestHealthIntensities,
   summarizeActivityYear,
-  tokenActivityLevels,
+  tokenActivityIntensities,
   type YearSummary,
 } from './overviewModel';
 import styles from './Overview.module.scss';
@@ -37,34 +37,42 @@ const formatDay = (day: string, locale?: string) =>
     new Date(`${day}T00:00:00Z`)
   );
 
-const TOKEN_LEVEL_CLASSES = [
-  styles.tokenLevel0,
-  styles.tokenLevel1,
-  styles.tokenLevel2,
-  styles.tokenLevel3,
-  styles.tokenLevel4,
-  styles.tokenLevel5,
-];
+type ColorRamp = readonly (readonly [color: string, stop: number])[];
 
-const HEALTH_LEVEL_CLASSES = [
-  styles.healthLevel0,
-  styles.healthLevel1,
-  styles.healthLevel2,
-  styles.healthLevel3,
-  styles.healthLevel4,
-  styles.healthLevel5,
-];
+const TOKEN_RAMP = [
+  ['var(--viz-activity-1)', 0],
+  ['var(--viz-activity-5)', 1],
+] as const;
+const HEALTH_RAMP = [
+  ['var(--viz-health-1)', 0.4],
+  ['var(--viz-health-3)', 0.9],
+  ['var(--viz-health-5)', 1],
+] as const;
+
+const mixPercent = (ratio: number) => `${Math.round(ratio * 10_000) / 100}`;
+
+function mixRamp(ramp: ColorRamp, ratio: number) {
+  if (ratio < 0 || (ratio === 0 && ramp[0][1] === 0)) return 'var(--viz-empty-cell)';
+  const clamped = Math.min(1, ratio);
+  if (clamped <= ramp[0][1]) return ramp[0][0];
+  const upperIndex = ramp.findIndex(([, stop]) => clamped <= stop);
+  const segment = Math.max(0, (upperIndex < 0 ? ramp.length - 1 : upperIndex) - 1);
+  const [lowColor, lowStop] = ramp[segment];
+  const [highColor, highStop] = ramp[segment + 1];
+  const segmentRatio = (clamped - lowStop) / (highStop - lowStop);
+  return `color-mix(in oklab, ${highColor} ${mixPercent(segmentRatio)}%, ${lowColor})`;
+}
 
 // The endpoint labels name what the ramp encodes, so Request Health can say
 // "Unhealthy -> Healthy" while Token activity keeps "Less -> More".
 function HeatmapLegend({
   label,
-  classes,
+  ramp,
   low,
   high,
 }: {
   label: string;
-  classes: string[];
+  ramp: ColorRamp;
   low: string;
   high: string;
 }) {
@@ -72,8 +80,12 @@ function HeatmapLegend({
     <div className={styles.legend} aria-label={label}>
       <span>{low}</span>
       <span className={styles.legendScale} aria-hidden="true">
-        {classes.map((className, index) => (
-          <i className={`${styles.legendCell} ${className}`} key={index} />
+        {Array.from({ length: 6 }, (_, index) => (
+          <i
+            className={styles.legendCell}
+            style={{ background: mixRamp(ramp, index / 5) }}
+            key={index}
+          />
         ))}
       </span>
       <span>{high}</span>
@@ -183,8 +195,8 @@ export function fitActivityHeatmapWindow(
 function YearHeatmap({
   buckets,
   zone,
-  levels,
-  levelClasses,
+  intensities,
+  ramp,
   ariaLabel,
   tooltip,
   header,
@@ -193,8 +205,8 @@ function YearHeatmap({
 }: {
   buckets: ActivityBucket[];
   zone?: string;
-  levels: number[];
-  levelClasses: string[];
+  intensities: number[];
+  ramp: ColorRamp;
   ariaLabel: string;
   tooltip: (bucket: ActivityBucket, day: string) => DayTooltip;
   /** Rendered above the grid; both cards pass their totals strip here. */
@@ -256,10 +268,10 @@ function YearHeatmap({
       calendarHeatmapCells(
         buckets.flatMap((bucket, index) => {
           const day = calendarDay(bucket, zone);
-          return day ? [[day, levels[index] ?? 0] as [string, number]] : [];
+          return day ? [[day, intensities[index] ?? 0] as [string, number]] : [];
         })
       ),
-    [buckets, levels, zone]
+    [buckets, intensities, zone]
   );
   useLayoutEffect(() => {
     const scroller = scrollerRef.current;
@@ -320,9 +332,7 @@ function YearHeatmap({
       if (cancelled) return;
       const workspace = target.closest<HTMLElement>('[data-analytics-workspace]');
       const animations =
-        workspace && typeof workspace.getAnimations === 'function'
-          ? workspace.getAnimations()
-          : [];
+        workspace && typeof workspace.getAnimations === 'function' ? workspace.getAnimations() : [];
       const activeAnimations = animations.filter((animation) => animation.playState === 'running');
       if (!activeAnimations.length) {
         start();
@@ -404,12 +414,13 @@ function YearHeatmap({
                   }
                   className={`${styles.legendCell} ${styles.activityCell} ${
                     cell.column === windowed.columnCount - 1 ? styles.activityCellEnd : ''
-                  } ${levelClasses[cell.level]}`}
+                  }`}
                   style={
                     {
                       gridRow: cell.row + 2,
                       gridColumn: cell.column + 1,
                       '--activity-ripple-delay': `${activityRippleDelay(cell)}ms`,
+                      background: mixRamp(ramp, cell.intensity),
                     } as CSSProperties
                   }
                   onPointerMove={(event) => {
@@ -484,8 +495,8 @@ export function ActivityHeatmaps({
   const locale = i18n.resolvedLanguage;
   const buckets = activity?.buckets ?? [];
   const zone = activity?.zone;
-  const tokenLevels = tokenActivityLevels(buckets.map((bucket) => bucket.total_tokens));
-  const healthLevels = requestHealthLevels(buckets);
+  const tokenIntensities = tokenActivityIntensities(buckets.map((bucket) => bucket.total_tokens));
+  const healthIntensities = requestHealthIntensities(buckets);
   const totals = buckets.reduce(
     (result, bucket) => ({
       tokens: result.tokens + bucket.total_tokens,
@@ -565,8 +576,7 @@ export function ActivityHeatmaps({
           </h2>
           <p>
             {t('analytics.overview.activity_year_description', {
-              defaultValue:
-                'Token volume and request health for every day up to the last year.',
+              defaultValue: 'Token volume and request health for every day up to the last year.',
             })}
           </p>
         </div>
@@ -603,7 +613,7 @@ export function ActivityHeatmaps({
                     label={t('analytics.overview.token_legend', {
                       defaultValue: 'Token activity intensity, less to more',
                     })}
-                    classes={TOKEN_LEVEL_CLASSES}
+                    ramp={TOKEN_RAMP}
                     low={t('analytics.overview.less', { defaultValue: 'Less' })}
                     high={t('analytics.overview.more', { defaultValue: 'More' })}
                   />
@@ -612,8 +622,8 @@ export function ActivityHeatmaps({
                 <YearHeatmap
                   buckets={buckets}
                   zone={zone}
-                  levels={tokenLevels}
-                  levelClasses={TOKEN_LEVEL_CLASSES}
+                  intensities={tokenIntensities}
+                  ramp={TOKEN_RAMP}
                   ariaLabel={t('analytics.overview.token_grid', {
                     defaultValue: 'Token activity by time bucket',
                   })}
@@ -657,7 +667,7 @@ export function ActivityHeatmaps({
                     label={t('analytics.overview.health_legend_v2', {
                       defaultValue: 'Request health, unhealthy to healthy',
                     })}
-                    classes={HEALTH_LEVEL_CLASSES}
+                    ramp={HEALTH_RAMP}
                     low={t('analytics.overview.unhealthy', { defaultValue: 'Unhealthy' })}
                     high={t('analytics.overview.healthy', { defaultValue: 'Healthy' })}
                   />
@@ -666,8 +676,8 @@ export function ActivityHeatmaps({
                 <YearHeatmap
                   buckets={buckets}
                   zone={zone}
-                  levels={healthLevels}
-                  levelClasses={HEALTH_LEVEL_CLASSES}
+                  intensities={healthIntensities}
+                  ramp={HEALTH_RAMP}
                   ariaLabel={t('analytics.overview.health_grid', {
                     defaultValue: 'Request health by time bucket',
                   })}
