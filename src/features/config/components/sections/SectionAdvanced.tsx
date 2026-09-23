@@ -256,6 +256,17 @@ export function SectionAdvanced({ values, disabled, animateIn, onChange }: Confi
                   }
                 />
               </FieldAnchor>
+              <FieldAnchor fieldId="claudeHeaderOauthSafeguard">
+                <ToggleRow
+                  title={t('config_management.visual.sections.headers.oauth_safeguard')}
+                  description={t('config_management.visual.sections.headers.oauth_safeguard_desc')}
+                  checked={values.claudeHeaderOauthSafeguard}
+                  disabled={disabled}
+                  onChange={(claudeHeaderOauthSafeguard) =>
+                    onChange({ claudeHeaderOauthSafeguard })
+                  }
+                />
+              </FieldAnchor>
             </FieldGrid>
             <Divider />
             <FieldGroupHeading title={t('config_management.visual.sections.headers.codex_title')} />

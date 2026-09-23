@@ -2056,6 +2056,8 @@
           "timeout": "Timeout",
           "stabilize_device": "Стабилизировать профиль устройства",
           "stabilize_device_desc": "Фиксировать OS/Arch и стабилизировать программный отпечаток для учётных данных/API-ключа",
+          "oauth_safeguard": "Защита OAuth",
+          "oauth_safeguard_desc": "Перед включением запустите cli-proxy-api --claude-capture на хосте CPA, чтобы сохранить профиль OAuth Claude Code. Прямые OAuth-запросы к api.anthropic.com должны соответствовать этому локальному профилю; запросы блокируются до отправки в Anthropic, если профиль отсутствует или устарел.",
           "beta_features": "Beta Features"
         },
         "network": {

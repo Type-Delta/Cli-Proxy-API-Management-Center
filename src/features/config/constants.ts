@@ -187,6 +187,7 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   claudeHeaderArch: ['claudeHeaderArch'],
   claudeHeaderTimeout: ['claudeHeaderTimeout'],
   claudeHeaderStabilizeDeviceProfile: ['claudeHeaderStabilizeDeviceProfile'],
+  claudeHeaderOauthSafeguard: ['claudeHeaderOauthSafeguard'],
   codexHeaderUserAgent: ['codexHeaderUserAgent'],
   codexHeaderBetaFeatures: ['codexHeaderBetaFeatures'],
   // ── payload ───────────────────────────────────────────────────────────────

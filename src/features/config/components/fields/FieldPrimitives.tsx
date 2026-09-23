@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { configFieldDomId } from '../../searchIndex';
 import styles from './Field.module.scss';
@@ -21,13 +21,25 @@ export type ToggleRowProps = {
 };
 
 export function ToggleRow({ title, description, checked, disabled, onChange }: ToggleRowProps) {
+  const descriptionId = useId();
+
   return (
     <div className={styles.toggleRow}>
       <div className={styles.toggleCopy}>
         <div className={styles.toggleTitle}>{title}</div>
-        {description ? <div className={styles.toggleDescription}>{description}</div> : null}
+        {description ? (
+          <div id={descriptionId} className={styles.toggleDescription}>
+            {description}
+          </div>
+        ) : null}
       </div>
-      <ToggleSwitch checked={checked} onChange={onChange} disabled={disabled} ariaLabel={title} />
+      <ToggleSwitch
+        checked={checked}
+        onChange={onChange}
+        disabled={disabled}
+        ariaLabel={title}
+        ariaDescribedBy={description ? descriptionId : undefined}
+      />
     </div>
   );
 }

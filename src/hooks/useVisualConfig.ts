@@ -1156,6 +1156,7 @@ function getNextDirtyFields(
       'claudeHeaderArch',
       'claudeHeaderTimeout',
       'claudeHeaderStabilizeDeviceProfile',
+      'claudeHeaderOauthSafeguard',
       'codexHeaderUserAgent',
       'codexHeaderBetaFeatures',
       'host',
@@ -1476,6 +1477,7 @@ export function useVisualConfig() {
         claudeHeaderStabilizeDeviceProfile: Boolean(
           claudeHeaderDefaults?.['stabilize-device-profile']
         ),
+        claudeHeaderOauthSafeguard: Boolean(claudeHeaderDefaults?.['oauth-safeguard']),
         codexHeaderUserAgent:
           typeof codexHeaderDefaults?.['user-agent'] === 'string'
             ? codexHeaderDefaults['user-agent']
@@ -1842,7 +1844,8 @@ export function useVisualConfig() {
           dirtyFields.has('claudeHeaderOs') ||
           dirtyFields.has('claudeHeaderArch') ||
           dirtyFields.has('claudeHeaderTimeout') ||
-          dirtyFields.has('claudeHeaderStabilizeDeviceProfile');
+          dirtyFields.has('claudeHeaderStabilizeDeviceProfile') ||
+          dirtyFields.has('claudeHeaderOauthSafeguard');
         if (claudeHeadersDirty) {
           ensureMapInDoc(doc, ['claude-header-defaults']);
           if (dirtyFields.has('claudeHeaderUserAgent')) {
@@ -1880,6 +1883,13 @@ export function useVisualConfig() {
               doc,
               ['claude-header-defaults', 'stabilize-device-profile'],
               values.claudeHeaderStabilizeDeviceProfile
+            );
+          }
+          if (dirtyFields.has('claudeHeaderOauthSafeguard')) {
+            setBooleanInDoc(
+              doc,
+              ['claude-header-defaults', 'oauth-safeguard'],
+              values.claudeHeaderOauthSafeguard
             );
           }
           deleteIfMapEmpty(doc, ['claude-header-defaults']);

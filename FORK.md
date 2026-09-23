@@ -923,3 +923,17 @@ CDP checks at 1440x1050 and 390x844 found no transparent cells or page overflow.
 render produced 17 distinct Token Activity colors and 280 distinct Request Health colors; the
 mobile window produced 17 and 106 respectively. `bun run verify` passes 753 tests, TypeScript, and
 the production build; lint reports only the pre-existing `Select.tsx` warning.
+
+### DL049: Claude OAuth capture safeguard setting
+
+The Claude Header Defaults section exposes CPA's optional `oauth-safeguard`
+setting. Its description directs the operator to run `cli-proxy-api
+--claude-capture` as the CPA service user before enabling it and explains that
+missing or stale captures block direct Anthropic OAuth requests. Visual config
+loading and saving preserve the boolean; the setting appears in search and all
+four supported locales. Shared toggle controls show keyboard focus and connect
+descriptions to their checkboxes for assistive technology.
+
+Validation: focused config and accessibility tests pass. `bun run verify` passes
+757 tests, TypeScript, and the production build; lint retains the existing
+`Select.tsx` warning.

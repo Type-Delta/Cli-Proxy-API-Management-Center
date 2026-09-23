@@ -167,6 +167,7 @@ export type VisualConfigValues = {
   claudeHeaderArch: string;
   claudeHeaderTimeout: string;
   claudeHeaderStabilizeDeviceProfile: boolean;
+  claudeHeaderOauthSafeguard: boolean;
   codexHeaderUserAgent: string;
   codexHeaderBetaFeatures: string;
   payloadDefaultRules: PayloadRule[];
@@ -246,6 +247,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   claudeHeaderArch: '',
   claudeHeaderTimeout: '',
   claudeHeaderStabilizeDeviceProfile: false,
+  claudeHeaderOauthSafeguard: false,
   codexHeaderUserAgent: '',
   codexHeaderBetaFeatures: '',
   payloadDefaultRules: [],

@@ -48,6 +48,11 @@
   background: var(--primary-color);
 }
 
+.root input:focus-visible + .track {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 3px;
+}
+
 .root input:checked + .track .thumb {
   transform: translateX(20px);
 }

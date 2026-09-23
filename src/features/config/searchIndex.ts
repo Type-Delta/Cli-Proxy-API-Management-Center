@@ -504,6 +504,15 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     yamlKeys: ['claude-header-defaults', 'stabilize-device-profile'],
     keywords: ['claude'],
   },
+  {
+    fieldId: 'claudeHeaderOauthSafeguard',
+    sectionId: 'advanced',
+    labelKey: L('sections.headers.oauth_safeguard'),
+    qualifierKey: L('sections.headers.claude_title'),
+    hintKey: L('sections.headers.oauth_safeguard_desc'),
+    yamlKeys: ['claude-header-defaults', 'oauth-safeguard'],
+    keywords: ['claude', 'oauth', 'reference', 'client'],
+  },
   // Codex header defaults.
   {
     fieldId: 'codexHeaderUserAgent',
