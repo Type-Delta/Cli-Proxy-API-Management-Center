@@ -12,6 +12,8 @@ export interface ApiCallRequest {
   url: string;
   header?: Record<string, string>;
   data?: string;
+  /** Bypass management-side quota response caching for a fresh upstream read. */
+  force_refresh?: boolean;
 }
 
 export interface ApiCallResult<T = unknown> {

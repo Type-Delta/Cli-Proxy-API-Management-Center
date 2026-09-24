@@ -2,7 +2,7 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-09-23
+Last updated: 2026-09-24
 
 ## Repository relationship
 
@@ -942,3 +942,14 @@ Validation: focused config, accessibility, and four-locale copy tests pass.
 retains the existing `Select.tsx` warning. Chrome CDP verified the rendered
 description on desktop and at a 390px mobile viewport without horizontal
 overflow.
+
+### DL050: Fresh Codex usage on Refresh all
+
+The Quota page's "Refresh all credentials" action asks CPA to bypass its cached
+Codex usage response. CPA can then read an upstream auto reset and restore the
+credential's routing availability. Ordinary card loads retain the shared quota
+cache, and the manual reset still consumes its upstream reset credit through the
+existing action.
+
+Validation: the Codex quota test checks the fresh-read request flag. `bun run
+verify` passes 759 tests, lint, TypeScript, and the production build.

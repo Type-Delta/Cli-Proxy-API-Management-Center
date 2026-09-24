@@ -37,7 +37,7 @@ import {
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
 import { blockedQuotaWindowIds, type QuotaWindowFamily } from '../../windowGating';
-import type { QuotaProviderData } from '../types';
+import type { QuotaFetchOptions, QuotaProviderData } from '../types';
 
 const CODEX_RESET_CREDITS_REQUEST_TIMEOUT_MS = 8000;
 
@@ -372,7 +372,11 @@ const fetchCodexResetCredits = async (
   }
 };
 
-const fetchCodexQuota = async (file: AuthFileItem, t: TFunction): Promise<CodexQuotaData> => {
+const fetchCodexQuota = async (
+  file: AuthFileItem,
+  t: TFunction,
+  options?: QuotaFetchOptions
+): Promise<CodexQuotaData> => {
   const rawAuthIndex = file['auth_index'] ?? file.authIndex;
   const authIndex = normalizeAuthIndex(rawAuthIndex);
   if (!authIndex) {
@@ -388,6 +392,7 @@ const fetchCodexQuota = async (file: AuthFileItem, t: TFunction): Promise<CodexQ
     method: 'GET',
     url: CODEX_USAGE_URL,
     header: requestHeader,
+    force_refresh: options?.forceRefresh || undefined,
   });
 
   if (result.statusCode < 200 || result.statusCode >= 300) {

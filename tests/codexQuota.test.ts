@@ -1,8 +1,13 @@
-import { describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, test } from 'bun:test';
 import type { TFunction } from 'i18next';
 import { CODEX_CONFIG, buildCodexQuotaWindows } from '@/features/quota/providers/codex/data';
+import { apiCallApi, type ApiCallRequest, type ApiCallResult } from '@/services/api';
 import type { CodexQuotaState, CodexUsagePayload } from '@/types';
-import { normalizeCodexResetCreditsPayload, parseCodexUsagePayload } from '@/utils/quota';
+import {
+  CODEX_USAGE_URL,
+  normalizeCodexResetCreditsPayload,
+  parseCodexUsagePayload,
+} from '@/utils/quota';
 
 const t = ((key: string) => key) as TFunction;
 
@@ -43,7 +48,37 @@ const CURRENT_CODEX_USAGE_PAYLOAD: CodexUsagePayload = {
   },
 };
 
+const originalApiCallRequest = apiCallApi.request;
+const apiCallResult = (statusCode: number, body: unknown): ApiCallResult => ({
+  statusCode,
+  header: {},
+  bodyText: JSON.stringify(body),
+  body,
+});
+
+afterEach(() => {
+  apiCallApi.request = originalApiCallRequest;
+});
+
 describe('Codex current usage payload', () => {
+  test('can bypass cached usage when refreshing all credentials', async () => {
+    const requests: ApiCallRequest[] = [];
+    apiCallApi.request = async (request) => {
+      requests.push(request);
+      return request.url === CODEX_USAGE_URL
+        ? apiCallResult(200, CURRENT_CODEX_USAGE_PAYLOAD)
+        : apiCallResult(503, { error: 'reset credits unavailable' });
+    };
+
+    await CODEX_CONFIG.fetchQuota(
+      { name: 'codex.json', type: 'codex', auth_index: 'codex-auth-index' },
+      t,
+      { forceRefresh: true }
+    );
+
+    expect(requests.find(({ url }) => url === CODEX_USAGE_URL)?.force_refresh).toBe(true);
+  });
+
   test('parses the proxied JSON body and classifies both primary weekly windows', () => {
     const payload = parseCodexUsagePayload(JSON.stringify(CURRENT_CODEX_USAGE_PAYLOAD));
     expect(payload).not.toBeNull();

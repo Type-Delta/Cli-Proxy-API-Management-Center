@@ -19,6 +19,10 @@ import type {
 
 export type QuotaUpdater<T> = T | ((prev: T) => T);
 
+export interface QuotaFetchOptions {
+  forceRefresh?: boolean;
+}
+
 export type QuotaProviderType =
   'antigravity' | 'claude' | 'codex' | 'kimi' | 'opencode-go' | 'xai' | 'zai';
 
@@ -45,7 +49,7 @@ export interface QuotaProviderData<TState, TData> {
   type: QuotaProviderType;
   i18nPrefix: string;
   filterFn: (file: AuthFileItem) => boolean;
-  fetchQuota: (file: AuthFileItem, t: TFunction) => Promise<TData>;
+  fetchQuota: (file: AuthFileItem, t: TFunction, options?: QuotaFetchOptions) => Promise<TData>;
   resetQuota?: (file: AuthFileItem, t: TFunction) => Promise<TData>;
   canResetQuota?: (quota: TState) => boolean;
   storeSelector: (state: QuotaStore) => Record<string, TState>;

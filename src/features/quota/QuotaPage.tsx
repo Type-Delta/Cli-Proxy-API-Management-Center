@@ -226,7 +226,7 @@ export function QuotaPage() {
     if (loading || !wasLoading) return;
 
     pendingRefreshRef.current = false;
-    void loadQuota(pageItems);
+    void loadQuota(pageItems, { forceRefresh: true });
   }, [loading, loadQuota, pageItems]);
 
   const canUseActions = !disableControls && !loading;
