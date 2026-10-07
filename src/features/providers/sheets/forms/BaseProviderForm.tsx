@@ -21,7 +21,7 @@ import { hasDisableAllModelsRule } from '@/components/providers/utils';
 import type { GeminiKeyConfig, OpenAIProviderConfig, ProviderKeyConfig } from '@/types';
 import type { ModelInfo } from '@/utils/models';
 import { PROVIDER_DESCRIPTORS } from '../../descriptors';
-import { readThinkingLevels } from '../../thinkingLevels';
+import { mergeDiscoveredModels } from '../../modelEntries';
 import type {
   ApiKeyEntryInput,
   ModelEntryInput,
@@ -36,9 +36,13 @@ import { ConnectivityStatusIcon } from './ConnectivityStatusIcon';
 import { ApiKeyEntriesEditor } from './ApiKeyEntriesEditor';
 import { ModelEntriesEditor } from './ModelEntriesEditor';
 import styles from './sharedForm.module.scss';
-import { CLAUDE_API_BASE_URL } from '../../claudeApi';
 import { MAX_CREDENTIAL_WEIGHT } from '@/utils/credentialWeight';
 import { getPricingCatalogCache, loadPricingCatalogProviders } from '../../pricingCatalogCache';
+import { readRuntimePolicy, validateRuntimePolicy } from '../../runtimePolicy';
+import { readModelOptions, validateModelOptions } from '../../modelOptions';
+import { RuntimePolicyEditor } from './RuntimePolicyEditor';
+import { ProviderBehaviorEditor } from './ProviderBehaviorEditor';
+import { pickProviderBehavior } from '../../providerBehavior';
 
 /** 模块级常量，免得每次渲染都给 picker 一个新数组引用。 */
 const DISABLE_ALL_RULES = [DISABLE_ALL_RULE];
@@ -61,6 +65,7 @@ const emptyApiKeyEntry = (): ApiKeyEntryInput => ({
   proxyUrl: '',
   weight: undefined,
 });
+const META_API_BASE_URL = 'https://api.meta.ai/v1';
 const XAI_API_BASE_URL = 'https://api.x.ai/v1';
 
 const stripDisableAllRule = (list?: string[]): string[] =>
@@ -76,8 +81,7 @@ const formatCatalogUpdatedAt = (value: string): string => {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 };
 
-const isClaudeLikeBrand = (brand: ProviderBrand): boolean =>
-  brand === 'claude' || brand === 'claudeApi';
+const isClaudeLikeBrand = (brand: ProviderBrand): boolean => brand === 'claude';
 
 function buildInitialForm(
   brand: ProviderBrand,
@@ -90,12 +94,12 @@ function buildInitialForm(
       apiKey: '',
       label: '',
       name: '',
-      baseUrl:
-        brand === 'claudeApi' ? CLAUDE_API_BASE_URL : brand === 'xai' ? XAI_API_BASE_URL : '',
+      baseUrl: brand === 'meta' ? META_API_BASE_URL : brand === 'xai' ? XAI_API_BASE_URL : '',
       proxyUrl: '',
       prefix: '',
       disabled: false,
-      disableCooling: false,
+      disableCooling: undefined,
+      runtimePolicy: readRuntimePolicy(),
       priority: undefined,
       weight: undefined,
       models: [emptyModel()],
@@ -109,6 +113,7 @@ function buildInitialForm(
       testModel:
         brand === 'openaiCompatibility' ||
         brand === 'codex' ||
+        brand === 'meta' ||
         brand === 'xai' ||
         isClaudeLikeBrand(brand) ||
         brand === 'gemini' ||
@@ -132,17 +137,20 @@ function buildInitialForm(
       proxyUrl: '',
       prefix: cfg.prefix ?? '',
       disabled: cfg.disabled === true,
-      disableCooling: cfg.disableCooling === true,
+      disableCooling: cfg.disableCooling,
+      runtimePolicy: readRuntimePolicy(cfg),
+      ...pickProviderBehavior(cfg, brand),
       priority: cfg.priority,
       models: cfg.models?.length
         ? cfg.models.map((m) => ({
+            sourceIndex: m.sourceIndex,
             name: m.name,
             alias: m.alias ?? '',
             priority: m.priority,
             testModel: m.testModel,
             image: m.image === true,
             thinkingJson: formatJsonObject(m.thinking),
-            thinkingLevels: readThinkingLevels(m.thinking),
+            ...readModelOptions(m),
           }))
         : [emptyModel()],
       headers: cfg.headers
@@ -155,6 +163,7 @@ function buildInitialForm(
             apiKey: '',
             existingApiKey: entry.apiKey,
             label: entry.label ?? '',
+            sourceIndex: entry.sourceIndex,
             proxyUrl: entry.proxyUrl ?? '',
             weight: entry.weight,
             authIndex: entry.authIndex,
@@ -180,17 +189,20 @@ function buildInitialForm(
     proxyUrl: cfg.proxyUrl ?? '',
     prefix: cfg.prefix ?? '',
     disabled,
-    disableCooling: cfg.disableCooling === true,
+    disableCooling: cfg.disableCooling,
+    runtimePolicy: readRuntimePolicy(cfg),
+    ...pickProviderBehavior(cfg, brand),
     priority: cfg.priority,
     weight: cfg.weight,
     models: cfg.models?.length
       ? cfg.models.map((m) => ({
+          sourceIndex: m.sourceIndex,
           name: m.name,
           alias: m.alias ?? '',
           priority: m.priority,
           testModel: m.testModel,
           thinkingJson: formatJsonObject(m.thinking),
-          thinkingLevels: readThinkingLevels(m.thinking),
+          ...readModelOptions(m),
         }))
       : [emptyModel()],
     headers: cfg.headers
@@ -214,6 +226,7 @@ function buildInitialForm(
       : undefined,
     testModel:
       brand === 'codex' ||
+      brand === 'meta' ||
       brand === 'xai' ||
       isClaudeLikeBrand(brand) ||
       brand === 'gemini' ||
@@ -339,6 +352,7 @@ export function BaseProviderForm({
     {
       brand,
       baseUrl: form.baseUrl,
+      proxyUrl: form.proxyUrl,
       testModel: form.testModel,
       models: form.models,
       formHeaders: form.headers,
@@ -353,6 +367,7 @@ export function BaseProviderForm({
   const discovery = useModelDiscovery({
     brand,
     baseUrl: form.baseUrl,
+    proxyUrl: form.proxyUrl,
     formHeaders: form.headers,
     apiKeyEntries: form.apiKeyEntries,
     apiKey: form.apiKey,
@@ -408,35 +423,7 @@ export function BaseProviderForm({
 
   const applyDiscoveredModels = (incoming: ModelInfo[]) => {
     if (!incoming.length) return;
-    setForm((prev) => {
-      const seen = new Set<string>();
-      const next: ModelEntryInput[] = [];
-      prev.models.forEach((entry) => {
-        const trimmed = (entry.name ?? '').trim();
-        if (trimmed) {
-          if (seen.has(trimmed)) return;
-          seen.add(trimmed);
-        }
-        next.push(entry);
-      });
-      // If the existing list is just an empty placeholder row, drop it.
-      const placeholderIdx = next.findIndex(
-        (it) => !(it.name ?? '').trim() && !(it.alias ?? '').trim()
-      );
-      if (placeholderIdx !== -1) {
-        next.splice(placeholderIdx, 1);
-      }
-      incoming.forEach((info) => {
-        const trimmed = info.name.trim();
-        if (!trimmed || seen.has(trimmed)) return;
-        seen.add(trimmed);
-        next.push({
-          name: trimmed,
-          alias: (info.alias ?? '').trim(),
-        });
-      });
-      return { ...prev, models: next };
-    });
+    setForm((prev) => ({ ...prev, models: mergeDiscoveredModels(prev.models, incoming) }));
   };
 
   const updateField = <K extends keyof ProviderEntryFormInput>(
@@ -465,6 +452,15 @@ export function BaseProviderForm({
   };
 
   const validate = (): string | null => {
+    const modelError = validateModelOptions(form.models);
+    if (modelError) return t(modelError);
+    if (form.runtimePolicy) {
+      const policyError = validateRuntimePolicy(
+        form.runtimePolicy,
+        descriptor.supportsRequestScopedErrors
+      );
+      if (policyError) return t(policyError);
+    }
     if (descriptor.supportsName && !form.name.trim()) {
       return t('providersPage.form.validation.nameRequired');
     }
@@ -553,16 +549,9 @@ export function BaseProviderForm({
         ? 'unavailable'
         : 'ready';
   const actualApiKeyEntries = form.apiKeyEntries ?? [];
-  const supportsDisableCooling =
-    brand === 'gemini' ||
-    brand === 'interactions' ||
-    brand === 'codex' ||
-    brand === 'xai' ||
-    isClaudeLikeBrand(brand) ||
-    brand === 'openaiCompatibility';
   const supportsModelImage = brand === 'openaiCompatibility';
   const singleConnectivity =
-    brand === 'codex' || brand === 'xai'
+    brand === 'codex' || brand === 'meta' || brand === 'xai'
       ? { status: connectivity.codexStatus, run: connectivity.runCodex }
       : brand === 'gemini' || brand === 'interactions'
         ? { status: connectivity.geminiStatus, run: connectivity.runGemini }
@@ -766,6 +755,7 @@ export function BaseProviderForm({
             <label className={styles.label} htmlFor={`${fid}-testModel`}>
               {t('providersPage.form.testModel')}
               {brand === 'codex' ||
+              brand === 'meta' ||
               brand === 'xai' ||
               isClaudeLikeBrand(brand) ||
               brand === 'gemini' ||
@@ -843,23 +833,20 @@ export function BaseProviderForm({
             </span>
           </label>
         ) : null}
-
-        {supportsDisableCooling ? (
-          <label className={styles.checkboxRow}>
-            <input
-              type="checkbox"
-              className={styles.checkboxBox}
-              checked={form.disableCooling ?? false}
-              disabled={mutating}
-              onChange={(e) => updateField('disableCooling', e.target.checked)}
-            />
-            <span className={styles.checkboxText}>
-              <span>{t('providersPage.form.disableCooling')}</span>
-              <small>{t('providersPage.form.disableCoolingHint')}</small>
-            </span>
-          </label>
-        ) : null}
       </div>
+
+      <ProviderBehaviorEditor
+        brand={brand}
+        value={form}
+        onChange={(patch) => setForm((current) => ({ ...current, ...patch }))}
+        disabled={mutating}
+      />
+      <RuntimePolicyEditor
+        value={form.runtimePolicy ?? readRuntimePolicy()}
+        onChange={(value) => updateField('runtimePolicy', value)}
+        disabled={mutating}
+        supportsErrors={descriptor.supportsRequestScopedErrors}
+      />
 
       {/* 高级折叠区 */}
       {descriptor.supportsApiKeyEntries && form.apiKeyEntries ? (
@@ -1050,6 +1037,7 @@ export function BaseProviderForm({
               />
             ) : null}
             <ModelEntriesEditor
+              providerBrand={brand}
               models={modelsList}
               supportsImage={supportsModelImage}
               supportsThinking

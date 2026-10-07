@@ -7,8 +7,10 @@ import type { AuthFileItem } from '@/types';
 import { ANTIGRAVITY_CONFIG } from './providers/antigravity/data';
 import { CLAUDE_CONFIG } from './providers/claude/data';
 import { CODEX_CONFIG } from './providers/codex/data';
+import { DEVIN_CONFIG } from './providers/devin/data';
 import { KIMI_CONFIG } from './providers/kimi/data';
 import { OPENCODE_GO_CONFIG } from './providers/opencode-go/data';
+import { META_CONFIG } from './providers/meta/data';
 import { XAI_CONFIG } from './providers/xai/data';
 import { ZAI_CONFIG } from './providers/zai/data';
 import type { QuotaProviderType } from './providers/types';
@@ -18,8 +20,10 @@ const QUOTA_FILTER_MAP: Record<QuotaProviderType, (file: AuthFileItem) => boolea
   antigravity: ANTIGRAVITY_CONFIG.filterFn,
   claude: CLAUDE_CONFIG.filterFn,
   codex: CODEX_CONFIG.filterFn,
+  devin: DEVIN_CONFIG.filterFn,
   kimi: KIMI_CONFIG.filterFn,
   'opencode-go': OPENCODE_GO_CONFIG.filterFn,
+  meta: META_CONFIG.filterFn,
   xai: XAI_CONFIG.filterFn,
   zai: ZAI_CONFIG.filterFn,
 };
@@ -27,6 +31,19 @@ const QUOTA_FILTER_MAP: Record<QuotaProviderType, (file: AuthFileItem) => boolea
 export interface QuotaFileEntry {
   file: AuthFileItem;
   type: QuotaProviderType;
+}
+
+/** A refresh-all intent belongs to the session that requested a successful list read. */
+export function canRefreshQuotaAfterList(
+  requestedSession: number,
+  currentSession: number,
+  filesSession: number | null,
+  hasError: boolean,
+  disabled: boolean
+): boolean {
+  return (
+    !disabled && !hasError && requestedSession === currentSession && filesSession === currentSession
+  );
 }
 
 export const resolveQuotaProviderType = (file: AuthFileItem): QuotaProviderType | null =>
@@ -51,6 +68,17 @@ export function classifyQuotaFiles(files: AuthFileItem[]): QuotaFileEntry[] {
 export function filterEntriesByTab(entries: QuotaFileEntry[], tab: QuotaTabId): QuotaFileEntry[] {
   if (tab === 'all') return entries;
   return entries.filter((entry) => entry.type === tab);
+}
+
+/** Search public account identifiers only; account may contain an API key. */
+export function filterEntriesBySearch(entries: QuotaFileEntry[], search: string): QuotaFileEntry[] {
+  const query = search.trim().toLowerCase();
+  if (!query) return entries;
+  return entries.filter(({ file }) =>
+    [file.name, file.email].some(
+      (value) => typeof value === 'string' && value.toLowerCase().includes(query)
+    )
+  );
 }
 
 /**

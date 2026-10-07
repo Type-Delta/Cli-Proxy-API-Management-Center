@@ -9,6 +9,7 @@ import {
   type ReactNode,
   type CSSProperties,
   type KeyboardEvent,
+  type AriaAttributes,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Skeleton } from './Skeleton';
@@ -32,6 +33,7 @@ interface CommonSelectProps {
   ariaLabel?: string;
   ariaLabelledBy?: string;
   ariaDescribedBy?: string;
+  ariaInvalid?: AriaAttributes['aria-invalid'];
   fullWidth?: boolean;
   size?: 'sm' | 'md' | 'lg';
   id?: string;
@@ -123,6 +125,7 @@ export function Select(props: SelectProps) {
     ariaLabel,
     ariaLabelledBy,
     ariaDescribedBy,
+    ariaInvalid,
     fullWidth = true,
     size = 'md',
     id,
@@ -171,7 +174,7 @@ export function Select(props: SelectProps) {
     setQuery('');
     setHighlightedIndex(-1);
     if (restoreFocus && typeof window !== 'undefined')
-      window.requestAnimationFrame(() => triggerRef.current?.focus());
+      window.requestAnimationFrame(() => triggerRef.current?.focus({ preventScroll: true }));
   }, []);
 
   useEffect(() => {
@@ -248,6 +251,7 @@ export function Select(props: SelectProps) {
       props.onChange(option.value);
       close();
       setHighlightedIndex(index);
+      triggerRef.current?.focus({ preventScroll: true });
     },
     [close, props, visibleOptions]
   );
@@ -281,6 +285,7 @@ export function Select(props: SelectProps) {
         else if (resolvedIndex >= 0) commit(resolvedIndex);
       } else if (event.key === 'Escape' && isOpen) {
         event.preventDefault();
+        event.stopPropagation();
         if (searchable && query) {
           setQuery('');
           setHighlightedIndex(0);
@@ -293,7 +298,6 @@ export function Select(props: SelectProps) {
       isDisabled,
       isOpen,
       move,
-      multiple,
       optionCount,
       query,
       resolvedIndex,
@@ -316,10 +320,11 @@ export function Select(props: SelectProps) {
   const isPlaceholder = !multiple && !selectedOption && placeholder;
   const loading = Boolean(props.loading);
   const accessibleText = loading ? props.loadingLabel : displayText;
-  const triggerLabelledBy = ariaLabelledBy ? `${ariaLabelledBy} ${valueId}` : undefined;
-  const triggerAriaLabel = triggerLabelledBy
-    ? undefined
-    : [ariaLabel, accessibleText].filter(Boolean).join(' ') || undefined;
+  const triggerLabelledBy = ariaLabelledBy;
+  // Keep the supplied control name stable. The selected value is already exposed by the
+  // labelled value span, and appending it to aria-label makes validation and imported values
+  // produce changing names such as "Action <unknown>".
+  const triggerAriaLabel = ariaLabel || (!triggerLabelledBy ? accessibleText : undefined);
   let resolvedTruncatedLabel: string | undefined;
   if (props.mode === 'multiple') {
     resolvedTruncatedLabel =
@@ -484,6 +489,7 @@ export function Select(props: SelectProps) {
           aria-label={triggerAriaLabel}
           aria-labelledby={triggerLabelledBy}
           aria-describedby={ariaDescribedBy}
+          aria-invalid={ariaInvalid}
           aria-busy={loading || undefined}
           disabled={isDisabled}
         >

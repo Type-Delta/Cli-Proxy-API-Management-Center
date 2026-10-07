@@ -1,5 +1,5 @@
-import { memo, useCallback, useEffect, useId, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { memo, useCallback, useContext, useEffect, useId, useMemo, useState } from 'react';
+import { UNSAFE_LocationContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -40,7 +40,11 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   onChange: (nextValue: string, nextLabels: string[]) => void;
 }) {
   const { t } = useTranslation();
-  const location = useLocation();
+  // The editor also renders in static config-field previews and tests without a Router.
+  // Reading the context directly keeps those renders safe while still resetting revealed
+  // rows whenever the live router changes location.
+  const locationContext = useContext(UNSAFE_LocationContext);
+  const locationPathname = locationContext?.location.pathname ?? '';
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
   const showNotification = useNotificationStore((state) => state.showNotification);
   const showConfirmation = useNotificationStore((state) => state.showConfirmation);
@@ -93,7 +97,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   useEffect(() => {
     void refreshContract();
   }, [refreshContract]);
-  useEffect(() => setRevealedRows(new Set()), [location.pathname, connectionStatus]);
+  useEffect(() => setRevealedRows(new Set()), [locationPathname, connectionStatus]);
 
   const shortIds = useMemo(
     () => collisionSafeShortKeyIds(contract.identities.map((identity) => identity.key_id)),

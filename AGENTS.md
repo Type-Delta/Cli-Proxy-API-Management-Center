@@ -44,8 +44,9 @@ If you are tasked with syncing this fork with upstream:
 
 ## Project Scope & Structure
 
-This is a React 19 + TypeScript + Vite management frontend for CLI Proxy API, not the proxy itself.
-It talks to the backend Management API under `/v0/management`.
+This is a React 19 + TypeScript + Vite management frontend for CLI Proxy API, not the proxy itself. It exclusively uses the backend v8 Management API under `/v8/management` and the v8 configuration layout; do not add v0 fallbacks or legacy config adapters.
+Fork-only CPA routes (`/capabilities`, `/analytics/*`, `/api-keys`, `/api-key-limits`) are
+addressed relative to the same v8 base; the public analytics viewer keeps `/v0/analytics/viewer`. Plugin resources and custom HTTP extensions are exceptions: preserve their backend-declared paths.
 
 - `src/features/`: feature-owned pages, components, hooks, types, and logic. Current features include `dashboard`, `providers`, `authFiles`, `quota`, `config`, `plugins`, and Analytics.
 - `src/pages/`: existing route pages outside the feature layout. Follow nearby conventions when modifying these; do not migrate unrelated code.
@@ -57,7 +58,7 @@ It talks to the backend Management API under `/v0/management`.
 - `src/styles/`: global styles and theme tokens. Component-specific SCSS Modules stay beside their component.
 - `src/assets/`: bundled assets, including provider icons in `icons/`.
 - `src/router/`: application routes.
-- `src/i18n/locales/`: English, Simplified Chinese, Traditional Chinese, and Russian locale files.
+- `src/i18n/locales/`: English, Simplified Chinese, Traditional Chinese, Russian, and Vietnamese locale files.
 - `tests/`: Bun tests.
 - `dist/index.html`: the single-file production artifact.
 
@@ -114,7 +115,7 @@ falling back to `dev`.
 - Name component files in PascalCase, hooks with a `use` prefix, and API modules by domain.
 - Keep API modules grouped by domain. Place SCSS Modules beside the component or page that owns them.
 - Reuse shared components and existing theme tokens before adding new primitives or hard-coded colors. Vite injects `src/styles/variables.scss` into SCSS modules.
-- Keep user-facing text in i18n and update all four locales, including accessible labels, when adding translation keys.
+- Keep user-facing text in i18n and update all five locales, including accessible labels, when adding translation keys.
 - Preserve keyboard interaction, accessible names, focus behavior, and reduced-motion handling when modifying interactive UI.
 - Preserve unknown backend fields when reading and writing configuration.
 - Do not put raw API keys, management keys, viewer credentials, or full key IDs in URLs, logs, browser storage, error reports, or console output. Keep raw API keys concealed until an administrator explicitly reveals or copies one.

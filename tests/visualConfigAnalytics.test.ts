@@ -236,7 +236,8 @@ describe('visual analytics configuration', () => {
     const source = [
       '# root one',
       '# root two',
-      'host: old',
+      'server:',
+      '  host: old',
       'section:',
       '  # child one',
       '  # child two',
@@ -269,7 +270,7 @@ describe('visual analytics configuration', () => {
     const markup = renderToStaticMarkup(createElement(Harness));
     const output = decodeURIComponent(markup.slice('<pre>'.length, -'</pre>'.length));
     expect(output).not.toContain('\r');
-    expect(output).toContain('# root one\n# root two\nhost: new');
+    expect(output).toContain('# root one\n# root two\nserver:\n  host: new');
     expect(output).toContain('  # child one\n  # child two\n  key: value');
   });
 });

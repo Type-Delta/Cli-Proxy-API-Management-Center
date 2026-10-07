@@ -12,15 +12,17 @@ import {
 describe('inbound API-key contracts', () => {
   test('reads string and structured entries without coercing objects', () => {
     const config = normalizeConfigResponse({
-      'api-keys': [
-        'sk-old',
-        {
-          key: 'sk-limited',
-          label: 'Production 🚀',
-          limits: { 'max-requests': 20, future_limit: true },
-          future_entry: { mode: 'strict' },
-        },
-      ],
+      access: {
+        'api-keys': [
+          'sk-old',
+          {
+            key: 'sk-limited',
+            label: 'Production 🚀',
+            limits: { 'max-requests': 20, future_limit: true },
+            future_entry: { mode: 'strict' },
+          },
+        ],
+      },
     });
 
     expect(config.apiKeys).toEqual([

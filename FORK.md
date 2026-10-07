@@ -2,25 +2,28 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-09-24
+Last updated: 2026-10-07
 
 ## Repository relationship
 
 - Fork: https://github.com/Type-Delta/Cli-Proxy-API-Management-Center
 - Upstream: https://github.com/router-for-me/Cli-Proxy-API-Management-Center
 - Initial fork head: `d249ff008e0bc2803deb23fb3e2c62418a1e8d17`
-- Current upstream base: `ed5f1c48e11ba7335f1e8f676f228c280196af85`
-- Upstream release at the base: `v1.22.15`
+- Current upstream base: `6abace9ffb83a9ac349464ded04bb4e7f7cb309e`
+- Upstream release at the base: `v1.25.4`
 
 The fork uses append-only merge history. Routine upstream syncs merge official history into `main`; they do not rebase or force-push published commits.
 
 ## Current divergence
 
-The 2026-09-09 sync preserves the divergence entries below while incorporating upstream's
-OAuth provider cards, quick-fill filtering, sidebar shortcut, Russian translations, and
-Antigravity sensitive-word settings. The fork's provider logos, analytics workspace, structured
-key handling, and YAML-preserving configuration updates remain active. The event detail sheet
-continues to read `upstream_usage_raw` and use arrival-to-response timing for its total.
+The in-progress 2026-10-07 sync preserves the divergence entries below while incorporating
+upstream through `6abace9` (`v1.25.4`). The fork's provider logos, analytics workspace,
+structured key handling, and YAML-preserving configuration updates remain active alongside
+upstream's provider, quota, OAuth, localization, and configuration fixes. The CPAMC contract
+continues to use `/v8/management` and the v8 YAML tree: fork routes `/capabilities`,
+`/analytics/*`, revisioned `/api-keys`, and `/api-key-limits` are relative to that base, while
+the public analytics viewer remains `/v0/analytics/viewer`. No browser verification is recorded
+here; the parent CPA integration and live browser pass remain root-owned.
 
 ### DL001: Fork maintenance convention
 
@@ -239,8 +242,13 @@ The four CPAMC locale files were re-synced for the round: the four `analytics.ra
 
 ## Upstream comparison
 
-The 2026-09-09 sync starts at `ef9606a` with 34 fork commits and 23 incoming upstream commits.
-It merges `ed5f1c4` without rewriting existing history.
+The in-progress 2026-10-07 sync starts at `d6b64f8c85b2a3c42d728dfc0a0f271234a27384`
+with 53 fork commits and 103 incoming upstream commits. It merges `6abace9` (`v1.25.4`)
+without rewriting existing history. The resolved worktree remains in the merge state with
+`MERGE_HEAD=6abace9`; no merge commit is created by this handoff.
+
+The preceding 2026-09-09 sync started at `ef9606a` with 34 fork commits and 23 incoming
+upstream commits and merged `ed5f1c4`.
 
 Before the initial sync, from `d249ff008e0bc2803deb23fb3e2c62418a1e8d17`:
 
@@ -250,7 +258,7 @@ git rev-list --left-right --count origin/main...upstream/main
 
 Result: `0 2`. The fork had no unique commits and was two upstream commits behind.
 
-After the merge commit and before adding fork documentation:
+After the 2026-09-09 merge commit and before adding fork documentation:
 
 ```bash
 git rev-list --left-right --count main...upstream/main
@@ -263,6 +271,7 @@ Result: `1 0`. The merge-forward record was one commit ahead and no commits behi
 | Date | Fork before sync | Upstream merged | Merge commit | Before count | After count | Validation |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-08-31 | `d249ff008e0bc2803deb23fb3e2c62418a1e8d17` | `e0ee7123dfb5aa89a14ff73ac5a5c3bf4db658e0` | `c1a2044` | `0 2` | `1 0` | Bun 1.3.14: 424 tests, lint, type-check/build passed |
+| 2026-10-07 | `d6b64f8c85b2a3c42d728dfc0a0f271234a27384` | `6abace9ffb83a9ac349464ded04bb4e7f7cb309e` (`v1.25.4`) | pending (`MERGE_HEAD=6abace9`) | `53 103` | pending; expected `53 0` after merge commit | `bun run verify`: 1,824 tests, lint, type-check/build passed; browser check pending |
 
 ### 2026-09-09 - Merge upstream `main` at `ed5f1c4`
 
@@ -277,6 +286,23 @@ pages, OAuth editors, and analytics on desktop and mobile, with no reported brow
 horizontal overflow. Event fixtures confirm raw payload rendering and the routing-inclusive
 total. These browser checks use the existing development backend; merged CPA behavior is
 validated separately with the Go test suite and build. Independent review found no additional frontend issues.
+
+### 2026-10-07 - Merge upstream `main` at `6abace9`
+
+The resolved merge combines 103 upstream commits with the fork's 53 commits. Upstream fixes
+take precedence where behavior overlaps; fork-only analytics, structured API-key, provider
+workbench, quota, and YAML-preserving configuration behavior remains. The CPAMC request layer
+continues to resolve all management routes below `/v8/management`, including the fork-owned
+capabilities, analytics, revisioned API-key, and API-key-limit surfaces. The public viewer stays
+on `/v0/analytics/viewer`.
+
+The merge is recorded in `eee096218c48dcc95bc80207e21645f927da8273`; the `base` tag and CPA
+gitlink now point to this commit. The upstream legacy backend probe and its compatibility error
+path were removed so application code cannot probe the deprecated `/v0/management` surface.
+
+Validation: `bun run verify` passes 1,820 tests, ESLint, TypeScript, and the Vite single-file
+production build. Parent CPA v8 route registration and the bundled panel were checked with an
+isolated Chrome CDP login; the panel issued only `/v8/management/...` requests.
 
 ## Sync procedure
 
@@ -953,3 +979,29 @@ existing action.
 
 Validation: the Codex quota test checks the fresh-read request flag. `bun run
 verify` passes 759 tests, lint, TypeScript, and the production build.
+
+### DL051: Upstream v1.25.4 sync with v8 contract preservation
+
+Status: integrated in merge commit `ed24daa0e210e3d4ce49f64cae8120457bc73c32`
+
+Files: `src/**`, `tests/**`, `AGENTS.md`, `README*.md`, `package.json`, `bun.lock`
+
+The merge keeps upstream fixes when they overlap, including the removal of retired quick-access
+provider brands and the upstream Vietnamese locale update. Fork-only CPAMC behavior remains
+available: analytics uses the CPAUK data model, API-key rows retain structured labels and limits
+with revision-aware mutations, and the configuration adapter round-trips `access.api-keys`,
+`analytics.*`, and `upstream.claude.header-defaults.oauth-safeguard` without flattening unknown
+v8 YAML. Analytics storage values retain the complete signed 64-bit range through serialization
+and validation. The shared Select keeps a stable accessible name, and the API-key editor remains
+safe in static previews while clearing revealed rows on router navigation or connection changes.
+
+The frontend targets only the versioned v8 management contract and does not expand deprecated
+`/v0/management` routes; the upstream legacy backend probe and its compatibility error path were
+removed so application code cannot silently probe that deprecated surface. The parent CPA snapshot now registers the matching v8 capabilities,
+analytics, API-key, and API-key-limit routes; root owns its backend and browser verification.
+
+Validation for this merge worktree:
+
+- `bun run verify`
+- Result: 1,824 tests passed, ESLint passed, TypeScript compilation passed, and the Vite
+  single-file production build passed.

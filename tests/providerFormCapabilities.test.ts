@@ -65,7 +65,6 @@ describe('provider form metadata capabilities', () => {
       'codex',
       'xai',
       'claude',
-      'claudeApi',
       'vertex',
     ]) {
       expect(PROVIDER_DESCRIPTORS[brand].supportsPricingCatalog).toBeTrue();

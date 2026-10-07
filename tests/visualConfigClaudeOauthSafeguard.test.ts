@@ -26,7 +26,9 @@ describe('visual config Claude OAuth safeguard', () => {
       const [loaded, setLoaded] = useState(false);
 
       if (!loaded) {
-        visualConfig.loadVisualValuesFromYaml('claude-header-defaults:\n  oauth-safeguard: true\n');
+        visualConfig.loadVisualValuesFromYaml(
+          'upstream:\n  claude:\n    header-defaults:\n      oauth-safeguard: true\n'
+        );
         setLoaded(true);
         return null;
       }
@@ -57,16 +59,20 @@ describe('visual config Claude OAuth safeguard', () => {
         null,
         encodeURIComponent(
           visualConfig.applyVisualChangesToYaml(
-            'claude-header-defaults:\n  user-agent: custom-agent\n  oauth-safeguard: false\n'
+            'upstream:\n  claude:\n    header-defaults:\n      user-agent: custom-agent\n      oauth-safeguard: false\n'
           )
         )
       );
     }
 
     expect(parseYaml(unwrapPre(renderToStaticMarkup(createElement(Harness))))).toEqual({
-      'claude-header-defaults': {
-        'user-agent': 'custom-agent',
-        'oauth-safeguard': true,
+      upstream: {
+        claude: {
+          'header-defaults': {
+            'user-agent': 'custom-agent',
+            'oauth-safeguard': true,
+          },
+        },
       },
     });
   });

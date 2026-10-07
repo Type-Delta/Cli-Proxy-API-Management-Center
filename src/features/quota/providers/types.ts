@@ -11,8 +11,10 @@ import type {
   AuthFileItem,
   ClaudeQuotaState,
   CodexQuotaState,
+  DevinQuotaState,
   KimiQuotaState,
   OpenCodeGoQuotaState,
+  MetaQuotaState,
   XaiQuotaState,
   ZaiQuotaState,
 } from '@/types';
@@ -24,22 +26,34 @@ export interface QuotaFetchOptions {
 }
 
 export type QuotaProviderType =
-  'antigravity' | 'claude' | 'codex' | 'kimi' | 'opencode-go' | 'xai' | 'zai';
+  | 'antigravity'
+  | 'claude'
+  | 'codex'
+  | 'devin'
+  | 'kimi'
+  | 'meta'
+  | 'opencode-go'
+  | 'xai'
+  | 'zai';
 
 /** useQuotaStore 的结构契约（storeSelector/storeSetter 依赖）。 */
 export interface QuotaStore {
   antigravityQuota: Record<string, AntigravityQuotaState>;
   claudeQuota: Record<string, ClaudeQuotaState>;
   codexQuota: Record<string, CodexQuotaState>;
+  devinQuota: Record<string, DevinQuotaState>;
   kimiQuota: Record<string, KimiQuotaState>;
   opencodeGoQuota: Record<string, OpenCodeGoQuotaState>;
+  metaQuota: Record<string, MetaQuotaState>;
   xaiQuota: Record<string, XaiQuotaState>;
   zaiQuota: Record<string, ZaiQuotaState>;
   setAntigravityQuota: (updater: QuotaUpdater<Record<string, AntigravityQuotaState>>) => void;
   setClaudeQuota: (updater: QuotaUpdater<Record<string, ClaudeQuotaState>>) => void;
   setCodexQuota: (updater: QuotaUpdater<Record<string, CodexQuotaState>>) => void;
+  setDevinQuota: (updater: QuotaUpdater<Record<string, DevinQuotaState>>) => void;
   setKimiQuota: (updater: QuotaUpdater<Record<string, KimiQuotaState>>) => void;
   setOpenCodeGoQuota: (updater: QuotaUpdater<Record<string, OpenCodeGoQuotaState>>) => void;
+  setMetaQuota: (updater: QuotaUpdater<Record<string, MetaQuotaState>>) => void;
   setXaiQuota: (updater: QuotaUpdater<Record<string, XaiQuotaState>>) => void;
   setZaiQuota: (updater: QuotaUpdater<Record<string, ZaiQuotaState>>) => void;
   clearQuotaCache: () => void;
@@ -50,6 +64,8 @@ export interface QuotaProviderData<TState, TData> {
   i18nPrefix: string;
   filterFn: (file: AuthFileItem) => boolean;
   fetchQuota: (file: AuthFileItem, t: TFunction, options?: QuotaFetchOptions) => Promise<TData>;
+  /** Optional details loaded only after the primary quota has been committed. */
+  enrichQuota?: (file: AuthFileItem, data: TData, t: TFunction) => Promise<TData>;
   resetQuota?: (file: AuthFileItem, t: TFunction) => Promise<TData>;
   canResetQuota?: (quota: TState) => boolean;
   storeSelector: (state: QuotaStore) => Record<string, TState>;
