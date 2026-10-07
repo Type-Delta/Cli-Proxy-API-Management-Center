@@ -1070,3 +1070,13 @@ Validation for this merge worktree:
 - `bun run verify`
 - Result: 1,824 tests passed, ESLint passed, TypeScript compilation passed, and the Vite
   single-file production build passed.
+
+### DL052: Dense short-range analytics buckets
+
+Analytics requests for the rolling one-hour and six-hour presets now use 15-minute and 30-minute
+buckets respectively. The range URL state and displayed range labels remain unchanged, while the
+timeseries and analysis charts receive the denser points through the existing bucket-width query
+field. Other ranges retain their existing widths.
+
+Validation: the analytics range regression test covers 1h → 15m, 6h → 30m, and the unchanged 24h
+hourly mapping. TypeScript compilation and lint pass.

@@ -9,6 +9,7 @@ import type {
 import type { TFunction } from 'i18next';
 
 export type AnalyticsRangeGrain = '1h' | '1d';
+export type AnalyticsRangeBucketWidth = NonNullable<AnalyticsQuery['bucket_width']>;
 export type AnalyticsCalendarPreset =
   | 'today'
   | 'yesterday'
@@ -147,7 +148,11 @@ export function analyticsRangeKey(range: AnalyticsRange) {
   return JSON.stringify(range);
 }
 
-export function analyticsRangeBucketWidth(range: AnalyticsRange): AnalyticsRangeGrain {
+export function analyticsRangeBucketWidth(range: AnalyticsRange): AnalyticsRangeBucketWidth {
+  if (range.preset === 'last_n_hours') {
+    if (range.n === 1) return '15m';
+    if (range.n === 6) return '30m';
+  }
   return range.grain;
 }
 

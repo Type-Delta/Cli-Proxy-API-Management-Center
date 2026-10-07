@@ -445,7 +445,7 @@ type AnalyticsQueryFields = {
   filters?: AnalyticsFilters;
   cursor?: string;
   page_size?: number;
-  bucket_width?: '1m' | '5m' | '15m' | '1h' | '1d' | '1w';
+  bucket_width?: '1m' | '5m' | '15m' | '30m' | '1h' | '1d' | '1w';
   dimension?: string;
   sort_by?: 'tokens' | 'cost';
   window?: ActivityWindow;

@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/DateRangePicker/calendar';
 import {
   analyticsRangeLabel,
+  analyticsRangeBucketWidth,
   buildAnalyticsQuery,
   buildAnalyticsNamedRange,
   formatAnalyticsCustomRange,
@@ -43,6 +44,19 @@ const range = (preset: AnalyticsRange['preset']): AnalyticsRange => {
 };
 
 describe('analytics date range picker contracts', () => {
+  test('uses denser buckets for the short rolling ranges', () => {
+    const rolling = (n: number): AnalyticsRange => ({
+      preset: 'last_n_hours',
+      n,
+      timeZone: zone,
+      grain: '1h',
+    });
+
+    expect(analyticsRangeBucketWidth(rolling(1))).toBe('15m');
+    expect(analyticsRangeBucketWidth(rolling(6))).toBe('30m');
+    expect(analyticsRangeBucketWidth(rolling(24))).toBe('1h');
+  });
+
   test('maps every picker preset to a named v2 range and round-trips its URL name', () => {
     for (const selected of [
       { preset: 'last_n_hours' as const, n: 1, grain: '1h' as const },
