@@ -29,4 +29,9 @@ describe('quota toolbar presentation contracts', () => {
     expect(styles).toContain('&:focus-visible');
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
   });
+
+  test('refresh all uses the normal quota cache path', () => {
+    expect(source).toContain('void loadQuota(pageItems);');
+    expect(source).not.toContain('loadQuota(pageItems, { forceRefresh: true })');
+  });
 });

@@ -20,7 +20,7 @@ import {
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
 import { blockedQuotaWindowIds } from '../../windowGating';
-import type { QuotaProviderData } from '../types';
+import type { QuotaFetchOptions, QuotaProviderData } from '../types';
 
 export const OPENCODE_GO_USAGE_URL = 'https://opencode.ai/zen/go/v1/usage';
 
@@ -100,7 +100,8 @@ export function buildOpenCodeGoQuotaWindows(
 
 const fetchOpenCodeGoQuota = async (
   file: AuthFileItem,
-  t: TFunction
+  t: TFunction,
+  options?: QuotaFetchOptions
 ): Promise<OpenCodeGoQuotaWindow[]> => {
   const rawAuthIndex = file['auth_index'] ?? file.authIndex;
   const authIndex = normalizeAuthIndex(rawAuthIndex);
@@ -113,6 +114,7 @@ const fetchOpenCodeGoQuota = async (
     method: 'GET',
     url: OPENCODE_GO_USAGE_URL,
     header: { ...OPENCODE_GO_REQUEST_HEADERS },
+    force_refresh: options?.forceRefresh || undefined,
   });
 
   if (result.statusCode < 200 || result.statusCode >= 300) {

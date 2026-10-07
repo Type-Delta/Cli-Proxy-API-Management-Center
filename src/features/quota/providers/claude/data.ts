@@ -30,7 +30,7 @@ import {
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
 import { blockedQuotaWindowIds } from '../../windowGating';
-import type { QuotaProviderData } from '../types';
+import type { QuotaFetchOptions, QuotaProviderData } from '../types';
 
 export type ClaudeQuotaData = {
   windows: ClaudeQuotaWindow[];
@@ -169,7 +169,11 @@ export const resolveClaudePlanType = (profile: ClaudeProfileResponse | null): st
   return null;
 };
 
-const fetchClaudeQuota = async (file: AuthFileItem, t: TFunction): Promise<ClaudeQuotaData> => {
+const fetchClaudeQuota = async (
+  file: AuthFileItem,
+  t: TFunction,
+  options?: QuotaFetchOptions
+): Promise<ClaudeQuotaData> => {
   const rawAuthIndex = file['auth_index'] ?? file.authIndex;
   const authIndex = normalizeAuthIndex(rawAuthIndex);
   if (!authIndex) {
@@ -182,12 +186,14 @@ const fetchClaudeQuota = async (file: AuthFileItem, t: TFunction): Promise<Claud
       method: 'GET',
       url: CLAUDE_USAGE_URL,
       header: { ...CLAUDE_REQUEST_HEADERS },
+      force_refresh: options?.forceRefresh || undefined,
     }),
     apiCallApi.request({
       authIndex,
       method: 'GET',
       url: CLAUDE_PROFILE_URL,
       header: { ...CLAUDE_REQUEST_HEADERS },
+      force_refresh: options?.forceRefresh || undefined,
     }),
   ]);
 

@@ -288,7 +288,7 @@ export function QuotaPage() {
         disableControls
       )
     ) {
-      void loadQuota(pageItems, { forceRefresh: true });
+      void loadQuota(pageItems);
     }
   }, [disableControls, error, filesGeneration, loading, loadQuota, pageItems, sessionGeneration]);
 

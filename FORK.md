@@ -969,16 +969,20 @@ retains the existing `Select.tsx` warning. Chrome CDP verified the rendered
 description on desktop and at a 390px mobile viewport without horizontal
 overflow.
 
-### DL050: Fresh Codex usage on Refresh all
+### DL050: Cache-managed quota refresh
 
-The Quota page's "Refresh all credentials" action asks CPA to bypass its cached
-Codex usage response. CPA can then read an upstream auto reset and restore the
-credential's routing availability. Ordinary card loads retain the shared quota
-cache, and the manual reset still consumes its upstream reset credit through the
-existing action.
+The Quota page's "Refresh all credentials" action uses the normal quota cache
+path. CPA reconciles routing cooldowns when a provider request actually reaches
+the upstream and returns a successful usage report. A cached replay preserves the
+existing routing state, while a later request after cache expiry can observe a
+reset and restore availability. Claude's shared 5-hour and normal weekly
+windows update credential state, while the Fable weekly allowance updates only
+Fable models. Opus and Sonnet fields remain display data because they draw from
+the shared weekly pool.
 
-Validation: the Codex quota test checks the fresh-read request flag. `bun run
-verify` passes 759 tests, lint, TypeScript, and the production build.
+Validation: quota tests cover cache-managed cooldown recovery and the normal
+refresh wiring. `bun run verify` passes the affected suites, lint, TypeScript,
+and the production build.
 
 ### DL051: Upstream v1.25.4 sync with v8 contract preservation
 

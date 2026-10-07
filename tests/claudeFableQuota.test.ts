@@ -1,14 +1,44 @@
-import { describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, test } from 'bun:test';
 import type { TFunction } from 'i18next';
-import { buildClaudeQuotaWindows } from '@/features/quota/providers/claude/data';
+import {
+  CLAUDE_CONFIG,
+  buildClaudeQuotaWindows,
+} from '@/features/quota/providers/claude/data';
 import type { ClaudeUsagePayload } from '@/types';
 import { formatQuotaResetTime } from '@/utils/quota';
+import { CLAUDE_PROFILE_URL, CLAUDE_USAGE_URL } from '@/utils/quota';
+import { apiCallApi, type ApiCallRequest, type ApiCallResult } from '@/services/api';
+
+const originalApiCallRequest = apiCallApi.request;
+
+afterEach(() => {
+  apiCallApi.request = originalApiCallRequest;
+});
 
 const t = ((key: string) => key) as TFunction;
 const modernReset = '2026-07-27T10:00:00.000000+00:00';
 const legacyReset = '2026-07-28T10:00:00.000000+00:00';
 
 describe('Claude Fable quota', () => {
+  test('supports explicit cache bypasses for direct callers', async () => {
+    const requests: ApiCallRequest[] = [];
+    apiCallApi.request = async (request) => {
+      requests.push(request);
+      const body = request.url === CLAUDE_USAGE_URL ? { five_hour: { utilization: 10 } } : {};
+      return { statusCode: 200, header: {}, bodyText: JSON.stringify(body), body } as ApiCallResult;
+    };
+
+    await CLAUDE_CONFIG.fetchQuota(
+      { name: 'claude.json', type: 'claude', auth_index: 'claude-auth-index' },
+      t,
+      { forceRefresh: true }
+    );
+
+    expect(requests).toHaveLength(2);
+    expect(requests.find(({ url }) => url === CLAUDE_USAGE_URL)?.force_refresh).toBe(true);
+    expect(requests.find(({ url }) => url === CLAUDE_PROFILE_URL)?.force_refresh).toBe(true);
+  });
+
   test('builds a Fable window from the modern scoped limits payload', () => {
     const windows = buildClaudeQuotaWindows(
       {

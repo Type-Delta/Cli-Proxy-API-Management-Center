@@ -1,11 +1,20 @@
-import { describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, test } from 'bun:test';
+import type { TFunction } from 'i18next';
 import {
+  ZAI_CONFIG,
   buildZaiQuotaWindows,
   extractZaiLevel,
   isZaiUsageProbeFile,
   parseZaiUsagePayload,
 } from '@/features/quota/providers/zai/data';
 import type { AuthFileItem } from '@/types';
+import { apiCallApi, type ApiCallRequest, type ApiCallResult } from '@/services/api';
+
+const originalApiCallRequest = apiCallApi.request;
+
+afterEach(() => {
+  apiCallApi.request = originalApiCallRequest;
+});
 
 const SAMPLE = {
   code: 200,
@@ -38,6 +47,27 @@ const SAMPLE = {
 };
 
 describe('Z.AI quota parser', () => {
+  test('supports an explicit cache bypass for direct callers', async () => {
+    const requests: ApiCallRequest[] = [];
+    apiCallApi.request = async (request) => {
+      requests.push(request);
+      return {
+        statusCode: 200,
+        header: {},
+        bodyText: JSON.stringify(SAMPLE),
+        body: SAMPLE,
+      } as ApiCallResult;
+    };
+
+    await ZAI_CONFIG.fetchQuota(
+      { name: 'zai.json', type: 'openai-compatible', auth_index: 'zai-auth-index' } as AuthFileItem,
+      ((key: string) => key) as TFunction,
+      { forceRefresh: true }
+    );
+
+    expect(requests[0]?.force_refresh).toBe(true);
+  });
+
   test('maps the hourly and weekly credit windows', () => {
     const windows = buildZaiQuotaWindows(SAMPLE);
     expect(windows).toEqual([

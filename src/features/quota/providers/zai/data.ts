@@ -26,7 +26,7 @@ import {
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
 import { blockedQuotaWindowIds } from '../../windowGating';
-import type { QuotaProviderData } from '../types';
+import type { QuotaFetchOptions, QuotaProviderData } from '../types';
 
 export const ZAI_USAGE_URL = 'https://api.z.ai/api/monitor/usage/quota/limit';
 
@@ -125,7 +125,8 @@ export function extractZaiLevel(payload: ZaiQuotaPayload): string | null {
 
 const fetchZaiQuota = async (
   file: AuthFileItem,
-  t: TFunction
+  t: TFunction,
+  options?: QuotaFetchOptions
 ): Promise<{ windows: ZaiQuotaWindow[]; level: string | null }> => {
   const rawAuthIndex = file['auth_index'] ?? file.authIndex;
   const authIndex = normalizeAuthIndex(rawAuthIndex);
@@ -138,6 +139,7 @@ const fetchZaiQuota = async (
     method: 'GET',
     url: ZAI_USAGE_URL,
     header: { ...ZAI_REQUEST_HEADERS },
+    force_refresh: options?.forceRefresh || undefined,
   });
 
   if (result.statusCode < 200 || result.statusCode >= 300) {

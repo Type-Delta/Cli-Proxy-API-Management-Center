@@ -67,7 +67,7 @@ afterEach(() => {
 });
 
 describe('Codex current usage payload', () => {
-  test('can bypass cached usage when refreshing all credentials', async () => {
+  test('supports an explicit cache bypass for direct callers', async () => {
     const requests: ApiCallRequest[] = [];
     apiCallApi.request = async (request) => {
       requests.push(request);
