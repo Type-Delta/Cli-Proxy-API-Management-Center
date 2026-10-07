@@ -709,6 +709,9 @@ export function parseRoutingStrategy(raw: unknown): RoutingStrategy {
     return 'weighted-round-robin';
   }
   if (['fill-first', 'fillfirst', 'ff'].includes(normalized)) return 'fill-first';
+  if (['greedy-soonest-recovery', 'greedysoonestrecovery', 'gsr'].includes(normalized)) {
+    return 'greedy-soonest-recovery';
+  }
   return 'round-robin';
 }
 

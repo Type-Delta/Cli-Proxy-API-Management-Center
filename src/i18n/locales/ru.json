@@ -1187,7 +1187,8 @@
     "ws_auth_enable": "Требовать аутентификацию для /ws/*",
     "routing_strategy_round_robin": "round-robin (цикл)",
     "routing_strategy_weighted_round_robin": "weighted-round-robin (взвешенный цикл)",
-    "routing_strategy_fill_first": "fill-first (приоритет)"
+    "routing_strategy_fill_first": "fill-first (приоритет)",
+    "routing_strategy_greedy_soonest_recovery": "greedy-soonest-recovery (GSR)"
   },
   "auth_files": {
     "title": "Управление файлами авторизации",
@@ -2441,6 +2442,7 @@
           "strategy_round_robin": "По кругу",
           "strategy_weighted_round_robin": "Взвешенный круговой алгоритм",
           "strategy_fill_first": "Сначала заполнить",
+          "strategy_greedy_soonest_recovery": "Жадное ближайшее восстановление (GSR)",
           "session_affinity_ttl": "TTL привязки сессии",
           "force_model_prefix": "Принудительный префикс модели",
           "force_model_prefix_desc": "Запросы к моделям без префикса используют только учётные данные без префикса",
