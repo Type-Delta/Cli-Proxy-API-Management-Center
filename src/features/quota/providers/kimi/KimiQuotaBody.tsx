@@ -10,9 +10,9 @@ import { useNow } from '@/hooks/useNow';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
-import type { QuotaBodyProps } from '../../types';
+import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
-export function KimiQuotaBody({ quota, classes }: QuotaBodyProps<KimiQuotaState>) {
+export function KimiQuotaBody({ quota, classes, credential }: QuotaBodyProps<KimiQuotaState>) {
   const { t, i18n } = useTranslation();
   // Ahead of the early return below — hooks cannot be conditional.
   const now = useNow();
@@ -53,7 +53,13 @@ export function KimiQuotaBody({ quota, classes }: QuotaBodyProps<KimiQuotaState>
           <div
             key={row.id}
             className={classes.quotaRow}
-            title={soon ? t('quota_management.soonest_row_hint') : undefined}
+            title={buildQuotaRowTitle(credential, {
+              label: rowLabel,
+              remaining: percentLabel,
+              resetAbsolute: resetDisplay?.absolute,
+              resetRelative: resetDisplay?.relative,
+              hint: soon ? t('quota_management.soonest_row_hint') : undefined,
+            })}
           >
             <div className={classes.quotaRowHeader}>
               <span className={classes.quotaModel}>{rowLabel}</span>

@@ -22,7 +22,7 @@ import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId, resetCreditRowId } from '../../resetSchedule';
 import { quotaWindowTitle } from '../../windowGating';
-import type { QuotaBodyProps, QuotaClassMap } from '../../types';
+import { buildQuotaRowTitle, type QuotaBodyProps, type QuotaClassMap } from '../../types';
 
 const getPlanValueClass = (planType: string | null, classes: QuotaClassMap): string => {
   // elite/premium 顺序契约由 resolvePlanTier 承载（tests/quotaPlanTier.test.ts 守护）。
@@ -32,7 +32,7 @@ const getPlanValueClass = (planType: string | null, classes: QuotaClassMap): str
   return classes.codexPlanValue;
 };
 
-export function CodexQuotaBody({ quota, classes }: QuotaBodyProps<CodexQuotaState>) {
+export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<CodexQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
   const locale = i18n.resolvedLanguage;
@@ -151,7 +151,13 @@ export function CodexQuotaBody({ quota, classes }: QuotaBodyProps<CodexQuotaStat
                     ? `${classes.codexResetCreditRow} ${classes.codexResetCreditRowSoon}`
                     : classes.codexResetCreditRow
                 }
-                title={soon ? t('quota_management.soonest_row_hint') : undefined}
+                title={buildQuotaRowTitle(credential, {
+                  label: t('codex_quota.reset_credit_number', { index: index + 1 }),
+                  resetAbsolute: expiresDisplay?.absolute,
+                  resetRelative: expiresDisplay?.relative,
+                  plan: planLabel,
+                  hint: soon ? t('quota_management.soonest_row_hint') : undefined,
+                })}
               >
                 <span className={classes.codexResetCreditLabel}>
                   {t('codex_quota.reset_credit_number', { index: index + 1 })}
@@ -192,7 +198,14 @@ export function CodexQuotaBody({ quota, classes }: QuotaBodyProps<CodexQuotaStat
             <div
               key={window.id}
               className={classes.quotaRow}
-              title={quotaWindowTitle(t, { soon, disabled: window.disabled })}
+              title={buildQuotaRowTitle(credential, {
+                label: windowLabel,
+                remaining: percentLabel,
+                resetAbsolute: resetDisplay?.absolute,
+                resetRelative: resetDisplay?.relative,
+                plan: planLabel,
+                hint: quotaWindowTitle(t, { soon, disabled: window.disabled }),
+              })}
             >
               <div className={classes.quotaRowHeader}>
                 <span className={classes.quotaModel}>{windowLabel}</span>

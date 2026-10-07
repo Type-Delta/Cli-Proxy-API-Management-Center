@@ -995,6 +995,24 @@ label on the dashboard. All five locales include the new option label.
 Validation: focused routing strategy tests, TypeScript type-check, production
 build, and the canonical CPA management bundle build pass.
 
+### DL053: Quota summary and credential-aware quota tooltips
+
+The Quota Management page keeps its existing title, refresh controls, provider tabs, search,
+sorting, credential list, and candy-striped unavailable allowance treatment while adding a compact
+provider summary row above the list. Summary percentages normalize each credential against the
+largest available plan tier, show aggregate capacity, select Claude's lower-remaining weekly pool
+with Fable as the tie-breaker, and use explicit longest-recovery windows for other providers
+(OpenCode Go uses monthly). Claude's secondary weekly pool can be expanded in place.
+
+Summary and detailed quota rows use the shared TooltipProvider title path. Hover details include the
+credential, exact remaining percentage, reset instant and countdown, and plan/tier; disabled rows
+retain their remaining amount and use the existing candy-wrap fill in both views. All five locales
+include the new summary copy.
+
+Validation: quota summary and tooltip tests pass, the full CPAMC type-check and lint pass, and the
+single-file production build passes. The full suite has one unrelated pre-existing legacy-backend
+probe failure on this branch.
+
 ### DL051: Upstream v1.25.4 sync with v8 contract preservation
 
 Status: integrated in merge commit `ed24daa0e210e3d4ce49f64cae8120457bc73c32`

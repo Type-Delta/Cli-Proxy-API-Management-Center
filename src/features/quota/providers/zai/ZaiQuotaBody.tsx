@@ -12,12 +12,12 @@ import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import { quotaWindowTitle } from '../../windowGating';
-import type { QuotaBodyProps } from '../../types';
+import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
 const formatCredits = (value: number | null): string =>
   value === null ? '--' : new Intl.NumberFormat(undefined).format(value);
 
-export function ZaiQuotaBody({ quota, classes }: QuotaBodyProps<ZaiQuotaState>) {
+export function ZaiQuotaBody({ quota, classes, credential }: QuotaBodyProps<ZaiQuotaState>) {
   const { t, i18n } = useTranslation();
   // Ahead of the early return below — hooks cannot be conditional.
   const now = useNow();
@@ -62,7 +62,16 @@ export function ZaiQuotaBody({ quota, classes }: QuotaBodyProps<ZaiQuotaState>) 
           <div
             key={row.id}
             className={classes.quotaRow}
-            title={quotaWindowTitle(t, { soon, disabled: row.disabled })}
+            title={buildQuotaRowTitle(credential, {
+              label: rowLabel,
+              remaining: percentLabel,
+              resetAbsolute: resetDisplay?.absolute,
+              resetRelative: resetDisplay?.relative,
+              plan: level,
+              hint: [creditsLabel, quotaWindowTitle(t, { soon, disabled: row.disabled })]
+                .filter(Boolean)
+                .join(' · '),
+            })}
           >
             <div className={classes.quotaRowHeader}>
               <span className={classes.quotaModel}>{rowLabel}</span>

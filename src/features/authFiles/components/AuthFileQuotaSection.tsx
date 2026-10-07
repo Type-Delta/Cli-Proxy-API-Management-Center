@@ -8,7 +8,7 @@ import {
 } from '@/stores';
 import type { AuthFileItem } from '@/types';
 import { getStatusFromError, resolveQuotaErrorMessage } from '@/utils/quota';
-import { getQuotaCacheKey } from '@/utils/quota/identity';
+import { getQuotaCacheKey, getQuotaDisplayName } from '@/utils/quota/identity';
 import { isRuntimeOnlyAuthFile, type QuotaProviderType } from '@/features/authFiles/constants';
 import { Button } from '@/components/ui/Button';
 import { IconRefreshCw } from '@/components/ui/icons';
@@ -203,7 +203,11 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
           })}
         </div>
       ) : quota ? (
-        <adapter.Body quota={quota} classes={compactQuotaClasses} />
+        <adapter.Body
+          quota={quota}
+          classes={compactQuotaClasses}
+          credential={{ displayName: getQuotaDisplayName(file) }}
+        />
       ) : (
         <div className={styles.quotaMessage}>{t(`${adapter.i18nPrefix}.idle`)}</div>
       )}

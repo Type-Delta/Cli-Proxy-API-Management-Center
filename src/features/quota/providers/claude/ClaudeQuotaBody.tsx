@@ -11,9 +11,9 @@ import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import { quotaWindowTitle } from '../../windowGating';
-import type { QuotaBodyProps } from '../../types';
+import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
-export function ClaudeQuotaBody({ quota, classes }: QuotaBodyProps<ClaudeQuotaState>) {
+export function ClaudeQuotaBody({ quota, classes, credential }: QuotaBodyProps<ClaudeQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
   const soonestRowId = useMemo(
@@ -63,7 +63,14 @@ export function ClaudeQuotaBody({ quota, classes }: QuotaBodyProps<ClaudeQuotaSt
             <div
               key={window.id}
               className={classes.quotaRow}
-              title={quotaWindowTitle(t, { soon, disabled: window.disabled })}
+              title={buildQuotaRowTitle(credential, {
+                label: windowLabel,
+                remaining: percentLabel,
+                resetAbsolute: resetDisplay?.absolute,
+                resetRelative: resetDisplay?.relative,
+                plan: planType ? t(`claude_quota.${planType}`) : null,
+                hint: quotaWindowTitle(t, { soon, disabled: window.disabled }),
+              })}
             >
               <div className={classes.quotaRowHeader}>
                 <span className={classes.quotaModel}>{windowLabel}</span>

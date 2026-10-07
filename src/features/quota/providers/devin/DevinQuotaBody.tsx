@@ -5,9 +5,9 @@ import { buildResetDisplay } from '@/utils/quota';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
-import type { QuotaBodyProps } from '../../types';
+import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
-export function DevinQuotaBody({ quota, classes }: QuotaBodyProps<DevinQuotaState>) {
+export function DevinQuotaBody({ quota, classes, credential }: QuotaBodyProps<DevinQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
   const locale = i18n.resolvedLanguage;
@@ -37,7 +37,21 @@ export function DevinQuotaBody({ quota, classes }: QuotaBodyProps<DevinQuotaStat
         const soon = window.id === urgentRow;
         const label = t(`devin_quota.${window.id}`);
         return (
-          <div key={window.id} className={classes.quotaRow}>
+          <div
+            key={window.id}
+            className={classes.quotaRow}
+            title={buildQuotaRowTitle(credential, {
+              label,
+              remaining:
+                window.remainingPercent === null
+                  ? t('devin_quota.unavailable')
+                  : `${window.remainingPercent}%`,
+              resetAbsolute: reset?.absolute,
+              resetRelative: reset?.relative,
+              plan: quota.plan,
+              hint: soon ? t('quota_management.soonest_row_hint') : undefined,
+            })}
+          >
             <div className={classes.quotaRowHeader}>
               <span className={classes.quotaModel}>{label}</span>
               <div className={classes.quotaMeta}>

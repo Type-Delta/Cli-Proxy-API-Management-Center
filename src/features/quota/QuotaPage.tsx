@@ -26,6 +26,7 @@ import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { QuotaHeader } from './components/QuotaHeader';
 import { QuotaCard } from './components/QuotaCard';
 import { QuotaTimeline } from './components/QuotaTimeline';
+import { QuotaSummary } from './components/QuotaSummary';
 import {
   CARD_ENTRANCE_BUDGET_MS,
   QUOTA_PAGE_SIZE,
@@ -335,6 +336,14 @@ export function QuotaPage() {
         refreshing={loading || batchLoading}
         disableControls={disableControls}
         onRefreshAll={handleRefreshAll}
+      />
+
+      <QuotaSummary
+        entries={entries}
+        quotaFor={getQuota}
+        resolvedTheme={resolvedTheme}
+        active={tab}
+        onSelect={handleTabChange}
       />
 
       <section className={styles.workbench}>

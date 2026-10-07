@@ -9,9 +9,13 @@ import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import { quotaWindowTitle } from '../../windowGating';
-import type { QuotaBodyProps } from '../../types';
+import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
-export function OpenCodeGoQuotaBody({ quota, classes }: QuotaBodyProps<OpenCodeGoQuotaState>) {
+export function OpenCodeGoQuotaBody({
+  quota,
+  classes,
+  credential,
+}: QuotaBodyProps<OpenCodeGoQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
   const soonestRowId = useMemo(
@@ -41,7 +45,14 @@ export function OpenCodeGoQuotaBody({ quota, classes }: QuotaBodyProps<OpenCodeG
           <div
             key={row.id}
             className={classes.quotaRow}
-            title={quotaWindowTitle(t, { soon, disabled: row.disabled })}
+            title={buildQuotaRowTitle(credential, {
+              label: t(row.labelKey),
+              remaining: percentLabel,
+              resetAbsolute: resetDisplay?.absolute,
+              resetRelative: resetDisplay?.relative,
+              plan: t('opencode_go_quota.plan_value'),
+              hint: quotaWindowTitle(t, { soon, disabled: row.disabled }),
+            })}
           >
             <div className={classes.quotaRowHeader}>
               <span className={classes.quotaModel}>{t(row.labelKey)}</span>

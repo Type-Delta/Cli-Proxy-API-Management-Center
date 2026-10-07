@@ -6,9 +6,9 @@ import { buildResetDisplay } from '@/utils/quota';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
-import type { QuotaBodyProps } from '../../types';
+import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
-export function MetaQuotaBody({ quota, classes }: QuotaBodyProps<MetaQuotaState>) {
+export function MetaQuotaBody({ quota, classes, credential }: QuotaBodyProps<MetaQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
   const soonestRowId = useMemo(
@@ -40,6 +40,10 @@ export function MetaQuotaBody({ quota, classes }: QuotaBodyProps<MetaQuotaState>
       )}
       {data.windows.map((window, index) => {
         const remaining = window.usedPercent === null ? null : 100 - window.usedPercent;
+        const percentLabel =
+          remaining === null
+            ? t('meta_quota.unknown')
+            : t('meta_quota.remaining', { percent: Number(remaining.toFixed(1)) });
         const resetDisplay = buildResetDisplay(
           null,
           window.resetAt === undefined ? null : window.resetAt * 1000,
@@ -52,15 +56,22 @@ export function MetaQuotaBody({ quota, classes }: QuotaBodyProps<MetaQuotaState>
             ? t('meta_quota.window_duration', { minutes: window.durationMinutes })
             : t(`meta_quota.${window.id}`);
         return (
-          <div key={window.id} className={classes.quotaRow}>
+          <div
+            key={window.id}
+            className={classes.quotaRow}
+            title={buildQuotaRowTitle(credential, {
+              label,
+              remaining: percentLabel,
+              resetAbsolute: resetDisplay?.absolute,
+              resetRelative: resetDisplay?.relative,
+              plan: data.planName,
+              hint: soon ? t('quota_management.soonest_row_hint') : undefined,
+            })}
+          >
             <div className={classes.quotaRowHeader}>
               <span className={classes.quotaModel}>{label}</span>
               <div className={classes.quotaMeta}>
-                <span className={classes.quotaPercent}>
-                  {remaining === null
-                    ? t('meta_quota.unknown')
-                    : t('meta_quota.remaining', { percent: Number(remaining.toFixed(1)) })}
-                </span>
+                <span className={classes.quotaPercent}>{percentLabel}</span>
                 {resetDisplay && (
                   <QuotaResetLabel display={resetDisplay} classes={classes} soon={soon} />
                 )}

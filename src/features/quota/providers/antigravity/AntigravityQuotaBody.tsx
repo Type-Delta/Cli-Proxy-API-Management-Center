@@ -6,9 +6,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { AntigravityQuotaState, AntigravityQuotaSubscription } from '@/types';
+import { formatInstantShort } from '@/utils/quota';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
-import type { QuotaBodyProps } from '../../types';
+import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 import { getNextAntigravityCountdownUpdateDelay } from './countdown';
 
 const formatAntigravityDuration = (t: TFunction, deltaMs: number): string => {
@@ -108,7 +109,11 @@ const getAntigravityPlanLabel = (
   );
 };
 
-export function AntigravityQuotaBody({ quota, classes }: QuotaBodyProps<AntigravityQuotaState>) {
+export function AntigravityQuotaBody({
+  quota,
+  classes,
+  credential,
+}: QuotaBodyProps<AntigravityQuotaState>) {
   const { t } = useTranslation();
   const groups = quota.groups ?? [];
   const planLabel = getAntigravityPlanLabel(quota.subscription, t);
@@ -195,6 +200,9 @@ export function AntigravityQuotaBody({ quota, classes }: QuotaBodyProps<Antigrav
                         percent: Math.round(percent),
                       });
                 const resetLabel = formatAntigravityResetLabel(bucket.resetTime, t, nowMs);
+                const resetAbsolute = bucket.resetTime
+                  ? formatInstantShort(new Date(bucket.resetTime).getTime())
+                  : null;
                 const bucketLabel = translateAntigravityQuotaLabel(
                   bucket.label,
                   ANTIGRAVITY_BUCKET_LABEL_KEYS,
@@ -208,7 +216,18 @@ export function AntigravityQuotaBody({ quota, classes }: QuotaBodyProps<Antigrav
                 const soon = bucket.id === soonestRowId;
 
                 return (
-                  <div key={bucket.id} className={classes.quotaRow}>
+                  <div
+                    key={bucket.id}
+                    className={classes.quotaRow}
+                    title={buildQuotaRowTitle(credential, {
+                      label: bucketLabel,
+                      remaining: `${Math.round(percent)}%`,
+                      resetAbsolute,
+                      resetRelative: resetLabel,
+                      plan: planLabel,
+                      hint: soon ? t('quota_management.soonest_row_hint') : undefined,
+                    })}
+                  >
                     <div className={classes.quotaRowHeader}>
                       <span className={classes.quotaModel} title={bucketDescription}>
                         {bucketLabel}
@@ -221,7 +240,6 @@ export function AntigravityQuotaBody({ quota, classes }: QuotaBodyProps<Antigrav
                               ? `${classes.quotaReset} ${classes.quotaResetRelativeSoon}`
                               : classes.quotaReset
                           }
-                          title={soon ? t('quota_management.soonest_row_hint') : undefined}
                         >
                           {resetLabel}
                         </span>

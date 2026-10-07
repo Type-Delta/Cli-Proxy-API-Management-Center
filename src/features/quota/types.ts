@@ -103,4 +103,49 @@ export function bindQuotaClasses(module: Record<string, string>, source: string)
 export interface QuotaBodyProps<TState> {
   quota: TState;
   classes: QuotaClassMap;
+  /** Identity shown in row tooltips; omitted by legacy compact hosts. */
+  credential?: QuotaCredentialContext;
+}
+
+/** Minimal credential context shared by the full quota card and compact hosts. */
+export interface QuotaCredentialContext {
+  displayName: string;
+}
+
+export interface QuotaRowTooltipDetails {
+  /** Already-localized row label (for example, "5-hour limit"). */
+  label?: string | null;
+  /** Already-localized exact remaining amount (for example, "72%"). */
+  remaining?: string | null;
+  /** Absolute reset/expiry instant, when available. */
+  resetAbsolute?: string | null;
+  /** Countdown beside the absolute instant, when available. */
+  resetRelative?: string | null;
+  /** Plan or tier label, when the provider reports one. */
+  plan?: string | null;
+  /** Existing provider-specific hint, such as the blocked-window explanation. */
+  hint?: string | null;
+}
+
+/**
+ * Build the title consumed by the global TooltipProvider from already-localized row values.
+ * Keeping the formatter here makes full and compact quota hosts expose the same context while
+ * preserving native title fallback when the provider is rendered without a credential context.
+ */
+export function buildQuotaRowTitle(
+  credential: QuotaCredentialContext | undefined,
+  details: QuotaRowTooltipDetails
+): string | undefined {
+  const parts = [
+    credential?.displayName,
+    details.label,
+    details.remaining,
+    details.resetAbsolute,
+    details.resetRelative,
+    details.plan,
+    details.hint,
+  ]
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .filter((value) => value !== '' && value !== '-');
+  return parts.length > 0 ? parts.join(' · ') : undefined;
 }
