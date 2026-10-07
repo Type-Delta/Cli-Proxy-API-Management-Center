@@ -984,6 +984,17 @@ Validation: quota tests cover cache-managed cooldown recovery and the normal
 refresh wiring. `bun run verify` passes the affected suites, lint, TypeScript,
 and the production build.
 
+### DL052: Greedy soonest recovery routing strategy
+
+The configuration page's Routing Strategy dropdown now includes the backend's
+`greedy-soonest-recovery` strategy, labeled "Greedy Soonest Recovery (GSR)".
+The visual config parser accepts the canonical value and `gsr` aliases, writes
+the canonical backend value, includes the strategy in search, and shows the same
+label on the dashboard. All five locales include the new option label.
+
+Validation: focused routing strategy tests, TypeScript type-check, production
+build, and the canonical CPA management bundle build pass.
+
 ### DL051: Upstream v1.25.4 sync with v8 contract preservation
 
 Status: integrated in merge commit `ed24daa0e210e3d4ce49f64cae8120457bc73c32`
