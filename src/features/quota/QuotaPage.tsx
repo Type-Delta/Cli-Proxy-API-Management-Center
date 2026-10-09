@@ -338,14 +338,6 @@ export function QuotaPage() {
         onRefreshAll={handleRefreshAll}
       />
 
-      <QuotaSummary
-        entries={entries}
-        quotaFor={getQuota}
-        resolvedTheme={resolvedTheme}
-        active={tab}
-        onSelect={handleTabChange}
-      />
-
       <section className={styles.workbench}>
         {/* 提供商导航与搜索工具栏分层，避免不同控件争夺视觉焦点。 */}
         <div className={styles.tabsRow} data-reveal>
@@ -357,6 +349,14 @@ export function QuotaPage() {
             onChange={handleTabChange}
           />
         </div>
+
+        <QuotaSummary
+          entries={entries}
+          quotaFor={getQuota}
+          resolvedTheme={resolvedTheme}
+          active={tab}
+          onSelect={handleTabChange}
+        />
 
         <div className={styles.toolbar}>
           <div className={styles.search}>

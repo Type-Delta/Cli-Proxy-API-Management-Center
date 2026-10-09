@@ -16,6 +16,8 @@ export interface QuotaSummaryLine {
   key: string;
   credential: string;
   remainingPercent: number | null;
+  /** Relative capacity of this credential when the provider exposes tiers. */
+  capacityPercent?: number;
   resetAtMs: number | null;
   plan: string | null;
   windowLabel: string;
@@ -54,7 +56,7 @@ const CLAUDE_PLAN_VALUE: Record<string, number> = {
   pro: 20,
   max: 100,
   max5: 100,
-  max20: 400,
+  max20: 200,
   team: 100,
   free: 0,
 };
@@ -96,6 +98,10 @@ const getQuotaPlanLabel = (
   state: Record<string, unknown> | null
 ): string | null => {
   if (!state) return null;
+  if (type === 'claude') {
+    const plan = normalizedPlan(state.planType);
+    return plan ? `claude_quota.plan_${plan}` : null;
+  }
   if (type === 'antigravity') {
     const subscription = asRecord(state.subscription);
     return planLabel(subscription?.tierName ?? subscription?.plan);
@@ -278,17 +284,34 @@ const remainingFor = (windows: QuotaSummaryWindow[], id: string): number | null 
   return values.length ? values.reduce((sum, value) => sum + value, 0) : null;
 };
 
+const remainingTotalFor = (
+  windowsByCredential: readonly QuotaSummaryWindow[][],
+  id: string,
+  planValuesByCredential?: readonly (number | null)[]
+): number | null => {
+  let total = 0;
+  let hasValue = false;
+  windowsByCredential.forEach((windows, index) => {
+    const remaining = remainingFor(windows, id);
+    if (remaining === null) return;
+    if (planValuesByCredential) {
+      const planValue = planValuesByCredential[index];
+      if (planValue === null || planValue === undefined) return;
+      total += (remaining / 100) * planValue;
+    } else {
+      total += remaining;
+    }
+    hasValue = true;
+  });
+  return hasValue ? total : null;
+};
+
 export function selectClaudePrimaryWindow(
-  windowsByCredential: readonly QuotaSummaryWindow[][]
+  windowsByCredential: readonly QuotaSummaryWindow[][],
+  planValuesByCredential?: readonly (number | null)[]
 ): 'seven-day-fable' | 'seven-day' {
-  const sumWindow = (id: string): number | null => {
-    const values = windowsByCredential
-      .map((windows) => remainingFor(windows, id))
-      .filter((value): value is number => value !== null);
-    return values.length ? values.reduce((sum, value) => sum + value, 0) : null;
-  };
-  const fable = sumWindow('seven-day-fable');
-  const normal = sumWindow('seven-day');
+  const fable = remainingTotalFor(windowsByCredential, 'seven-day-fable', planValuesByCredential);
+  const normal = remainingTotalFor(windowsByCredential, 'seven-day', planValuesByCredential);
   if (fable === null) return 'seven-day';
   if (normal === null) return 'seven-day-fable';
   return fable <= normal ? 'seven-day-fable' : 'seven-day';
@@ -299,6 +322,14 @@ export function percentageOfLargestTier(value: number, largestTierValue: number)
     return 0;
   return Math.round((value / largestTierValue) * 10000) / 100;
 }
+
+const claudePlanValue = (quota: QuotaCardState | undefined): number | null => {
+  if (!quota || quota.status !== 'success') return null;
+  const plan = normalizedPlan(asRecord(quota)?.planType);
+  return Object.prototype.hasOwnProperty.call(CLAUDE_PLAN_VALUE, plan)
+    ? CLAUDE_PLAN_VALUE[plan]
+    : null;
+};
 
 export function aggregateQuotaSummaries(
   entries: readonly QuotaFileEntry[],
@@ -312,13 +343,21 @@ export function aggregateQuotaSummaries(
       return { entry, quota, windows: quota ? windowsFor(type, quota) : [] };
     });
     const loaded = records.filter(({ quota }) => quota?.status === 'success');
-    const linesFor = (id: string): QuotaSummaryLine[] =>
+    const linesFor = (id: string, largestPlanValue?: number): QuotaSummaryLine[] =>
       records.flatMap(({ entry, quota, windows }) => {
         if (!quota || quota.status !== 'success') return [];
         const window = windows.find((candidate) => candidate.id === id);
         if (!window) return [];
         const state = quota as QuotaCardState & Record<string, unknown>;
         const plan = getQuotaPlanLabel(type, state);
+        const planValue = type === 'claude' ? claudePlanValue(quota) : null;
+        const capacityPercent =
+          type === 'claude' &&
+          largestPlanValue !== undefined &&
+          largestPlanValue > 0 &&
+          planValue !== null
+            ? percentageOfLargestTier(planValue, largestPlanValue)
+            : undefined;
         return [
           {
             key: `${type}:${getQuotaCacheKey(entry.file)}`,
@@ -328,6 +367,7 @@ export function aggregateQuotaSummaries(
             plan,
             windowLabel: window.label,
             disabled: window.disabled,
+            ...(capacityPercent === undefined ? {} : { capacityPercent }),
           },
         ];
       });
@@ -337,10 +377,11 @@ export function aggregateQuotaSummaries(
         .map((window) => window?.label)
         .filter((label): label is string => Boolean(label));
       const providerPrimaryLabel = labels[0] ?? 'Quota';
-      const providerPrimaryRemaining = selected.some(
-        (window) => window?.remainingPercent !== null && window?.remainingPercent !== undefined
-      )
-        ? selected.reduce((sum, window) => sum + (window?.remainingPercent ?? 0), 0)
+      const selectedRemaining = selected
+        .map((window) => window?.remainingPercent ?? null)
+        .filter((value): value is number => value !== null);
+      const providerPrimaryRemaining = selectedRemaining.length
+        ? selectedRemaining.reduce((sum, value) => sum + value, 0)
         : null;
       const lines = selected.flatMap((window, index) => {
         if (!window) return [];
@@ -367,49 +408,56 @@ export function aggregateQuotaSummaries(
         secondaryLabel: null,
         secondaryRemainingPercent: null,
         tierLabel: null,
-        tierCapacityPercent: providerEntries.length ? providerEntries.length * 100 : null,
+        tierCapacityPercent:
+          type === 'xai'
+            ? selectedRemaining.length
+              ? selectedRemaining.length * 100
+              : null
+            : providerEntries.length
+              ? providerEntries.length * 100
+              : null,
         lines,
         secondaryLines: [],
       };
     }
 
-    const primaryId = selectClaudePrimaryWindow(records.map(({ windows }) => windows));
+    const windowsByCredential = records.map(({ windows }) => windows);
+    const planValuesByCredential = records.map(({ quota }) => claudePlanValue(quota));
+    const primaryId = selectClaudePrimaryWindow(windowsByCredential, planValuesByCredential);
     const secondaryId = primaryId === 'seven-day-fable' ? 'seven-day' : 'seven-day-fable';
     const primaryLabel =
       primaryId === 'seven-day-fable' ? 'claude_quota.seven_day_fable' : 'claude_quota.seven_day';
     const secondaryLabel =
       secondaryId === 'seven-day-fable' ? 'claude_quota.seven_day_fable' : 'claude_quota.seven_day';
-    const allPlans = loaded.map(
-      ({ quota }) => CLAUDE_PLAN_VALUE[normalizedPlan(asRecord(quota)?.planType)] ?? 0
+    const knownPlanValues = planValuesByCredential.filter(
+      (value): value is number => value !== null
     );
-    const largest = Math.max(0, ...allPlans);
-    const planUnits = records.reduce((sum, record) => {
-      if (!record.quota || record.quota.status !== 'success') return sum;
-      const state = asRecord(record.quota);
-      const value = CLAUDE_PLAN_VALUE[normalizedPlan(state?.planType)] ?? 0;
-      const window = record.windows.find((candidate) => candidate.id === primaryId);
-      return (
-        sum +
-        (window?.remainingPercent === null || window?.remainingPercent === undefined
-          ? 0
-          : (window.remainingPercent / 100) * value)
-      );
-    }, 0);
-    const primaryRemaining = largest > 0 ? percentageOfLargestTier(planUnits, largest) : null;
-    const tierCapacityPercent = largest > 0 ? providerEntries.length * 100 : null;
+    const largest = knownPlanValues.length ? Math.max(...knownPlanValues) : 0;
+    const capacityUnits = knownPlanValues.reduce((sum, value) => sum + value, 0);
+    const primaryUnits = remainingTotalFor(windowsByCredential, primaryId, planValuesByCredential);
+    const primaryRemaining =
+      largest > 0 && primaryUnits !== null ? percentageOfLargestTier(primaryUnits, largest) : null;
+    const tierCapacityPercent =
+      largest > 0 ? percentageOfLargestTier(capacityUnits, largest) : null;
     const tierLabel =
-      largest >= 400
+      largest >= 200
         ? 'quota_management.tier_pro_max_20x'
         : largest >= 100
           ? 'quota_management.tier_pro_max'
           : largest >= 20
             ? 'quota_management.tier_pro'
             : null;
-    const lines = primaryId ? linesFor(primaryId) : [];
-    const secondaryLines = secondaryId ? linesFor(secondaryId) : [];
-    const secondaryRemaining = secondaryLines.length
-      ? secondaryLines.reduce((sum, line) => sum + (line.remainingPercent ?? 0), 0)
-      : null;
+    const lines = primaryId ? linesFor(primaryId, largest) : [];
+    const secondaryLines = secondaryId ? linesFor(secondaryId, largest) : [];
+    const secondaryUnits = remainingTotalFor(
+      windowsByCredential,
+      secondaryId,
+      planValuesByCredential
+    );
+    const secondaryRemaining =
+      largest > 0 && secondaryUnits !== null
+        ? percentageOfLargestTier(secondaryUnits, largest)
+        : null;
     return {
       type,
       credentialCount: providerEntries.length,

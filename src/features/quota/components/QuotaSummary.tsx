@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAuthFileIcon, getTypeLabel } from '@/features/authFiles/constants';
 import { useNow } from '@/hooks/useNow';
@@ -35,8 +35,11 @@ const formatReset = (
     ? t('quota_management.summary_reset_unknown', { defaultValue: 'reset unknown' })
     : t('quota_management.summary_resets', {
         absolute: new Intl.DateTimeFormat(undefined, {
-          dateStyle: 'medium',
-          timeStyle: 'short',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
         }).format(value),
         relative: formatRelativeInstant(value, now),
         defaultValue: 'resets {{absolute}} ({{relative}})',
@@ -46,28 +49,69 @@ const lineTitle = (
   line: QuotaSummaryLine,
   now: number,
   t: (key: string, options?: Record<string, unknown>) => string
-): string =>
-  `${line.credential} · ${line.windowLabel} · ${t('quota_management.summary_remaining', { percent: formatPercent(line.remainingPercent), defaultValue: '{{percent}} remaining' })} · ${formatReset(line.resetAtMs, now, t)}${line.plan ? ` · ${line.plan}` : ''}`;
+): string => {
+  const windowLabel = line.windowLabel.includes('.')
+    ? t(line.windowLabel, { defaultValue: line.windowLabel.split('.').slice(-1)[0] })
+    : line.windowLabel;
+  const planLabel = line.plan?.includes('.')
+    ? t(line.plan, { defaultValue: line.plan.split('.').slice(-1)[0] })
+    : line.plan;
+  return `${line.credential} · ${windowLabel} · ${t('quota_management.summary_remaining', {
+    percent: formatPercent(line.remainingPercent),
+    defaultValue: '{{percent}} remaining',
+  })} · ${formatReset(line.resetAtMs, now, t)}${planLabel ? ` · ${planLabel}` : ''}`;
+};
 
-function SummaryLine({
-  line,
+const toneFor = (line: QuotaSummaryLine): string => {
+  if (line.disabled) return styles.segmentDisabled;
+  const remaining = line.remainingPercent ?? 0;
+  return remaining < 30
+    ? styles.segmentLow
+    : remaining < 70
+      ? styles.segmentMedium
+      : styles.segmentHigh;
+};
+
+function SummaryMeter({
+  lines,
   now,
   t,
 }: {
-  line: QuotaSummaryLine;
+  lines: QuotaSummaryLine[];
   now: number;
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   return (
-    <div className={styles.line} title={lineTitle(line, now, t)}>
-      <span className={styles.lineLabel}>{line.credential}</span>
-      <span className={styles.lineMeter} aria-hidden="true">
-        <span
-          className={`${styles.lineFill} ${line.disabled ? styles.lineFillDisabled : ''}`}
-          style={{ width: `${Math.max(0, Math.min(100, line.remainingPercent ?? 0))}%` }}
-        />
-      </span>
-      <span className={styles.lineValue}>{formatPercent(line.remainingPercent)}</span>
+    <div
+      className={styles.meter}
+      role="list"
+      aria-label={t('quota_management.summary_breakdown', {
+        defaultValue: 'Credential quota breakdown',
+      })}
+    >
+      {lines.map((line) => {
+        const remaining = Math.max(0, Math.min(100, line.remainingPercent ?? 0));
+        const segmentStyle = {
+          '--segment-capacity': line.capacityPercent ?? 100,
+        } as CSSProperties;
+        return (
+          <span
+            key={line.key}
+            className={styles.segment}
+            role="listitem"
+            tabIndex={0}
+            title={lineTitle(line, now, t)}
+            aria-label={lineTitle(line, now, t)}
+            style={segmentStyle}
+          >
+            <span
+              className={`${styles.segmentFill} ${toneFor(line)}`}
+              style={{ width: `${remaining}%` }}
+            />
+          </span>
+        );
+      })}
+      {lines.length === 0 && <span className={styles.emptyMeter} />}
     </div>
   );
 }
@@ -86,17 +130,44 @@ function SummaryCard({
   const { t } = useTranslation();
   const now = useNow();
   const [showSecondary, setShowSecondary] = useState(false);
+  const secondaryId = useId();
   const icon = getAuthFileIcon(summary.type, resolvedTheme);
   const label = getTypeLabel(t, summary.type);
   const primaryLabel = summary.primaryLabel.includes('.')
     ? t(summary.primaryLabel, { defaultValue: summary.primaryLabel.split('.').slice(-1)[0] })
     : summary.primaryLabel;
   const hasSecondary = summary.type === 'claude' && summary.secondaryLines.length > 0;
+  const secondaryLabel = summary.secondaryLabel?.includes('.')
+    ? t(summary.secondaryLabel, {
+        defaultValue: summary.secondaryLabel.split('.').slice(-1)[0],
+      })
+    : summary.secondaryLabel;
+  const resetAt = summary.lines
+    .map((line) => line.resetAtMs)
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+    .sort((a, b) => a - b)[0];
+  const resetLabel =
+    resetAt !== undefined
+      ? t('quota_management.summary_reset_line', {
+          relative: formatRelativeInstant(resetAt, now),
+          absolute: new Intl.DateTimeFormat(undefined, {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          }).format(resetAt),
+          defaultValue: '{{relative}} · {{absolute}}',
+        })
+      : null;
+
   return (
     <article className={`${styles.card} ${active ? styles.active : ''}`}>
       <button type="button" className={styles.cardButton} onClick={onSelect} aria-pressed={active}>
         <span className={styles.cardHeading}>
-          <span className={styles.iconWrap}>
+          <span
+            className={`${styles.iconWrap} ${summary.type === 'claude' ? styles.iconClaude : ''}`}
+          >
             {icon ? <img src={icon} alt="" /> : label.slice(0, 1)}
           </span>
           <span>{label}</span>
@@ -108,51 +179,65 @@ function SummaryCard({
           })}
         </span>
       </button>
+
       <div className={styles.primary}>
-        <span className={styles.primaryValue}>
-          {formatPercent(summary.primaryRemainingPercent)}
-        </span>
-        <span className={styles.primaryLabel}>{primaryLabel}</span>
-        {summary.tierCapacityPercent !== null && (
-          <span className={styles.tier}>
-            {t('quota_management.summary_of', { defaultValue: 'of' })}{' '}
-            {formatPercent(summary.tierCapacityPercent)}
-            {summary.tierLabel
-              ? ` ${t(summary.tierLabel, { defaultValue: summary.tierLabel })}`
-              : ''}
+        <div className={styles.primaryLabel}>{primaryLabel}</div>
+        <div className={styles.metricLine}>
+          <span className={styles.primaryValue}>
+            {formatPercent(summary.primaryRemainingPercent)}
           </span>
-        )}
+          {summary.tierCapacityPercent !== null && (
+            <span className={styles.tier}>
+              {t('quota_management.summary_of', { defaultValue: 'of' })}{' '}
+              {formatPercent(summary.tierCapacityPercent)}
+              {summary.tierLabel
+                ? ` ${t(summary.tierLabel, { defaultValue: summary.tierLabel })}`
+                : ''}
+            </span>
+          )}
+        </div>
       </div>
-      <div className={styles.lines}>
-        {summary.lines.length ? (
-          summary.lines.map((line) => <SummaryLine key={line.key} line={line} now={now} t={t} />)
-        ) : (
-          <div className={styles.unknown}>
-            {summary.loadedCount
-              ? t('quota_management.summary_unknown', {
-                  defaultValue: 'No recovery window reported',
-                })
-              : t('quota_management.summary_unloaded', {
-                  defaultValue: 'Load credentials to see quota',
-                })}
-          </div>
-        )}
-        {hasSecondary &&
-          showSecondary &&
-          summary.secondaryLines.map((line) => (
-            <SummaryLine key={`secondary:${line.key}`} line={line} now={now} t={t} />
-          ))}
-      </div>
+
+      <SummaryMeter lines={summary.lines} now={now} t={t} />
+      {resetLabel && <div className={styles.resetLine}>{resetLabel}</div>}
+
+      {(hasSecondary || summary.lines.length === 0) && (
+        <div className={styles.secondaryRow}>
+          {hasSecondary ? (
+            <>
+              <span>{secondaryLabel}</span>
+              <span className={styles.secondaryValue}>
+                {formatPercent(summary.secondaryRemainingPercent)}
+              </span>
+              <button
+                type="button"
+                className={styles.showButton}
+                aria-expanded={showSecondary}
+                aria-controls={secondaryId}
+                onClick={() => setShowSecondary((value) => !value)}
+              >
+                {showSecondary
+                  ? t('quota_management.summary_hide', { defaultValue: 'Hide' })
+                  : t('quota_management.summary_show', { defaultValue: 'Show' })}
+              </button>
+            </>
+          ) : summary.lines.length === 0 ? (
+            <span className={styles.unknown}>
+              {summary.loadedCount
+                ? t('quota_management.summary_unknown', {
+                    defaultValue: 'No recovery window reported',
+                  })
+                : t('quota_management.summary_unloaded', {
+                    defaultValue: 'Load credentials to see quota',
+                  })}
+            </span>
+          ) : null}
+        </div>
+      )}
       {hasSecondary && (
-        <button
-          type="button"
-          className={styles.showButton}
-          onClick={() => setShowSecondary((value) => !value)}
-        >
-          {showSecondary
-            ? t('common.collapse', { defaultValue: 'Hide' })
-            : t('common.show', { defaultValue: 'Show' })}
-        </button>
+        <div id={secondaryId} hidden={!showSecondary}>
+          <SummaryMeter lines={summary.secondaryLines} now={now} t={t} />
+        </div>
       )}
     </article>
   );
