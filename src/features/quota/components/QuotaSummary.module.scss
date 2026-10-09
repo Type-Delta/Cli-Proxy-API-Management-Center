@@ -14,7 +14,7 @@
   overflow-y: hidden;
   border: 1px solid var(--border-color);
   border-radius: 14px;
-  background: var(--bg-secondary);
+  background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
 }
 
 .card {

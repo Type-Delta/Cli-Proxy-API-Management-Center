@@ -11,24 +11,28 @@
  *    已验收的徽章，验证方式是与 git 历史做 diff（应为空）。
  * ============================================================ */
 
-/* ---------- 额度行 ---------- */
+/* ---------- Quota row ----------
+ * The header and meta wrappers are flattened (`display: contents`) so a row reads as
+ * label + percent on the first line, the level bar next, then the reset line. The
+ * wrappers stay in the DOM, so the shared markup and tooltips are unchanged. */
 
 .quotaRow {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 7px;
+  row-gap: 5px;
   min-width: 0;
 }
 
-.quotaRowHeader {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
+.quotaRowHeader,
+.quotaMeta {
+  display: contents;
 }
 
 .quotaModel {
+  order: 1;
+  flex: 1 1 auto;
   min-width: 0;
   font-size: 12.5px;
   font-weight: 600;
@@ -36,25 +40,34 @@
   @include text-ellipsis;
 }
 
-/* 遥测：mono + 等宽数字，刷新时数字不跳位 */
-.quotaMeta {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 7px;
-  flex-shrink: 0;
+/* Telemetry: mono + tabular-nums, so numbers stay put while refreshing. */
+.quotaRow .quotaPercent,
+.quotaRow .quotaReset,
+.quotaRow .quotaResetRelative,
+.quotaRow .quotaAmount {
   font-family: $font-mono;
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
 }
 
-/* 百分比穿墨色而非填充色 —— 文字不承担状态编码，颜色留给水位条 */
+/* Percent wears ink, not the fill colour — text never carries state, colour is the bar's job. */
 .quotaPercent {
+  order: 2;
+  flex: 0 0 auto;
   font-weight: 650;
   color: var(--text-primary);
 }
 
+.quotaAmount {
+  order: 2;
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+}
+
 .quotaReset {
+  order: 4;
+  flex: 0 0 auto;
   color: var(--text-quaternary);
 }
 
@@ -62,6 +75,8 @@
    so the two spans stay independently styleable (the relative half turns
    warning-coloured when this is the row that recovers first). */
 .quotaResetRelative {
+  order: 4;
+  flex: 0 0 auto;
   color: var(--text-tertiary);
 
   &::before {
@@ -74,12 +89,6 @@
 .quotaResetRelativeSoon {
   color: var(--warning-text);
   font-weight: 600;
-}
-
-.quotaAmount {
-  font-family: $font-mono;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-secondary);
 }
 
 .quotaMessage {
@@ -96,6 +105,8 @@
  * remaining-amount tones. percent === null renders zero width: unknown is never painted. */
 
 .quotaBar {
+  order: 3;
+  flex: 0 0 100%;
   height: 6px;
   border-radius: $radius-full;
   background: color-mix(in srgb, var(--text-primary) 8%, transparent);
