@@ -1,7 +1,8 @@
 @use '../../styles/mixins' as *;
 
 /* ============================================================
- * 额度页壳层：纯布局，视觉细节都在各组件的 colocated 模块里。
+ * Quota page shell: layout only. Visual details live in each component's
+ * colocated module.
  * ============================================================ */
 
 .page {
@@ -12,7 +13,7 @@
   min-width: 0;
 }
 
-/* ---------- 工作区（tabs + 网格 + 分页） ---------- */
+/* ---------- Workbench (tabs + list + pagination) ---------- */
 
 .workbench {
   display: flex;
@@ -21,7 +22,7 @@
   min-width: 0;
 }
 
-/* 提供商导航独占一行，保留原生横向滚动。 */
+/* Provider navigation keeps its own row and its native horizontal scroll. */
 
 .tabsRow {
   display: flex;
@@ -45,6 +46,9 @@
   min-width: 0;
 }
 
+/* Search and sort share the credential-row surface: the exact card wash drawn
+ * inside a bordered pill. */
+
 .search {
   position: relative;
   display: flex;
@@ -52,9 +56,9 @@
   flex: 0 1 340px;
   min-width: 0;
   height: 36px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: $radius-full;
+  background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
   color: var(--text-secondary);
 
   &:focus-within {
@@ -66,7 +70,7 @@
 
 .searchIcon {
   position: absolute;
-  left: 11px;
+  left: 13px;
   pointer-events: none;
 }
 
@@ -74,7 +78,7 @@
   width: 100%;
   min-width: 0;
   height: 100%;
-  padding: 0 42px 0 35px;
+  padding: 0 42px 0 37px;
   border: 0;
   border-radius: inherit;
   outline: none;
@@ -104,7 +108,7 @@
   height: 32px;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: $radius-full;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -126,9 +130,9 @@
 
   button[aria-haspopup='listbox'] {
     height: 36px;
-    border-color: transparent;
-    border-radius: 10px;
-    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: $radius-full;
+    background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
     box-shadow: none;
     color: var(--text-secondary);
 
@@ -136,7 +140,7 @@
     &[aria-expanded='true'] {
       outline: 2px solid var(--primary-color);
       outline-offset: 2px;
-      background: var(--bg-secondary);
+      background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
       color: var(--text-primary);
     }
   }
@@ -183,18 +187,17 @@
   overflow-wrap: anywhere;
 }
 
-/* ---------- 卡片网格 ----------
- * 列宽由 CSS 决定（不再用 JS 测量）：额度卡承载水位条，取 340px 下限，
- * 与认证文件页配额模式（.gridQuota）同一档。 */
+/* ---------- Credential list ----------
+ * Full-width rows; each row draws its own bottom divider, so the container only
+ * stacks them. No grid tracks: the row layout is fixed and self-aligning. */
 
 .grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
-  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
-/* ---------- 分页 ---------- */
+/* ---------- Pagination ---------- */
 
 .pagination {
   display: flex;

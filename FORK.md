@@ -1019,6 +1019,10 @@ segment, Claude's totals use plan-weighted remaining units, and unknown paid-hea
 unknown. The strip keeps keyboard-accessible tooltip targets and the expandable secondary Claude
 weekly meter.
 
+The follow-up also replaces the quota credential tile grid with full-width list rows. Each row
+keeps provider quota columns and actions aligned while the search and sort controls use the same
+glass card surface as the quota rows and summary strip.
+
 ### DL051: Upstream v1.25.4 sync with v8 contract preservation
 
 Status: integrated in merge commit `ed24daa0e210e3d4ce49f64cae8120457bc73c32`

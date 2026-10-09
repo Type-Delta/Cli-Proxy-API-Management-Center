@@ -1,10 +1,11 @@
 /**
- * 额度卡片：头部（提供商图标 + mono 文件名）+ 四态 body + 动作 footer。
+ * Quota credential row: identity (provider icon + mono file name) | quota body | actions.
  *
- * - idle：整个 body 是一个点击加载按钮（上游直连有速率考虑，不自动拉取）；
- * - loading：双幽灵行骨架（aria-busy，文字等价视觉隐藏）；
- * - error：失败色条 + footer 刷新即重试；
- * - success：provider Body（穿 QuotaBody.module.scss 全页外衣）。
+ * - idle: the whole body is a click-to-load button (upstream reads are rate-limited, so
+ *   nothing loads automatically);
+ * - loading: dual ghost-row skeleton (aria-busy, with a visually hidden text equivalent);
+ * - error: failure strip, and the footer refresh retries;
+ * - success: the provider Body (wearing the QuotaBody.module.scss page skin).
  */
 
 import { useState, type CSSProperties } from 'react';
@@ -26,7 +27,7 @@ import { useClaudeResetGrants } from '../providers/claude/ClaudeResetGrants';
 import bodyStyles from './QuotaBody.module.scss';
 import styles from './QuotaCard.module.scss';
 
-/** 额度页全页外衣：QuotaBody 模块绑定成类型化契约（缺键在模块初始化即抛）。 */
+/** Full-page quota skin: QuotaBody bound to the typed contract (a missing key throws at module init). */
 const quotaClasses = bindQuotaClasses(bodyStyles, 'QuotaBody.module.scss');
 
 export type QuotaCardProps = {
@@ -57,7 +58,8 @@ export function QuotaCard(props: QuotaCardProps) {
   const file = entry.file;
   const displayName = getQuotaDisplayName(file);
 
-  // 挂载时捕获一次延迟：后续 props 变 null 不影响本卡（React 19 禁渲染期读 ref）
+  // Capture the delay once at mount: a later null prop must not re-trigger this row.
+  // React 19 forbids reading a ref during render.
   const [mountEntranceDelayMs] = useState<number | null>(entranceDelayMs ?? null);
   const entranceStyle =
     mountEntranceDelayMs === null
@@ -91,7 +93,7 @@ export function QuotaCard(props: QuotaCardProps) {
       className={`${styles.card} ${mountEntranceDelayMs === null ? '' : styles.cardEnter}`}
       style={entranceStyle}
     >
-      <header className={styles.head}>
+      <div className={styles.identity}>
         <span
           className={styles.iconWrap}
           title={typeLabel}
@@ -110,7 +112,7 @@ export function QuotaCard(props: QuotaCardProps) {
         <span className={styles.fileName} title={displayName}>
           {displayName}
         </span>
-      </header>
+      </div>
 
       <div className={styles.body}>
         {entry.type === 'claude' && status === 'success' && (
