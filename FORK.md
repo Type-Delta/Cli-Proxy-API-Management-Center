@@ -1013,6 +1013,12 @@ Validation: quota summary and tooltip tests pass, the full CPAMC type-check and 
 single-file production build passes. The full suite has one unrelated pre-existing legacy-backend
 probe failure on this branch.
 
+The summary follow-up replaces the initial card grid with the reference-style horizontal provider
+strip. Provider tabs remain above the strip, each credential is represented by a capacity-weighted
+segment, Claude's totals use plan-weighted remaining units, and unknown paid-health limits remain
+unknown. The strip keeps keyboard-accessible tooltip targets and the expandable secondary Claude
+weekly meter.
+
 ### DL051: Upstream v1.25.4 sync with v8 contract preservation
 
 Status: integrated in merge commit `ed24daa0e210e3d4ce49f64cae8120457bc73c32`
