@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+
 /**
  * Typed style contract for quota rendering.
  *
@@ -16,6 +18,7 @@ export interface QuotaClassMap {
   quotaMeta: string;
   quotaPercent: string;
   quotaReset: string;
+  quotaResetLabel: string;
   quotaResetRelative: string;
   quotaResetRelativeSoon: string;
   quotaAmount: string;
@@ -59,6 +62,7 @@ export const QUOTA_CLASS_KEYS: readonly (keyof QuotaClassMap)[] = [
   'quotaMeta',
   'quotaPercent',
   'quotaReset',
+  'quotaResetLabel',
   'quotaResetRelative',
   'quotaResetRelativeSoon',
   'quotaAmount',
@@ -140,9 +144,10 @@ export function buildQuotaRowTitle(
   credential: QuotaCredentialContext | undefined,
   details: QuotaRowTooltipDetails
 ): string | undefined {
+  const locale = i18n.resolvedLanguage || i18n.language || 'en';
   const weekday =
     typeof details.resetAtMs === 'number' && Number.isFinite(details.resetAtMs)
-      ? new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(details.resetAtMs)
+      ? new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(details.resetAtMs)
       : '';
   const parts = [
     credential?.displayName,

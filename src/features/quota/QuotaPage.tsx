@@ -390,7 +390,6 @@ export function QuotaPage() {
           </div>
           <div className={styles.sort}>
             <Select
-              key={sortMode}
               value={sortMode}
               options={sortOptions}
               onChange={handleSortModeChange}

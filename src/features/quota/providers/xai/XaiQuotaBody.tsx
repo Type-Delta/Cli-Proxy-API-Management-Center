@@ -115,15 +115,11 @@ export function XaiQuotaBody({ quota, classes, credential }: QuotaBodyProps<XaiQ
   const percentLabel = formatXaiPercent(remaining);
   const amountLabel = formatXaiRemainingAmount(billing);
   const resetLabel = formatQuotaResetTime(billing.billingPeriodEnd);
+  const monthlyResetAtMs = parseIsoToMs(billing.billingPeriodEnd);
   // The monthly row is a billing cycle, so it carries no resetAtMs (that field
   // is derived from periodEnd, the weekly quota window). Parse for the
   // countdown; the summary keeps the two periods deliberately distinct.
-  const monthlyResetDisplay = buildResetDisplay(
-    resetLabel,
-    parseIsoToMs(billing.billingPeriodEnd),
-    now,
-    locale
-  );
+  const monthlyResetDisplay = buildResetDisplay(resetLabel, monthlyResetAtMs, now, locale);
   const onDemandCap = billing.onDemandCapCents ?? 0;
   const clampedOnDemandUsed =
     billing.onDemandUsedPercent === null
@@ -205,6 +201,7 @@ export function XaiQuotaBody({ quota, classes, credential }: QuotaBodyProps<XaiQ
             remaining: formatXaiPercent(weeklyRemaining),
             resetAbsolute: weeklyResetDisplay?.absolute,
             resetRelative: weeklyResetDisplay?.relative,
+            resetAtMs: billing.resetAtMs,
             plan: subscriptionLabel,
             hint: weeklySoon ? t('quota_management.soonest_row_hint') : undefined,
           })}
@@ -293,6 +290,7 @@ export function XaiQuotaBody({ quota, classes, credential }: QuotaBodyProps<XaiQ
             remaining: percentLabel,
             resetAbsolute: monthlyResetDisplay?.absolute,
             resetRelative: monthlyResetDisplay?.relative,
+            resetAtMs: monthlyResetAtMs,
             plan: subscriptionLabel,
           })}
         >

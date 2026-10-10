@@ -118,12 +118,24 @@
   min-width: 0;
 }
 
-/* Plan chips, manual reset credits, and their inline error stack under the identity. */
+/* Plan chips stay their own flex group: content-sized, so a dynamic number of chips
+ * spreads inline while there is room and wraps onto more lines as the row narrows.
+ * Fixed widths would stack them into a narrow column even on a wide screen. The group
+ * starts at the top of the body instead of stretching down beside a taller quota row. */
 .body > [class*='__codexPlan___'],
 .body > [class*='__codexResetCredits___'],
 .body > [class*='__codexResetCreditsError___'] {
-  flex: 0 0 220px;
   align-self: start;
+}
+
+.body > [class*='__codexPlan___'] {
+  flex: 0 1 auto;
+}
+
+/* The manual-reset block is a framed list, so it keeps a stable column width. */
+.body > [class*='__codexResetCredits___'],
+.body > [class*='__codexResetCreditsError___'] {
+  flex: 0 0 220px;
 }
 
 /* Real quota rows (and antigravity groups) become centre columns spanning the row height. */
@@ -348,30 +360,33 @@
 /* Narrow screens: the row stacks vertically (identity, quota columns, actions). */
 @include mobile {
   .card {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 170px);
+    grid-template-areas:
+      'identity actions'
+      'body body';
+    align-items: start;
     gap: 10px;
     padding: 12px 4px;
   }
 
   .identity {
-    padding-right: 170px;
+    grid-area: identity;
+    align-self: center;
   }
 
   .actionRow {
-    position: absolute;
-    top: 12px;
-    right: 4px;
+    position: static;
+    grid-area: actions;
     justify-content: flex-end;
+    justify-self: end;
+    align-self: start;
+    min-width: 0;
     max-width: 170px;
   }
 
-  .identity {
-    align-self: stretch;
-  }
-
   .body {
+    grid-area: body;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;

@@ -200,9 +200,11 @@ export function AntigravityQuotaBody({
                         percent: Math.round(percent),
                       });
                 const resetLabel = formatAntigravityResetLabel(bucket.resetTime, t, nowMs);
-                const resetAbsolute = bucket.resetTime
-                  ? formatInstantShort(new Date(bucket.resetTime).getTime())
-                  : null;
+                const resetAtMs = bucket.resetTime ? new Date(bucket.resetTime).getTime() : null;
+                const resetAbsolute =
+                  resetAtMs !== null && Number.isFinite(resetAtMs)
+                    ? formatInstantShort(resetAtMs)
+                    : null;
                 const bucketLabel = translateAntigravityQuotaLabel(
                   bucket.label,
                   ANTIGRAVITY_BUCKET_LABEL_KEYS,
@@ -224,6 +226,7 @@ export function AntigravityQuotaBody({
                       remaining: `${Math.round(percent)}%`,
                       resetAbsolute,
                       resetRelative: resetLabel,
+                      resetAtMs,
                       plan: planLabel,
                       hint: soon ? t('quota_management.soonest_row_hint') : undefined,
                     })}

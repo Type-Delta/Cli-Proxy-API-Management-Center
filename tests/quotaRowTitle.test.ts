@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import i18n from '../src/i18n';
 import { buildQuotaRowTitle } from '../src/features/quota/types';
 
 describe('buildQuotaRowTitle', () => {
@@ -28,5 +29,27 @@ describe('buildQuotaRowTitle', () => {
         resetAbsolute: '-',
       })
     ).toBe('Monthly · --');
+  });
+
+  test('uses the app language for the weekday', async () => {
+    const resetAtMs = Date.UTC(2026, 7, 3, 12);
+
+    try {
+      await i18n.changeLanguage('en');
+      const english = buildQuotaRowTitle(undefined, { resetAtMs });
+
+      await i18n.changeLanguage('ru');
+      const russian = buildQuotaRowTitle(undefined, { resetAtMs });
+
+      expect(english).toContain(
+        new Intl.DateTimeFormat('en', { weekday: 'long' }).format(resetAtMs)
+      );
+      expect(russian).toContain(
+        new Intl.DateTimeFormat('ru', { weekday: 'long' }).format(resetAtMs)
+      );
+      expect(english).not.toBe(russian);
+    } finally {
+      await i18n.changeLanguage('en');
+    }
   });
 });

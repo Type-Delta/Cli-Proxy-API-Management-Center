@@ -121,15 +121,19 @@ button.quotaMessageAction {
   color: var(--text-quaternary);
 }
 
-/* Compact host: same contract class as QuotaBody.module.scss, tighter gutter. */
+/* Compact host: same contract class as QuotaBody.module.scss, tighter gutter.
+   The pair is one wrapping group, so the countdown drops to its own line instead of
+   being squeezed, and the gap takes over from the removed `·` separator. */
+.quotaResetLabel {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 4px;
+  min-width: 0;
+}
+
 .quotaResetRelative {
   color: var(--text-tertiary);
-
-  &::before {
-    content: '·';
-    margin: 0 3px;
-    color: var(--text-quaternary);
-  }
 }
 
 .quotaResetRelativeSoon {

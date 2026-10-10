@@ -71,19 +71,25 @@
   color: var(--text-quaternary);
 }
 
-/* Countdown beside the absolute reset time. The separator is a pseudo-element
-   so the two spans stay independently styleable (the relative half turns
-   warning-coloured when this is the row that recovers first). */
+/* Absolute reset time and countdown travel as one group: inline when the row has
+   room, stacked when it does not. The gap replaces the old `·` pseudo-separator so
+   a wrapped line never starts with a dangling dot. */
+.quotaResetLabel {
+  order: 4;
+  /* Inline-flex so it stays in flow inside the right-aligned credit-time span, and
+     blockifies cleanly where it is itself a flex item of .quotaRow. */
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 5px;
+  min-width: 0;
+}
+
+/* The relative half turns warning-coloured when this is the row that recovers first. */
 .quotaResetRelative {
   order: 4;
   flex: 0 0 auto;
   color: var(--text-tertiary);
-
-  &::before {
-    content: '·';
-    margin: 0 4px;
-    color: var(--text-quaternary);
-  }
 }
 
 .quotaResetRelativeSoon {

@@ -1,20 +1,32 @@
 @use '../../../styles/mixins' as *;
 
+/* Column surface: the shared page wash the strip has always worn. */
+$card-surface: color-mix(in srgb, var(--bg-primary) 82%, transparent);
+
 .section {
   width: 100%;
   min-width: 0;
+  container-type: inline-size;
 }
 
+/* Provider columns wrap onto the next row instead of scrolling sideways. The dividers
+ * are the 1px gaps showing the grid's own border colour through. The tail element below
+ * covers the unused cells in a partial row, so the divider colour cannot pool there. */
 .grid {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(180px, 1fr);
-  grid-template-columns: none;
-  overflow-x: auto;
-  overflow-y: hidden;
+  grid-template-columns: repeat(var(--summary-columns), minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
   border: 1px solid var(--border-color);
   border-radius: 14px;
-  background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
+  background: var(--border-color);
+}
+
+.grid::after {
+  content: '';
+  grid-column: auto / -1;
+  min-height: 0;
+  background: $card-surface;
 }
 
 .card {
@@ -25,17 +37,12 @@
   gap: 8px;
   min-height: 178px;
   padding: 16px;
-  border-right: 1px solid var(--border-color);
-  background: transparent;
+  background: $card-surface;
   transition: background-color 180ms ease;
-
-  &:last-child {
-    border-right: 0;
-  }
 }
 
 .active {
-  background: transparent;
+  background: $card-surface;
 }
 
 .cardButton {
@@ -238,20 +245,21 @@
   padding-top: 5px;
 }
 
+/* Six 180px columns plus five dividers fit at 1085px. Below that, pair the
+ * providers into full three-column rows instead of leaving one card on a row. */
+@container (max-width: 1084px) {
+  .grid {
+    grid-template-columns: repeat(var(--summary-columns-mid), minmax(0, 1fr));
+  }
+}
+
 @include mobile {
   .grid {
-    grid-auto-flow: row;
-    grid-auto-columns: auto;
     grid-template-columns: minmax(0, 1fr);
-    overflow-x: hidden;
   }
 
-  .card {
-    border-right: 0;
-  }
-
-  .card + .card {
-    border-top: 1px solid var(--border-color);
+  .grid::after {
+    display: none;
   }
 }
 

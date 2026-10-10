@@ -252,7 +252,15 @@ export function QuotaSummary({ entries, quotaFor, resolvedTheme, active, onSelec
       className={styles.section}
       aria-label={t('quota_management.summary_title', { defaultValue: 'Quota summary' })}
     >
-      <div className={styles.grid}>
+      <div
+        className={styles.grid}
+        style={
+          {
+            '--summary-columns': Math.min(6, summaries.length),
+            '--summary-columns-mid': Math.min(3, summaries.length),
+          } as CSSProperties
+        }
+      >
         {summaries.map((summary) => (
           <SummaryCard
             key={summary.type}

@@ -1023,6 +1023,14 @@ The follow-up also replaces the quota credential tile grid with full-width list 
 keeps provider quota columns and actions aligned while the search and sort controls use the same
 glass card surface as the quota rows and summary strip.
 
+Row polish: sorting is wired to the list, quota rows fill the available width with actions in their
+own column, plan chips form a content-sized flex group, reset instant and countdown wrap as one
+group, and multiple Codex manual-reset credits collapse into one focusable stacked row whose tooltip
+lists every credit. Row tooltips include the reset weekday in the active app language. The summary
+strip wraps into even grid rows instead of scrolling, and on mobile the actions share the identity
+line. The shared TooltipProvider keeps converted tooltips when React reorders keyed rows; a
+happy-dom regression test covers that path.
+
 ### DL051: Upstream v1.25.4 sync with v8 contract preservation
 
 Status: integrated in merge commit `ed24daa0e210e3d4ce49f64cae8120457bc73c32`

@@ -137,6 +137,38 @@ describe('CodexQuotaBody', () => {
     expect(markup).toMatch(/3 hours/);
   });
 
+  test('keeps the absolute reset and its countdown in one wrapping label group', () => {
+    const markup = renderToStaticMarkup(createElement(CodexQuotaBody, { quota, classes }));
+
+    // One group, not two loose siblings: the pair can stack on a narrow row, and the
+    // flex gap replaces the old `·` pseudo-separator that would dangle at a line start.
+    expect(markup).toContain(
+      '<span class="quotaResetLabel"><span class="quotaReset">08-02 18:00</span><span class="quotaResetRelative">'
+    );
+  });
+
+  test('lists every manual reset credit on its own tooltip line', () => {
+    const credits = [11, 4, 2].map((days, index) => ({
+      id: `credit-${index}`,
+      status: 'available',
+      grantedAt: new Date(now - DAY_MS).toISOString(),
+      expiresAt: new Date(now + days * DAY_MS).toISOString(),
+    }));
+    const markup = renderToStaticMarkup(
+      createElement(CodexQuotaBody, {
+        quota: { ...quota, rateLimitResetCredits: credits, rateLimitResetCreditsAvailableCount: 3 },
+        classes,
+        credential: { displayName: 'codex-pro-01' },
+      })
+    );
+
+    // Three credits stack two offset rectangles behind the visible top row.
+    expect(markup).toContain('data-stack-count="3"');
+    // The hover detail reads as a list instead of a run-on " | " sentence.
+    expect(markup).not.toContain(' | ');
+    expect(markup).toMatch(/Reset 1: [^\n]+\nReset 2: [^\n]+\nReset 3: /);
+  });
+
   test('renders reset-credit expiry in local time with a countdown', () => {
     const markup = renderToStaticMarkup(createElement(CodexQuotaBody, { quota, classes }));
 
@@ -163,6 +195,50 @@ describe('CodexQuotaBody', () => {
 
     expect(markup).toContain('codexResetCreditRowSoon');
     expect(markup).not.toContain('quotaRowSoon');
+  });
+
+  test('highlights an id-less credit using its original array index', () => {
+    const creditFirst: CodexQuotaState = {
+      ...quota,
+      windows: [{ ...quota.windows[0], resetAtMs: now + 5 * DAY_MS }],
+      rateLimitResetCredits: [
+        {
+          status: 'available',
+          grantedAt: new Date(now - DAY_MS).toISOString(),
+          expiresAt: new Date(now + 5 * DAY_MS).toISOString(),
+        },
+        {
+          status: 'available',
+          grantedAt: new Date(now - DAY_MS).toISOString(),
+          expiresAt: new Date(now + 30 * 60_000).toISOString(),
+        },
+      ],
+      rateLimitResetCreditsAvailableCount: 2,
+    };
+    const markup = renderToStaticMarkup(
+      createElement(CodexQuotaBody, { quota: creditFirst, classes })
+    );
+
+    expect(markup).toContain('data-stack-count="2"');
+    expect(markup).toContain('codexResetCreditRowSoon');
+  });
+
+  test('makes the multi-credit stack keyboard-focusable and names its hidden resets', () => {
+    const credits = [11, 4, 2].map((days, index) => ({
+      id: `credit-${index}`,
+      status: 'available',
+      grantedAt: new Date(now - DAY_MS).toISOString(),
+      expiresAt: new Date(now + days * DAY_MS).toISOString(),
+    }));
+    const markup = renderToStaticMarkup(
+      createElement(CodexQuotaBody, {
+        quota: { ...quota, rateLimitResetCredits: credits, rateLimitResetCreditsAvailableCount: 3 },
+        classes,
+      })
+    );
+
+    expect(markup).toContain('tabindex="0"');
+    expect(markup).toMatch(/aria-label="Reset 1: [^"]+\nReset 2: [^"]+\nReset 3: /);
   });
 
   test('does not emphasize a reset countdown more than one hour away', () => {
