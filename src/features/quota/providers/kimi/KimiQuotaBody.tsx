@@ -58,6 +58,7 @@ export function KimiQuotaBody({ quota, classes, credential }: QuotaBodyProps<Kim
               remaining: percentLabel,
               resetAbsolute: resetDisplay?.absolute,
               resetRelative: resetDisplay?.relative,
+              resetAtMs: row.resetAtMs,
               hint: soon ? t('quota_management.soonest_row_hint') : undefined,
             })}
           >

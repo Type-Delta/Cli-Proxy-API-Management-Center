@@ -50,6 +50,7 @@ export function OpenCodeGoQuotaBody({
               remaining: percentLabel,
               resetAbsolute: resetDisplay?.absolute,
               resetRelative: resetDisplay?.relative,
+              resetAtMs: row.resetAtMs,
               plan: t('opencode_go_quota.plan_value'),
               hint: quotaWindowTitle(t, { soon, disabled: row.disabled }),
             })}

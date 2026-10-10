@@ -131,45 +131,66 @@ export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<Co
           <div className={classes.codexResetCreditsTitle}>
             {t('codex_quota.reset_credits_expiry_label', { timezone: resolveTimeZoneLabel() })}
           </div>
-          {rateLimitResetCredits.map((credit, index) => {
-            const expiresAtMs = parseIsoToMs(credit.expiresAt);
-            const expiresDisplay = buildResetDisplay(
-              expiresAtMs === null ? credit.expiresAt : formatInstantShort(expiresAtMs),
-              expiresAtMs,
-              now,
-              locale
-            );
-            // One expression for both the key and the highlight — two copies
-            // that drift would emphasize the wrong row.
-            const rowId = resetCreditRowId(credit, index);
-            const soon = rowId === soonestRowId;
-            return (
-              <div
-                key={rowId}
-                className={
-                  soon
-                    ? `${classes.codexResetCreditRow} ${classes.codexResetCreditRowSoon}`
-                    : classes.codexResetCreditRow
-                }
-                title={buildQuotaRowTitle(credential, {
-                  label: t('codex_quota.reset_credit_number', { index: index + 1 }),
-                  resetAbsolute: expiresDisplay?.absolute,
-                  resetRelative: expiresDisplay?.relative,
-                  plan: planLabel,
-                  hint: soon ? t('quota_management.soonest_row_hint') : undefined,
-                })}
-              >
-                <span className={classes.codexResetCreditLabel}>
-                  {t('codex_quota.reset_credit_number', { index: index + 1 })}
-                </span>
-                <span className={classes.codexResetCreditTime}>
-                  {expiresDisplay && (
-                    <QuotaResetLabel display={expiresDisplay} classes={classes} soon={soon} />
-                  )}
-                </span>
-              </div>
-            );
-          })}
+          {(() => {
+            const orderedCredits = [...rateLimitResetCredits].sort((a, b) => {
+              const aMs = parseIsoToMs(a.expiresAt) ?? Number.POSITIVE_INFINITY;
+              const bMs = parseIsoToMs(b.expiresAt) ?? Number.POSITIVE_INFINITY;
+              return aMs - bMs;
+            });
+            const visibleCredits = orderedCredits.slice(0, 1);
+            const stackCount = Math.min(3, orderedCredits.length);
+            const allCreditsTitle = orderedCredits
+              .map((credit, index) => {
+                const expiresAtMs = parseIsoToMs(credit.expiresAt);
+                const display = buildResetDisplay(
+                  expiresAtMs === null ? credit.expiresAt : formatInstantShort(expiresAtMs),
+                  expiresAtMs,
+                  now,
+                  locale
+                );
+                return `${t('codex_quota.reset_credit_number', { index: index + 1 })}: ${display?.absolute ?? credit.expiresAt}${display?.relative ? ` · ${display.relative}` : ''}`;
+              })
+              .join(' | ');
+            return visibleCredits.map((credit) => {
+              const index = orderedCredits.indexOf(credit);
+              const expiresAtMs = parseIsoToMs(credit.expiresAt);
+              const expiresDisplay = buildResetDisplay(
+                expiresAtMs === null ? credit.expiresAt : formatInstantShort(expiresAtMs),
+                expiresAtMs,
+                now,
+                locale
+              );
+              // One expression for both the key and the highlight — two copies
+              // that drift would emphasize the wrong row.
+              const rowId = resetCreditRowId(credit, index);
+              const soon = rowId === soonestRowId;
+              return (
+                <div
+                  key={rowId}
+                  className={`${classes.codexResetCreditRow} ${stackCount > 1 ? classes.codexResetCreditStack : ''} ${soon ? classes.codexResetCreditRowSoon : ''}`}
+                  data-stack-count={stackCount}
+                  title={buildQuotaRowTitle(credential, {
+                    label: t('codex_quota.reset_credit_number', { index: index + 1 }),
+                    resetAbsolute: expiresDisplay?.absolute,
+                    resetRelative: expiresDisplay?.relative,
+                    plan: planLabel,
+                    hint: [allCreditsTitle, soon ? t('quota_management.soonest_row_hint') : '']
+                      .filter(Boolean)
+                      .join(' · '),
+                  })}
+                >
+                  <span className={classes.codexResetCreditLabel}>
+                    {t('codex_quota.reset_credit_number', { index: index + 1 })}
+                  </span>
+                  <span className={classes.codexResetCreditTime}>
+                    {expiresDisplay && (
+                      <QuotaResetLabel display={expiresDisplay} classes={classes} soon={soon} />
+                    )}
+                  </span>
+                </div>
+              );
+            });
+          })()}
         </div>
       ) : rateLimitResetCreditsError ? (
         <div className={classes.codexResetCreditsError}>
@@ -203,6 +224,7 @@ export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<Co
                 remaining: percentLabel,
                 resetAbsolute: resetDisplay?.absolute,
                 resetRelative: resetDisplay?.relative,
+                resetAtMs: window.resetAtMs,
                 plan: planLabel,
                 hint: quotaWindowTitle(t, { soon, disabled: window.disabled }),
               })}

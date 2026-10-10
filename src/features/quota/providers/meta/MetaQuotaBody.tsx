@@ -64,6 +64,7 @@ export function MetaQuotaBody({ quota, classes, credential }: QuotaBodyProps<Met
               remaining: percentLabel,
               resetAbsolute: resetDisplay?.absolute,
               resetRelative: resetDisplay?.relative,
+              resetAtMs: window.resetAt === undefined ? null : window.resetAt * 1000,
               plan: data.planName,
               hint: soon ? t('quota_management.soonest_row_hint') : undefined,
             })}

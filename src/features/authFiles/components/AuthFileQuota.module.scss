@@ -306,6 +306,33 @@ button.quotaMessageAction {
   font-weight: 400;
 }
 
+.codexResetCreditStack {
+  position: relative;
+  z-index: 1;
+}
+
+.codexResetCreditStack::before,
+.codexResetCreditStack::after {
+  position: absolute;
+  z-index: -1;
+  content: '';
+  inset: 0;
+  border: inherit;
+  border-radius: inherit;
+  background: inherit;
+}
+
+.codexResetCreditStack::before {
+  transform: translate(4px, 4px);
+}
+.codexResetCreditStack::after {
+  display: none;
+  transform: translate(8px, 8px);
+}
+.codexResetCreditStack[data-stack-count='3']::after {
+  display: block;
+}
+
 /* The compact host's credit rows have no border of their own, so the emphasis
    is carried by a left rule and a tint rather than a border-colour swap. */
 .codexResetCreditRowSoon {

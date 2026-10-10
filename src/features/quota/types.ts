@@ -32,6 +32,7 @@ export interface QuotaClassMap {
   codexResetCredits: string;
   codexResetCreditsTitle: string;
   codexResetCreditRow: string;
+  codexResetCreditStack: string;
   codexResetCreditRowSoon: string;
   codexResetCreditLabel: string;
   codexResetCreditTime: string;
@@ -71,6 +72,7 @@ export const QUOTA_CLASS_KEYS: readonly (keyof QuotaClassMap)[] = [
   'codexResetCredits',
   'codexResetCreditsTitle',
   'codexResetCreditRow',
+  'codexResetCreditStack',
   'codexResetCreditRowSoon',
   'codexResetCreditLabel',
   'codexResetCreditTime',
@@ -121,6 +123,8 @@ export interface QuotaRowTooltipDetails {
   resetAbsolute?: string | null;
   /** Countdown beside the absolute instant, when available. */
   resetRelative?: string | null;
+  /** Local reset instant used to add a weekday to the hover detail. */
+  resetAtMs?: number | null;
   /** Plan or tier label, when the provider reports one. */
   plan?: string | null;
   /** Existing provider-specific hint, such as the blocked-window explanation. */
@@ -136,12 +140,17 @@ export function buildQuotaRowTitle(
   credential: QuotaCredentialContext | undefined,
   details: QuotaRowTooltipDetails
 ): string | undefined {
+  const weekday =
+    typeof details.resetAtMs === 'number' && Number.isFinite(details.resetAtMs)
+      ? new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(details.resetAtMs)
+      : '';
   const parts = [
     credential?.displayName,
     details.label,
     details.remaining,
     details.resetAbsolute,
     details.resetRelative,
+    weekday,
     details.plan,
     details.hint,
   ]

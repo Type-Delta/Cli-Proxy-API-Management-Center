@@ -48,6 +48,7 @@ export function DevinQuotaBody({ quota, classes, credential }: QuotaBodyProps<De
                   : `${window.remainingPercent}%`,
               resetAbsolute: reset?.absolute,
               resetRelative: reset?.relative,
+              resetAtMs: window.resetAtMs,
               plan: quota.plan,
               hint: soon ? t('quota_management.soonest_row_hint') : undefined,
             })}

@@ -269,9 +269,35 @@
   border: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
   border-radius: $radius-sm;
   background-color: color-mix(in srgb, var(--bg-secondary) 72%, transparent);
+  position: relative;
+  z-index: 1;
   font-size: 12px;
   line-height: 1.35;
   min-width: 0;
+}
+
+.codexResetCreditStack::before,
+.codexResetCreditStack::after {
+  position: absolute;
+  z-index: -1;
+  content: '';
+  inset: 0;
+  border: inherit;
+  border-radius: inherit;
+  background: inherit;
+}
+
+.codexResetCreditStack::before {
+  transform: translate(4px, 4px);
+}
+
+.codexResetCreditStack::after {
+  display: none;
+  transform: translate(8px, 8px);
+}
+
+.codexResetCreditStack[data-stack-count='3']::after {
+  display: block;
 }
 
 .codexResetCreditRowSoon {

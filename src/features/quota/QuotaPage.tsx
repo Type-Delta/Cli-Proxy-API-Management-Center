@@ -51,7 +51,7 @@ import type { QuotaProviderType } from './providers/types';
 import { useDevinQuotaAutoLoad } from './providers/devin/useDevinQuotaAutoLoad';
 import { useQuotaActions } from './hooks/useQuotaActions';
 import { useQuotaBatchLoader } from './hooks/useQuotaBatchLoader';
-import { readQuotaUiState, writeQuotaUiState } from './uiState';
+import { isQuotaSortMode, readQuotaUiState, writeQuotaUiState } from './uiState';
 import styles from './QuotaPage.module.scss';
 
 const TAB_IDS: string[] = ['all', ...QUOTA_TAB_ORDER];
@@ -210,9 +210,10 @@ export function QuotaPage() {
   }, []);
 
   const handleSortModeChange = useCallback((next: string) => {
-    setSortMode(next as QuotaSortMode);
+    if (!isQuotaSortMode(next)) return;
+    setSortMode(next);
     setPage(1);
-    writeQuotaUiState({ sortMode: next as QuotaSortMode });
+    writeQuotaUiState({ sortMode: next });
   }, []);
 
   const sortOptions = useMemo(
@@ -389,6 +390,7 @@ export function QuotaPage() {
           </div>
           <div className={styles.sort}>
             <Select
+              key={sortMode}
               value={sortMode}
               options={sortOptions}
               onChange={handleSortModeChange}

@@ -67,6 +67,7 @@ export function ZaiQuotaBody({ quota, classes, credential }: QuotaBodyProps<ZaiQ
               remaining: percentLabel,
               resetAbsolute: resetDisplay?.absolute,
               resetRelative: resetDisplay?.relative,
+              resetAtMs: row.resetAtMs,
               plan: level,
               hint: [creditsLabel, quotaWindowTitle(t, { soon, disabled: row.disabled })]
                 .filter(Boolean)

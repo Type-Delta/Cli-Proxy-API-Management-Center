@@ -68,6 +68,7 @@ export function ClaudeQuotaBody({ quota, classes, credential }: QuotaBodyProps<C
                 remaining: percentLabel,
                 resetAbsolute: resetDisplay?.absolute,
                 resetRelative: resetDisplay?.relative,
+                resetAtMs: window.resetAtMs,
                 plan: planType ? t(`claude_quota.${planType}`) : null,
                 hint: quotaWindowTitle(t, { soon, disabled: window.disabled }),
               })}
