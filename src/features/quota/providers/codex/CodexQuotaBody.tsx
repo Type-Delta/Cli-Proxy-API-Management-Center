@@ -29,7 +29,7 @@ const getPlanValueClass = (planType: string | null, classes: QuotaClassMap): str
   const tier = resolvePlanTier(planType);
   if (tier === 'elite') return classes.elitePlanValue;
   if (tier === 'premium') return classes.premiumPlanValue;
-  return classes.codexPlanValue;
+  return classes.planMetaValue;
 };
 
 export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<CodexQuotaState>) {
@@ -89,170 +89,208 @@ export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<Co
         expiryDisplay ||
         creditsUnlimited ||
         creditBalance !== null ||
-        rateLimitResetCreditsAvailableCount !== null) && (
-        <div className={classes.codexPlan}>
-          {planLabel && (
-            <span className={classes.codexPlanItem}>
-              <span className={classes.codexPlanLabel}>{t('codex_quota.plan_label')}</span>
-              <span className={planValueClass}>{planLabel}</span>
-            </span>
-          )}
-          {expiryDisplay && (
-            <span className={classes.codexPlanItem}>
-              <span className={classes.codexPlanLabel}>{t('codex_quota.expires_label')}</span>
-              <span className={classes.codexPlanValue}>{expiryDisplay.absolute}</span>
-              {expiryDisplay.relative && (
-                <span className={classes.quotaResetRelative}>{expiryDisplay.relative}</span>
+        rateLimitResetCreditsAvailableCount !== null ||
+        rateLimitResetCredits.length > 0 ||
+        rateLimitResetCreditsError) && (
+        <div className={classes.metaColumn}>
+          {(planLabel ||
+            expiryDisplay ||
+            creditsUnlimited ||
+            creditBalance !== null ||
+            rateLimitResetCreditsAvailableCount !== null) && (
+            <div className={classes.planMeta}>
+              {planLabel && (
+                <span className={classes.planMetaItem}>
+                  <span className={classes.planMetaLabel}>{t('codex_quota.plan_label')}</span>
+                  <span className={planValueClass}>{planLabel}</span>
+                </span>
               )}
-            </span>
-          )}
-          {(creditsUnlimited || creditBalance !== null) && (
-            <span className={classes.codexPlanItem}>
-              <span className={classes.codexPlanLabel}>
-                {t('codex_quota.credit_balance_label')}
-              </span>
-              <span className={classes.codexPlanValue}>
-                {creditsUnlimited ? t('codex_quota.credit_unlimited') : creditBalance}
-              </span>
-            </span>
-          )}
-          {rateLimitResetCreditsAvailableCount !== null && (
-            <span className={classes.codexPlanItem}>
-              <span className={classes.codexPlanLabel}>{t('codex_quota.reset_credits_label')}</span>
-              <span className={classes.codexPlanValue}>
-                {rateLimitResetCreditsAvailableCount.toString()}
-              </span>
-            </span>
-          )}
-        </div>
-      )}
-      {rateLimitResetCredits.length > 0 ? (
-        <div className={classes.codexResetCredits}>
-          <div className={classes.codexResetCreditsTitle}>
-            {t('codex_quota.reset_credits_expiry_label', { timezone: resolveTimeZoneLabel() })}
-          </div>
-          {(() => {
-            const orderedCredits = rateLimitResetCredits
-              .map((credit, originalIndex) => ({ credit, originalIndex }))
-              .sort((a, b) => {
-                const aMs = parseIsoToMs(a.credit.expiresAt) ?? Number.POSITIVE_INFINITY;
-                const bMs = parseIsoToMs(b.credit.expiresAt) ?? Number.POSITIVE_INFINITY;
-                return aMs - bMs;
-              });
-            const visibleCredits = orderedCredits.slice(0, 1);
-            const stackCount = Math.min(3, orderedCredits.length);
-            const allCreditsTitle = orderedCredits
-              .map(({ credit }, index) => {
-                const expiresAtMs = parseIsoToMs(credit.expiresAt);
-                const display = buildResetDisplay(
-                  expiresAtMs === null ? credit.expiresAt : formatInstantShort(expiresAtMs),
-                  expiresAtMs,
-                  now,
-                  locale
-                );
-                return `${t('codex_quota.reset_credit_number', { index: index + 1 })}: ${display?.absolute ?? credit.expiresAt}${display?.relative ? ` · ${display.relative}` : ''}`;
-              })
-              // One line per reset: the shared tooltip preserves newlines, so the
-              // stack's hover detail reads as a list instead of a run-on sentence.
-              .join('\n');
-            return visibleCredits.map(({ credit, originalIndex }, index) => {
-              const expiresAtMs = parseIsoToMs(credit.expiresAt);
-              const expiresDisplay = buildResetDisplay(
-                expiresAtMs === null ? credit.expiresAt : formatInstantShort(expiresAtMs),
-                expiresAtMs,
-                now,
-                locale
-              );
-              // One expression for both the key and the highlight — two copies
-              // that drift would emphasize the wrong row.
-              const rowId = resetCreditRowId(credit, originalIndex);
-              const soon = rowId === soonestRowId;
-              return (
-                <div
-                  key={rowId}
-                  className={`${classes.codexResetCreditRow} ${stackCount > 1 ? classes.codexResetCreditStack : ''} ${soon ? classes.codexResetCreditRowSoon : ''}`}
-                  data-stack-count={stackCount}
-                  tabIndex={stackCount > 1 ? 0 : undefined}
-                  aria-label={stackCount > 1 ? allCreditsTitle : undefined}
-                  title={buildQuotaRowTitle(credential, {
-                    label: t('codex_quota.reset_credit_number', { index: index + 1 }),
-                    resetAbsolute: expiresDisplay?.absolute,
-                    resetRelative: expiresDisplay?.relative,
-                    plan: planLabel,
-                    hint: [soon ? t('quota_management.soonest_row_hint') : '', allCreditsTitle]
-                      .filter(Boolean)
-                      .join('\n'),
-                  })}
-                >
-                  <span className={classes.codexResetCreditLabel}>
-                    {t('codex_quota.reset_credit_number', { index: index + 1 })}
-                  </span>
-                  <span className={classes.codexResetCreditTime}>
-                    {expiresDisplay && (
-                      <QuotaResetLabel display={expiresDisplay} classes={classes} soon={soon} />
-                    )}
-                  </span>
-                </div>
-              );
-            });
-          })()}
-        </div>
-      ) : rateLimitResetCreditsError ? (
-        <div className={classes.codexResetCreditsError}>
-          {t('codex_quota.reset_credits_expiry_failed', {
-            message: rateLimitResetCreditsError,
-          })}
-        </div>
-      ) : null}
-      {windows.length === 0 ? (
-        <div className={classes.quotaMessage}>{t('codex_quota.empty_windows')}</div>
-      ) : (
-        windows.map((window, index) => {
-          const used = window.usedPercent;
-          const clampedUsed = used === null ? null : Math.max(0, Math.min(100, used));
-          const remaining =
-            clampedUsed === null ? null : Math.max(0, Math.min(100, 100 - clampedUsed));
-          const percentLabel = remaining === null ? '--' : `${Math.round(remaining)}%`;
-          const windowLabel = window.labelKey
-            ? t(window.labelKey, window.labelParams as Record<string, string | number>)
-            : window.label;
-          const resetDisplay = buildResetDisplay(window.resetLabel, window.resetAtMs, now, locale);
-
-          const soon = window.id === soonestRowId;
-
-          return (
-            <div
-              key={window.id}
-              className={classes.quotaRow}
-              title={buildQuotaRowTitle(credential, {
-                label: windowLabel,
-                remaining: percentLabel,
-                resetAbsolute: resetDisplay?.absolute,
-                resetRelative: resetDisplay?.relative,
-                resetAtMs: window.resetAtMs,
-                plan: planLabel,
-                hint: quotaWindowTitle(t, { soon, disabled: window.disabled }),
-              })}
-            >
-              <div className={classes.quotaRowHeader}>
-                <span className={classes.quotaModel}>{windowLabel}</span>
-                <div className={classes.quotaMeta}>
-                  <span className={classes.quotaPercent}>{percentLabel}</span>
-                  {resetDisplay && (
-                    <QuotaResetLabel display={resetDisplay} classes={classes} soon={soon} />
+              {expiryDisplay && (
+                <span className={classes.planMetaItem}>
+                  <span className={classes.planMetaLabel}>{t('codex_quota.expires_label')}</span>
+                  <span className={classes.planMetaValue}>{expiryDisplay.absolute}</span>
+                  {expiryDisplay.relative && (
+                    <span className={classes.quotaResetRelative}>{expiryDisplay.relative}</span>
                   )}
-                </div>
-              </div>
-              <QuotaMeter
-                percent={remaining}
-                classes={classes}
-                index={index}
-                disabled={window.disabled}
-              />
+                </span>
+              )}
+              {(creditsUnlimited || creditBalance !== null) && (
+                <span className={classes.planMetaItem}>
+                  <span className={classes.planMetaLabel}>
+                    {t('codex_quota.credit_balance_label')}
+                  </span>
+                  <span className={classes.planMetaValue}>
+                    {creditsUnlimited ? t('codex_quota.credit_unlimited') : creditBalance}
+                  </span>
+                </span>
+              )}
+              {rateLimitResetCreditsAvailableCount !== null && (
+                <span className={classes.planMetaItem}>
+                  <span className={classes.planMetaLabel}>
+                    {t('codex_quota.reset_credits_label')}
+                  </span>
+                  <span className={classes.planMetaValue}>
+                    {rateLimitResetCreditsAvailableCount.toString()}
+                  </span>
+                </span>
+              )}
             </div>
-          );
-        })
+          )}
+          {rateLimitResetCredits.length > 0 ? (
+            <div className={classes.codexResetCredits}>
+              <div className={classes.codexResetCreditsTitle}>
+                {t('codex_quota.reset_credits_expiry_label', { timezone: resolveTimeZoneLabel() })}
+              </div>
+              {(() => {
+                const orderedCredits = rateLimitResetCredits
+                  .map((credit, originalIndex) => ({ credit, originalIndex }))
+                  .sort((a, b) => {
+                    const aMs = parseIsoToMs(a.credit.expiresAt) ?? Number.POSITIVE_INFINITY;
+                    const bMs = parseIsoToMs(b.credit.expiresAt) ?? Number.POSITIVE_INFINITY;
+                    return aMs - bMs;
+                  });
+                const visibleCredits = orderedCredits.slice(0, 1);
+                const stackCount = Math.min(3, orderedCredits.length);
+                // One line per reset: the shared tooltip preserves newlines, so the
+                // stack's hover detail reads as a list instead of a run-on sentence.
+                const creditLines = orderedCredits.map(({ credit }, index) => {
+                  const expiresAtMs = parseIsoToMs(credit.expiresAt);
+                  const display = buildResetDisplay(
+                    expiresAtMs === null ? credit.expiresAt : formatInstantShort(expiresAtMs),
+                    expiresAtMs,
+                    now,
+                    locale
+                  );
+                  return `${t('codex_quota.reset_credit_number', { index: index + 1 })}: ${display?.absolute ?? credit.expiresAt}${display?.relative ? ` · ${display.relative}` : ''}`;
+                });
+                const allCreditsTitle = creditLines.join('\n');
+                return visibleCredits.map(({ credit, originalIndex }, index) => {
+                  const expiresAtMs = parseIsoToMs(credit.expiresAt);
+                  const expiresDisplay = buildResetDisplay(
+                    expiresAtMs === null ? credit.expiresAt : formatInstantShort(expiresAtMs),
+                    expiresAtMs,
+                    now,
+                    locale
+                  );
+                  // One expression for both the key and the highlight — two copies
+                  // that drift would emphasize the wrong row.
+                  const rowId = resetCreditRowId(credit, originalIndex);
+                  const soon = rowId === soonestRowId;
+                  return (
+                    <div
+                      key={rowId}
+                      className={`${classes.codexResetCreditRow} ${stackCount > 1 ? classes.codexResetCreditStack : ''} ${soon ? classes.codexResetCreditRowSoon : ''}`}
+                      data-stack-count={stackCount}
+                      tabIndex={stackCount > 1 ? 0 : undefined}
+                      aria-label={stackCount > 1 ? allCreditsTitle : undefined}
+                      title={
+                        stackCount > 1
+                          ? [
+                              // Stacked rows replace the single-row label/timing header with a
+                              // stable identity line, then list every hidden reset underneath.
+                              [
+                                credential?.displayName,
+                                planLabel,
+                                soon ? t('quota_management.soonest_row_hint') : '',
+                              ]
+                                .filter(Boolean)
+                                .join(' · '),
+                              ...creditLines,
+                            ]
+                              .filter(Boolean)
+                              .join('\n')
+                          : buildQuotaRowTitle(credential, {
+                              label: t('codex_quota.reset_credit_number', { index: index + 1 }),
+                              resetAbsolute: expiresDisplay?.absolute,
+                              resetRelative: expiresDisplay?.relative,
+                              plan: planLabel,
+                              hint: [
+                                soon ? t('quota_management.soonest_row_hint') : '',
+                                allCreditsTitle,
+                              ]
+                                .filter(Boolean)
+                                .join('\n'),
+                            })
+                      }
+                    >
+                      <span className={classes.codexResetCreditLabel}>
+                        {t('codex_quota.reset_credit_number', { index: index + 1 })}
+                      </span>
+                      <span className={classes.codexResetCreditTime}>
+                        {expiresDisplay && (
+                          <QuotaResetLabel display={expiresDisplay} classes={classes} soon={soon} />
+                        )}
+                      </span>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          ) : rateLimitResetCreditsError ? (
+            <div className={classes.codexResetCreditsError}>
+              {t('codex_quota.reset_credits_expiry_failed', {
+                message: rateLimitResetCreditsError,
+              })}
+            </div>
+          ) : null}
+        </div>
       )}
+      <div className={classes.quotaArea}>
+        {windows.length === 0 ? (
+          <div className={classes.quotaMessage}>{t('codex_quota.empty_windows')}</div>
+        ) : (
+          windows.map((window, index) => {
+            const used = window.usedPercent;
+            const clampedUsed = used === null ? null : Math.max(0, Math.min(100, used));
+            const remaining =
+              clampedUsed === null ? null : Math.max(0, Math.min(100, 100 - clampedUsed));
+            const percentLabel = remaining === null ? '--' : `${Math.round(remaining)}%`;
+            const windowLabel = window.labelKey
+              ? t(window.labelKey, window.labelParams as Record<string, string | number>)
+              : window.label;
+            const resetDisplay = buildResetDisplay(
+              window.resetLabel,
+              window.resetAtMs,
+              now,
+              locale
+            );
+
+            const soon = window.id === soonestRowId;
+
+            return (
+              <div
+                key={window.id}
+                className={classes.quotaRow}
+                title={buildQuotaRowTitle(credential, {
+                  label: windowLabel,
+                  remaining: percentLabel,
+                  resetAbsolute: resetDisplay?.absolute,
+                  resetRelative: resetDisplay?.relative,
+                  resetAtMs: window.resetAtMs,
+                  plan: planLabel,
+                  hint: quotaWindowTitle(t, { soon, disabled: window.disabled }),
+                })}
+              >
+                <div className={classes.quotaRowHeader}>
+                  <span className={classes.quotaModel}>{windowLabel}</span>
+                  <div className={classes.quotaMeta}>
+                    <span className={classes.quotaPercent}>{percentLabel}</span>
+                    {resetDisplay && (
+                      <QuotaResetLabel display={resetDisplay} classes={classes} soon={soon} />
+                    )}
+                  </div>
+                </div>
+                <QuotaMeter
+                  percent={remaining}
+                  classes={classes}
+                  index={index}
+                  disabled={window.disabled}
+                />
+              </div>
+            );
+          })
+        )}
+      </div>
     </>
   );
 }

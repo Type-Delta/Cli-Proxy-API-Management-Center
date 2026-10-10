@@ -1031,6 +1031,16 @@ strip wraps into even grid rows instead of scrolling, and on mobile the actions 
 line. The shared TooltipProvider keeps converted tooltips when React reorders keyed rows; a
 happy-dom regression test covers that path.
 
+Layout pass: the shared provider meta strip is renamed from `codexPlan*` to `planMeta*` because
+every provider uses it. Each row body splits into a content-sized meta column (label/value pairs
+stacked one per line, plus the Codex manual-reset stack) and a quota area whose meters fill the
+remaining width at a 200px minimum; the meta drops above the meters only when the provider's meter
+line cannot fit beside it. The reset-credit stack paints its offset cards behind the top card, and
+its tooltip lists one line per credit under a credential/plan header. Mobile action buttons stay
+inline. `.page-transition` clips overflow only while animating, so focus rings at page edges are no
+longer cut off. A viewport sweep from 1920 to 320px in 20-40px steps checks row width, label
+splits, meta placement, fill, overlap and overflow.
+
 ### DL051: Upstream v1.25.4 sync with v8 contract preservation
 
 Status: integrated in merge commit `ed24daa0e210e3d4ce49f64cae8120457bc73c32`

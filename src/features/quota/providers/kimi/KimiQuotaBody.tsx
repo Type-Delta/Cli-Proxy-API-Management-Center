@@ -23,11 +23,15 @@ export function KimiQuotaBody({ quota, classes, credential }: QuotaBodyProps<Kim
   const rows = quota.rows ?? [];
 
   if (rows.length === 0) {
-    return <div className={classes.quotaMessage}>{t('kimi_quota.empty_data')}</div>;
+    return (
+      <div className={classes.quotaArea}>
+        <div className={classes.quotaMessage}>{t('kimi_quota.empty_data')}</div>
+      </div>
+    );
   }
 
   return (
-    <>
+    <div className={classes.quotaArea}>
       {rows.map((row, index) => {
         const limit = row.limit;
         const used = row.used;
@@ -75,6 +79,6 @@ export function KimiQuotaBody({ quota, classes, credential }: QuotaBodyProps<Kim
           </div>
         );
       })}
-    </>
+    </div>
   );
 }

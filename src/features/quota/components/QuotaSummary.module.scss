@@ -138,9 +138,8 @@ $card-surface: color-mix(in srgb, var(--bg-primary) 82%, transparent);
 }
 
 .tier {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  white-space: normal;
 }
 
 .meter {

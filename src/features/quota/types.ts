@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import i18n from '@/i18n';
 
 /**
@@ -11,6 +12,11 @@ import i18n from '@/i18n';
  */
 
 export interface QuotaClassMap {
+  // Body groups: the meta column (plan chips, Codex manual-reset stack) and the quota
+  // area (level rows that share every line). Split in markup so the two never fight
+  // for the same flex line.
+  metaColumn: string;
+  quotaArea: string;
   // Quota rows (shared by every provider)
   quotaRow: string;
   quotaRowHeader: string;
@@ -25,10 +31,10 @@ export interface QuotaClassMap {
   quotaMessage: string;
   // Plan chip rows (named for codex, reused by claude/antigravity/kimi/xai;
   // premium = gold card, elite = Pro 20x liquid platinum. Final artwork, do not restyle.)
-  codexPlan: string;
-  codexPlanItem: string;
-  codexPlanLabel: string;
-  codexPlanValue: string;
+  planMeta: string;
+  planMetaItem: string;
+  planMetaLabel: string;
+  planMetaValue: string;
   premiumPlanValue: string;
   elitePlanValue: string;
   // Codex manual reset credits
@@ -56,6 +62,8 @@ export interface QuotaClassMap {
 }
 
 export const QUOTA_CLASS_KEYS: readonly (keyof QuotaClassMap)[] = [
+  'metaColumn',
+  'quotaArea',
   'quotaRow',
   'quotaRowHeader',
   'quotaModel',
@@ -67,10 +75,10 @@ export const QUOTA_CLASS_KEYS: readonly (keyof QuotaClassMap)[] = [
   'quotaResetRelativeSoon',
   'quotaAmount',
   'quotaMessage',
-  'codexPlan',
-  'codexPlanItem',
-  'codexPlanLabel',
-  'codexPlanValue',
+  'planMeta',
+  'planMetaItem',
+  'planMetaLabel',
+  'planMetaValue',
   'premiumPlanValue',
   'elitePlanValue',
   'codexResetCredits',
@@ -111,6 +119,12 @@ export interface QuotaBodyProps<TState> {
   classes: QuotaClassMap;
   /** Identity shown in row tooltips; omitted by legacy compact hosts. */
   credential?: QuotaCredentialContext;
+  /**
+   * Extra meta owned by the host card (Claude's reset grant count lives in
+   * QuotaCard because it also drives the action button). Bodies render it as the
+   * first item of their meta column so every meta line stays in one stack.
+   */
+  leadingMeta?: ReactNode;
 }
 
 /** Minimal credential context shared by the full quota card and compact hosts. */

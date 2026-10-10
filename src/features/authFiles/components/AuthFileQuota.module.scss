@@ -78,6 +78,38 @@ button.quotaMessageAction {
   }
 }
 
+/* ---------- 配额体分组 ----------
+ * Same split as the full-page skin: meta column first, then the quota rows. The compact
+ * card stacks the two groups (the host section already spaces its children). */
+
+.metaColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.metaColumn > .planMeta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.quotaArea {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.quotaArea > .quotaRow,
+.quotaArea > .antigravityQuotaGroup {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
 /* ---------- 配额行（全 provider 通用） ---------- */
 
 .quotaRow {
@@ -186,15 +218,15 @@ button.quotaMessageAction {
   );
 }
 
-/* ---------- Plan chips (codexPlan*: reused by antigravity/claude/xai) ---------- */
+/* ---------- Plan chips (planMeta*: reused by antigravity/claude/xai) ---------- */
 
-.codexPlan {
+.planMeta {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.codexPlanItem {
+.planMetaItem {
   display: inline-flex;
   align-items: baseline;
   gap: 5px;
@@ -204,13 +236,13 @@ button.quotaMessageAction {
   background: color-mix(in srgb, var(--bg-primary) 70%, transparent);
 }
 
-.codexPlanLabel {
+.planMetaLabel {
   font-size: $quota-font-size;
   font-weight: 400;
   color: var(--text-tertiary);
 }
 
-.codexPlanValue {
+.planMetaValue {
   font-family: $font-mono;
   font-size: $quota-font-size;
   font-weight: 600;

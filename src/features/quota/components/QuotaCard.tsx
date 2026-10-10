@@ -87,6 +87,22 @@ export function QuotaCard(props: QuotaCardProps) {
     Boolean(adapter.resetQuota) &&
     quota !== undefined &&
     Boolean(adapter.canResetQuota?.(quota));
+  const claudeResetMeta =
+    entry.type === 'claude' && status === 'success' ? (
+      <>
+        <div className={quotaClasses.planMeta}>
+          <span className={quotaClasses.planMetaItem}>
+            <span className={quotaClasses.planMetaLabel}>{t('claude_reset.remaining')}</span>
+            <span className={quotaClasses.planMetaValue}>{claudeReset.count ?? '--'}</span>
+          </span>
+        </div>
+        {claudeReset.message && (
+          <div role="status" className={quotaClasses.codexResetCreditsError}>
+            {t(`claude_reset.${claudeReset.message}`)}
+          </div>
+        )}
+      </>
+    ) : undefined;
 
   return (
     <article
@@ -115,21 +131,6 @@ export function QuotaCard(props: QuotaCardProps) {
       </div>
 
       <div className={styles.body}>
-        {entry.type === 'claude' && status === 'success' && (
-          <>
-            <div className={quotaClasses.codexPlan}>
-              <span className={quotaClasses.codexPlanItem}>
-                <span className={quotaClasses.codexPlanLabel}>{t('claude_reset.remaining')}</span>
-                <span className={quotaClasses.codexPlanValue}>{claudeReset.count ?? '--'}</span>
-              </span>
-            </div>
-            {claudeReset.message && (
-              <div role="status" className={quotaClasses.codexResetCreditsError}>
-                {t(`claude_reset.${claudeReset.message}`)}
-              </div>
-            )}
-          </>
-        )}
         {status === 'idle' ? (
           <button
             type="button"
@@ -155,7 +156,12 @@ export function QuotaCard(props: QuotaCardProps) {
             {t(`${adapter.i18nPrefix}.load_failed`, { message: errorMessage })}
           </div>
         ) : quota ? (
-          <adapter.Body quota={quota} classes={quotaClasses} credential={{ displayName }} />
+          <adapter.Body
+            quota={quota}
+            classes={quotaClasses}
+            credential={{ displayName }}
+            leadingMeta={claudeResetMeta}
+          />
         ) : (
           <div className={styles.idleHint}>{t(`${adapter.i18nPrefix}.idle`)}</div>
         )}

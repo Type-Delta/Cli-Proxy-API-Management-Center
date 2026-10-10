@@ -5,7 +5,7 @@
  *
  * 两段构成：
  * 1. 额度行 / 水位条 / Antigravity 分组 —— mono 遥测风，与紧凑外衣同族；
- * 2. 套餐徽章区（.codexPlan* 起至文件末尾）—— 从 pages/QuotaPage.module.scss
+ * 2. 套餐徽章区（.planMeta* 起至文件末尾）—— 从 pages/QuotaPage.module.scss
  *    第 429–1023 行逐字节搬迁的定稿资产（金卡 + Pro 20x 液态铂金，含暗色 /
  *    HDR / 减动效冻结帧 / 移动端降级）。**该区块禁止改动**：改配方等于重设计
  *    已验收的徽章，验证方式是与 git 历史做 diff（应为空）。
@@ -106,6 +106,49 @@
   padding: 6px 4px;
 }
 
+/* ---------- Body groups ----------
+ * A credential row splits its body in two groups: the meta column (plan chips plus the
+ * Codex manual-reset stack) and the quota area. The host lays the two out; these rules
+ * describe each group on its own so the compact Auth Files host can reuse them. */
+
+.metaColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* Tight stack: a row with two meta items must not grow past its meter row. */
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The meta group is a column of complete label/value pairs. Each pair itself stays
+ * inline, so adding fields never splits a label from its value. */
+.metaColumn > .planMeta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.quotaArea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 18px;
+  min-width: 0;
+}
+
+/* Meters share every line and stretch to fill it; a lone row on the last line takes
+ * the whole width instead of leaving a dead column beside it. */
+.quotaArea > .quotaRow,
+.quotaArea > .antigravityQuotaGroup {
+  flex: 1 1 200px;
+  min-width: 200px;
+}
+
+.quotaArea > .quotaMessage {
+  flex: 1 1 100%;
+}
+
 /* ---------- Level bars (QuotaMeter) ----------
  * The track stays in the background (8% ink) and the fill takes one of three
  * remaining-amount tones. percent === null renders zero width: unknown is never painted. */
@@ -196,21 +239,6 @@
   color: var(--text-quaternary);
 }
 
-@include mobile {
-  .quotaRowHeader {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .quotaModel {
-    width: 100%;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-    overflow-wrap: anywhere;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .quotaBarFill {
     transition: none;
@@ -222,7 +250,7 @@
  * 以下至文件末尾：套餐徽章定稿区块（逐字节搬迁，禁止改动）
  * ============================================================ */
 
-.codexPlan {
+.planMeta {
   display: flex;
   align-items: center;
   gap: 6px 12px;
@@ -231,7 +259,7 @@
   flex-wrap: wrap;
 }
 
-.codexPlanItem {
+.planMetaItem {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -240,12 +268,12 @@
   flex-wrap: wrap;
 }
 
-.codexPlanLabel {
+.planMetaLabel {
   color: var(--text-tertiary);
   flex: 0 0 auto;
 }
 
-.codexPlanValue {
+.planMetaValue {
   font-weight: 600;
   color: var(--text-primary);
   text-transform: capitalize;
@@ -257,6 +285,11 @@
   flex-direction: column;
   gap: 6px;
   padding-top: 2px;
+  /* Own the stacking context for the offset stack rectangles. The row itself stays
+   * `position: relative` (the rectangles' containing block) but must NOT create a
+   * stacking context, so its `z-index: -1` pseudo-elements sit behind the row's own
+   * background instead of painting over it. */
+  isolation: isolate;
 }
 
 .codexResetCreditsTitle {
@@ -276,7 +309,6 @@
   border-radius: $radius-sm;
   background-color: color-mix(in srgb, var(--bg-secondary) 72%, transparent);
   position: relative;
-  z-index: 1;
   font-size: 12px;
   line-height: 1.35;
   min-width: 0;
@@ -335,7 +367,7 @@
   padding: $spacing-xs $spacing-sm;
 }
 
-.codexPlanSeparator {
+.planMetaSeparator {
   width: 1px;
   height: 12px;
   background-color: var(--border-color);

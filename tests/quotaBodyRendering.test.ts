@@ -89,8 +89,8 @@ describe('CodexQuotaBody', () => {
   test.each([
     ['pro', 'Pro 200', 'elitePlanValue'],
     ['prolite', 'Pro 100', 'premiumPlanValue'],
-    ['team', 'Team', 'codexPlanValue'],
-    ['self_serve_business_usage_based', 'self_serve_business_usage_based', 'codexPlanValue'],
+    ['team', 'Team', 'planMetaValue'],
+    ['self_serve_business_usage_based', 'self_serve_business_usage_based', 'planMetaValue'],
   ])('preserves the label and badge for %s', (planType, label, className) => {
     const markup = renderToStaticMarkup(
       createElement(CodexQuotaBody, { quota: { ...quota, planType }, classes })
@@ -112,7 +112,7 @@ describe('CodexQuotaBody', () => {
           createElement(CodexQuotaBody, { quota: { ...quota, creditBalance: '0' }, classes })
         );
         expect(balance).toContain(label);
-        expect(balance).toContain('<span class="codexPlanValue">0</span>');
+        expect(balance).toContain('<span class="planMetaValue">0</span>');
         const infinite = renderToStaticMarkup(
           createElement(CodexQuotaBody, {
             quota: { ...quota, creditBalance: null, creditsUnlimited: true },
@@ -167,6 +167,24 @@ describe('CodexQuotaBody', () => {
     // The hover detail reads as a list instead of a run-on " | " sentence.
     expect(markup).not.toContain(' | ');
     expect(markup).toMatch(/Reset 1: [^\n]+\nReset 2: [^\n]+\nReset 3: /);
+    // The stack tooltip leads with an identity header, then one line per credit; the
+    // header no longer repeats "Reset 1", which now only prefixes a list line.
+    expect(markup).toContain('title="codex-pro-01 · Pro 200\nReset 1: ');
+    expect(markup).not.toMatch(/title="codex-pro-01 · Reset 1/);
+  });
+
+  test('keeps a single reset credit on the one-line tooltip', () => {
+    const markup = renderToStaticMarkup(
+      createElement(CodexQuotaBody, {
+        quota,
+        classes,
+        credential: { displayName: 'codex-pro-01' },
+      })
+    );
+
+    expect(markup).toContain('data-stack-count="1"');
+    expect(markup).not.toContain('codexResetCreditStack');
+    expect(markup).toContain('title="codex-pro-01 · Reset 1 · ');
   });
 
   test('renders reset-credit expiry in local time with a countdown', () => {
@@ -345,7 +363,7 @@ describe('ZaiQuotaBody', () => {
     expect(markup).toContain('5-hour');
     expect(markup).toContain('Weekly');
     expect(markup).toContain(
-      'class="codexPlanLabel">Plan</span><span class="codexPlanValue">lite</span>'
+      'class="planMetaLabel">Plan</span><span class="planMetaValue">lite</span>'
     );
     expect(markup).not.toContain('Plan level:');
     // Remaining share of each window (100 - usedPercent).
@@ -391,7 +409,7 @@ describe('OpenCodeGoQuotaBody', () => {
     const markup = renderToStaticMarkup(createElement(OpenCodeGoQuotaBody, { quota, classes }));
 
     expect(markup).toContain(
-      'class="codexPlanLabel">Plan</span><span class="codexPlanValue">Go</span>'
+      'class="planMetaLabel">Plan</span><span class="planMetaValue">Go</span>'
     );
     expect(markup).toContain('36%');
     expect(markup).toContain('35%');

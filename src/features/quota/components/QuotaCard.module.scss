@@ -2,29 +2,30 @@
 
 /* ============================================================
  * Quota credential row — a full-width horizontal list row:
- *   [ provider icon + file name ]  [ quota columns ]  [ actions ]
- * The plan chip and other non-quota body items sit under the identity,
- * only real quota rows become centre columns. Visual language follows the
- * credential vault list: no radius, no shadow, a single bottom divider.
+ *   [ provider icon + file name ]                    [ actions ]
+ *   [ meta column: plan / reset credits ] [ quota columns ]
+ * At narrower row widths the meta column lifts above the quota grid. Visual
+ * language follows the credential vault list: no radius, no shadow, a single
+ * bottom divider.
  * Telemetry stays mono + tabular-nums.
  *
  * The provider body is rendered by `QuotaBody.module.scss`; the host reaches
- * into it with class-name attribute selectors (`__quotaRow___`, `__codexPlan___`)
+ * into it with class-name attribute selectors (`__quotaRow___`, `__planMeta___`)
  * because that module's class names are hashed at build time.
  * ============================================================ */
 
 .card {
   position: relative;
+  container-name: quota-card;
+  container-type: inline-size;
   display: grid;
-  /* identity | as many quota columns as fit | actions. The auto-fill tracks are what
-   * makes quota rows sit side by side and align across every row of the list. */
-  grid-template-columns: 220px minmax(0, 1fr) minmax(140px, 190px);
-  /* Three rows so the meta stack (plan / reset count) can sit under the identity while
-   * the quota columns and actions span the full row height. */
-  grid-template-rows: auto auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'identity actions'
+    'body body';
   align-items: start;
-  column-gap: 16px;
-  row-gap: 2px;
+  column-gap: 12px;
+  row-gap: 8px;
   padding: 12px 6px;
   border-bottom: 1px solid var(--border-color);
   transition: background-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
@@ -57,8 +58,7 @@
 /* ---------- Identity: brand icon + file name ---------- */
 
 .identity {
-  grid-column: 1;
-  grid-row: 1;
+  grid-area: identity;
   align-self: center;
   display: flex;
   align-items: center;
@@ -100,54 +100,56 @@
   @include text-ellipsis;
 }
 
-/* ---------- Body: flattened into the row grid ---------- */
+/* ---------- Body: meta column + quota area ---------- */
 
-/* `display: contents` promotes the provider body's children to row grid items, so
- * plan chips land under the identity while quota rows become the centre columns. */
+/* The row's second line carries two groups: the meta column (plan chips plus the Codex
+ * manual-reset stack) and the quota area. Flex wrapping lifts the meta above the meters
+ * only when a 200px meter line cannot sit beside it, so the breakpoint is content, not
+ * viewport, driven. */
 .body {
-  grid-column: 2;
-  grid-row: 1 / -1;
+  grid-area: body;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 10px 18px;
-}
-
-.body > * {
-  flex: 1 1 180px;
   min-width: 0;
 }
 
-/* Plan chips stay their own flex group: content-sized, so a dynamic number of chips
- * spreads inline while there is room and wraps onto more lines as the row narrows.
- * Fixed widths would stack them into a narrow column even on a wide screen. The group
- * starts at the top of the body instead of stretching down beside a taller quota row. */
-.body > [class*='__codexPlan___'],
-.body > [class*='__codexResetCredits___'],
-.body > [class*='__codexResetCreditsError___'] {
-  align-self: start;
+.body > * {
+  min-width: 0;
 }
 
-.body > [class*='__codexPlan___'] {
+/* Meta: content-sized between 150 and 300px, so "Renewal time 10/31, 16:14 in 21 days"
+ * stays on one line without letting a long stack eat the meters. */
+.body > [class*='__metaColumn___'] {
   flex: 0 1 auto;
+  /* Natural content width, with the cap protecting the meters on wide rows. */
+  min-width: 0;
+  max-width: 300px;
 }
 
-/* The manual-reset block is a framed list, so it keeps a stable column width. */
-.body > [class*='__codexResetCredits___'],
-.body > [class*='__codexResetCreditsError___'] {
-  flex: 0 0 220px;
+/* Quota area: grows into whatever the meta column leaves. The `:has()` rules set the
+ * ideal basis (every meter on one 200px line); when that cannot fit beside the meta the
+ * whole area wraps under it and keeps the full row width. */
+.body > [class*='__quotaArea___'] {
+  flex: 1 1 200px;
+  min-width: 200px;
 }
 
-/* Real quota rows (and antigravity groups) become centre columns spanning the row height. */
-.body > [class*='__quotaRow___'],
-.body > [class*='__antigravityQuotaGroup___'] {
-  flex: 1 1 180px;
+.body > [class*='__quotaArea___']:has(> :nth-child(2)) {
+  flex-basis: 418px;
 }
 
-/* Provider messages (empty windows, unavailable quota) span the centre. */
-.body > [class*='__quotaMessage___'] {
-  flex: 1 1 100%;
-  align-self: center;
+.body > [class*='__quotaArea___']:has(> :nth-child(3)) {
+  flex-basis: 636px;
+}
+
+.body > [class*='__quotaArea___']:has(> :nth-child(4)) {
+  flex-basis: 854px;
+}
+
+.body > [class*='__quotaArea___']:has(> :nth-child(5)) {
+  flex-basis: 1072px;
 }
 
 /* ---------- idle: the whole body is the click-to-load target ---------- */
@@ -292,16 +294,16 @@
 /* ---------- Right-side actions ---------- */
 
 .actionRow {
-  grid-column: -2 / -1;
-  grid-row: 1 / -1;
+  grid-area: actions;
   justify-self: end;
   align-self: center;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
-  max-width: 200px;
+  max-width: none;
+  min-width: 0;
 }
 
 /* Quiet outline pill (same family as the credential-card icon actions: hover reveals fill). */
@@ -357,45 +359,41 @@
   }
 }
 
-/* Narrow screens: the row stacks vertically (identity, quota columns, actions). */
-@include mobile {
+/* Narrow rows: identity and actions get their own lines; the action pills stay
+ * inline and right-aligned so their labels never overlap the credential name.
+ *
+ * This must be a media query, not a container query: `.card` is the query
+ * container, and an element cannot restyle itself from its own container. The
+ * viewport threshold matches the card width at which the identity track would
+ * otherwise squeeze the file name into an ellipsis. */
+@media (max-width: 520px) {
   .card {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 170px);
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      'identity actions'
-      'body body';
+      'identity'
+      'actions'
+      'body';
     align-items: start;
-    gap: 10px;
+    gap: 8px;
     padding: 12px 4px;
   }
 
   .identity {
-    grid-area: identity;
-    align-self: center;
+    align-self: start;
   }
 
   .actionRow {
-    position: static;
-    grid-area: actions;
-    justify-content: flex-end;
-    justify-self: end;
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
     align-self: start;
-    min-width: 0;
-    max-width: 170px;
+    flex-wrap: nowrap;
   }
 
-  .body {
-    grid-area: body;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 10px 16px;
-  }
-
-  .body > * {
-    flex: 1 1 120px;
+  /* Meta and meters already stack once the area cannot hold a 200px line; the meta
+   * column may use the full row here. */
+  .body > [class*='__metaColumn___'] {
+    max-width: none;
   }
 
   .idleBody,
