@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { IconPlug } from '@/components/ui/icons';
 import { useAuthStore, useNotificationStore, useThemeStore } from '@/stores';
 import { oauthApi, pluginsApi, type BuiltInOAuthProvider } from '@/services/api';
@@ -18,6 +19,12 @@ import {
 } from '@/features/providers/kimi';
 import type { PluginListEntry } from '@/types';
 import { createOAuthAttempts, type OAuthAttempt } from './oauthAttempts';
+import {
+  readKiroLoginSettings,
+  validateKiroLoginSettings,
+  writeKiroLoginSettings,
+  type KiroLoginMethod,
+} from './kiroOAuth';
 import { validateDevinCallback } from './devinOAuth';
 import styles from './OAuthPage.module.scss';
 import iconMeta from '@/assets/icons/meta.svg';
@@ -289,6 +296,7 @@ export function OAuthPage() {
   const { showNotification } = useNotificationStore();
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const [states, setStates] = useState<Record<string, ProviderState>>({});
+  const [kiroLoginSettings, setKiroLoginSettings] = useState(readKiroLoginSettings);
   const [pluginProviders, setPluginProviders] = useState<PluginOAuthProviderCard[]>([]);
   const [vertexState, setVertexState] = useState<VertexImportState>({
     fileName: '',
@@ -302,6 +310,14 @@ export function OAuthPage() {
     })
   );
   const vertexFileInputRef = useRef<HTMLInputElement | null>(null);
+  const kiroLoginValidation = validateKiroLoginSettings(kiroLoginSettings);
+  const kiroCanStart =
+    kiroLoginSettings.method === 'builder-id' ||
+    (kiroLoginValidation.startUrlValid && kiroLoginValidation.regionValid);
+
+  useEffect(() => {
+    writeKiroLoginSettings(kiroLoginSettings);
+  }, [kiroLoginSettings]);
 
   const clearTimers = useCallback(() => {
     attempts.current.invalidateAll();
@@ -504,7 +520,18 @@ export function OAuthPage() {
       callbackSubmitting: false,
     });
     try {
-      const res = await oauthApi.startAuth(provider, attempt.signal);
+      const kiroIdentityCenter =
+        provider === 'kiro' && kiroLoginSettings.method === 'identity-center';
+      const res = await oauthApi.startAuth(
+        provider,
+        attempt.signal,
+        kiroIdentityCenter
+          ? {
+              start_url: kiroLoginSettings.startUrl.trim(),
+              region: kiroLoginSettings.region.trim(),
+            }
+          : undefined
+      );
       if (!attempt.isCurrent()) return;
       if (!res.state) {
         const message = t('auth_login.missing_state');
@@ -679,6 +706,9 @@ export function OAuthPage() {
     const state = states[provider.id] || {};
     const showKimiSignUp =
       featured && provider.kind === 'builtin' && ['kimi', 'kimi-ai'].includes(provider.id);
+    const isKiro = provider.kind === 'builtin' && provider.id === 'kiro';
+    const kiroLoginInProgress =
+      state.polling || state.callbackSubmitting || state.status === 'waiting';
     const canSubmitCallback =
       (provider.kind === 'plugin' || CALLBACK_SUPPORTED.has(provider.id)) && Boolean(state.url);
     const loginButtonLabel =
@@ -727,7 +757,9 @@ export function OAuthPage() {
             <Button
               onClick={() => startAuth(provider.id)}
               loading={state.polling}
-              disabled={provider.id === 'devin' && Boolean(state.state)}
+              disabled={
+                (provider.id === 'devin' && Boolean(state.state)) || (isKiro && !kiroCanStart)
+              }
             >
               {loginButtonLabel}
             </Button>
@@ -735,6 +767,59 @@ export function OAuthPage() {
         }
       >
         <div className={styles.cardContent}>
+          {isKiro && (
+            <div className={styles.kiroLoginSection}>
+              <SegmentedControl<KiroLoginMethod>
+                className={styles.kiroLoginMethod}
+                value={kiroLoginSettings.method}
+                options={[
+                  {
+                    value: 'builder-id',
+                    label: t('auth_login.kiro_login_builder_id'),
+                    disabled: kiroLoginInProgress,
+                  },
+                  {
+                    value: 'identity-center',
+                    label: t('auth_login.kiro_login_identity_center'),
+                    disabled: kiroLoginInProgress,
+                  },
+                ]}
+                onChange={(method) => setKiroLoginSettings({ ...kiroLoginSettings, method })}
+                ariaLabel={t('auth_login.kiro_login_method_label')}
+              />
+              {kiroLoginSettings.method === 'identity-center' && (
+                <div className={styles.kiroLoginFields}>
+                  <Input
+                    label={t('auth_login.kiro_start_url_label')}
+                    value={kiroLoginSettings.startUrl}
+                    onChange={(event) =>
+                      setKiroLoginSettings({ ...kiroLoginSettings, startUrl: event.target.value })
+                    }
+                    placeholder="https://d-xxxxxxxxxx.awsapps.com/start"
+                    disabled={kiroLoginInProgress}
+                    error={
+                      kiroLoginValidation.startUrlValid
+                        ? undefined
+                        : t('auth_login.kiro_start_url_invalid')
+                    }
+                  />
+                  <Input
+                    label={t('auth_login.kiro_region_label')}
+                    value={kiroLoginSettings.region}
+                    onChange={(event) =>
+                      setKiroLoginSettings({ ...kiroLoginSettings, region: event.target.value })
+                    }
+                    disabled={kiroLoginInProgress}
+                    error={
+                      kiroLoginValidation.regionValid
+                        ? undefined
+                        : t('auth_login.kiro_region_invalid')
+                    }
+                  />
+                </div>
+              )}
+            </div>
+          )}
           <div className={featured ? styles.featuredHint : styles.cardHint}>
             {getProviderText(provider, 'oauth_hint')}
           </div>
@@ -814,11 +899,13 @@ export function OAuthPage() {
                   })
                 }
                 placeholder={t(
-                  provider.id === 'xai'
-                    ? 'auth_login.xai_callback_placeholder'
-                    : provider.id === 'devin'
-                      ? 'auth_login.devin_callback_placeholder'
-                      : 'auth_login.oauth_callback_placeholder'
+                  provider.id === 'kiro'
+                    ? 'auth_login.kiro_callback_placeholder'
+                    : provider.id === 'xai'
+                      ? 'auth_login.xai_callback_placeholder'
+                      : provider.id === 'devin'
+                        ? 'auth_login.devin_callback_placeholder'
+                        : 'auth_login.oauth_callback_placeholder'
                 )}
               />
               <div className={styles.callbackActions}>

@@ -166,6 +166,45 @@
   color: var(--text-secondary);
 }
 
+.kiroLoginSection {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.kiroLoginMethod {
+  align-self: flex-start;
+
+  :global(button) {
+    min-height: 40px;
+    padding: 6px 14px;
+  }
+
+  @include mobile {
+    align-self: stretch;
+
+    :global(button) {
+      flex: 1 1 0;
+      min-width: 0;
+      white-space: normal;
+    }
+  }
+}
+
+.kiroLoginFields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(150px, 1fr);
+  gap: $spacing-sm;
+
+  :global(.input) {
+    min-height: 40px;
+  }
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}
+
 .cardHintSecondary {
   margin: 0;
   font-size: 12px;

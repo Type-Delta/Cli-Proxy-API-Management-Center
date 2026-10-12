@@ -2,7 +2,10 @@ import { afterEach, describe, expect, spyOn, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import i18n from '@/i18n';
+import { OAuthPage } from '@/pages/OAuthPage';
+import { validateKiroLoginSettings } from '@/pages/kiroOAuth';
 import { KiroQuotaBody } from '@/features/quota/providers/kiro/KiroQuotaBody';
 import { KIRO_CONFIG } from '@/features/quota/providers/kiro/data';
 import {
@@ -12,6 +15,8 @@ import {
 } from '@/features/authFiles/constants';
 import { QUOTA_TAB_ORDER } from '@/features/quota/constants';
 import { QUOTA_ADAPTERS } from '@/features/quota/providers';
+import { apiClient } from '@/services/api/client';
+import { oauthApi } from '@/services/api/oauth';
 import { buildTimelineLane } from '@/features/quota/quotaTimelineModel';
 import { collectQuotaRowInstants } from '@/features/quota/resetSchedule';
 import { PROVIDER_LOGOS } from '@/features/providers/brandLogos';
@@ -52,6 +57,16 @@ const OAUTH_SUFFIXES = [
   'oauth_status_error',
   'oauth_start_error',
   'oauth_polling_error',
+];
+const KIRO_LOGIN_KEYS = [
+  'kiro_login_method_label',
+  'kiro_login_builder_id',
+  'kiro_login_identity_center',
+  'kiro_start_url_label',
+  'kiro_start_url_invalid',
+  'kiro_region_label',
+  'kiro_region_invalid',
+  'kiro_callback_placeholder',
 ];
 const classes = bindQuotaClasses(
   Object.fromEntries(QUOTA_CLASS_KEYS.map((key) => [key, key])),
@@ -227,6 +242,77 @@ describe('Kiro quota provider', () => {
 });
 
 describe('Kiro frontend integration', () => {
+  test('starts Builder ID unchanged and Identity Center with the custom start URL', async () => {
+    const get = spyOn(apiClient, 'get').mockResolvedValue({
+      url: 'https://example.test/oauth',
+      state: 'fixture-state',
+    });
+    try {
+      await oauthApi.startAuth('kiro');
+      expect(get).toHaveBeenLastCalledWith('/oauth/auth-url', {
+        params: { provider: 'kiro' },
+      });
+
+      await oauthApi.startAuth('kiro', undefined, {
+        start_url: 'https://d-fixture.awsapps.com/start',
+        region: 'us-west-2',
+      });
+      expect(get).toHaveBeenLastCalledWith('/oauth/auth-url', {
+        params: {
+          provider: 'kiro',
+          start_url: 'https://d-fixture.awsapps.com/start',
+          region: 'us-west-2',
+        },
+      });
+    } finally {
+      get.mockRestore();
+    }
+  });
+
+  test('validates Identity Center start URL and region inputs', () => {
+    expect(
+      validateKiroLoginSettings({
+        method: 'identity-center',
+        startUrl: ' https://d-fixture.awsapps.com/start ',
+        region: ' us-east-1 ',
+      })
+    ).toEqual({ startUrlValid: true, regionValid: true });
+
+    expect(
+      validateKiroLoginSettings({
+        method: 'identity-center',
+        startUrl: 'http://d-fixture.awsapps.com/start',
+        region: 'us_east_1',
+      })
+    ).toEqual({ startUrlValid: false, regionValid: false });
+    expect(
+      validateKiroLoginSettings({
+        method: 'identity-center',
+        startUrl: 'https://',
+        region: 'us-east-1',
+      })
+    ).toEqual({ startUrlValid: false, regionValid: true });
+    expect(
+      validateKiroLoginSettings({
+        method: 'identity-center',
+        startUrl: '',
+        region: 'us-east-1',
+      })
+    ).toEqual({ startUrlValid: false, regionValid: true });
+  });
+
+  test('renders the compact account choice and uses the Kiro callback placeholder', async () => {
+    await i18n.changeLanguage('en');
+    const markup = renderToStaticMarkup(
+      createElement(MemoryRouter, null, createElement(OAuthPage))
+    );
+    const source = readFileSync('src/pages/OAuthPage.tsx', 'utf8');
+
+    expect(markup).toContain('AWS Builder ID');
+    expect(markup).toContain('IAM Identity Center');
+    expect(source).toContain("'auth_login.kiro_callback_placeholder'");
+  });
+
   test('renders separate included and free-trial rows', async () => {
     await i18n.changeLanguage('en');
     const markup = renderToStaticMarkup(
@@ -300,6 +386,12 @@ describe('Kiro frontend integration', () => {
       for (const suffix of OAUTH_SUFFIXES) {
         expect(translations.auth_login[`kiro_${suffix}`]).toBeTruthy();
       }
+      for (const key of KIRO_LOGIN_KEYS) {
+        expect(translations.auth_login[key]).toBeTruthy();
+      }
+      expect(translations.auth_login.kiro_callback_placeholder).toBe(
+        'http://127.0.0.1/oauth/callback?code=...&state=...'
+      );
       for (const key of KIRO_QUOTA_KEYS) {
         expect(translations.kiro_quota[key]).toBeTruthy();
       }

@@ -9,15 +9,7 @@ import {
 } from '@/utils/providerKeys';
 
 export type BuiltInOAuthProvider =
-  | 'codex'
-  | 'anthropic'
-  | 'antigravity'
-  | 'kimi'
-  | 'kimi-ai'
-  | 'xai'
-  | 'devin'
-  | 'meta'
-  | 'kiro';
+  'codex' | 'anthropic' | 'antigravity' | 'kimi' | 'kimi-ai' | 'xai' | 'devin' | 'meta' | 'kiro';
 
 export interface OAuthStartResponse {
   url: string;
@@ -47,11 +39,14 @@ const normalizeProviderForManagementPath = (provider: string): string => {
 };
 
 export const oauthApi = {
-  startAuth: (provider: string, signal?: AbortSignal) => {
+  startAuth: (provider: string, signal?: AbortSignal, extraParams?: Record<string, string>) => {
     const providerKey = normalizeProviderForManagementPath(provider);
     const params: Record<string, string | boolean> = { provider: providerKey };
     if (WEBUI_SUPPORTED.has(providerKey)) {
       params.is_webui = true;
+    }
+    if (extraParams) {
+      Object.assign(params, extraParams);
     }
     return apiClient.get<OAuthStartResponse>('/oauth/auth-url', {
       params,
