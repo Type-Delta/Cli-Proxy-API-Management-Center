@@ -95,7 +95,6 @@ function hasAccessibleName(element: Element): boolean {
 export function TooltipProvider({ children }: PropsWithChildren) {
   const activeRef = useRef<ActiveTooltip | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const internalTitleRemovals = useRef(new WeakSet<Element>());
   const managedLabels = useRef(new WeakMap<Element, string>());
   const [active, setActive] = useState<ActiveTooltip | null>(null);
   const [position, setPosition] = useState<Position>({ left: EDGE, top: EDGE });
@@ -205,7 +204,6 @@ export function TooltipProvider({ children }: PropsWithChildren) {
           }
           element.setAttribute('aria-label', content);
         }
-        internalTitleRemovals.current.add(element);
         // Keep an empty title sentinel so React's later title removal still emits a mutation.
         element.setAttribute('title', '');
         if (activeRef.current?.target === element && activeRef.current.content !== content) {
@@ -216,10 +214,9 @@ export function TooltipProvider({ children }: PropsWithChildren) {
         return;
       }
       if (!element.hasAttribute(TOOLTIP_ATTRIBUTE)) return;
-      if (internalTitleRemovals.current.has(element)) {
-        internalTitleRemovals.current.delete(element);
-        return;
-      }
+      // The empty title above is the provider's own sentinel, so the tooltip stays while
+      // that attribute exists. React only drops it when the title prop is actually removed.
+      if (element.hasAttribute('title')) return;
       if (activeRef.current?.target === element) hideTooltip();
       const previousContent = element.getAttribute(TOOLTIP_ATTRIBUTE);
       const managedLabel = managedLabels.current.get(element);

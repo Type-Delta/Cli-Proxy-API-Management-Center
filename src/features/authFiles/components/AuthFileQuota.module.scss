@@ -78,6 +78,38 @@ button.quotaMessageAction {
   }
 }
 
+/* ---------- 配额体分组 ----------
+ * Same split as the full-page skin: meta column first, then the quota rows. The compact
+ * card stacks the two groups (the host section already spaces its children). */
+
+.metaColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.metaColumn > .planMeta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.quotaArea {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.quotaArea > .quotaRow,
+.quotaArea > .antigravityQuotaGroup {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
 /* ---------- 配额行（全 provider 通用） ---------- */
 
 .quotaRow {
@@ -121,15 +153,19 @@ button.quotaMessageAction {
   color: var(--text-quaternary);
 }
 
-/* Compact host: same contract class as QuotaBody.module.scss, tighter gutter. */
+/* Compact host: same contract class as QuotaBody.module.scss, tighter gutter.
+   The pair is one wrapping group, so the countdown drops to its own line instead of
+   being squeezed, and the gap takes over from the removed `·` separator. */
+.quotaResetLabel {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 4px;
+  min-width: 0;
+}
+
 .quotaResetRelative {
   color: var(--text-tertiary);
-
-  &::before {
-    content: '·';
-    margin: 0 3px;
-    color: var(--text-quaternary);
-  }
 }
 
 .quotaResetRelativeSoon {
@@ -182,15 +218,15 @@ button.quotaMessageAction {
   );
 }
 
-/* ---------- Plan chips (codexPlan*: reused by antigravity/claude/xai) ---------- */
+/* ---------- Plan chips (planMeta*: reused by antigravity/claude/xai) ---------- */
 
-.codexPlan {
+.planMeta {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.codexPlanItem {
+.planMetaItem {
   display: inline-flex;
   align-items: baseline;
   gap: 5px;
@@ -200,13 +236,13 @@ button.quotaMessageAction {
   background: color-mix(in srgb, var(--bg-primary) 70%, transparent);
 }
 
-.codexPlanLabel {
+.planMetaLabel {
   font-size: $quota-font-size;
   font-weight: 400;
   color: var(--text-tertiary);
 }
 
-.codexPlanValue {
+.planMetaValue {
   font-family: $font-mono;
   font-size: $quota-font-size;
   font-weight: 600;
@@ -304,6 +340,33 @@ button.quotaMessageAction {
   gap: 8px;
   font-size: $quota-font-size;
   font-weight: 400;
+}
+
+.codexResetCreditStack {
+  position: relative;
+  z-index: 1;
+}
+
+.codexResetCreditStack::before,
+.codexResetCreditStack::after {
+  position: absolute;
+  z-index: -1;
+  content: '';
+  inset: 0;
+  border: inherit;
+  border-radius: inherit;
+  background: inherit;
+}
+
+.codexResetCreditStack::before {
+  transform: translate(4px, 4px);
+}
+.codexResetCreditStack::after {
+  display: none;
+  transform: translate(8px, 8px);
+}
+.codexResetCreditStack[data-stack-count='3']::after {
+  display: block;
 }
 
 /* The compact host's credit rows have no border of their own, so the emphasis

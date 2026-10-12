@@ -1,50 +1,65 @@
 @use '../../../styles/mixins' as *;
 
 /* ============================================================
- * 额度卡片 — 继承凭证卡 statTile 配方（14px 圆角 / 1px 边框 / 82% 透感纸面）。
- * 提供商身份只由图标承载（混合网格下五色渐变卡底会互相打架，已退役）。
- * 遥测内容一律 mono + tabular-nums。
+ * Quota credential row — a full-width horizontal list row:
+ *   [ provider icon + file name ]                    [ actions ]
+ *   [ meta column: plan / reset credits ] [ quota columns ]
+ * At narrower row widths the meta column lifts above the quota grid. Visual
+ * language follows the credential vault list: no radius, no shadow, a single
+ * bottom divider.
+ * Telemetry stays mono + tabular-nums.
+ *
+ * The provider body is rendered by `QuotaBody.module.scss`; the host reaches
+ * into it with class-name attribute selectors (`__quotaRow___`, `__planMeta___`)
+ * because that module's class names are hashed at build time.
  * ============================================================ */
 
 .card {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 11px;
-  padding: 15px 16px;
-  border-radius: 14px;
-  border: 1px solid var(--border-color);
-  background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
-  transition:
-    transform var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
-    border-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
-    box-shadow var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+  container-name: quota-card;
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'identity actions'
+    'body body';
+  align-items: start;
+  column-gap: 12px;
+  row-gap: 8px;
+  padding: 12px 12px;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+}
+
+/* The last row draws no divider; pagination / timeline live outside .grid. */
+.card:last-child {
+  border-bottom-color: transparent;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .card:hover {
-    transform: translateY(-2px);
-    border-color: var(--border-hover);
-    box-shadow: 0 12px 26px -14px rgb(0 0 0 / 0.16);
+    background: color-mix(in srgb, var(--bg-tertiary) 40%, transparent);
   }
 }
 
-/* 首次数据到达时的一次性级联入场；切 tab / 翻页 / 刷新不重播 */
+/* One-shot cascade on first data arrival; never replays on tab / page / refresh. */
 .cardEnter {
-  animation: quota-card-in 0.45s var(--ease-out-strong, ease-out) both;
+  animation: quota-row-in 0.4s var(--ease-out-strong, ease-out) both;
   animation-delay: var(--card-delay, 0s);
 }
 
-@keyframes quota-card-in {
+@keyframes quota-row-in {
   from {
     opacity: 0;
-    transform: translate3d(0, 16px, 0);
+    transform: translate3d(0, 10px, 0);
   }
 }
 
-/* ---------- 头部：品牌图标 + 文件名 ---------- */
+/* ---------- Identity: brand icon + file name ---------- */
 
-.head {
+.identity {
+  grid-area: identity;
+  align-self: center;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -85,26 +100,70 @@
   @include text-ellipsis;
 }
 
-/* ---------- body 容器 ---------- */
+/* ---------- Body: meta column + quota area ---------- */
 
+/* The row's second line carries two groups: the meta column (plan chips plus the Codex
+ * manual-reset stack) and the quota area. Flex wrapping lifts the meta above the meters
+ * only when a 200px meter line cannot sit beside it, so the breakpoint is content, not
+ * viewport, driven. */
 .body {
+  grid-area: body;
   display: flex;
-  flex-direction: column;
-  gap: 9px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 18px;
   min-width: 0;
 }
 
-/* ---------- idle：整块 body 即点击加载的落点 ---------- */
+.body > * {
+  min-width: 0;
+}
+
+/* Meta: content-sized between 150 and 300px, so "Renewal time 10/31, 16:14 in 21 days"
+ * stays on one line without letting a long stack eat the meters. */
+.body > [class*='__metaColumn___'] {
+  flex: 0 1 auto;
+  /* Natural content width, with the cap protecting the meters on wide rows. */
+  min-width: 0;
+  max-width: 300px;
+}
+
+/* Quota area: grows into whatever the meta column leaves. The `:has()` rules set the
+ * ideal basis (every meter on one 200px line); when that cannot fit beside the meta the
+ * whole area wraps under it and keeps the full row width. */
+.body > [class*='__quotaArea___'] {
+  flex: 1 1 200px;
+  min-width: 200px;
+}
+
+.body > [class*='__quotaArea___']:has(> :nth-child(2)) {
+  flex-basis: 418px;
+}
+
+.body > [class*='__quotaArea___']:has(> :nth-child(3)) {
+  flex-basis: 636px;
+}
+
+.body > [class*='__quotaArea___']:has(> :nth-child(4)) {
+  flex-basis: 854px;
+}
+
+.body > [class*='__quotaArea___']:has(> :nth-child(5)) {
+  flex-basis: 1072px;
+}
+
+/* ---------- idle: the whole body is the click-to-load target ---------- */
 
 .idleBody {
+  flex: 1 1 100%;
+  align-self: center;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  width: 100%;
-  min-height: 76px;
-  padding: 12px 10px;
+  gap: 7px;
+  min-height: 44px;
+  padding: 8px 10px;
   cursor: pointer;
   border: 1px dashed var(--border-color);
   border-radius: 10px;
@@ -121,7 +180,7 @@
   }
 
   &:active:not(:disabled) {
-    transform: scale(0.98);
+    transform: scale(0.99);
   }
 
   &:focus-visible {
@@ -150,22 +209,26 @@
   text-align: center;
 }
 
-/* ---------- loading：双幽灵行骨架 ---------- */
+/* ---------- loading: two ghost columns across the centre ---------- */
 
 .skeleton {
+  flex: 1 1 100%;
   display: flex;
-  flex-direction: column;
-  gap: 11px;
-  padding: 4px 0 2px;
+  flex-direction: row;
+  gap: 18px;
+  padding: 2px 0;
 }
 
 .skeletonRow {
+  flex: 1 1 140px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
-/* 骨架：底色 + 一道 1.2s 匀速扫光（linear —— 环境性匀速运动的唯一例外） */
+/* Skeleton: a flat wash plus one 1.2s linear sweep (linear is the only sanctioned
+ * exception to eased motion, an ambient steady shimmer). */
 .skeletonLabel,
 .skeletonTrack {
   display: block;
@@ -216,6 +279,8 @@
 /* ---------- error ---------- */
 
 .errorStrip {
+  flex: 1 1 100%;
+  align-self: center;
   font-size: 11.5px;
   line-height: 1.5;
   color: var(--viz-failure);
@@ -226,22 +291,28 @@
   overflow-wrap: anywhere;
 }
 
-/* ---------- footer 动作 ---------- */
+/* ---------- Right-side actions ---------- */
 
 .actionRow {
+  grid-area: actions;
+  justify-self: end;
+  align-self: center;
   display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
   justify-content: flex-end;
   gap: 6px;
-  flex-wrap: wrap;
+  max-width: none;
+  min-width: 0;
 }
 
-/* 安静描边药丸（与凭证卡图标动作同族：hover 才显色块） */
+/* Quiet outline pill (same family as the credential-card icon actions: hover reveals fill). */
 .actionPill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   cursor: pointer;
-  border: 1px solid var(--border-color);
+  border: 0;
   border-radius: $radius-full;
   background: none;
   padding: 5px 11px;
@@ -273,8 +344,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .actionPill:hover:not(:disabled) {
-    border-color: var(--border-hover);
-    background: color-mix(in srgb, var(--bg-tertiary) 55%, transparent);
+    background: color-mix(in srgb, var(--text-primary) 9%, transparent);
     color: var(--text-primary);
   }
 }
@@ -286,6 +356,50 @@
 @keyframes quota-card-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Narrow rows: identity and actions get their own lines; the action pills stay
+ * inline and right-aligned so their labels never overlap the credential name.
+ *
+ * This must be a media query, not a container query: `.card` is the query
+ * container, and an element cannot restyle itself from its own container. The
+ * viewport threshold matches the card width at which the identity track would
+ * otherwise squeeze the file name into an ellipsis. */
+@media (max-width: 520px) {
+  .card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'identity'
+      'actions'
+      'body';
+    align-items: start;
+    gap: 8px;
+    padding: 12px 12px;
+  }
+
+  .identity {
+    align-self: start;
+  }
+
+  .actionRow {
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
+    align-self: start;
+    flex-wrap: nowrap;
+  }
+
+  /* Meta and meters already stack once the area cannot hold a 200px line; the meta
+   * column may use the full row here. */
+  .body > [class*='__metaColumn___'] {
+    max-width: none;
+  }
+
+  .idleBody,
+  .skeleton,
+  .errorStrip {
+    flex: 1 1 100%;
   }
 }
 

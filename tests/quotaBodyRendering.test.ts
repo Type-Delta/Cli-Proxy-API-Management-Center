@@ -17,7 +17,7 @@ import { KimiQuotaBody } from '@/features/quota/providers/kimi/KimiQuotaBody';
 import { OpenCodeGoQuotaBody } from '@/features/quota/providers/opencode-go/OpenCodeGoQuotaBody';
 import { ZaiQuotaBody } from '@/features/quota/providers/zai/ZaiQuotaBody';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses } from '@/features/quota/types';
-import { formatInstantShort } from '@/utils/quota';
+import { formatInstantShort, formatResetInstant } from '@/utils/quota';
 import { DAY_MS, HOUR_MS } from '@/utils/time/durations';
 import type {
   ClaudeQuotaState,
@@ -89,8 +89,8 @@ describe('CodexQuotaBody', () => {
   test.each([
     ['pro', 'Pro 200', 'elitePlanValue'],
     ['prolite', 'Pro 100', 'premiumPlanValue'],
-    ['team', 'Team', 'codexPlanValue'],
-    ['self_serve_business_usage_based', 'self_serve_business_usage_based', 'codexPlanValue'],
+    ['team', 'Team', 'planMetaValue'],
+    ['self_serve_business_usage_based', 'self_serve_business_usage_based', 'planMetaValue'],
   ])('preserves the label and badge for %s', (planType, label, className) => {
     const markup = renderToStaticMarkup(
       createElement(CodexQuotaBody, { quota: { ...quota, planType }, classes })
@@ -112,7 +112,7 @@ describe('CodexQuotaBody', () => {
           createElement(CodexQuotaBody, { quota: { ...quota, creditBalance: '0' }, classes })
         );
         expect(balance).toContain(label);
-        expect(balance).toContain('<span class="codexPlanValue">0</span>');
+        expect(balance).toContain('<span class="planMetaValue">0</span>');
         const infinite = renderToStaticMarkup(
           createElement(CodexQuotaBody, {
             quota: { ...quota, creditBalance: null, creditsUnlimited: true },
@@ -132,9 +132,59 @@ describe('CodexQuotaBody', () => {
   test('renders a window reset as absolute plus countdown', () => {
     const markup = renderToStaticMarkup(createElement(CodexQuotaBody, { quota, classes }));
 
-    expect(markup).toContain('08-02 18:00');
+    expect(markup).toContain(formatResetInstant(now + 3 * HOUR_MS, now, 'en'));
     expect(markup).toContain('quotaResetRelative');
     expect(markup).toMatch(/3 hours/);
+  });
+
+  test('keeps the absolute reset and its countdown in one wrapping label group', () => {
+    const markup = renderToStaticMarkup(createElement(CodexQuotaBody, { quota, classes }));
+
+    // One group, not two loose siblings: the pair can stack on a narrow row, and the
+    // flex gap replaces the old `·` pseudo-separator that would dangle at a line start.
+    expect(markup).toContain(
+      `<span class="quotaResetLabel"><span class="quotaReset">${formatResetInstant(now + 3 * HOUR_MS, now, 'en')}</span><span class="quotaResetRelative">`
+    );
+  });
+
+  test('lists every manual reset credit on its own tooltip line', () => {
+    const credits = [11, 4, 2].map((days, index) => ({
+      id: `credit-${index}`,
+      status: 'available',
+      grantedAt: new Date(now - DAY_MS).toISOString(),
+      expiresAt: new Date(now + days * DAY_MS).toISOString(),
+    }));
+    const markup = renderToStaticMarkup(
+      createElement(CodexQuotaBody, {
+        quota: { ...quota, rateLimitResetCredits: credits, rateLimitResetCreditsAvailableCount: 3 },
+        classes,
+        credential: { displayName: 'codex-pro-01' },
+      })
+    );
+
+    // Three credits stack two offset rectangles behind the visible top row.
+    expect(markup).toContain('data-stack-count="3"');
+    // The hover detail reads as a list instead of a run-on " | " sentence.
+    expect(markup).not.toContain(' | ');
+    expect(markup).toMatch(/Reset 1: [^\n]+\nReset 2: [^\n]+\nReset 3: /);
+    // The stack tooltip leads with an identity header, then one line per credit; the
+    // header no longer repeats "Reset 1", which now only prefixes a list line.
+    expect(markup).toContain('title="codex-pro-01 · Pro 200\nReset 1: ');
+    expect(markup).not.toMatch(/title="codex-pro-01 · Reset 1/);
+  });
+
+  test('keeps a single reset credit on the one-line tooltip', () => {
+    const markup = renderToStaticMarkup(
+      createElement(CodexQuotaBody, {
+        quota,
+        classes,
+        credential: { displayName: 'codex-pro-01' },
+      })
+    );
+
+    expect(markup).toContain('data-stack-count="1"');
+    expect(markup).not.toContain('codexResetCreditStack');
+    expect(markup).toContain('title="codex-pro-01 · Reset 1 · ');
   });
 
   test('renders reset-credit expiry in local time with a countdown', () => {
@@ -163,6 +213,50 @@ describe('CodexQuotaBody', () => {
 
     expect(markup).toContain('codexResetCreditRowSoon');
     expect(markup).not.toContain('quotaRowSoon');
+  });
+
+  test('highlights an id-less credit using its original array index', () => {
+    const creditFirst: CodexQuotaState = {
+      ...quota,
+      windows: [{ ...quota.windows[0], resetAtMs: now + 5 * DAY_MS }],
+      rateLimitResetCredits: [
+        {
+          status: 'available',
+          grantedAt: new Date(now - DAY_MS).toISOString(),
+          expiresAt: new Date(now + 5 * DAY_MS).toISOString(),
+        },
+        {
+          status: 'available',
+          grantedAt: new Date(now - DAY_MS).toISOString(),
+          expiresAt: new Date(now + 30 * 60_000).toISOString(),
+        },
+      ],
+      rateLimitResetCreditsAvailableCount: 2,
+    };
+    const markup = renderToStaticMarkup(
+      createElement(CodexQuotaBody, { quota: creditFirst, classes })
+    );
+
+    expect(markup).toContain('data-stack-count="2"');
+    expect(markup).toContain('codexResetCreditRowSoon');
+  });
+
+  test('makes the multi-credit stack keyboard-focusable and names its hidden resets', () => {
+    const credits = [11, 4, 2].map((days, index) => ({
+      id: `credit-${index}`,
+      status: 'available',
+      grantedAt: new Date(now - DAY_MS).toISOString(),
+      expiresAt: new Date(now + days * DAY_MS).toISOString(),
+    }));
+    const markup = renderToStaticMarkup(
+      createElement(CodexQuotaBody, {
+        quota: { ...quota, rateLimitResetCredits: credits, rateLimitResetCreditsAvailableCount: 3 },
+        classes,
+      })
+    );
+
+    expect(markup).toContain('tabindex="0"');
+    expect(markup).toMatch(/aria-label="Reset 1: [^"]+\nReset 2: [^"]+\nReset 3: /);
   });
 
   test('does not emphasize a reset countdown more than one hour away', () => {
@@ -228,7 +322,7 @@ describe('KimiQuotaBody', () => {
     };
     const markup = renderToStaticMarkup(createElement(KimiQuotaBody, { quota, classes }));
 
-    expect(markup).toContain(formatInstantShort(resetAtMs));
+    expect(markup).toContain(formatResetInstant(resetAtMs, now, 'en'));
     expect(markup).toContain('quotaResetRelative');
     expect(markup).toMatch(/3 hours/);
     expect(markup).not.toContain('resets in 3h');
@@ -269,7 +363,7 @@ describe('ZaiQuotaBody', () => {
     expect(markup).toContain('5-hour');
     expect(markup).toContain('Weekly');
     expect(markup).toContain(
-      'class="codexPlanLabel">Plan</span><span class="codexPlanValue">lite</span>'
+      'class="planMetaLabel">Plan</span><span class="planMetaValue">lite</span>'
     );
     expect(markup).not.toContain('Plan level:');
     // Remaining share of each window (100 - usedPercent).
@@ -315,7 +409,7 @@ describe('OpenCodeGoQuotaBody', () => {
     const markup = renderToStaticMarkup(createElement(OpenCodeGoQuotaBody, { quota, classes }));
 
     expect(markup).toContain(
-      'class="codexPlanLabel">Plan</span><span class="codexPlanValue">Go</span>'
+      'class="planMetaLabel">Plan</span><span class="planMetaValue">Go</span>'
     );
     expect(markup).toContain('36%');
     expect(markup).toContain('35%');
@@ -351,8 +445,8 @@ describe('ClaudeQuotaBody', () => {
     };
     const markup = renderToStaticMarkup(createElement(ClaudeQuotaBody, { quota, classes }));
 
-    expect(markup).toContain('08-02 17:00');
-    expect(markup).toContain('08-06 04:00');
+    expect(markup).toContain(formatResetInstant(now + 2 * HOUR_MS, now, 'en'));
+    expect(markup).toContain(formatResetInstant(now + 4 * DAY_MS, now, 'en'));
     expect(markup).toMatch(/2 hours/);
     expect(markup).toMatch(/4 days/);
   });

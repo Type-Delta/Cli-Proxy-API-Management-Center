@@ -2,8 +2,10 @@
  * `08-13 14:30 · in 11 days` — the absolute instant plus its countdown.
  *
  * Shared by every provider body so the two halves can never drift apart in
- * markup or spacing. The separator lives in CSS (`.quotaResetRelative::before`)
- * rather than here, so the relative half stays independently styleable.
+ * markup or spacing. The two halves share one wrapping flex group: they sit on a
+ * single line when the row has room and stack when it does not. The separator is
+ * the group's column gap rather than a `·` glyph, so a wrapped line never opens
+ * with a dangling dot, and the relative half stays independently styleable.
  */
 
 import type { ResetDisplay } from '@/utils/quota';
@@ -18,7 +20,7 @@ export interface QuotaResetLabelProps {
 
 export function QuotaResetLabel({ display, classes, soon = false }: QuotaResetLabelProps) {
   return (
-    <>
+    <span className={classes.quotaResetLabel}>
       <span className={classes.quotaReset}>{display.absolute}</span>
       {display.relative && (
         <span
@@ -31,6 +33,6 @@ export function QuotaResetLabel({ display, classes, soon = false }: QuotaResetLa
           {display.relative}
         </span>
       )}
-    </>
+    </span>
   );
 }

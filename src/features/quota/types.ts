@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react';
+import i18n from '@/i18n';
+
 /**
  * Typed style contract for quota rendering.
  *
@@ -9,6 +12,11 @@
  */
 
 export interface QuotaClassMap {
+  // Body groups: the meta column (plan chips, Codex manual-reset stack) and the quota
+  // area (level rows that share every line). Split in markup so the two never fight
+  // for the same flex line.
+  metaColumn: string;
+  quotaArea: string;
   // Quota rows (shared by every provider)
   quotaRow: string;
   quotaRowHeader: string;
@@ -16,22 +24,24 @@ export interface QuotaClassMap {
   quotaMeta: string;
   quotaPercent: string;
   quotaReset: string;
+  quotaResetLabel: string;
   quotaResetRelative: string;
   quotaResetRelativeSoon: string;
   quotaAmount: string;
   quotaMessage: string;
   // Plan chip rows (named for codex, reused by claude/antigravity/kimi/xai;
   // premium = gold card, elite = Pro 20x liquid platinum. Final artwork, do not restyle.)
-  codexPlan: string;
-  codexPlanItem: string;
-  codexPlanLabel: string;
-  codexPlanValue: string;
+  planMeta: string;
+  planMetaItem: string;
+  planMetaLabel: string;
+  planMetaValue: string;
   premiumPlanValue: string;
   elitePlanValue: string;
   // Codex manual reset credits
   codexResetCredits: string;
   codexResetCreditsTitle: string;
   codexResetCreditRow: string;
+  codexResetCreditStack: string;
   codexResetCreditRowSoon: string;
   codexResetCreditLabel: string;
   codexResetCreditTime: string;
@@ -52,25 +62,29 @@ export interface QuotaClassMap {
 }
 
 export const QUOTA_CLASS_KEYS: readonly (keyof QuotaClassMap)[] = [
+  'metaColumn',
+  'quotaArea',
   'quotaRow',
   'quotaRowHeader',
   'quotaModel',
   'quotaMeta',
   'quotaPercent',
   'quotaReset',
+  'quotaResetLabel',
   'quotaResetRelative',
   'quotaResetRelativeSoon',
   'quotaAmount',
   'quotaMessage',
-  'codexPlan',
-  'codexPlanItem',
-  'codexPlanLabel',
-  'codexPlanValue',
+  'planMeta',
+  'planMetaItem',
+  'planMetaLabel',
+  'planMetaValue',
   'premiumPlanValue',
   'elitePlanValue',
   'codexResetCredits',
   'codexResetCreditsTitle',
   'codexResetCreditRow',
+  'codexResetCreditStack',
   'codexResetCreditRowSoon',
   'codexResetCreditLabel',
   'codexResetCreditTime',
@@ -103,4 +117,72 @@ export function bindQuotaClasses(module: Record<string, string>, source: string)
 export interface QuotaBodyProps<TState> {
   quota: TState;
   classes: QuotaClassMap;
+  /** Identity shown in row tooltips; omitted by legacy compact hosts. */
+  credential?: QuotaCredentialContext;
+  /**
+   * Extra meta owned by the host card (Claude's reset grant count lives in
+   * QuotaCard because it also drives the action button). Bodies render it as the
+   * first item of their meta column so every meta line stays in one stack.
+   */
+  leadingMeta?: ReactNode;
+}
+
+/** Minimal credential context shared by the full quota card and compact hosts. */
+export interface QuotaCredentialContext {
+  displayName: string;
+}
+
+export interface QuotaRowTooltipDetails {
+  /** Already-localized row label (for example, "5-hour limit"). */
+  label?: string | null;
+  /** Already-localized exact remaining amount (for example, "72%"). */
+  remaining?: string | null;
+  /** Absolute reset/expiry instant, when available. */
+  resetAbsolute?: string | null;
+  /** Countdown beside the absolute instant, when available. */
+  resetRelative?: string | null;
+  /** Local reset instant used to add a weekday to the hover detail. */
+  resetAtMs?: number | null;
+  /** Plan or tier label, when the provider reports one. */
+  plan?: string | null;
+  /** Existing provider-specific hint, such as the blocked-window explanation. */
+  hint?: string | null;
+}
+
+/**
+ * Build the title consumed by the global TooltipProvider from already-localized row values.
+ * Keeping the formatter here makes full and compact quota hosts expose the same context while
+ * preserving native title fallback when the provider is rendered without a credential context.
+ */
+export function buildQuotaRowTitle(
+  credential: QuotaCredentialContext | undefined,
+  details: QuotaRowTooltipDetails
+): string | undefined {
+  const locale = i18n.resolvedLanguage || i18n.language || 'en';
+  const hasInstant = typeof details.resetAtMs === 'number' && Number.isFinite(details.resetAtMs);
+  const weekday = hasInstant
+    ? new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(details.resetAtMs as number)
+    : '';
+  // The near-term absolute half already opens with the short weekday ("Mon, 10:32");
+  // only add the long weekday when the instant renders in the bare date shape.
+  const shortWeekday = hasInstant
+    ? new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(details.resetAtMs as number)
+    : '';
+  const weekdayPart =
+    shortWeekday !== '' && !(details.resetAbsolute ?? '').trim().startsWith(shortWeekday)
+      ? weekday
+      : '';
+  const parts = [
+    credential?.displayName,
+    details.label,
+    details.remaining,
+    details.resetAbsolute,
+    details.resetRelative,
+    weekdayPart,
+    details.plan,
+    details.hint,
+  ]
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .filter((value) => value !== '' && value !== '-');
+  return parts.length > 0 ? parts.join(' · ') : undefined;
 }

@@ -10,9 +10,9 @@ import { useNow } from '@/hooks/useNow';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
-import type { QuotaBodyProps } from '../../types';
+import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
-export function KimiQuotaBody({ quota, classes }: QuotaBodyProps<KimiQuotaState>) {
+export function KimiQuotaBody({ quota, classes, credential }: QuotaBodyProps<KimiQuotaState>) {
   const { t, i18n } = useTranslation();
   // Ahead of the early return below — hooks cannot be conditional.
   const now = useNow();
@@ -23,11 +23,15 @@ export function KimiQuotaBody({ quota, classes }: QuotaBodyProps<KimiQuotaState>
   const rows = quota.rows ?? [];
 
   if (rows.length === 0) {
-    return <div className={classes.quotaMessage}>{t('kimi_quota.empty_data')}</div>;
+    return (
+      <div className={classes.quotaArea}>
+        <div className={classes.quotaMessage}>{t('kimi_quota.empty_data')}</div>
+      </div>
+    );
   }
 
   return (
-    <>
+    <div className={classes.quotaArea}>
       {rows.map((row, index) => {
         const limit = row.limit;
         const used = row.used;
@@ -53,7 +57,14 @@ export function KimiQuotaBody({ quota, classes }: QuotaBodyProps<KimiQuotaState>
           <div
             key={row.id}
             className={classes.quotaRow}
-            title={soon ? t('quota_management.soonest_row_hint') : undefined}
+            title={buildQuotaRowTitle(credential, {
+              label: rowLabel,
+              remaining: percentLabel,
+              resetAbsolute: resetDisplay?.absolute,
+              resetRelative: resetDisplay?.relative,
+              resetAtMs: row.resetAtMs,
+              hint: soon ? t('quota_management.soonest_row_hint') : undefined,
+            })}
           >
             <div className={classes.quotaRowHeader}>
               <span className={classes.quotaModel}>{rowLabel}</span>
@@ -68,6 +79,6 @@ export function KimiQuotaBody({ quota, classes }: QuotaBodyProps<KimiQuotaState>
           </div>
         );
       })}
-    </>
+    </div>
   );
 }

@@ -6,9 +6,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { AntigravityQuotaState, AntigravityQuotaSubscription } from '@/types';
+import { formatResetInstant } from '@/utils/quota';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
-import type { QuotaBodyProps } from '../../types';
+import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 import { getNextAntigravityCountdownUpdateDelay } from './countdown';
 
 const formatAntigravityDuration = (t: TFunction, deltaMs: number): string => {
@@ -108,8 +109,12 @@ const getAntigravityPlanLabel = (
   );
 };
 
-export function AntigravityQuotaBody({ quota, classes }: QuotaBodyProps<AntigravityQuotaState>) {
-  const { t } = useTranslation();
+export function AntigravityQuotaBody({
+  quota,
+  classes,
+  credential,
+}: QuotaBodyProps<AntigravityQuotaState>) {
+  const { t, i18n } = useTranslation();
   const groups = quota.groups ?? [];
   const planLabel = getAntigravityPlanLabel(quota.subscription, t);
   const normalizedPlan = quota.subscription?.plan?.toLowerCase() ?? '';
@@ -155,86 +160,106 @@ export function AntigravityQuotaBody({ quota, classes }: QuotaBodyProps<Antigrav
   return (
     <>
       {planLabel && (
-        <div className={classes.codexPlan}>
-          <span className={classes.codexPlanItem}>
-            <span className={classes.codexPlanLabel}>{t('antigravity_quota.plan_label')}</span>
-            <span className={isPremiumPlan ? classes.premiumPlanValue : classes.codexPlanValue}>
-              {planLabel}
+        <div className={classes.metaColumn}>
+          <div className={classes.planMeta}>
+            <span className={classes.planMetaItem}>
+              <span className={classes.planMetaLabel}>{t('antigravity_quota.plan_label')}</span>
+              <span className={isPremiumPlan ? classes.premiumPlanValue : classes.planMetaValue}>
+                {planLabel}
+              </span>
             </span>
-          </span>
+          </div>
         </div>
       )}
-      {groups.length === 0 ? (
-        <div className={classes.quotaMessage}>{t('antigravity_quota.empty_models')}</div>
-      ) : (
-        groups.map((group) => {
-          const groupLabel = translateAntigravityQuotaLabel(
-            group.label,
-            ANTIGRAVITY_GROUP_LABEL_KEYS,
-            t
-          );
-          const groupDescription = translateAntigravityQuotaDescription(group.description, t);
+      <div className={classes.quotaArea}>
+        {groups.length === 0 ? (
+          <div className={classes.quotaMessage}>{t('antigravity_quota.empty_models')}</div>
+        ) : (
+          groups.map((group) => {
+            const groupLabel = translateAntigravityQuotaLabel(
+              group.label,
+              ANTIGRAVITY_GROUP_LABEL_KEYS,
+              t
+            );
+            const groupDescription = translateAntigravityQuotaDescription(group.description, t);
 
-          return (
-            <div key={group.id} className={classes.antigravityQuotaGroup}>
-              <div className={classes.antigravityQuotaGroupHeader}>
-                <span className={classes.antigravityQuotaGroupTitle}>{groupLabel}</span>
-                {groupDescription && (
-                  <span className={classes.antigravityQuotaGroupDescription}>
-                    {groupDescription}
-                  </span>
-                )}
-              </div>
-              {group.buckets.map((bucket, index) => {
-                const clamped = Math.max(0, Math.min(1, bucket.remainingFraction));
-                const percent = clamped * 100;
-                const percentLabel =
-                  bucket.remainingFraction === 1
-                    ? t('antigravity_quota.quota_available')
-                    : t('antigravity_quota.remaining_percent', {
-                        percent: Math.round(percent),
-                      });
-                const resetLabel = formatAntigravityResetLabel(bucket.resetTime, t, nowMs);
-                const bucketLabel = translateAntigravityQuotaLabel(
-                  bucket.label,
-                  ANTIGRAVITY_BUCKET_LABEL_KEYS,
-                  t
-                );
-                const bucketDescription = translateAntigravityQuotaDescription(
-                  bucket.description,
-                  t
-                );
+            return (
+              <div key={group.id} className={classes.antigravityQuotaGroup}>
+                <div className={classes.antigravityQuotaGroupHeader}>
+                  <span className={classes.antigravityQuotaGroupTitle}>{groupLabel}</span>
+                  {groupDescription && (
+                    <span className={classes.antigravityQuotaGroupDescription}>
+                      {groupDescription}
+                    </span>
+                  )}
+                </div>
+                {group.buckets.map((bucket, index) => {
+                  const clamped = Math.max(0, Math.min(1, bucket.remainingFraction));
+                  const percent = clamped * 100;
+                  const percentLabel =
+                    bucket.remainingFraction === 1
+                      ? t('antigravity_quota.quota_available')
+                      : t('antigravity_quota.remaining_percent', {
+                          percent: Math.round(percent),
+                        });
+                  const resetLabel = formatAntigravityResetLabel(bucket.resetTime, t, nowMs);
+                  const resetAtMs = bucket.resetTime ? new Date(bucket.resetTime).getTime() : null;
+                  const resetAbsolute =
+                    resetAtMs !== null && Number.isFinite(resetAtMs)
+                      ? formatResetInstant(resetAtMs, nowMs, i18n.resolvedLanguage)
+                      : null;
+                  const bucketLabel = translateAntigravityQuotaLabel(
+                    bucket.label,
+                    ANTIGRAVITY_BUCKET_LABEL_KEYS,
+                    t
+                  );
+                  const bucketDescription = translateAntigravityQuotaDescription(
+                    bucket.description,
+                    t
+                  );
 
-                const soon = bucket.id === soonestRowId;
+                  const soon = bucket.id === soonestRowId;
 
-                return (
-                  <div key={bucket.id} className={classes.quotaRow}>
-                    <div className={classes.quotaRowHeader}>
-                      <span className={classes.quotaModel} title={bucketDescription}>
-                        {bucketLabel}
-                      </span>
-                      <div className={classes.quotaMeta}>
-                        <span className={classes.quotaPercent}>{percentLabel}</span>
-                        <span
-                          className={
-                            soon
-                              ? `${classes.quotaReset} ${classes.quotaResetRelativeSoon}`
-                              : classes.quotaReset
-                          }
-                          title={soon ? t('quota_management.soonest_row_hint') : undefined}
-                        >
-                          {resetLabel}
+                  return (
+                    <div
+                      key={bucket.id}
+                      className={classes.quotaRow}
+                      title={buildQuotaRowTitle(credential, {
+                        label: bucketLabel,
+                        remaining: `${Math.round(percent)}%`,
+                        resetAbsolute,
+                        resetRelative: resetLabel,
+                        resetAtMs,
+                        plan: planLabel,
+                        hint: soon ? t('quota_management.soonest_row_hint') : undefined,
+                      })}
+                    >
+                      <div className={classes.quotaRowHeader}>
+                        <span className={classes.quotaModel} title={bucketDescription}>
+                          {bucketLabel}
                         </span>
+                        <div className={classes.quotaMeta}>
+                          <span className={classes.quotaPercent}>{percentLabel}</span>
+                          <span
+                            className={
+                              soon
+                                ? `${classes.quotaReset} ${classes.quotaResetRelativeSoon}`
+                                : classes.quotaReset
+                            }
+                          >
+                            {resetLabel}
+                          </span>
+                        </div>
                       </div>
+                      <QuotaMeter percent={percent} classes={classes} index={index} />
                     </div>
-                    <QuotaMeter percent={percent} classes={classes} index={index} />
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })
-      )}
+                  );
+                })}
+              </div>
+            );
+          })
+        )}
+      </div>
     </>
   );
 }

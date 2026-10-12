@@ -995,6 +995,56 @@ label on the dashboard. All five locales include the new option label.
 Validation: focused routing strategy tests, TypeScript type-check, production
 build, and the canonical CPA management bundle build pass.
 
+### DL053: Quota summary and credential-aware quota tooltips
+
+The Quota Management page keeps its existing title, refresh controls, provider tabs, search,
+sorting, credential list, and candy-striped unavailable allowance treatment while adding a compact
+provider summary row above the list. Summary percentages normalize each credential against the
+largest available plan tier, show aggregate capacity, select Claude's lower-remaining weekly pool
+with Fable as the tie-breaker, and use explicit longest-recovery windows for other providers
+(OpenCode Go uses monthly). Claude's secondary weekly pool can be expanded in place.
+
+Summary and detailed quota rows use the shared TooltipProvider title path. Hover details include the
+credential, exact remaining percentage, reset instant and countdown, and plan/tier; disabled rows
+retain their remaining amount and use the existing candy-wrap fill in both views. All five locales
+include the new summary copy.
+
+Validation: quota summary and tooltip tests pass, the full CPAMC type-check and lint pass, and the
+single-file production build passes. The full suite has one unrelated pre-existing legacy-backend
+probe failure on this branch.
+
+The summary follow-up replaces the initial card grid with the reference-style horizontal provider
+strip. Provider tabs remain above the strip, each credential is represented by a capacity-weighted
+segment, Claude's totals use plan-weighted remaining units, and unknown paid-health limits remain
+unknown. The strip keeps keyboard-accessible tooltip targets and the expandable secondary Claude
+weekly meter.
+
+The follow-up also replaces the quota credential tile grid with full-width list rows. Each row
+keeps provider quota columns and actions aligned while the search and sort controls use the same
+glass card surface as the quota rows and summary strip.
+
+Row polish: sorting is wired to the list, quota rows fill the available width with actions in their
+own column, plan chips form a content-sized flex group, reset instant and countdown wrap as one
+group, and multiple Codex manual-reset credits collapse into one focusable stacked row whose tooltip
+lists every credit. Row tooltips include the reset weekday in the active app language. The summary
+strip wraps into even grid rows instead of scrolling, and on mobile the actions share the identity
+line. The shared TooltipProvider keeps converted tooltips when React reorders keyed rows; a
+happy-dom regression test covers that path.
+
+Layout pass: the shared provider meta strip is renamed from `codexPlan*` to `planMeta*` because
+every provider uses it. Each row body splits into a content-sized meta column (label/value pairs
+stacked one per line, plus the Codex manual-reset stack) and a quota area whose meters fill the
+remaining width at a 200px minimum; the meta drops above the meters only when the provider's meter
+line cannot fit beside it. The reset-credit stack paints its offset cards behind the top card, and
+its tooltip lists one line per credit under a credential/plan header. Mobile action buttons stay
+inline. `.page-transition` clips overflow only while animating, so focus rings at page edges are no
+longer cut off. A viewport sweep from 1920 to 320px in 20-40px steps checks row width, label
+splits, meta placement, fill, overlap and overflow.
+
+Reset instants share one format: resets within six local calendar days read as weekday and time
+(`Mon, 10:32`), later or past instants keep `MM/DD, HH:mm`. The summary reset line reuses the shared
+reset label, so it reads absolute time first and countdown second like the rows.
+
 ### DL051: Upstream v1.25.4 sync with v8 contract preservation
 
 Status: integrated in merge commit `ed24daa0e210e3d4ce49f64cae8120457bc73c32`

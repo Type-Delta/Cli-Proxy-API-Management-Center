@@ -5,30 +5,34 @@
  *
  * 两段构成：
  * 1. 额度行 / 水位条 / Antigravity 分组 —— mono 遥测风，与紧凑外衣同族；
- * 2. 套餐徽章区（.codexPlan* 起至文件末尾）—— 从 pages/QuotaPage.module.scss
+ * 2. 套餐徽章区（.planMeta* 起至文件末尾）—— 从 pages/QuotaPage.module.scss
  *    第 429–1023 行逐字节搬迁的定稿资产（金卡 + Pro 20x 液态铂金，含暗色 /
  *    HDR / 减动效冻结帧 / 移动端降级）。**该区块禁止改动**：改配方等于重设计
  *    已验收的徽章，验证方式是与 git 历史做 diff（应为空）。
  * ============================================================ */
 
-/* ---------- 额度行 ---------- */
+/* ---------- Quota row ----------
+ * The header and meta wrappers are flattened (`display: contents`) so a row reads as
+ * label + percent on the first line, the level bar next, then the reset line. The
+ * wrappers stay in the DOM, so the shared markup and tooltips are unchanged. */
 
 .quotaRow {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 7px;
+  row-gap: 5px;
   min-width: 0;
 }
 
-.quotaRowHeader {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
+.quotaRowHeader,
+.quotaMeta {
+  display: contents;
 }
 
 .quotaModel {
+  order: 1;
+  flex: 1 1 auto;
   min-width: 0;
   font-size: 12.5px;
   font-weight: 600;
@@ -36,50 +40,61 @@
   @include text-ellipsis;
 }
 
-/* 遥测：mono + 等宽数字，刷新时数字不跳位 */
-.quotaMeta {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 7px;
-  flex-shrink: 0;
+/* Telemetry: mono + tabular-nums, so numbers stay put while refreshing. */
+.quotaRow .quotaPercent,
+.quotaRow .quotaReset,
+.quotaRow .quotaResetRelative,
+.quotaRow .quotaAmount {
   font-family: $font-mono;
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
 }
 
-/* 百分比穿墨色而非填充色 —— 文字不承担状态编码，颜色留给水位条 */
+/* Percent wears ink, not the fill colour — text never carries state, colour is the bar's job. */
 .quotaPercent {
+  order: 2;
+  flex: 0 0 auto;
   font-weight: 650;
   color: var(--text-primary);
 }
 
+.quotaAmount {
+  order: 2;
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+}
+
 .quotaReset {
+  order: 4;
+  flex: 0 0 auto;
   color: var(--text-quaternary);
 }
 
-/* Countdown beside the absolute reset time. The separator is a pseudo-element
-   so the two spans stay independently styleable (the relative half turns
-   warning-coloured when this is the row that recovers first). */
-.quotaResetRelative {
-  color: var(--text-tertiary);
+/* Absolute reset time and countdown travel as one group: inline when the row has
+   room, stacked when it does not. The gap replaces the old `·` pseudo-separator so
+   a wrapped line never starts with a dangling dot. */
+.quotaResetLabel {
+  order: 4;
+  /* Inline-flex so it stays in flow inside the right-aligned credit-time span, and
+     blockifies cleanly where it is itself a flex item of .quotaRow. */
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 5px;
+  min-width: 0;
+}
 
-  &::before {
-    content: '·';
-    margin: 0 4px;
-    color: var(--text-quaternary);
-  }
+/* The relative half turns warning-coloured when this is the row that recovers first. */
+.quotaResetRelative {
+  order: 4;
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
 }
 
 .quotaResetRelativeSoon {
   color: var(--warning-text);
   font-weight: 600;
-}
-
-.quotaAmount {
-  font-family: $font-mono;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-secondary);
 }
 
 .quotaMessage {
@@ -91,11 +106,56 @@
   padding: 6px 4px;
 }
 
+/* ---------- Body groups ----------
+ * A credential row splits its body in two groups: the meta column (plan chips plus the
+ * Codex manual-reset stack) and the quota area. The host lays the two out; these rules
+ * describe each group on its own so the compact Auth Files host can reuse them. */
+
+.metaColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* Tight stack: a row with two meta items must not grow past its meter row. */
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The meta group is a column of complete label/value pairs. Each pair itself stays
+ * inline, so adding fields never splits a label from its value. */
+.metaColumn > .planMeta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.quotaArea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 18px;
+  min-width: 0;
+}
+
+/* Meters share every line and stretch to fill it; a lone row on the last line takes
+ * the whole width instead of leaving a dead column beside it. */
+.quotaArea > .quotaRow,
+.quotaArea > .antigravityQuotaGroup {
+  flex: 1 1 200px;
+  min-width: 200px;
+}
+
+.quotaArea > .quotaMessage {
+  flex: 1 1 100%;
+}
+
 /* ---------- Level bars (QuotaMeter) ----------
  * The track stays in the background (8% ink) and the fill takes one of three
  * remaining-amount tones. percent === null renders zero width: unknown is never painted. */
 
 .quotaBar {
+  order: 3;
+  flex: 0 0 100%;
   height: 6px;
   border-radius: $radius-full;
   background: color-mix(in srgb, var(--text-primary) 8%, transparent);
@@ -179,21 +239,6 @@
   color: var(--text-quaternary);
 }
 
-@include mobile {
-  .quotaRowHeader {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .quotaModel {
-    width: 100%;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-    overflow-wrap: anywhere;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .quotaBarFill {
     transition: none;
@@ -205,7 +250,7 @@
  * 以下至文件末尾：套餐徽章定稿区块（逐字节搬迁，禁止改动）
  * ============================================================ */
 
-.codexPlan {
+.planMeta {
   display: flex;
   align-items: center;
   gap: 6px 12px;
@@ -214,7 +259,7 @@
   flex-wrap: wrap;
 }
 
-.codexPlanItem {
+.planMetaItem {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -223,12 +268,12 @@
   flex-wrap: wrap;
 }
 
-.codexPlanLabel {
+.planMetaLabel {
   color: var(--text-tertiary);
   flex: 0 0 auto;
 }
 
-.codexPlanValue {
+.planMetaValue {
   font-weight: 600;
   color: var(--text-primary);
   text-transform: capitalize;
@@ -240,6 +285,11 @@
   flex-direction: column;
   gap: 6px;
   padding-top: 2px;
+  /* Own the stacking context for the offset stack rectangles. The row itself stays
+   * `position: relative` (the rectangles' containing block) but must NOT create a
+   * stacking context, so its `z-index: -1` pseudo-elements sit behind the row's own
+   * background instead of painting over it. */
+  isolation: isolate;
 }
 
 .codexResetCreditsTitle {
@@ -258,9 +308,35 @@
   border: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
   border-radius: $radius-sm;
   background-color: color-mix(in srgb, var(--bg-secondary) 72%, transparent);
+  position: relative;
   font-size: 12px;
   line-height: 1.35;
   min-width: 0;
+}
+
+.codexResetCreditStack::before,
+.codexResetCreditStack::after {
+  position: absolute;
+  z-index: -1;
+  content: '';
+  inset: 0;
+  border: inherit;
+  border-radius: inherit;
+  background: inherit;
+}
+
+.codexResetCreditStack::before {
+  transform: translate(4px, 4px);
+}
+
+.codexResetCreditStack::after {
+  display: none;
+  z-index: -2;
+  transform: translate(7px, 7px);
+}
+
+.codexResetCreditStack[data-stack-count='3']::after {
+  display: block;
 }
 
 .codexResetCreditRowSoon {
@@ -292,7 +368,7 @@
   padding: $spacing-xs $spacing-sm;
 }
 
-.codexPlanSeparator {
+.planMetaSeparator {
   width: 1px;
   height: 12px;
   background-color: var(--border-color);

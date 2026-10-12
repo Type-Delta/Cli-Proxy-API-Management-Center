@@ -7,6 +7,7 @@ import {
   buildResetDisplay,
   formatInstantShort,
   formatQuotaResetTime,
+  formatResetInstant,
   formatRelativeInstant,
   relativeTimeParts,
 } from '@/utils/quota';
@@ -82,11 +83,54 @@ describe('formatInstantShort', () => {
   });
 });
 
+describe('formatResetInstant', () => {
+  // Monday, so the "today is Monday" calendar-day cases read directly.
+  const MONDAY = new Date(2026, 7, 3, 12, 0, 0).getTime();
+
+  test('uses the short weekday for instants inside six calendar days', () => {
+    expect(formatResetInstant(MONDAY, MONDAY, 'en')).toBe('Mon, 12:00');
+    expect(formatResetInstant(MONDAY + DAY_MS, MONDAY, 'en')).toBe('Tue, 12:00');
+    expect(formatResetInstant(MONDAY + 6 * DAY_MS, MONDAY, 'en')).toBe('Sun, 12:00');
+  });
+
+  test('falls back to the compact date at seven calendar days', () => {
+    // Next Monday at 00:05 is seven calendar days out even though it is under
+    // 168 hours from Monday noon.
+    const nextMonday = new Date(2026, 7, 10, 0, 5).getTime();
+    expect(formatResetInstant(nextMonday, MONDAY, 'en')).toBe(formatInstantShort(nextMonday));
+  });
+
+  test('keeps the compact date for an instant in the past', () => {
+    const past = new Date(2026, 7, 1, 9, 30).getTime();
+    expect(formatResetInstant(past, MONDAY, 'en')).toBe(formatInstantShort(past));
+  });
+
+  test('distinguishes Sunday (six days) from the next Monday (seven days)', () => {
+    const sunday = new Date(2026, 7, 9, 23, 59).getTime();
+    const nextMonday = new Date(2026, 7, 10, 0, 5).getTime();
+    expect(formatResetInstant(sunday, MONDAY, 'en')).toBe('Sun, 23:59');
+    expect(formatResetInstant(nextMonday, MONDAY, 'en')).toBe(formatInstantShort(nextMonday));
+  });
+
+  test('renders the weekday in the requested language', () => {
+    const german = formatResetInstant(MONDAY, MONDAY, 'de');
+    expect(german).toContain(new Intl.DateTimeFormat('de', { weekday: 'short' }).format(MONDAY));
+    expect(german).toContain('12:00');
+    expect(german).not.toBe(formatResetInstant(MONDAY, MONDAY, 'en'));
+  });
+
+  test('degrades to a dash for a non-finite instant', () => {
+    expect(formatResetInstant(Number.NaN, MONDAY, 'en')).toBe('-');
+  });
+});
+
 describe('buildResetDisplay', () => {
-  test('pairs a baked absolute label with a computed relative one', () => {
-    const display = buildResetDisplay('08-13 14:30', NOW + 11 * DAY_MS, NOW, 'en');
+  test('prefers the instant over a baked label so the format stays shared', () => {
+    const at = NOW + 11 * DAY_MS;
+    const display = buildResetDisplay('08-13 14:30', at, NOW, 'en');
     expect(display).not.toBeNull();
-    expect(display?.absolute).toBe('08-13 14:30');
+    expect(display?.absolute).toBe(formatResetInstant(at, NOW, 'en'));
+    expect(display?.absolute).toBe(formatInstantShort(at));
     expect(display?.relative).toContain('11 days');
   });
 
@@ -102,7 +146,7 @@ describe('buildResetDisplay', () => {
   test('derives the absolute half from the instant when no label was baked', () => {
     const at = NOW + 2 * HOUR_MS;
     const display = buildResetDisplay(undefined, at, NOW, 'en');
-    expect(display?.absolute).toBe(formatInstantShort(at));
+    expect(display?.absolute).toBe(formatResetInstant(at, NOW, 'en'));
     expect(display?.relative).toContain('2 hours');
   });
 
@@ -116,7 +160,7 @@ describe('buildResetDisplay', () => {
 
   test('treats a placeholder label with a real instant as renderable', () => {
     const display = buildResetDisplay('-', NOW + DAY_MS, NOW, 'en');
-    expect(display?.absolute).toBe(formatInstantShort(NOW + DAY_MS));
+    expect(display?.absolute).toBe(formatResetInstant(NOW + DAY_MS, NOW, 'en'));
     expect(display?.relative).toContain('1 day');
   });
 

@@ -74,6 +74,32 @@ export function formatRelativeInstant(targetMs: number, nowMs: number, locale?: 
 }
 
 /**
+ * Formatters for the near-term reset shape are cached per locale for the same
+ * reason as the relative ones: this runs once per quota row per minute.
+ */
+const resetWeekdayFormatters = new Map<string, Intl.DateTimeFormat>();
+const resetClockFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function getResetFormatter(
+  cache: Map<string, Intl.DateTimeFormat>,
+  locale: string | undefined,
+  options: Intl.DateTimeFormatOptions
+): Intl.DateTimeFormat {
+  const key = locale ?? '';
+  const cached = cache.get(key);
+  if (cached) return cached;
+
+  let formatter: Intl.DateTimeFormat;
+  try {
+    formatter = new Intl.DateTimeFormat(locale, options);
+  } catch {
+    formatter = new Intl.DateTimeFormat(undefined, options);
+  }
+  cache.set(key, formatter);
+  return formatter;
+}
+
+/**
  * Absolute instant in the shape every quota row already uses (`MM-DD HH:mm`,
  * browser-local, 24-hour). Kept in one place so the reset labels baked at fetch
  * time and the ones formatted at render time can never drift apart.
@@ -89,6 +115,35 @@ export function formatInstantShort(ms: number): string {
   });
 }
 
+/**
+ * Reset/expiry instant in the shape the reader needs at that distance.
+ *
+ * A reset inside the next six local calendar days reads better as `Mon, 10:32`
+ * than as a bare date; anything further out — or already past — keeps the
+ * year-less `MM/DD, HH:mm` compact form, so a weekday alone never has to carry
+ * the ambiguity of "which Monday". The comparison is between local midnights,
+ * not elapsed hours: a reset next Monday at 00:05 is seven calendar days away
+ * even though it is under 168 hours from Monday noon.
+ */
+export function formatResetInstant(ms: number, nowMs: number, locale?: string): string {
+  if (!Number.isFinite(ms)) return '-';
+  const target = new Date(ms);
+  const today = new Date(nowMs);
+  target.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  const calendarDays = Math.round((target.getTime() - today.getTime()) / DAY_MS);
+  if (calendarDays < 0 || calendarDays > 6) return formatInstantShort(ms);
+  const weekday = getResetFormatter(resetWeekdayFormatters, locale, { weekday: 'short' }).format(
+    ms
+  );
+  const time = getResetFormatter(resetClockFormatters, locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(ms);
+  return `${weekday}, ${time}`;
+}
+
 export interface ResetDisplay {
   absolute: string;
   /** Null when no usable instant was available — render the absolute half alone. */
@@ -96,14 +151,14 @@ export interface ResetDisplay {
 }
 
 /**
- * Pair an already-formatted absolute label with a freshly computed relative one.
+ * Pair a freshly formatted absolute half with a freshly computed relative one.
  *
- * The absolute label wins when present because providers bake it at fetch time
- * and some of them cannot be reproduced at render (`formatCodexResetLabel`
- * resolves `reset_after_seconds` against the fetch-time clock). The instant is
- * only used for the relative half, and its absence degrades to exactly the
- * pre-existing rendering — which is what a store entry cached by an older
- * build, with no `resetAtMs` field, will hit.
+ * Whenever an instant is usable it wins for both halves, so every provider body
+ * renders the absolute half through the shared `formatResetInstant` rule at
+ * render time. The baked label is then only the fallback for entries that have
+ * no instant: providers that bake at fetch time (`formatCodexResetLabel`
+ * resolves `reset_after_seconds` against the fetch-time clock) and store
+ * entries cached by an older build with no `resetAtMs` field.
  *
  * Returns null when there is nothing worth rendering at all.
  */
@@ -114,13 +169,13 @@ export function buildResetDisplay(
   locale?: string
 ): ResetDisplay | null {
   const trimmed = typeof absoluteLabel === 'string' ? absoluteLabel.trim() : '';
-  const absolute = trimmed && trimmed !== '-' ? trimmed : null;
+  const baked = trimmed && trimmed !== '-' ? trimmed : null;
   const usableMs = typeof atMs === 'number' && Number.isFinite(atMs) ? atMs : null;
 
-  if (absolute === null && usableMs === null) return null;
+  if (baked === null && usableMs === null) return null;
 
   return {
-    absolute: absolute ?? formatInstantShort(usableMs as number),
+    absolute: usableMs === null ? (baked as string) : formatResetInstant(usableMs, nowMs, locale),
     relative: usableMs === null ? null : formatRelativeInstant(usableMs, nowMs, locale),
   };
 }
