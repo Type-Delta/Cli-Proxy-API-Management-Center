@@ -31,6 +31,7 @@ import iconGrok from '@/assets/icons/grok.svg';
 import iconGrokDark from '@/assets/icons/grok-dark.svg';
 import iconDevin from '@/assets/icons/devin.svg';
 import iconDevinDark from '@/assets/icons/devin-dark.svg';
+import iconKiro from '@/assets/icons/kiro.svg';
 
 interface ProviderState {
   url?: string;
@@ -133,10 +134,23 @@ const PROVIDERS: BuiltInOAuthProviderCard[] = [
     titleKey: 'auth_login.devin_oauth_title',
     icon: { light: iconDevin, dark: iconDevinDark },
   },
+  {
+    kind: 'builtin',
+    id: 'kiro',
+    titleKey: 'auth_login.kiro_oauth_title',
+    icon: iconKiro,
+  },
 ];
 
 const BUILTIN_PROVIDER_IDS = new Set<string>(PROVIDERS.map((provider) => provider.id));
-const CALLBACK_SUPPORTED = new Set<string>(['codex', 'anthropic', 'antigravity', 'xai', 'devin']);
+const CALLBACK_SUPPORTED = new Set<string>([
+  'codex',
+  'anthropic',
+  'antigravity',
+  'xai',
+  'devin',
+  'kiro',
+]);
 const XAI_CALLBACK_URL = 'http://127.0.0.1:56121/callback';
 const SUCCESS_RESET_DELAY_MS = 5000;
 const getProviderI18nPrefix = (provider: string) => provider.replace('-', '_');

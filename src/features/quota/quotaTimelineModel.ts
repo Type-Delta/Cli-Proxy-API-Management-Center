@@ -525,6 +525,37 @@ export function buildTimelineLane(input: TimelineLaneInput): TimelineLane {
     };
   }
 
+  if (provider === 'kiro') {
+    const windows = (
+      (
+        quota as {
+          windows?: (WindowLike & { currentUsage?: number; usageLimit?: number | null })[];
+        }
+      ).windows ?? []
+    ).filter((window) => typeof window.resetAtMs === 'number');
+    const chosen = pickLaneWindow(windows, maxPeriodHours);
+    if (!chosen) return empty;
+    return {
+      ...empty,
+      anchorMs: chosen.resetAtMs ?? null,
+      periodHours: chosen.periodHours ?? null,
+      remaining: null,
+      limits: windows
+        .filter(
+          (window) =>
+            typeof window.currentUsage === 'number' &&
+            typeof window.usageLimit === 'number' &&
+            window.usageLimit > 0
+        )
+        .map((window) => ({
+          label: window.id ?? '',
+          remaining: clampPercent(
+            100 - ((window.currentUsage as number) / (window.usageLimit as number)) * 100
+          ),
+        })),
+    };
+  }
+
   if (provider === 'meta') {
     const sourceWindows = (quota as { data?: { windows?: MetaWindowLike[] } }).data?.windows ?? [];
     const windows = sourceWindows

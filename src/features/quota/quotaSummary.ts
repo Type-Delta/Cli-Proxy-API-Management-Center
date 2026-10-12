@@ -107,6 +107,7 @@ const getQuotaPlanLabel = (
     return planLabel(subscription?.tierName ?? subscription?.plan);
   }
   if (type === 'devin') return planLabel(state.plan);
+  if (type === 'kiro') return planLabel(asRecord(state.subscription)?.title);
   if (type === 'meta') return planLabel(asRecord(state.data)?.planName);
   if (type === 'xai') return planLabel(asRecord(state.billing)?.planLabel);
   if (type === 'zai') return planLabel(state.level);
@@ -192,6 +193,26 @@ const windowsFor = (type: QuotaProviderType, quota: QuotaCardState): QuotaSummar
           resetAtMs: resetMs(row.resetAtMs),
           periodHours: asNumber(row.periodHours),
           disabled: row.disabled === true,
+        },
+      ];
+    });
+  }
+  if (type === 'kiro') {
+    const windows = Array.isArray(state.windows) ? state.windows : [];
+    return windows.flatMap((item): QuotaSummaryWindow[] => {
+      const row = asRecord(item);
+      if (!row) return [];
+      const limit = asNumber(row.usageLimit);
+      const used = asNumber(row.currentUsage);
+      const remaining =
+        limit !== null && limit > 0 && used !== null ? clamp(((limit - used) / limit) * 100) : null;
+      return [
+        {
+          id: String(row.id ?? ''),
+          label: String(row.labelKey ?? row.id ?? ''),
+          remainingPercent: remaining,
+          resetAtMs: resetMs(row.resetAtMs),
+          periodHours: null,
         },
       ];
     });

@@ -12,6 +12,7 @@ import type {
   ClaudeQuotaState,
   CodexQuotaState,
   DevinQuotaState,
+  KiroQuotaState,
   KimiQuotaState,
   OpenCodeGoQuotaState,
   MetaQuotaState,
@@ -30,6 +31,7 @@ export type QuotaProviderType =
   | 'claude'
   | 'codex'
   | 'devin'
+  | 'kiro'
   | 'kimi'
   | 'meta'
   | 'opencode-go'
@@ -43,6 +45,7 @@ export interface QuotaStore {
   codexQuota: Record<string, CodexQuotaState>;
   devinQuota: Record<string, DevinQuotaState>;
   kimiQuota: Record<string, KimiQuotaState>;
+  kiroQuota: Record<string, KiroQuotaState>;
   opencodeGoQuota: Record<string, OpenCodeGoQuotaState>;
   metaQuota: Record<string, MetaQuotaState>;
   xaiQuota: Record<string, XaiQuotaState>;
@@ -52,6 +55,7 @@ export interface QuotaStore {
   setCodexQuota: (updater: QuotaUpdater<Record<string, CodexQuotaState>>) => void;
   setDevinQuota: (updater: QuotaUpdater<Record<string, DevinQuotaState>>) => void;
   setKimiQuota: (updater: QuotaUpdater<Record<string, KimiQuotaState>>) => void;
+  setKiroQuota: (updater: QuotaUpdater<Record<string, KiroQuotaState>>) => void;
   setOpenCodeGoQuota: (updater: QuotaUpdater<Record<string, OpenCodeGoQuotaState>>) => void;
   setMetaQuota: (updater: QuotaUpdater<Record<string, MetaQuotaState>>) => void;
   setXaiQuota: (updater: QuotaUpdater<Record<string, XaiQuotaState>>) => void;

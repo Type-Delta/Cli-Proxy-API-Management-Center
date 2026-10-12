@@ -1415,7 +1415,8 @@
     "policy_rules_hint": "Các quy tắc tùy chỉnh được ưu tiên theo thứ tự danh sách. Kế thừa hoặc danh sách trống sẽ sử dụng quy tắc kế thừa; điều này không vô hiệu hóa chúng. Mẫu biểu thức chính quy (Regex) dùng cú pháp của Go.",
     "policy_retry_invalid": "Nhập một số nguyên an toàn không âm, hoặc chọn Kế thừa.",
     "policy_aliases_invalid": "Nhập tên model và bí danh không để trống cho mỗi hàng mới hoặc đã chỉnh sửa.",
-    "policy_rules_invalid": "Hoàn thành mỗi quy tắc đã chỉnh sửa với mã trạng thái dương, một hành động và ít nhất một điều kiện khớp không để trống."
+    "policy_rules_invalid": "Hoàn thành mỗi quy tắc đã chỉnh sửa với mã trạng thái dương, một hành động và ít nhất một điều kiện khớp không để trống.",
+    "filter_kiro": "Kiro"
   },
   "antigravity_subscription": {
     "plan_unknown": "Không rõ",
@@ -1891,7 +1892,18 @@
     "kimi_ai_oauth_status_success": "Xác thực thành công!",
     "kimi_ai_oauth_status_error": "Xác thực thất bại:",
     "kimi_ai_oauth_start_error": "Không thể bắt đầu đăng nhập Kimi quốc tế:",
-    "kimi_ai_oauth_polling_error": "Không thể kiểm tra trạng thái xác thực:"
+    "kimi_ai_oauth_polling_error": "Không thể kiểm tra trạng thái xác thực:",
+    "kiro_oauth_title": "Kiro OAuth",
+    "kiro_oauth_button": "Bắt đầu đăng nhập Kiro",
+    "kiro_oauth_hint": "Đăng nhập Kiro qua OAuth trên trình duyệt, bao gồm AWS Builder ID. Tệp xác thực sẽ được lưu tự động.",
+    "kiro_oauth_url_label": "URL cấp quyền:",
+    "kiro_open_link": "Mở liên kết",
+    "kiro_copy_link": "Sao chép liên kết",
+    "kiro_oauth_status_waiting": "Đang chờ xác thực Kiro...",
+    "kiro_oauth_status_success": "Xác thực Kiro thành công!",
+    "kiro_oauth_status_error": "Xác thực Kiro thất bại:",
+    "kiro_oauth_start_error": "Không thể bắt đầu Kiro OAuth:",
+    "kiro_oauth_polling_error": "Không thể kiểm tra trạng thái xác thực Kiro:"
   },
   "stats": {
     "success": "Thành công",
@@ -2930,7 +2942,8 @@
       "lmuAI": "LMU AI (Linhmou AI)",
       "infistar": "Infistar",
       "kimi": "Kimi",
-      "meta": "Muse (Meta)"
+      "meta": "Muse (Meta)",
+      "kiro": "Kiro"
     },
     "table": {
       "key": "Key",
@@ -3351,5 +3364,24 @@
     "unavailable": "Tính năng đặt lại hiện không khả dụng.",
     "rate_limited": "Yêu cầu bị giới hạn tốc độ.",
     "auth_error": "Ủy quyền đã bị từ chối."
+  },
+  "kiro_quota": {
+    "title": "Hạn mức Kiro",
+    "empty_title": "Chưa có thông tin xác thực Kiro",
+    "empty_desc": "Đăng nhập Kiro OAuth hoặc tải lên thông tin xác thực Kiro để xem mức dùng.",
+    "loading": "Đang tải hạn mức Kiro...",
+    "idle": "Bấm để tải hạn mức Kiro",
+    "load_failed": "Không thể tải hạn mức: {{message}}",
+    "missing_auth_index": "Tệp xác thực thiếu auth_index",
+    "credential_unavailable": "Không thể đọc hồ sơ thông tin xác thực Kiro.",
+    "stale_request": "Kết nối hoặc thông tin xác thực đã thay đổi. Vui lòng thử lại.",
+    "empty_data": "Chưa có dữ liệu mức dùng Kiro",
+    "plan": "Gói",
+    "agentic_requests": "Yêu cầu agentic",
+    "free_trial": "Yêu cầu dùng thử miễn phí",
+    "requests_remaining": "Còn {{count}} yêu cầu",
+    "overage_requests": "Vượt hạn mức {{count}} yêu cầu",
+    "unknown_requests": "Không có số yêu cầu",
+    "reset_unknown": "Không có thời gian đặt lại"
   }
 }

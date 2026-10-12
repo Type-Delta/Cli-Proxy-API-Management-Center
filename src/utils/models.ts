@@ -13,6 +13,7 @@ export interface ModelInfo {
 
 const MODEL_CATEGORIES = [
   { id: 'devin', label: 'Devin', patterns: [] },
+  { id: 'kiro', label: 'Kiro', patterns: [/(^|\b)kiro(?:[-/]|\b)/i] },
   { id: 'meta', label: 'Muse', patterns: [/\bmuse(?:[-/\s]|$)/i] },
   { id: 'gpt', label: 'GPT', patterns: [/gpt/i, /\bo\d\b/i, /\bo\d+\.?/i, /\bchatgpt/i] },
   { id: 'claude', label: 'Claude', patterns: [/claude/i] },

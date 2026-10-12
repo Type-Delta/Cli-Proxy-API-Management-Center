@@ -9,6 +9,7 @@ import { CLAUDE_CONFIG } from './providers/claude/data';
 import { CODEX_CONFIG } from './providers/codex/data';
 import { DEVIN_CONFIG } from './providers/devin/data';
 import { KIMI_CONFIG } from './providers/kimi/data';
+import { KIRO_CONFIG } from './providers/kiro/data';
 import { OPENCODE_GO_CONFIG } from './providers/opencode-go/data';
 import { META_CONFIG } from './providers/meta/data';
 import { XAI_CONFIG } from './providers/xai/data';
@@ -22,6 +23,7 @@ const QUOTA_FILTER_MAP: Record<QuotaProviderType, (file: AuthFileItem) => boolea
   codex: CODEX_CONFIG.filterFn,
   devin: DEVIN_CONFIG.filterFn,
   kimi: KIMI_CONFIG.filterFn,
+  kiro: KIRO_CONFIG.filterFn,
   'opencode-go': OPENCODE_GO_CONFIG.filterFn,
   meta: META_CONFIG.filterFn,
   xai: XAI_CONFIG.filterFn,

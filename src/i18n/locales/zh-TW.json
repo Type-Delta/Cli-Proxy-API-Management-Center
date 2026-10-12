@@ -1413,7 +1413,8 @@
     "quota_refresh_single": "重新整理配額",
     "quota_refresh_hint": "僅重新整理該驗證檔案的配額",
     "quota_refresh_success": "已重新整理「{{name}}」的配額",
-    "quota_refresh_failed": "重新整理「{{name}}」的配額失敗：{{message}}"
+    "quota_refresh_failed": "重新整理「{{name}}」的配額失敗：{{message}}",
+    "filter_kiro": "Kiro"
   },
   "antigravity_subscription": {
     "plan_unknown": "未知",
@@ -1957,7 +1958,18 @@
     "iflow_cookie_result_expired": "到期時間",
     "iflow_cookie_result_path": "儲存路徑",
     "iflow_cookie_result_type": "類型",
-    "remote_access_disabled": "遠端存取不支援此登入方式，請從本地（localhost）存取"
+    "remote_access_disabled": "遠端存取不支援此登入方式，請從本地（localhost）存取",
+    "kiro_oauth_title": "Kiro OAuth",
+    "kiro_oauth_button": "開始 Kiro 登入",
+    "kiro_oauth_hint": "透過瀏覽器 OAuth 登入 Kiro，支援 AWS Builder ID。認證檔案會自動儲存。",
+    "kiro_oauth_url_label": "授權網址：",
+    "kiro_open_link": "開啟連結",
+    "kiro_copy_link": "複製連結",
+    "kiro_oauth_status_waiting": "正在等待 Kiro 認證...",
+    "kiro_oauth_status_success": "Kiro 認證成功！",
+    "kiro_oauth_status_error": "Kiro 認證失敗：",
+    "kiro_oauth_start_error": "啟動 Kiro OAuth 失敗：",
+    "kiro_oauth_polling_error": "檢查 Kiro 認證狀態失敗："
   },
   "stats": {
     "success": "成功",
@@ -3072,7 +3084,8 @@
       "apikeyFun": "APIKEY.FUN",
       "fennoAI": "FennoAI",
       "qiniuCloud": "七牛雲",
-      "kimi": "Kimi"
+      "kimi": "Kimi",
+      "kiro": "Kiro"
     },
     "table": {
       "key": "金鑰",
@@ -3364,5 +3377,24 @@
     "unavailable": "重置暫不可用。",
     "rate_limited": "請求過於頻繁。",
     "auth_error": "授權遭拒。"
+  },
+  "kiro_quota": {
+    "title": "Kiro 配額",
+    "empty_title": "尚無 Kiro 憑證",
+    "empty_desc": "使用 Kiro OAuth 登入或上傳 Kiro 憑證以檢視用量。",
+    "loading": "正在載入 Kiro 配額...",
+    "idle": "點擊載入 Kiro 配額",
+    "load_failed": "載入配額失敗：{{message}}",
+    "missing_auth_index": "認證檔案缺少 auth_index",
+    "credential_unavailable": "無法讀取 Kiro 憑證設定。",
+    "stale_request": "連線或憑證已變更，請重試。",
+    "empty_data": "尚無 Kiro 用量資料",
+    "plan": "方案",
+    "agentic_requests": "代理請求",
+    "free_trial": "免費試用請求",
+    "requests_remaining": "剩餘 {{count}} 次請求",
+    "overage_requests": "超量 {{count}} 次請求",
+    "unknown_requests": "請求數無法使用",
+    "reset_unknown": "重設時間無法使用"
   }
 }

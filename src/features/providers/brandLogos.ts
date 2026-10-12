@@ -14,6 +14,7 @@ import xaiLightLogo from '@/assets/icons/grok.svg';
 import xaiDarkLogo from '@/assets/icons/grok-dark.svg';
 import kimiLightLogo from '@/assets/icons/kimi-light.svg';
 import kimiDarkLogo from '@/assets/icons/kimi-dark.svg';
+import kiroLogo from '@/assets/icons/kiro.svg';
 import type { ProviderBrand } from './types';
 
 export interface ProviderBrandLogo {
@@ -24,7 +25,7 @@ export interface ProviderBrandLogo {
   invertOnDark?: boolean;
 }
 
-export type ProviderBrandLogoKey = ProviderBrand | 'devin';
+export type ProviderBrandLogoKey = ProviderBrand | 'devin' | 'kiro';
 
 export const PROVIDER_LOGOS: Record<ProviderBrandLogoKey, ProviderBrandLogo> = {
   gemini: { src: geminiLogo },
@@ -45,4 +46,5 @@ export const PROVIDER_LOGOS: Record<ProviderBrandLogoKey, ProviderBrandLogo> = {
     transparent: true,
     themeSurface: true,
   },
+  kiro: { src: kiroLogo, transparent: true },
 };

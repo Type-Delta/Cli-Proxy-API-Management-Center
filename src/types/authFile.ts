@@ -13,6 +13,7 @@ export type AuthFileType =
   | 'claude'
   | 'codex'
   | 'devin'
+  | 'kiro'
   | 'meta'
   | 'antigravity'
   | 'xai'

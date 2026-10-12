@@ -184,4 +184,49 @@ describe('quota summary selection', () => {
     expect(summary.tierCapacityPercent).toBeNull();
     expect(summary.lines[0]).toMatchObject({ remainingPercent: null });
   });
+
+  test('aggregates Kiro request windows with their subscription plan', () => {
+    const credentials = [entry('kiro-pro.json', 'kiro')];
+    const [summary] = aggregateQuotaSummaries(credentials, () => ({
+      status: 'success' as const,
+      subscription: { title: 'Kiro Pro', type: 'pro', status: 'active' },
+      windows: [
+        {
+          id: 'kiro-included-agentic_request-0',
+          resourceType: 'AGENTIC_REQUEST',
+          currentUsage: 25,
+          usageLimit: 100,
+          currentOverages: 0,
+          freeTrial: false,
+          resetAtMs: 1_791_417_600_000,
+        },
+        {
+          id: 'kiro-trial-agentic_request-0',
+          labelKey: 'kiro_quota.free_trial',
+          resourceType: 'AGENTIC_REQUEST',
+          currentUsage: 1,
+          usageLimit: 5,
+          currentOverages: 0,
+          freeTrial: true,
+          resetAtMs: 1_791_331_200_000,
+        },
+      ],
+    }));
+
+    expect(summary).toMatchObject({
+      type: 'kiro',
+      primaryLabel: 'kiro-included-agentic_request-0',
+      primaryRemainingPercent: 75,
+      tierCapacityPercent: 100,
+    });
+    expect(summary.lines).toEqual([
+      expect.objectContaining({
+        credential: 'kiro-pro.json',
+        plan: 'Kiro Pro',
+        remainingPercent: 75,
+        resetAtMs: 1_791_417_600_000,
+        windowLabel: 'kiro-included-agentic_request-0',
+      }),
+    ]);
+  });
 });

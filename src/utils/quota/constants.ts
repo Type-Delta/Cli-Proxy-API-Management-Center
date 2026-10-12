@@ -26,6 +26,10 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#eae7ff', text: '#3538d4' },
     dark: { bg: '#262395', text: '#b5b0ff' },
   },
+  kiro: {
+    light: { bg: '#ece4ff', text: '#5c25a8' },
+    dark: { bg: '#3b1c69', text: '#c6a5ff' },
+  },
   devin: {
     light: { bg: '#e8f4ff', text: '#155e9b' },
     dark: { bg: '#123b5d', text: '#8dc9f5' },

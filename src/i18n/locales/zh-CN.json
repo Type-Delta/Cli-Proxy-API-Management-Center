@@ -1413,7 +1413,8 @@
     "quota_refresh_single": "刷新额度",
     "quota_refresh_hint": "仅刷新该认证文件的额度",
     "quota_refresh_success": "已刷新 \"{{name}}\" 的额度",
-    "quota_refresh_failed": "刷新 \"{{name}}\" 的额度失败：{{message}}"
+    "quota_refresh_failed": "刷新 \"{{name}}\" 的额度失败：{{message}}",
+    "filter_kiro": "Kiro"
   },
   "antigravity_subscription": {
     "plan_unknown": "未知",
@@ -1931,7 +1932,18 @@
     "iflow_oauth_status_error": "认证失败:",
     "iflow_oauth_start_error": "启动 iFlow OAuth 失败:",
     "iflow_oauth_polling_error": "检查认证状态失败:",
-    "remote_access_disabled": "远程访问不支持此登录方式，请从本地 (localhost) 访问"
+    "remote_access_disabled": "远程访问不支持此登录方式，请从本地 (localhost) 访问",
+    "kiro_oauth_title": "Kiro OAuth",
+    "kiro_oauth_button": "开始 Kiro 登录",
+    "kiro_oauth_hint": "通过浏览器 OAuth 登录 Kiro，支持 AWS Builder ID。认证文件会自动保存。",
+    "kiro_oauth_url_label": "授权网址：",
+    "kiro_open_link": "打开链接",
+    "kiro_copy_link": "复制链接",
+    "kiro_oauth_status_waiting": "正在等待 Kiro 认证...",
+    "kiro_oauth_status_success": "Kiro 认证成功！",
+    "kiro_oauth_status_error": "Kiro 认证失败：",
+    "kiro_oauth_start_error": "启动 Kiro OAuth 失败：",
+    "kiro_oauth_polling_error": "检查 Kiro 认证状态失败："
   },
   "stats": {
     "success": "成功",
@@ -3046,7 +3058,8 @@
       "apikeyFun": "APIKEY.FUN",
       "fennoAI": "FennoAI",
       "qiniuCloud": "七牛云",
-      "kimi": "Kimi"
+      "kimi": "Kimi",
+      "kiro": "Kiro"
     },
     "table": {
       "key": "密钥",
@@ -3338,5 +3351,24 @@
     "unavailable": "重置暂不可用。",
     "rate_limited": "请求过于频繁。",
     "auth_error": "授权被拒绝。"
+  },
+  "kiro_quota": {
+    "title": "Kiro 配额",
+    "empty_title": "暂无 Kiro 凭证",
+    "empty_desc": "使用 Kiro OAuth 登录或上传 Kiro 凭证以查看用量。",
+    "loading": "正在加载 Kiro 配额...",
+    "idle": "点击加载 Kiro 配额",
+    "load_failed": "加载配额失败：{{message}}",
+    "missing_auth_index": "认证文件缺少 auth_index",
+    "credential_unavailable": "无法读取 Kiro 凭证配置。",
+    "stale_request": "连接或凭证已更改，请重试。",
+    "empty_data": "暂无 Kiro 用量数据",
+    "plan": "计划",
+    "agentic_requests": "智能体请求",
+    "free_trial": "免费试用请求",
+    "requests_remaining": "剩余 {{count}} 次请求",
+    "overage_requests": "超量 {{count}} 次请求",
+    "unknown_requests": "请求数不可用",
+    "reset_unknown": "重置时间不可用"
   }
 }

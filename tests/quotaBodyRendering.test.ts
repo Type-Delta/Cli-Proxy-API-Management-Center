@@ -14,6 +14,7 @@ import i18n from '@/i18n';
 import { CodexQuotaBody } from '@/features/quota/providers/codex/CodexQuotaBody';
 import { ClaudeQuotaBody } from '@/features/quota/providers/claude/ClaudeQuotaBody';
 import { KimiQuotaBody } from '@/features/quota/providers/kimi/KimiQuotaBody';
+import { KiroQuotaBody } from '@/features/quota/providers/kiro/KiroQuotaBody';
 import { OpenCodeGoQuotaBody } from '@/features/quota/providers/opencode-go/OpenCodeGoQuotaBody';
 import { ZaiQuotaBody } from '@/features/quota/providers/zai/ZaiQuotaBody';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses } from '@/features/quota/types';
@@ -23,6 +24,7 @@ import type {
   ClaudeQuotaState,
   CodexQuotaState,
   KimiQuotaState,
+  KiroQuotaState,
   OpenCodeGoQuotaState,
   ZaiQuotaState,
 } from '@/types';
@@ -326,6 +328,68 @@ describe('KimiQuotaBody', () => {
     expect(markup).toContain('quotaResetRelative');
     expect(markup).toMatch(/3 hours/);
     expect(markup).not.toContain('resets in 3h');
+  });
+});
+
+describe('KiroQuotaBody', () => {
+  const quota: KiroQuotaState = {
+    status: 'success',
+    subscription: { title: 'Kiro Pro', type: 'pro', status: 'active' },
+    windows: [
+      {
+        id: 'included',
+        resourceType: 'AGENTIC_REQUEST',
+        currentUsage: 7,
+        usageLimit: 10,
+        currentOverages: 2,
+        freeTrial: false,
+        resetAtMs: now + 2 * HOUR_MS,
+      },
+      {
+        id: 'trial',
+        labelKey: 'kiro_quota.free_trial',
+        resourceType: 'AGENTIC_REQUEST',
+        currentUsage: 1,
+        usageLimit: null,
+        currentOverages: 0,
+        freeTrial: true,
+        resetAtMs: null,
+      },
+    ],
+  };
+
+  test('renders the subscription plan, request counts and countdown', () => {
+    const markup = renderToStaticMarkup(
+      createElement(KiroQuotaBody, {
+        quota,
+        classes,
+        credential: { displayName: 'kiro-pro-01' },
+      })
+    );
+
+    expect(markup).toContain(
+      'class="planMetaLabel">Plan</span><span class="planMetaValue">Kiro Pro</span>'
+    );
+    expect(markup).toContain('<span class="planMetaValue">active</span>');
+    expect(markup).toContain('30%');
+    expect(markup).toContain('3 requests left');
+    expect(markup).toContain('2 overage requests');
+    expect(markup).toContain('kiro-pro-01 · Agentic requests · 3 requests left');
+    expect(markup).toContain('quotaResetRelative');
+    expect(markup).toMatch(/2 hours/);
+  });
+
+  test('keeps the empty state inside the quota area', () => {
+    const markup = renderToStaticMarkup(
+      createElement(KiroQuotaBody, {
+        quota: { ...quota, windows: [] },
+        classes,
+      })
+    );
+
+    expect(markup).toContain('quotaArea');
+    expect(markup).toContain('No Kiro usage data available');
+    expect(markup).not.toContain('quotaRow');
   });
 });
 

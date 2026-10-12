@@ -288,6 +288,33 @@ export interface DevinQuotaState extends DevinQuotaData {
   errorStatus?: number;
 }
 
+/** One AWS CodeWhisperer allowance; amounts are agentic requests. */
+export interface KiroQuotaWindow {
+  id: string;
+  labelKey?: string;
+  resourceType: string;
+  currentUsage: number;
+  usageLimit: number | null;
+  currentOverages: number;
+  freeTrial: boolean;
+  resetAtMs: number | null;
+}
+
+/** Display-only subscription metadata; no credential material is retained. */
+export interface KiroSubscriptionInfo {
+  title: string | null;
+  type: string | null;
+  status: string | null;
+}
+
+export interface KiroQuotaState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  windows: KiroQuotaWindow[];
+  subscription: KiroSubscriptionInfo | null;
+  error?: string;
+  errorStatus?: number;
+}
+
 /** A whitelisted quota observation from Meta's Muse key endpoint. */
 export interface MetaQuotaWindow {
   id: 'window' | 'weekly';

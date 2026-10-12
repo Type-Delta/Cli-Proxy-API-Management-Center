@@ -1415,7 +1415,8 @@
     "quota_refresh_single": "Refresh quota",
     "quota_refresh_hint": "Refresh quota only for this credential",
     "quota_refresh_success": "Quota refreshed for \"{{name}}\"",
-    "quota_refresh_failed": "Failed to refresh quota for \"{{name}}\": {{message}}"
+    "quota_refresh_failed": "Failed to refresh quota for \"{{name}}\": {{message}}",
+    "filter_kiro": "Kiro"
   },
   "antigravity_subscription": {
     "plan_unknown": "Unknown",
@@ -1934,7 +1935,18 @@
     "iflow_oauth_status_error": "Authentication failed:",
     "iflow_oauth_start_error": "Failed to start iFlow OAuth:",
     "iflow_oauth_polling_error": "Failed to check authentication status:",
-    "remote_access_disabled": "This login method is not available for remote access. Please access from localhost."
+    "remote_access_disabled": "This login method is not available for remote access. Please access from localhost.",
+    "kiro_oauth_title": "Kiro OAuth",
+    "kiro_oauth_button": "Start Kiro Login",
+    "kiro_oauth_hint": "Sign in to Kiro through browser OAuth, including AWS Builder ID. Authentication files are saved automatically.",
+    "kiro_oauth_url_label": "Authorization URL:",
+    "kiro_open_link": "Open Link",
+    "kiro_copy_link": "Copy Link",
+    "kiro_oauth_status_waiting": "Waiting for Kiro authentication...",
+    "kiro_oauth_status_success": "Kiro authentication successful!",
+    "kiro_oauth_status_error": "Kiro authentication failed:",
+    "kiro_oauth_start_error": "Failed to start Kiro OAuth:",
+    "kiro_oauth_polling_error": "Failed to check Kiro authentication status:"
   },
   "stats": {
     "success": "Success",
@@ -3049,7 +3061,8 @@
       "apikeyFun": "APIKEY.FUN",
       "fennoAI": "FennoAI",
       "qiniuCloud": "Qiniu Cloud",
-      "kimi": "Kimi"
+      "kimi": "Kimi",
+      "kiro": "Kiro"
     },
     "table": {
       "key": "Key",
@@ -3341,5 +3354,24 @@
     "unavailable": "Resets are currently unavailable.",
     "rate_limited": "Request rate limited.",
     "auth_error": "Authorization was refused."
+  },
+  "kiro_quota": {
+    "title": "Kiro quota",
+    "empty_title": "No Kiro credentials",
+    "empty_desc": "Log in with Kiro OAuth or upload a Kiro credential to view usage.",
+    "loading": "Loading Kiro quota...",
+    "idle": "Click to load Kiro quota",
+    "load_failed": "Failed to load quota: {{message}}",
+    "missing_auth_index": "Auth file missing auth_index",
+    "credential_unavailable": "Could not read the Kiro credential profile.",
+    "stale_request": "The connection or credential changed. Please retry.",
+    "empty_data": "No Kiro usage data available",
+    "plan": "Plan",
+    "agentic_requests": "Agentic requests",
+    "free_trial": "Free trial requests",
+    "requests_remaining": "{{count}} requests left",
+    "overage_requests": "{{count}} overage requests",
+    "unknown_requests": "Request count unavailable",
+    "reset_unknown": "Reset time unavailable"
   }
 }
