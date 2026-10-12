@@ -1509,6 +1509,8 @@
     "reset_credits_label": "Lượt đặt lại thủ công",
     "reset_credits_expiry_label": "Hết hạn đặt lại thủ công ({{timezone}})",
     "reset_credit_number": "Lượt đặt lại {{index}}",
+    "reset_credit_count_one": "{{count}} lượt đặt lại",
+    "reset_credit_count_other": "{{count}} lượt đặt lại",
     "reset_credits_expiry_failed": "Không thể tải thời hạn đặt lại thủ công: {{message}}",
     "reset_credits_invalid_payload": "Phản hồi thời hạn đặt lại thủ công không hợp lệ",
     "reset_button": "Đặt lại quota",

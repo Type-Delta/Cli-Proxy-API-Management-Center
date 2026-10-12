@@ -213,7 +213,7 @@ export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<Co
                       }
                     >
                       <span className={classes.codexResetCreditLabel}>
-                        {t('codex_quota.reset_credit_number', { index: index + 1 })}
+                        {t('codex_quota.reset_credit_count', { count: orderedCredits.length })}
                       </span>
                       <span className={classes.codexResetCreditTime}>
                         {expiresDisplay && (

@@ -332,7 +332,7 @@
 .codexResetCreditStack::after {
   display: none;
   z-index: -2;
-  transform: translate(8px, 8px);
+  transform: translate(7px, 7px);
 }
 
 .codexResetCreditStack[data-stack-count='3']::after {
