@@ -3386,6 +3386,8 @@
     "empty_data": "Chưa có dữ liệu mức dùng Kiro",
     "plan": "Gói",
     "agentic_requests": "Yêu cầu agentic",
+    "credits": "Tín dụng",
+    "credits_remaining": "Còn {{count}} tín dụng",
     "free_trial": "Yêu cầu dùng thử miễn phí",
     "requests_remaining": "Còn {{count}} yêu cầu",
     "overage_requests": "Vượt hạn mức {{count}} yêu cầu",

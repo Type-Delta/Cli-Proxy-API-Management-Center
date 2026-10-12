@@ -3376,6 +3376,8 @@
     "empty_data": "No Kiro usage data available",
     "plan": "Plan",
     "agentic_requests": "Agentic requests",
+    "credits": "Credits",
+    "credits_remaining": "{{count}} credits left",
     "free_trial": "Free trial requests",
     "requests_remaining": "{{count}} requests left",
     "overage_requests": "{{count}} overage requests",

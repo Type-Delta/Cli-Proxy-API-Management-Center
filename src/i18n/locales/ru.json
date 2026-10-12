@@ -3372,6 +3372,8 @@
     "empty_data": "Нет данных об использовании Kiro",
     "plan": "План",
     "agentic_requests": "Запросы агента",
+    "credits": "Кредиты",
+    "credits_remaining": "Осталось кредитов: {{count}}",
     "free_trial": "Запросы бесплатного пробного периода",
     "requests_remaining": "Осталось запросов: {{count}}",
     "overage_requests": "Сверх лимита: {{count}}",

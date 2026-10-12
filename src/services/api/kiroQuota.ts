@@ -51,14 +51,15 @@ function buildWindow(
   index: number,
   freeTrial: boolean
 ): KiroQuotaWindow | null {
-  const usage = firstNumber(record, ['currentUsage', 'currentUsageWithPrecision', 'used']);
-  const limit = firstNumber(record, ['usageLimit', 'usageLimitWithPrecision', 'limit']);
+  const usage = firstNumber(record, ['currentUsageWithPrecision', 'currentUsage', 'used']);
+  const limit = firstNumber(record, ['usageLimitWithPrecision', 'usageLimit', 'limit']);
   const resourceType = firstText(record, ['resourceType', 'displayName']) ?? 'AGENTIC_REQUEST';
   if (usage === null && limit === null) return null;
+  const isCredit = resourceType.trim().toLowerCase() === 'credit';
 
   return {
     id: `kiro-${freeTrial ? 'trial' : 'included'}-${resourceType.toLowerCase()}-${index}`,
-    labelKey: freeTrial ? 'kiro_quota.free_trial' : undefined,
+    labelKey: freeTrial ? 'kiro_quota.free_trial' : isCredit ? 'kiro_quota.credits' : undefined,
     resourceType,
     currentUsage: Math.max(0, usage ?? 0),
     usageLimit: limit === null ? null : Math.max(0, limit),

@@ -3373,6 +3373,8 @@
     "empty_data": "暂无 Kiro 用量数据",
     "plan": "计划",
     "agentic_requests": "智能体请求",
+    "credits": "额度",
+    "credits_remaining": "剩余 {{count}} 点额度",
     "free_trial": "免费试用请求",
     "requests_remaining": "剩余 {{count}} 次请求",
     "overage_requests": "超量 {{count}} 次请求",

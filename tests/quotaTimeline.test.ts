@@ -12,6 +12,8 @@ import {
   timelineSpan,
   windowsIn,
 } from '../src/features/quota/quotaTimelineModel';
+import { parseKiroQuotaPayload } from '../src/services/api/kiroQuota';
+import { KIRO_POWER_QUOTA_PAYLOAD } from './fixtures/kiroQuotaPayload';
 import type { TimelineLane } from '../src/features/quota/quotaTimelineModel';
 
 const at = (y: number, m: number, d: number, h = 0, min = 0) => new Date(y, m, d, h, min).getTime();
@@ -399,6 +401,32 @@ describe('buildTimelineLane', () => {
       { label: '5h', remaining: 40 },
       { label: 'Weekly', remaining: 82 },
     ]);
+  });
+
+  test('kiro: anchors a monthly credit window and keeps its remaining percent unrounded', () => {
+    const parsed = parseKiroQuotaPayload(KIRO_POWER_QUOTA_PAYLOAD);
+    const now = at(2026, 9, 12, 12);
+    const span = timelineSpan('weekly', 0, now);
+    const lane = buildTimelineLane({
+      ...base,
+      provider: 'kiro',
+      quota: { status: 'success', windows: parsed?.windows ?? [] },
+      maxPeriodHours: span.days * 24,
+    });
+    const projected = projectLane(lane, span.startMs, span.endMs, now, 'weekly');
+    const live = projected.find(
+      (window) => window.state === 'live' && window.endMs === lane.anchorMs
+    );
+
+    expect(lane.anchorMs).toBe(1_793_491_200_000);
+    expect(lane.periodHours).not.toBeNull();
+    expect(Math.round((lane.periodHours ?? 0) / 24)).toBe(31);
+    expect(lane.remaining).toBeCloseTo(((10000 - 9.89) / 10000) * 100, 10);
+    expect(lane.limits).toHaveLength(1);
+    expect(lane.limits[0].label).toBe('kiro_quota.credits');
+    expect(lane.limits[0].remaining).toBeCloseTo(((10000 - 9.89) / 10000) * 100, 10);
+    expect(projected.length).toBeGreaterThan(0);
+    expect(live?.remaining).toBeCloseTo(((10000 - 9.89) / 10000) * 100, 10);
   });
 
   test('antigravity buckets without a parseable reset do not anchor the lane', () => {

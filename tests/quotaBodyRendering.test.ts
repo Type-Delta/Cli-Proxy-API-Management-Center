@@ -18,7 +18,10 @@ import { KiroQuotaBody } from '@/features/quota/providers/kiro/KiroQuotaBody';
 import { OpenCodeGoQuotaBody } from '@/features/quota/providers/opencode-go/OpenCodeGoQuotaBody';
 import { ZaiQuotaBody } from '@/features/quota/providers/zai/ZaiQuotaBody';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses } from '@/features/quota/types';
+import { formatQuotaPercent } from '@/features/quota/quotaSummary';
 import { formatInstantShort, formatResetInstant } from '@/utils/quota';
+import { parseKiroQuotaPayload } from '@/services/api/kiroQuota';
+import { KIRO_POWER_QUOTA_PAYLOAD } from './fixtures/kiroQuotaPayload';
 import { DAY_MS, HOUR_MS } from '@/utils/time/durations';
 import type {
   ClaudeQuotaState,
@@ -377,6 +380,28 @@ describe('KiroQuotaBody', () => {
     expect(markup).toContain('kiro-pro-01 · Agentic requests · 3 requests left');
     expect(markup).toContain('quotaResetRelative');
     expect(markup).toMatch(/2 hours/);
+  });
+
+  test('renders precise credit windows with the summary percent format', () => {
+    const parsed = parseKiroQuotaPayload(KIRO_POWER_QUOTA_PAYLOAD);
+    const creditQuota: KiroQuotaState = {
+      status: 'success',
+      windows: parsed?.windows ?? [],
+      subscription: parsed?.subscription ?? null,
+    };
+    const markup = renderToStaticMarkup(
+      createElement(KiroQuotaBody, { quota: creditQuota, classes })
+    );
+    const remainingPercent = ((10000 - 9.89) / 10000) * 100;
+
+    expect(markup).toContain('KIRO POWER');
+    expect(markup).toContain('Credits');
+    expect(markup).toContain('9,990.11 credits left');
+    expect(markup).toContain(formatQuotaPercent(remainingPercent));
+    expect(markup).toContain(`aria-valuenow="${remainingPercent}"`);
+    expect(markup).not.toContain('CREDIT');
+    expect(markup).not.toContain('Agentic requests');
+    expect(markup).not.toContain('requests left');
   });
 
   test('keeps the empty state inside the quota area', () => {

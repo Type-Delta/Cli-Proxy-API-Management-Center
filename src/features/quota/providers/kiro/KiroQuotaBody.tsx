@@ -6,9 +6,12 @@ import { buildResetDisplay } from '@/utils/quota';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
+import { formatQuotaPercent } from '../../quotaSummary';
 import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
 const formatRequests = (value: number): string => Number(value.toFixed(2)).toString();
+const formatCredits = (value: number, locale: string | undefined): string =>
+  new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value);
 
 export function KiroQuotaBody({ quota, classes, credential }: QuotaBodyProps<KiroQuotaState>) {
   const { t, i18n } = useTranslation();
@@ -52,17 +55,22 @@ export function KiroQuotaBody({ quota, classes, credential }: QuotaBodyProps<Kir
                     ? 0
                     : null
                 : Math.max(0, Math.min(100, (remaining / window.usageLimit) * 100));
+            const isCredit = window.resourceType.trim().toLowerCase() === 'credit';
             const label = t(window.labelKey ?? 'kiro_quota.agentic_requests');
             const resourceType =
-              window.resourceType.toLowerCase() === 'agentic_request'
+              isCredit || window.resourceType.trim().toLowerCase() === 'agentic_request'
                 ? ''
                 : ` ${window.resourceType}`;
             const amount =
               remaining === null
                 ? t('kiro_quota.unknown_requests')
-                : t('kiro_quota.requests_remaining', {
-                    count: formatRequests(Math.max(0, remaining)),
-                  });
+                : isCredit
+                  ? t('kiro_quota.credits_remaining', {
+                      count: formatCredits(Math.max(0, remaining), i18n.resolvedLanguage),
+                    })
+                  : t('kiro_quota.requests_remaining', {
+                      count: formatRequests(Math.max(0, remaining)),
+                    });
             const overage =
               window.currentOverages > 0
                 ? ` ${t('kiro_quota.overage_requests', {
@@ -92,9 +100,7 @@ export function KiroQuotaBody({ quota, classes, credential }: QuotaBodyProps<Kir
                     {resourceType}
                   </span>
                   <div className={classes.quotaMeta}>
-                    <span className={classes.quotaPercent}>
-                      {percent === null ? '--' : `${Math.round(percent)}%`}
-                    </span>
+                    <span className={classes.quotaPercent}>{formatQuotaPercent(percent)}</span>
                     {reset ? (
                       <QuotaResetLabel display={reset} classes={classes} soon={soon} />
                     ) : (
@@ -107,7 +113,7 @@ export function KiroQuotaBody({ quota, classes, credential }: QuotaBodyProps<Kir
                   aria-label={label}
                   aria-valuemin={percent === null ? undefined : 0}
                   aria-valuemax={percent === null ? undefined : 100}
-                  aria-valuenow={percent === null ? undefined : Math.round(percent)}
+                  aria-valuenow={percent === null ? undefined : percent}
                 >
                   <QuotaMeter percent={percent} classes={classes} index={index} />
                 </div>

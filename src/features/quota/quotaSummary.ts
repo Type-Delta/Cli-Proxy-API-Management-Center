@@ -74,6 +74,11 @@ const asNumber = (value: unknown): number | null => {
 
 const clamp = (value: number): number => Math.max(0, Math.min(100, value));
 
+export const formatQuotaPercent = (value: number | null): string =>
+  value === null
+    ? '--'
+    : `${Number.isInteger(value) ? value : value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}%`;
+
 const resetMs = (value: unknown): number | null => {
   const number = asNumber(value);
   if (number === null) return null;

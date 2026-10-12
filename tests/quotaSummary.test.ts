@@ -2,11 +2,14 @@ import { describe, expect, test } from 'bun:test';
 import {
   LONGEST_RECOVERY_WINDOW_MAP,
   aggregateQuotaSummaries,
+  formatQuotaPercent,
   percentageOfLargestTier,
   selectClaudePrimaryWindow,
   selectLongestRecoveryWindow,
   type QuotaSummaryWindow,
 } from '@/features/quota/quotaSummary';
+import { parseKiroQuotaPayload } from '@/services/api/kiroQuota';
+import { KIRO_POWER_QUOTA_PAYLOAD } from './fixtures/kiroQuotaPayload';
 import type { QuotaFileEntry } from '@/features/quota/logic';
 
 const window = (id: string, remainingPercent: number): QuotaSummaryWindow => ({
@@ -228,5 +231,32 @@ describe('quota summary selection', () => {
         windowLabel: 'kiro_quota.agentic_requests',
       }),
     ]);
+  });
+
+  test('aggregates precise Kiro credit windows and keeps summary formatting exact', () => {
+    const parsed = parseKiroQuotaPayload(KIRO_POWER_QUOTA_PAYLOAD);
+    const credentials = [entry('kiro-power.json', 'kiro')];
+    const remainingPercent = ((10000 - 9.89) / 10000) * 100;
+    const [summary] = aggregateQuotaSummaries(credentials, () => ({
+      status: 'success' as const,
+      windows: parsed?.windows ?? [],
+      subscription: parsed?.subscription ?? null,
+    }));
+
+    expect(summary).toMatchObject({
+      type: 'kiro',
+      primaryLabel: 'kiro_quota.credits',
+      primaryRemainingPercent: remainingPercent,
+    });
+    expect(summary.lines).toEqual([
+      expect.objectContaining({
+        credential: 'kiro-power.json',
+        plan: 'KIRO POWER',
+        remainingPercent: remainingPercent,
+        resetAtMs: 1_793_491_200_000,
+        windowLabel: 'kiro_quota.credits',
+      }),
+    ]);
+    expect(formatQuotaPercent(summary.primaryRemainingPercent)).toBe('99.9%');
   });
 });

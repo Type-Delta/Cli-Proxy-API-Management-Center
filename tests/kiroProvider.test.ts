@@ -22,6 +22,7 @@ import { collectQuotaRowInstants } from '@/features/quota/resetSchedule';
 import { PROVIDER_LOGOS } from '@/features/providers/brandLogos';
 import { apiCallApi, authFilesApi } from '@/services/api';
 import { buildKiroUsageUrl, parseKiroQuotaPayload } from '@/services/api/kiroQuota';
+import { KIRO_POWER_QUOTA_PAYLOAD } from './fixtures/kiroQuotaPayload';
 import { useQuotaStore } from '@/stores/useQuotaStore';
 import { classifyModels } from '@/utils/models';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses } from '@/features/quota/types';
@@ -41,6 +42,8 @@ const KIRO_QUOTA_KEYS = [
   'empty_data',
   'plan',
   'agentic_requests',
+  'credits',
+  'credits_remaining',
   'free_trial',
   'requests_remaining',
   'overage_requests',
@@ -136,6 +139,28 @@ describe('Kiro quota API', () => {
     expect(parseKiroQuotaPayload({ usageBreakdownList: [{ resourceType: 'x' }] })).toBeNull();
   });
 
+  test('prefers precise credit amounts and labels the window as credits', () => {
+    const quota = parseKiroQuotaPayload(KIRO_POWER_QUOTA_PAYLOAD);
+
+    expect(quota?.windows).toEqual([
+      {
+        id: 'kiro-included-credit-0',
+        labelKey: 'kiro_quota.credits',
+        resourceType: 'CREDIT',
+        currentUsage: 9.89,
+        usageLimit: 10000,
+        currentOverages: 0,
+        freeTrial: false,
+        resetAtMs: 1_793_491_200_000,
+      },
+    ]);
+    expect(quota?.subscription).toEqual({
+      title: 'KIRO POWER',
+      type: 'Q_DEVELOPER_STANDALONE_POWER',
+      status: null,
+    });
+  });
+
   test('builds the base URL or appends only the listed profile identifier', () => {
     expect(buildKiroUsageUrl(null)).toBe(
       'https://codewhisperer.us-east-1.amazonaws.com/getUsageLimits?origin=AI_EDITOR&resourceType=AGENTIC_REQUEST&isEmailRequired=true'
@@ -202,7 +227,7 @@ describe('Kiro quota provider', () => {
     }
   });
 
-  test('wires reset instants and timeline capacity without inventing a period', () => {
+  test('keeps agentic-request timeline behavior while deriving monthly capacity', () => {
     const quota: KiroQuotaState = {
       status: 'success',
       windows: [
@@ -215,28 +240,17 @@ describe('Kiro quota provider', () => {
           freeTrial: false,
           resetAtMs: 1_791_417_600_000,
         },
-        {
-          id: 'kiro-trial-agentic_request-0',
-          resourceType: 'AGENTIC_REQUEST',
-          currentUsage: 1,
-          usageLimit: null,
-          currentOverages: 0,
-          freeTrial: true,
-          resetAtMs: 1_791_331_200_000,
-        },
       ],
       subscription: null,
     };
 
     expect(collectQuotaRowInstants('kiro', quota)).toEqual([
       { rowId: 'kiro-included-agentic_request-0', atMs: 1_791_417_600_000, kind: 'window' },
-      { rowId: 'kiro-trial-agentic_request-0', atMs: 1_791_331_200_000, kind: 'window' },
     ]);
     expect(buildTimelineLane({ provider: 'kiro', name: 'kiro.json', quota })).toMatchObject({
-      anchorMs: 1_791_331_200_000,
-      periodHours: null,
-      remaining: null,
-      limits: [{ label: 'kiro-included-agentic_request-0', remaining: 75 }],
+      anchorMs: 1_791_417_600_000,
+      remaining: 75,
+      limits: [{ label: 'kiro_quota.agentic_requests', remaining: 75 }],
     });
   });
 });

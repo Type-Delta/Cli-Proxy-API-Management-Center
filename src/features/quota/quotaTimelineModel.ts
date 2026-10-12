@@ -270,6 +270,7 @@ export function laneHasWindow(lane: TimelineLane): boolean {
 interface WindowLike {
   id?: string;
   label?: string;
+  labelKey?: string;
   usedPercent?: number | null;
   resetAtMs?: number | null;
   periodHours?: number | null;
@@ -329,6 +330,20 @@ export interface TimelineLaneInput {
 }
 
 const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
+
+const monthlyPeriodHours = (resetAtMs: number): number | null => {
+  if (!Number.isFinite(resetAtMs) || resetAtMs <= 0) return null;
+
+  const reset = new Date(resetAtMs);
+  const opened = new Date(reset);
+  const previousMonth = opened.getMonth() === 0 ? 11 : opened.getMonth() - 1;
+  const previousYear = opened.getMonth() === 0 ? opened.getFullYear() - 1 : opened.getFullYear();
+  const daysInPreviousMonth = new Date(previousYear, previousMonth + 1, 0).getDate();
+  opened.setFullYear(previousYear, previousMonth, Math.min(opened.getDate(), daysInPreviousMonth));
+
+  const periodHours = (resetAtMs - opened.getTime()) / HOUR_MS;
+  return Number.isFinite(periodHours) && periodHours > 0 ? periodHours : null;
+};
 
 /**
  * Build a lane for one credential.
@@ -529,30 +544,36 @@ export function buildTimelineLane(input: TimelineLaneInput): TimelineLane {
     const windows = (
       (
         quota as {
-          windows?: (WindowLike & { currentUsage?: number; usageLimit?: number | null })[];
+          windows?: (WindowLike & {
+            resourceType?: string;
+            currentUsage?: number;
+            usageLimit?: number | null;
+          })[];
         }
       ).windows ?? []
     ).filter((window) => typeof window.resetAtMs === 'number');
     const chosen = pickLaneWindow(windows, maxPeriodHours);
     if (!chosen) return empty;
+    const remainingOf = (window: (typeof windows)[number]) =>
+      typeof window.currentUsage === 'number' &&
+      typeof window.usageLimit === 'number' &&
+      window.usageLimit > 0
+        ? clampPercent(((window.usageLimit - window.currentUsage) / window.usageLimit) * 100)
+        : null;
+    const labelOf = (window: (typeof windows)[number]) =>
+      window.labelKey ??
+      (window.resourceType?.trim().toLowerCase() === 'credit'
+        ? 'kiro_quota.credits'
+        : 'kiro_quota.agentic_requests');
+
     return {
       ...empty,
       anchorMs: chosen.resetAtMs ?? null,
-      periodHours: chosen.periodHours ?? null,
-      remaining: null,
+      periodHours: monthlyPeriodHours(chosen.resetAtMs as number),
+      remaining: remainingOf(chosen),
       limits: windows
-        .filter(
-          (window) =>
-            typeof window.currentUsage === 'number' &&
-            typeof window.usageLimit === 'number' &&
-            window.usageLimit > 0
-        )
-        .map((window) => ({
-          label: window.id ?? '',
-          remaining: clampPercent(
-            100 - ((window.currentUsage as number) / (window.usageLimit as number)) * 100
-          ),
-        })),
+        .map((window) => ({ label: labelOf(window), remaining: remainingOf(window) }))
+        .filter((limit): limit is TimelineLimit => limit.remaining !== null),
     };
   }
 

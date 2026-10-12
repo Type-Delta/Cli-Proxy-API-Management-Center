@@ -288,7 +288,7 @@ export interface DevinQuotaState extends DevinQuotaData {
   errorStatus?: number;
 }
 
-/** One AWS CodeWhisperer allowance; amounts are agentic requests. */
+/** One AWS CodeWhisperer allowance, billed as requests or credits. */
 export interface KiroQuotaWindow {
   id: string;
   labelKey?: string;

@@ -7,6 +7,7 @@ import { buildResetDisplay, formatResetInstant, formatRelativeInstant } from '@/
 import type { QuotaFileEntry } from '../logic';
 import {
   aggregateQuotaSummaries,
+  formatQuotaPercent as formatPercent,
   type QuotaProviderSummary,
   type QuotaSummaryLine,
 } from '../quotaSummary';
@@ -26,11 +27,6 @@ type Props = {
   active: string;
   onSelect: (type: string) => void;
 };
-
-const formatPercent = (value: number | null): string =>
-  value === null
-    ? '--'
-    : `${Number.isInteger(value) ? value : value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}%`;
 
 const formatReset = (
   value: number | null,

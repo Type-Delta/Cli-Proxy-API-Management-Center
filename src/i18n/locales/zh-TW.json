@@ -3399,6 +3399,8 @@
     "empty_data": "尚無 Kiro 用量資料",
     "plan": "方案",
     "agentic_requests": "代理請求",
+    "credits": "額度",
+    "credits_remaining": "剩餘 {{count}} 點額度",
     "free_trial": "免費試用請求",
     "requests_remaining": "剩餘 {{count}} 次請求",
     "overage_requests": "超量 {{count}} 次請求",
