@@ -215,7 +215,7 @@ describe('quota summary selection', () => {
 
     expect(summary).toMatchObject({
       type: 'kiro',
-      primaryLabel: 'kiro-included-agentic_request-0',
+      primaryLabel: 'kiro_quota.agentic_requests',
       primaryRemainingPercent: 75,
       tierCapacityPercent: 100,
     });
@@ -225,7 +225,7 @@ describe('quota summary selection', () => {
         plan: 'Kiro Pro',
         remainingPercent: 75,
         resetAtMs: 1_791_417_600_000,
-        windowLabel: 'kiro-included-agentic_request-0',
+        windowLabel: 'kiro_quota.agentic_requests',
       }),
     ]);
   });

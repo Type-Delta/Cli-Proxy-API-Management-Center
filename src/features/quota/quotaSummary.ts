@@ -209,7 +209,7 @@ const windowsFor = (type: QuotaProviderType, quota: QuotaCardState): QuotaSummar
       return [
         {
           id: String(row.id ?? ''),
-          label: String(row.labelKey ?? row.id ?? ''),
+          label: String(row.labelKey ?? 'kiro_quota.agentic_requests'),
           remainingPercent: remaining,
           resetAtMs: resetMs(row.resetAtMs),
           periodHours: null,
