@@ -159,9 +159,18 @@ export function buildQuotaRowTitle(
   details: QuotaRowTooltipDetails
 ): string | undefined {
   const locale = i18n.resolvedLanguage || i18n.language || 'en';
-  const weekday =
-    typeof details.resetAtMs === 'number' && Number.isFinite(details.resetAtMs)
-      ? new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(details.resetAtMs)
+  const hasInstant = typeof details.resetAtMs === 'number' && Number.isFinite(details.resetAtMs);
+  const weekday = hasInstant
+    ? new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(details.resetAtMs as number)
+    : '';
+  // The near-term absolute half already opens with the short weekday ("Mon, 10:32");
+  // only add the long weekday when the instant renders in the bare date shape.
+  const shortWeekday = hasInstant
+    ? new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(details.resetAtMs as number)
+    : '';
+  const weekdayPart =
+    shortWeekday !== '' && !(details.resetAbsolute ?? '').trim().startsWith(shortWeekday)
+      ? weekday
       : '';
   const parts = [
     credential?.displayName,
@@ -169,7 +178,7 @@ export function buildQuotaRowTitle(
     details.remaining,
     details.resetAbsolute,
     details.resetRelative,
-    weekday,
+    weekdayPart,
     details.plan,
     details.hint,
   ]

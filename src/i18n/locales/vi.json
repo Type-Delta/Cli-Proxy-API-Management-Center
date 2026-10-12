@@ -2598,7 +2598,6 @@
     "summary_resets": "đặt lại {{absolute}} ({{relative}})",
     "summary_of": "trên tổng",
     "summary_breakdown": "Chi tiết hạn ngạch theo credential",
-    "summary_reset_line": "{{relative}} · {{absolute}}",
     "summary_show": "Hiện",
     "summary_hide": "Ẩn",
     "tier_pro": "Pro",

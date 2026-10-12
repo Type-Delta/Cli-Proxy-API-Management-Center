@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { getAuthFileIcon, getTypeLabel } from '@/features/authFiles/constants';
 import { useNow } from '@/hooks/useNow';
 import type { ResolvedTheme } from '@/types';
-import { formatRelativeInstant } from '@/utils/quota';
+import { buildResetDisplay, formatResetInstant, formatRelativeInstant } from '@/utils/quota';
 import type { QuotaFileEntry } from '../logic';
 import {
   aggregateQuotaSummaries,
@@ -11,7 +11,13 @@ import {
   type QuotaSummaryLine,
 } from '../quotaSummary';
 import type { QuotaCardState } from '../providers';
+import { bindQuotaClasses } from '../types';
+import { QuotaResetLabel } from './QuotaResetLabel';
+import bodyStyles from './QuotaBody.module.scss';
 import styles from './QuotaSummary.module.scss';
+
+/** Reuse the provider-body reset classes so both surfaces share one reset look. */
+const quotaClasses = bindQuotaClasses(bodyStyles, 'QuotaBody.module.scss');
 
 type Props = {
   entries: readonly QuotaFileEntry[];
@@ -29,25 +35,21 @@ const formatPercent = (value: number | null): string =>
 const formatReset = (
   value: number | null,
   now: number,
+  locale: string | undefined,
   t: (key: string, options?: Record<string, unknown>) => string
 ): string =>
   value === null
     ? t('quota_management.summary_reset_unknown', { defaultValue: 'reset unknown' })
     : t('quota_management.summary_resets', {
-        absolute: new Intl.DateTimeFormat(undefined, {
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        }).format(value),
-        relative: formatRelativeInstant(value, now),
+        absolute: formatResetInstant(value, now, locale),
+        relative: formatRelativeInstant(value, now, locale),
         defaultValue: 'resets {{absolute}} ({{relative}})',
       });
 
 const lineTitle = (
   line: QuotaSummaryLine,
   now: number,
+  locale: string | undefined,
   t: (key: string, options?: Record<string, unknown>) => string
 ): string => {
   const windowLabel = line.windowLabel.includes('.')
@@ -59,7 +61,7 @@ const lineTitle = (
   return `${line.credential} · ${windowLabel} · ${t('quota_management.summary_remaining', {
     percent: formatPercent(line.remainingPercent),
     defaultValue: '{{percent}} remaining',
-  })} · ${formatReset(line.resetAtMs, now, t)}${planLabel ? ` · ${planLabel}` : ''}`;
+  })} · ${formatReset(line.resetAtMs, now, locale, t)}${planLabel ? ` · ${planLabel}` : ''}`;
 };
 
 const toneFor = (line: QuotaSummaryLine): string => {
@@ -75,10 +77,12 @@ const toneFor = (line: QuotaSummaryLine): string => {
 function SummaryMeter({
   lines,
   now,
+  locale,
   t,
 }: {
   lines: QuotaSummaryLine[];
   now: number;
+  locale: string | undefined;
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   return (
@@ -100,8 +104,8 @@ function SummaryMeter({
             className={styles.segment}
             role="listitem"
             tabIndex={0}
-            title={lineTitle(line, now, t)}
-            aria-label={lineTitle(line, now, t)}
+            title={lineTitle(line, now, locale, t)}
+            aria-label={lineTitle(line, now, locale, t)}
             style={segmentStyle}
           >
             <span
@@ -127,7 +131,7 @@ function SummaryCard({
   active: boolean;
   onSelect: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const now = useNow();
   const [showSecondary, setShowSecondary] = useState(false);
   const secondaryId = useId();
@@ -146,20 +150,8 @@ function SummaryCard({
     .map((line) => line.resetAtMs)
     .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
     .sort((a, b) => a - b)[0];
-  const resetLabel =
-    resetAt !== undefined
-      ? t('quota_management.summary_reset_line', {
-          relative: formatRelativeInstant(resetAt, now),
-          absolute: new Intl.DateTimeFormat(undefined, {
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
-          }).format(resetAt),
-          defaultValue: '{{relative}} · {{absolute}}',
-        })
-      : null;
+  const resetDisplay =
+    resetAt !== undefined ? buildResetDisplay(null, resetAt, now, i18n.resolvedLanguage) : null;
 
   return (
     <article className={`${styles.card} ${active ? styles.active : ''}`}>
@@ -198,8 +190,12 @@ function SummaryCard({
         </div>
       </div>
 
-      <SummaryMeter lines={summary.lines} now={now} t={t} />
-      {resetLabel && <div className={styles.resetLine}>{resetLabel}</div>}
+      <SummaryMeter lines={summary.lines} now={now} locale={i18n.resolvedLanguage} t={t} />
+      {resetDisplay && (
+        <div className={styles.resetLine}>
+          <QuotaResetLabel display={resetDisplay} classes={quotaClasses} />
+        </div>
+      )}
 
       {(hasSecondary || summary.lines.length === 0) && (
         <div className={styles.secondaryRow}>
@@ -236,7 +232,12 @@ function SummaryCard({
       )}
       {hasSecondary && (
         <div id={secondaryId} hidden={!showSecondary}>
-          <SummaryMeter lines={summary.secondaryLines} now={now} t={t} />
+          <SummaryMeter
+            lines={summary.secondaryLines}
+            now={now}
+            locale={i18n.resolvedLanguage}
+            t={t}
+          />
         </div>
       )}
     </article>

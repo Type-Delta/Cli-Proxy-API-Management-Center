@@ -2645,7 +2645,6 @@
     "summary_resets": "сброс {{absolute}} ({{relative}})",
     "summary_of": "из",
     "summary_breakdown": "Разбивка квоты по учетным данным",
-    "summary_reset_line": "{{relative}} · {{absolute}}",
     "summary_show": "Показать",
     "summary_hide": "Скрыть",
     "tier_pro": "Pro",

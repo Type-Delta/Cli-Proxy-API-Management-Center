@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { AntigravityQuotaState, AntigravityQuotaSubscription } from '@/types';
-import { formatInstantShort } from '@/utils/quota';
+import { formatResetInstant } from '@/utils/quota';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
@@ -114,7 +114,7 @@ export function AntigravityQuotaBody({
   classes,
   credential,
 }: QuotaBodyProps<AntigravityQuotaState>) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const groups = quota.groups ?? [];
   const planLabel = getAntigravityPlanLabel(quota.subscription, t);
   const normalizedPlan = quota.subscription?.plan?.toLowerCase() ?? '';
@@ -206,7 +206,7 @@ export function AntigravityQuotaBody({
                   const resetAtMs = bucket.resetTime ? new Date(bucket.resetTime).getTime() : null;
                   const resetAbsolute =
                     resetAtMs !== null && Number.isFinite(resetAtMs)
-                      ? formatInstantShort(resetAtMs)
+                      ? formatResetInstant(resetAtMs, nowMs, i18n.resolvedLanguage)
                       : null;
                   const bucketLabel = translateAntigravityQuotaLabel(
                     bucket.label,

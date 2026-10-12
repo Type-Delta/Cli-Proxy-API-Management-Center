@@ -1041,6 +1041,10 @@ inline. `.page-transition` clips overflow only while animating, so focus rings a
 longer cut off. A viewport sweep from 1920 to 320px in 20-40px steps checks row width, label
 splits, meta placement, fill, overlap and overflow.
 
+Reset instants share one format: resets within six local calendar days read as weekday and time
+(`Mon, 10:32`), later or past instants keep `MM/DD, HH:mm`. The summary reset line reuses the shared
+reset label, so it reads absolute time first and countdown second like the rows.
+
 ### DL051: Upstream v1.25.4 sync with v8 contract preservation
 
 Status: integrated in merge commit `ed24daa0e210e3d4ce49f64cae8120457bc73c32`

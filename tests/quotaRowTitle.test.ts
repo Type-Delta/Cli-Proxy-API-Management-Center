@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import i18n from '../src/i18n';
 import { buildQuotaRowTitle } from '../src/features/quota/types';
+import { formatResetInstant } from '../src/utils/quota';
 
 describe('buildQuotaRowTitle', () => {
   test('keeps credential, remaining amount, reset timing, plan, and provider hint', () => {
@@ -48,6 +49,33 @@ describe('buildQuotaRowTitle', () => {
         new Intl.DateTimeFormat('ru', { weekday: 'long' }).format(resetAtMs)
       );
       expect(english).not.toBe(russian);
+    } finally {
+      await i18n.changeLanguage('en');
+    }
+  });
+
+  test('does not print the weekday twice when the absolute half already has it', async () => {
+    const resetAtMs = new Date(2026, 7, 3, 10, 32).getTime();
+    try {
+      await i18n.changeLanguage('en');
+      expect(
+        buildQuotaRowTitle(undefined, {
+          resetAbsolute: formatResetInstant(resetAtMs, resetAtMs, 'en'),
+          resetAtMs,
+        })
+      ).toBe('Mon, 10:32');
+    } finally {
+      await i18n.changeLanguage('en');
+    }
+  });
+
+  test('keeps the long weekday for the compact date shape', async () => {
+    const resetAtMs = new Date(2026, 7, 10, 10, 32).getTime();
+    try {
+      await i18n.changeLanguage('en');
+      expect(buildQuotaRowTitle(undefined, { resetAbsolute: '08/10, 10:32', resetAtMs })).toContain(
+        'Monday'
+      );
     } finally {
       await i18n.changeLanguage('en');
     }

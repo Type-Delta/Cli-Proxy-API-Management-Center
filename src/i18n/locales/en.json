@@ -2642,7 +2642,6 @@
     "summary_resets": "resets {{absolute}} ({{relative}})",
     "summary_of": "of",
     "summary_breakdown": "Credential quota breakdown",
-    "summary_reset_line": "{{relative}} · {{absolute}}",
     "summary_show": "Show",
     "summary_hide": "Hide",
     "tier_pro": "Pro",

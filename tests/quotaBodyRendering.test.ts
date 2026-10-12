@@ -17,7 +17,7 @@ import { KimiQuotaBody } from '@/features/quota/providers/kimi/KimiQuotaBody';
 import { OpenCodeGoQuotaBody } from '@/features/quota/providers/opencode-go/OpenCodeGoQuotaBody';
 import { ZaiQuotaBody } from '@/features/quota/providers/zai/ZaiQuotaBody';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses } from '@/features/quota/types';
-import { formatInstantShort } from '@/utils/quota';
+import { formatInstantShort, formatResetInstant } from '@/utils/quota';
 import { DAY_MS, HOUR_MS } from '@/utils/time/durations';
 import type {
   ClaudeQuotaState,
@@ -132,7 +132,7 @@ describe('CodexQuotaBody', () => {
   test('renders a window reset as absolute plus countdown', () => {
     const markup = renderToStaticMarkup(createElement(CodexQuotaBody, { quota, classes }));
 
-    expect(markup).toContain('08-02 18:00');
+    expect(markup).toContain(formatResetInstant(now + 3 * HOUR_MS, now, 'en'));
     expect(markup).toContain('quotaResetRelative');
     expect(markup).toMatch(/3 hours/);
   });
@@ -143,7 +143,7 @@ describe('CodexQuotaBody', () => {
     // One group, not two loose siblings: the pair can stack on a narrow row, and the
     // flex gap replaces the old `·` pseudo-separator that would dangle at a line start.
     expect(markup).toContain(
-      '<span class="quotaResetLabel"><span class="quotaReset">08-02 18:00</span><span class="quotaResetRelative">'
+      `<span class="quotaResetLabel"><span class="quotaReset">${formatResetInstant(now + 3 * HOUR_MS, now, 'en')}</span><span class="quotaResetRelative">`
     );
   });
 
@@ -322,7 +322,7 @@ describe('KimiQuotaBody', () => {
     };
     const markup = renderToStaticMarkup(createElement(KimiQuotaBody, { quota, classes }));
 
-    expect(markup).toContain(formatInstantShort(resetAtMs));
+    expect(markup).toContain(formatResetInstant(resetAtMs, now, 'en'));
     expect(markup).toContain('quotaResetRelative');
     expect(markup).toMatch(/3 hours/);
     expect(markup).not.toContain('resets in 3h');
@@ -445,8 +445,8 @@ describe('ClaudeQuotaBody', () => {
     };
     const markup = renderToStaticMarkup(createElement(ClaudeQuotaBody, { quota, classes }));
 
-    expect(markup).toContain('08-02 17:00');
-    expect(markup).toContain('08-06 04:00');
+    expect(markup).toContain(formatResetInstant(now + 2 * HOUR_MS, now, 'en'));
+    expect(markup).toContain(formatResetInstant(now + 4 * DAY_MS, now, 'en'));
     expect(markup).toMatch(/2 hours/);
     expect(markup).toMatch(/4 days/);
   });

@@ -26,7 +26,7 @@
   align-items: start;
   column-gap: 12px;
   row-gap: 8px;
-  padding: 12px 6px;
+  padding: 12px 12px;
   border-bottom: 1px solid var(--border-color);
   transition: background-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
 }
@@ -375,7 +375,7 @@
       'body';
     align-items: start;
     gap: 8px;
-    padding: 12px 4px;
+    padding: 12px 12px;
   }
 
   .identity {

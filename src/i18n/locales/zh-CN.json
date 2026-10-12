@@ -2640,7 +2640,6 @@
     "summary_resets": "重置于 {{absolute}}（{{relative}}）",
     "summary_of": "共",
     "summary_breakdown": "凭证额度明细",
-    "summary_reset_line": "{{relative}} · {{absolute}}",
     "summary_show": "显示",
     "summary_hide": "隐藏",
     "tier_pro": "Pro",

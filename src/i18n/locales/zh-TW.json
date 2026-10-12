@@ -2666,7 +2666,6 @@
     "summary_resets": "重設於 {{absolute}}（{{relative}}）",
     "summary_of": "共",
     "summary_breakdown": "憑證配額明細",
-    "summary_reset_line": "{{relative}} · {{absolute}}",
     "summary_show": "顯示",
     "summary_hide": "隱藏",
     "tier_pro": "Pro",

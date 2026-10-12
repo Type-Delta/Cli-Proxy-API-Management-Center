@@ -47,6 +47,7 @@ $card-surface: color-mix(in srgb, var(--bg-primary) 82%, transparent);
 
 .cardButton {
   display: flex;
+  flex-wrap: wrap;
   width: 100%;
   align-items: center;
   justify-content: space-between;
@@ -63,6 +64,7 @@ $card-surface: color-mix(in srgb, var(--bg-primary) 82%, transparent);
 .cardHeading {
   display: inline-flex;
   min-width: 0;
+  white-space: nowrap;
   align-items: center;
   gap: 8px;
   font-size: 13px;
@@ -94,7 +96,6 @@ $card-surface: color-mix(in srgb, var(--bg-primary) 82%, transparent);
 .credentialCount,
 .primaryLabel,
 .tier,
-.resetLine,
 .secondaryRow,
 .unknown {
   color: var(--text-tertiary);
@@ -204,6 +205,7 @@ $card-surface: color-mix(in srgb, var(--bg-primary) 82%, transparent);
 .resetLine {
   min-height: 15px;
   font-family: $font-mono;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }

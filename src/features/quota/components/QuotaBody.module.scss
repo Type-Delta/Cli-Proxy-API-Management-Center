@@ -331,6 +331,7 @@
 
 .codexResetCreditStack::after {
   display: none;
+  z-index: -2;
   transform: translate(8px, 8px);
 }
 

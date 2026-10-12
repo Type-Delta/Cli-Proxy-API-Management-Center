@@ -1,5 +1,9 @@
 /**
  * Formatting functions for quota display.
+ *
+ * These produce fetch-time fallback labels: whenever a reset instant survives
+ * to render, `buildResetDisplay` re-formats it through `formatResetInstant`, so
+ * the strings below only surface for entries that carry no usable instant.
  */
 
 import type { TFunction } from 'i18next';

@@ -11,7 +11,6 @@ import {
   resolvePlanTier,
   PREMIUM_CODEX_PLAN_TYPES,
   buildResetDisplay,
-  formatInstantShort,
   parseIsoToMs,
   resolveResetMs,
 } from '@/utils/quota';
@@ -156,7 +155,7 @@ export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<Co
                 const creditLines = orderedCredits.map(({ credit }, index) => {
                   const expiresAtMs = parseIsoToMs(credit.expiresAt);
                   const display = buildResetDisplay(
-                    expiresAtMs === null ? credit.expiresAt : formatInstantShort(expiresAtMs),
+                    expiresAtMs === null ? credit.expiresAt : null,
                     expiresAtMs,
                     now,
                     locale
@@ -167,7 +166,7 @@ export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<Co
                 return visibleCredits.map(({ credit, originalIndex }, index) => {
                   const expiresAtMs = parseIsoToMs(credit.expiresAt);
                   const expiresDisplay = buildResetDisplay(
-                    expiresAtMs === null ? credit.expiresAt : formatInstantShort(expiresAtMs),
+                    expiresAtMs === null ? credit.expiresAt : null,
                     expiresAtMs,
                     now,
                     locale
