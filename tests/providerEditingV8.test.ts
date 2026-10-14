@@ -90,6 +90,48 @@ describe('v8 cooling overrides', () => {
     expect(b.group()['disable-cooling']).toBe(false);
   });
 
+  test('OpenAI usage caps survive unrelated edits and explicit removal writes null', async () => {
+    const keyId = `${'c'.repeat(64)}`;
+    const b = backend('openai-compatibility', {
+      name: 'fixture',
+      'base-url': 'https://example.invalid',
+      keys: [{ 'api-key': 'fixture-key' }],
+      'usage-caps': { weekly: 30 },
+      'usage-cap-bypass-keys': [keyId],
+    });
+    const config = openai(b.group());
+    await providersApi.updateOpenAIProvider(config.name, 0, { ...config, priority: 3 });
+    expect(b.group()['usage-caps']).toEqual({ weekly: 30 });
+    expect(b.group()['usage-cap-bypass-keys']).toEqual([keyId]);
+    const current = openai(b.group());
+    await providersApi.updateOpenAIProvider(current.name, 0, {
+      ...current,
+      usageCaps: {},
+      usageCapBypassKeys: [],
+    });
+    expect(b.group()['usage-caps']).toBeNull();
+    expect(b.group()['usage-cap-bypass-keys']).toBeNull();
+  });
+
+  test('API-key usage caps survive an unrelated edit', async () => {
+    const keyId = `${'d'.repeat(64)}`;
+    const b = backend('gemini', {
+      name: 'fixture',
+      keys: [
+        {
+          'api-key': 'fixture-key',
+          'usage-probe': 'zai',
+          'usage-caps': { 'zai-hour-5': 25 },
+          'usage-cap-bypass-keys': [keyId],
+        },
+      ],
+    });
+    const config = row(b.group());
+    await providersApi.updateGeminiKey(config.apiKey, config.baseUrl, { ...config, weight: 7 });
+    expect(key(b.group())['usage-caps']).toEqual({ 'zai-hour-5': 25 });
+    expect(key(b.group())['usage-cap-bypass-keys']).toEqual([keyId]);
+  });
+
   test('explicit false can override global cooling even without a previous per-key value', async () => {
     const b = backend('codex', { name: 'fixture', keys: [{ 'api-key': 'fixture-key' }] });
     const config = row(b.group());

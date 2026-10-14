@@ -1123,3 +1123,29 @@ credentials, so offering them produced an unsupported model list and rules that 
 Validation: a unit test covers the helper, and a CDP check against a CPA with a Kiro OAuth file
 plus Z.AI and OpenCode Go usage-probe keys showed only OAuth providers in both editors, with Kiro
 listing the Claude catalog served by CPA.
+
+### DL055: Usage caps and bypass keys
+
+Credentials can reserve a minimum remaining percentage on supported quota bars: Claude, Codex,
+Z.AI, OpenCode Go, and Kiro. The quota page and auth-file cards paint that reservation in candy
+stripes using the bar's own health colour, append cap details and the current capped-until time to
+row tooltips, and show a compact Capped badge on affected auth files.
+
+The auth-file editor and Z.AI/OpenCode Go provider forms load the credential's bars, enable caps
+per bar, and provide pointer and keyboard slider handles. Client keys that bypass caps are chosen
+from a searchable picker and shown as removable chips with labels and eight-character key
+fragments; missing saved IDs remain removable. API normalization and whole-family provider
+serialization preserve `usage_caps` and `usage-cap-bypass-keys` through unrelated edits, while
+explicit empties remove both fields. All five locales are updated.
+
+OpenAI-compatible provider rows now take their auth index from the first key entry, where CPA
+reports it as `auth_index`; the provider transformers accept both `auth_index` and `auth-index`.
+The cap editor uses that index to find the credential's quota bars.
+
+Validation: Bun helper and patch regressions (including bypass-key-only edits), the full suite,
+lint, TypeScript compilation, and the single-file build. Through CDP, a CPA built from the matching
+CPA checkout and serving this build with a live Z.AI credential showed the striped weekly
+reservation and cap tooltip on the quota page and the Capped badge on the auth-file card. In the
+provider form, pointer drag moved the weekly cap from 30% to 50% and ArrowRight moved it to 51%.
+Saving persisted 51% with the bypass key unchanged, and the editor had no overflow at 375px. The
+only failing suite test, `legacy backend login diagnostic`, also fails without these changes.

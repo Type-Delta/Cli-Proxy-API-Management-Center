@@ -2,7 +2,12 @@
  * AI 提供商 Workbench 视图模型(归一化各 brand 的异构 config)
  */
 
-import type { GeminiKeyConfig, OpenAIProviderConfig, ProviderKeyConfig } from '@/types';
+import type {
+  GeminiKeyConfig,
+  OpenAIProviderConfig,
+  ProviderKeyConfig,
+  UsageCapConfig,
+} from '@/types';
 import type { ThinkingLevel } from './thinkingLevels';
 import type { RuntimePolicyDraft } from './runtimePolicy';
 import type { ModelOptionsInput } from './modelOptions';
@@ -216,6 +221,8 @@ export interface ProviderEntryFormInput extends ProviderBehaviorOptions {
   /** Provider pricing catalog metadata. */
   pricingCatalog?: string;
   usageProbe?: '' | 'zai' | 'opencode-go';
+  usageCaps?: UsageCapConfig['usageCaps'];
+  usageCapBypassKeys?: UsageCapConfig['usageCapBypassKeys'];
   apiKeyEntries?: ApiKeyEntryInput[];
   /** APIKEY.FUN stores one grouped key per platform protocol. */
   sponsorKeyEntries?: SponsorKeyEntryInput[];

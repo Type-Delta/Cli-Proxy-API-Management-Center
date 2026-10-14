@@ -33,6 +33,7 @@ import { deriveAuthFileIdentity, stripJsonExtension } from '@/features/authFiles
 import { resolveAuthFileQuotaType } from '@/features/authFiles/logic';
 import type { AuthFileStatusBarData } from '@/features/authFiles/hooks/useAuthFilesStatusBarCache';
 import { AuthFileQuotaSection } from '@/features/authFiles/components/AuthFileQuotaSection';
+import { usageCapBadgeTitle } from '@/features/quota/usageCaps';
 import { AuthFileCooldownSection } from './AuthFileCooldownSection';
 import styles from './AuthFileCard.module.scss';
 
@@ -61,7 +62,7 @@ export type AuthFileCardProps = {
 };
 
 export function AuthFileCard(props: AuthFileCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     file,
     compact,
@@ -191,6 +192,15 @@ export function AuthFileCard(props: AuthFileCardProps) {
         <div className={styles.warning} title={rawStatusMessage}>
           <IconInfo className={styles.warningIcon} size={14} />
           <span>{rawStatusMessage}</span>
+        </div>
+      )}
+
+      {usageCapBadgeTitle(t, file.usageCapState, i18n.resolvedLanguage) && (
+        <div
+          className={styles.cappedBadge}
+          title={usageCapBadgeTitle(t, file.usageCapState, i18n.resolvedLanguage)}
+        >
+          {t('quota_management.usage_cap_badge')}
         </div>
       )}
 

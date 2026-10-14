@@ -53,6 +53,11 @@ export interface ModelAlias {
   thinking?: Record<string, unknown>;
 }
 
+export interface UsageCapConfig {
+  usageCaps?: Record<string, number>;
+  usageCapBypassKeys?: string[];
+}
+
 export interface ApiKeyEntry {
   sourceIndex?: number;
   apiKey: string;
@@ -69,7 +74,7 @@ export interface CloakConfig {
   cacheUserId?: boolean;
 }
 
-export interface GeminiKeyConfig extends ProviderRuntimePolicy {
+export interface GeminiKeyConfig extends ProviderRuntimePolicy, UsageCapConfig {
   source?: ProviderSource;
   apiKey: string;
   label?: string;
@@ -87,7 +92,8 @@ export interface GeminiKeyConfig extends ProviderRuntimePolicy {
   usageProbe?: '' | 'zai' | 'opencode-go';
 }
 
-export interface ProviderKeyConfig extends ProviderRuntimePolicy, ProviderBehaviorOptions {
+export interface ProviderKeyConfig
+  extends ProviderRuntimePolicy, ProviderBehaviorOptions, UsageCapConfig {
   source?: ProviderSource;
   apiKey: string;
   label?: string;
@@ -108,7 +114,8 @@ export interface ProviderKeyConfig extends ProviderRuntimePolicy, ProviderBehavi
   usageProbe?: '' | 'zai' | 'opencode-go';
 }
 
-export interface OpenAIProviderConfig extends ProviderRuntimePolicy, ProviderBehaviorOptions {
+export interface OpenAIProviderConfig
+  extends ProviderRuntimePolicy, ProviderBehaviorOptions, UsageCapConfig {
   source?: ProviderSource;
   name: string;
   prefix?: string;

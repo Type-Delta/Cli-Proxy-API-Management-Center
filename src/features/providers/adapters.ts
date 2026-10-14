@@ -150,7 +150,8 @@ export function openaiToResource(config: OpenAIProviderConfig, index: number): P
     identifier: name || `#${sourceIndex + 1}`,
     apiKeyPreview: previewApiKey,
     apiKey: null,
-    authIndex: config.authIndex ?? null,
+    // CPA reports OpenAI-compatible auth indexes per key entry.
+    authIndex: config.authIndex ?? firstEntry?.authIndex ?? null,
     baseUrl: config.baseUrl ?? null,
     proxyUrl: null,
     prefix: config.prefix ?? null,

@@ -43,6 +43,8 @@ import { readModelOptions, validateModelOptions } from '../../modelOptions';
 import { RuntimePolicyEditor } from './RuntimePolicyEditor';
 import { ProviderBehaviorEditor } from './ProviderBehaviorEditor';
 import { pickProviderBehavior } from '../../providerBehavior';
+import { usageCapProviderType } from '@/features/quota/usageCaps';
+import { UsageCapEditor } from '@/features/quota/components/UsageCapEditor';
 
 /** 模块级常量，免得每次渲染都给 picker 一个新数组引用。 */
 const DISABLE_ALL_RULES = [DISABLE_ALL_RULE];
@@ -171,6 +173,8 @@ function buildInitialForm(
         : [emptyApiKeyEntry()],
       pricingCatalog: cfg.pricingCatalog ?? '',
       usageProbe: cfg.usageProbe ?? '',
+      usageCaps: cfg.usageCaps ?? {},
+      usageCapBypassKeys: cfg.usageCapBypassKeys ?? [],
     };
   }
 
@@ -235,6 +239,14 @@ function buildInitialForm(
         : undefined,
     pricingCatalog: descriptor.supportsPricingCatalog ? (cfg.pricingCatalog ?? '') : undefined,
     usageProbe: descriptor.supportsUsageProbe ? (cfg.usageProbe ?? '') : undefined,
+    usageCaps: usageCapProviderType(descriptor.supportsUsageProbe ? (cfg.usageProbe ?? '') : '')
+      ? (cfg.usageCaps ?? {})
+      : undefined,
+    usageCapBypassKeys: usageCapProviderType(
+      descriptor.supportsUsageProbe ? (cfg.usageProbe ?? '') : ''
+    )
+      ? (cfg.usageCapBypassKeys ?? [])
+      : undefined,
   };
 }
 
@@ -938,6 +950,20 @@ export function BaseProviderForm({
             </div>
           ) : null}
         </div>
+      ) : null}
+
+      {mode === 'edit' && resource?.authIndex && usageCapProviderType(form.usageProbe ?? '') ? (
+        <UsageCapEditor
+          providerKey={form.usageProbe ?? ''}
+          authIndex={resource.authIndex}
+          caps={form.usageCaps ?? {}}
+          bypassKeys={form.usageCapBypassKeys ?? []}
+          disabled={mutating}
+          onChangeCaps={(usageCaps) => updateField('usageCaps', usageCaps)}
+          onChangeBypassKeys={(usageCapBypassKeys) =>
+            updateField('usageCapBypassKeys', usageCapBypassKeys)
+          }
+        />
       ) : null}
 
       {descriptor.supportsHeaders ? (

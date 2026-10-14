@@ -11,6 +11,11 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiClient, authFilesApi, type AuthFileFieldsPatch } from '@/services/api';
 import { notifyAuthFilesChanged } from '@/features/authFiles/authFilesEvents';
+import {
+  buildUsageCapPatch,
+  readUsageCapBypassKeys,
+  readUsageCaps,
+} from '@/features/quota/usageCaps';
 import type { AuthFileItem } from '@/types';
 import { useNotificationStore } from '@/stores';
 import {
@@ -52,9 +57,12 @@ export type PrefixProxyEditorField =
   | 'usingApi'
   | 'note'
   | 'excludedModelsText'
-  | 'headersText';
+  | 'headersText'
+  | 'usageCaps'
+  | 'usageCapBypassKeys';
 
-export type PrefixProxyEditorFieldValue = string | boolean | CredentialPolicyValue;
+export type PrefixProxyEditorFieldValue =
+  string | boolean | CredentialPolicyValue | Record<string, number> | string[];
 
 export type PrefixProxyEditorState = {
   policy?: CredentialPolicyDraft;
@@ -86,6 +94,10 @@ export type PrefixProxyEditorState = {
   headersText: string;
   headersTouched: boolean;
   headersError: string | null;
+  usageCaps: Record<string, number>;
+  usageCapsTouched: boolean;
+  usageCapBypassKeys: string[];
+  usageCapBypassKeysTouched: boolean;
 };
 
 export type UseAuthFilesPrefixProxyEditorOptions = {
@@ -388,6 +400,24 @@ export const buildAuthFileFieldsPatch = (
     }
   }
 
+  Object.assign(
+    patch,
+    buildUsageCapPatch(
+      {
+        caps: readUsageCaps(original),
+        capsTouched: false,
+        bypassKeys: readUsageCapBypassKeys(original),
+        bypassKeysTouched: false,
+      },
+      {
+        caps: editor.usageCaps,
+        capsTouched: editor.usageCapsTouched,
+        bypassKeys: editor.usageCapBypassKeys,
+        bypassKeysTouched: editor.usageCapBypassKeysTouched,
+      }
+    )
+  );
+
   Object.assign(patch, buildCredentialPolicyPatch(original, editor.policy));
   return patch;
 };
@@ -454,6 +484,21 @@ const buildPrefixProxyUpdatedText = (
 
   applyCredentialPolicyPatch(next, patch);
   applyHeadersPatch(next, patch.headers);
+
+  if (patch.usage_caps !== undefined) {
+    if (patch.usage_caps && Object.keys(patch.usage_caps).length) {
+      next.usage_caps = patch.usage_caps;
+    } else {
+      delete next.usage_caps;
+    }
+  }
+  if (patch.usage_cap_bypass_keys !== undefined) {
+    if (patch.usage_cap_bypass_keys && patch.usage_cap_bypass_keys.length) {
+      next.usage_cap_bypass_keys = patch.usage_cap_bypass_keys;
+    } else {
+      delete next.usage_cap_bypass_keys;
+    }
+  }
 
   if (patch.websockets !== undefined) {
     next = applyAuthFileWebsockets(next, patch.websockets);
@@ -544,6 +589,10 @@ export function useAuthFilesPrefixProxyEditor(
       headersText: '',
       headersTouched: false,
       headersError: null,
+      usageCaps: {},
+      usageCapsTouched: false,
+      usageCapBypassKeys: [],
+      usageCapBypassKeysTouched: false,
     });
 
     try {
@@ -593,6 +642,8 @@ export function useAuthFilesPrefixProxyEditor(
       const note = typeof json.note === 'string' ? json.note : '';
       const excludedModelsText = readExcludedModels(json).join('\n');
       const headers = json.headers;
+      const usageCaps = readUsageCaps(json);
+      const usageCapBypassKeys = readUsageCapBypassKeys(json);
       let headersText = '';
       let headersError: string | null = null;
       if (headers !== undefined) {
@@ -630,6 +681,10 @@ export function useAuthFilesPrefixProxyEditor(
           headersText,
           headersTouched: false,
           headersError,
+          usageCaps,
+          usageCapsTouched: false,
+          usageCapBypassKeys,
+          usageCapBypassKeysTouched: false,
           error: null,
         };
       });
@@ -692,6 +747,21 @@ export function useAuthFilesPrefixProxyEditor(
           ...prev,
           excludedModelsText: String(value),
           excludedModelsTouched: true,
+        };
+      }
+      if (field === 'usageCaps') {
+        return {
+          ...prev,
+          usageCaps: value as Record<string, number>,
+          usageCapsTouched: true,
+        };
+      }
+      if (field === 'usageCapBypassKeys') {
+        if (!Array.isArray(value)) return prev;
+        return {
+          ...prev,
+          usageCapBypassKeys: value.filter((item): item is string => typeof item === 'string'),
+          usageCapBypassKeysTouched: true,
         };
       }
       if (field === 'headersText') {

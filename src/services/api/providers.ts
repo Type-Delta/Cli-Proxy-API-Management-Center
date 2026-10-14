@@ -82,6 +82,24 @@ const applyPolicyIntent = (
   }
 };
 
+const serializeUsageCaps = (config: {
+  usageCaps?: Record<string, number>;
+  usageCapBypassKeys?: string[];
+}) => {
+  const payload: Record<string, unknown> = {};
+  // Absent means untouched on providers that do not expose cap editing; an empty draft
+  // is an explicit removal, so it still serializes as the backend's null sentinel.
+  if (config.usageCaps !== undefined) {
+    payload['usage-caps'] = Object.keys(config.usageCaps).length ? config.usageCaps : null;
+  }
+  if (config.usageCapBypassKeys !== undefined) {
+    payload['usage-cap-bypass-keys'] = config.usageCapBypassKeys.length
+      ? config.usageCapBypassKeys
+      : null;
+  }
+  return payload;
+};
+
 const serializeProviderKey = (config: ProviderKeyConfig, family: ProviderFamily) => {
   const payload: Record<string, unknown> = {
     'api-key': config.apiKey,
@@ -111,6 +129,7 @@ const serializeProviderKey = (config: ProviderKeyConfig, family: ProviderFamily)
     payload['excluded-models'] = config.excludedModels;
   }
   if (config.pricingCatalog?.trim()) payload['pricing-catalog'] = config.pricingCatalog.trim();
+  Object.assign(payload, serializeUsageCaps(config));
   if (config.usageProbe !== undefined) payload['usage-probe'] = config.usageProbe;
   if (config.cloak) {
     const cloakPayload: Record<string, unknown> = {};
@@ -170,6 +189,7 @@ const serializeVertexKey = (config: ProviderKeyConfig) => {
     payload['excluded-models'] = config.excludedModels;
   }
   if (config.pricingCatalog?.trim()) payload['pricing-catalog'] = config.pricingCatalog.trim();
+  Object.assign(payload, serializeUsageCaps(config));
   if (config.usageProbe !== undefined) payload['usage-probe'] = config.usageProbe;
   return payload;
 };
@@ -194,6 +214,7 @@ const serializeGeminiKey = (config: GeminiKeyConfig) => {
     payload['excluded-models'] = config.excludedModels;
   }
   if (config.pricingCatalog?.trim()) payload['pricing-catalog'] = config.pricingCatalog.trim();
+  Object.assign(payload, serializeUsageCaps(config));
   if (config.usageProbe !== undefined) payload['usage-probe'] = config.usageProbe;
   return payload;
 };
@@ -219,6 +240,7 @@ const serializeOpenAIProvider = (provider: OpenAIProviderConfig) => {
   if (provider.testModel) payload['test-model'] = provider.testModel;
   if (provider.disableCooling !== undefined) payload['disable-cooling'] = provider.disableCooling;
   if (provider.pricingCatalog?.trim()) payload['pricing-catalog'] = provider.pricingCatalog.trim();
+  Object.assign(payload, serializeUsageCaps(provider));
   if (provider.usageProbe !== undefined) payload['usage-probe'] = provider.usageProbe;
   return payload;
 };

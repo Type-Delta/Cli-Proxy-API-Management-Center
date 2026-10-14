@@ -7,6 +7,7 @@ import {
   withDisableAllModelsRule,
   withoutDisableAllModelsRule,
 } from '@/components/providers/utils';
+import { resolveUsageCapFields } from '@/features/quota/usageCaps';
 import type {
   Config,
   GeminiKeyConfig,
@@ -184,6 +185,11 @@ const buildProviderKeyConfig = (
   if (input.usageProbe !== undefined) {
     next.usageProbe = input.usageProbe;
   }
+  const usageCapFields = resolveUsageCapFields(input, existing);
+  if (usageCapFields.usageCaps !== undefined) next.usageCaps = usageCapFields.usageCaps;
+  if (usageCapFields.usageCapBypassKeys !== undefined) {
+    next.usageCapBypassKeys = usageCapFields.usageCapBypassKeys;
+  }
   if ((brand === 'codex' || brand === 'xai') && input.websockets !== undefined) {
     next.websockets = input.websockets;
   }
@@ -239,6 +245,7 @@ const buildOpenAIConfig = (
     testModel: input.testModel?.trim() || undefined,
     pricingCatalog: input.pricingCatalog?.trim() || undefined,
     usageProbe: input.usageProbe ?? '',
+    ...resolveUsageCapFields(input, existing),
   };
 };
 

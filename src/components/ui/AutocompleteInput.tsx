@@ -15,7 +15,9 @@ interface AutocompleteInputProps {
   label?: string;
   value: string;
   onChange: (value: string) => void;
-  options: string[] | { value: string; label?: string }[];
+  onSelect?: (value: string) => void;
+  options:
+    string[] | { value: string; label?: string; description?: string; searchText?: string }[];
   placeholder?: string;
   disabled?: boolean;
   hint?: string;
@@ -31,6 +33,7 @@ export function AutocompleteInput({
   label,
   value,
   onChange,
+  onSelect,
   options,
   placeholder,
   disabled,
@@ -52,13 +55,19 @@ export function AutocompleteInput({
   const normalizedOptions = options.map((opt) =>
     typeof opt === 'string'
       ? { value: opt, label: opt }
-      : { value: opt.value, label: opt.label || opt.value }
+      : {
+          value: opt.value,
+          label: opt.label || opt.value,
+          description: opt.description,
+          searchText: opt.searchText ?? opt.value,
+        }
   );
 
   const filteredOptions = normalizedOptions.filter((opt) => {
     const v = value.toLowerCase();
     return (
-      opt.value.toLowerCase().includes(v) || (opt.label && opt.label.toLowerCase().includes(v))
+      (opt.searchText ?? opt.value).toLowerCase().includes(v) ||
+      (opt.label && opt.label.toLowerCase().includes(v))
     );
   });
   const showDropdown = isOpen && filteredOptions.length > 0 && !disabled;
@@ -107,6 +116,7 @@ export function AutocompleteInput({
 
   const handleSelect = (selectedValue: string) => {
     onChange(selectedValue);
+    onSelect?.(selectedValue);
     setIsOpen(false);
   };
 
@@ -204,8 +214,8 @@ export function AutocompleteInput({
                   }}
                   onMouseEnter={() => setHighlightedIndex(index)}
                 >
-                  <span style={{ fontWeight: 500 }}>{opt.value}</span>
-                  {opt.label && opt.label !== opt.value && (
+                  <span style={{ fontWeight: 500 }}>{opt.description ?? opt.value}</span>
+                  {opt.label && (
                     <span style={{ fontSize: '0.85em', color: 'var(--text-secondary)' }}>
                       {opt.label}
                     </span>

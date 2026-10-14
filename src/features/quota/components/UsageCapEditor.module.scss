@@ -1,0 +1,282 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-secondary) 52%, transparent);
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.sectionHint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.loadRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.loadError {
+  color: var(--danger-color);
+  overflow-wrap: anywhere;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.capRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.capLabel {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.capLabelText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.capToggle {
+  flex-shrink: 0;
+}
+
+.trackWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  grid-column: 1 / -1;
+  min-height: 24px;
+  touch-action: none;
+}
+
+.handle {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  transform: translateX(-50%) translateY(-50%);
+  cursor: grab;
+}
+
+.handle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 50%;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--primary-color);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--text-primary) 22%, transparent);
+  transform: translateX(-50%);
+}
+
+.handle:active {
+  cursor: grabbing;
+}
+
+.handle:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.handleDisabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.handleDisabled::after {
+  background: var(--text-tertiary);
+  box-shadow: none;
+}
+
+.value {
+  grid-column: 1 / -1;
+  font-family: $font-mono;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.picker {
+  margin-top: 2px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 7px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-primary) 72%, transparent);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+}
+
+.chipText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipMissing {
+  border-color: var(--warning-border);
+  color: var(--warning-text);
+}
+
+.chipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chipRemove:hover,
+.chipRemove:focus-visible {
+  color: var(--danger-color);
+}
+
+.chipRemove:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
+}
+
+@media (max-width: 400px) {
+  .section {
+    padding: 10px;
+  }
+
+  .capRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .handle {
+    transition: none;
+  }
+}
+
+.quotaBarEditor {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: $radius-full;
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+  overflow: hidden;
+}
+
+.quotaBarFill {
+  height: 100%;
+  border-radius: $radius-full;
+}
+
+.quotaBarFillHigh {
+  --quota-bar-color: var(--viz-success);
+  background: var(--quota-bar-color);
+}
+
+.quotaBarFillMedium {
+  --quota-bar-color: var(--quota-medium-color);
+  background: var(--quota-bar-color);
+}
+
+.quotaBarFillLow {
+  --quota-bar-color: var(--viz-failure);
+  background: var(--quota-bar-color);
+}
+
+.quotaBarFillDisabled {
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--text-secondary) 58%, transparent) 0 3px,
+    color-mix(in srgb, var(--text-secondary) 18%, transparent) 3px 6px
+  );
+}
+
+.quotaBarCapHigh {
+  --quota-bar-color: var(--viz-success);
+}
+
+.quotaBarCapMedium {
+  --quota-bar-color: var(--quota-medium-color);
+}
+
+.quotaBarCapLow {
+  --quota-bar-color: var(--viz-failure);
+}
+
+.quotaBarCapHigh,
+.quotaBarCapMedium,
+.quotaBarCapLow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--quota-bar-color) 58%, transparent) 0 3px,
+    color-mix(in srgb, var(--quota-bar-color) 18%, transparent) 3px 6px
+  );
+}
+
+.picker :global(.form-group) {
+  margin-bottom: 0;
+}
+
+.picker :global(label) {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}

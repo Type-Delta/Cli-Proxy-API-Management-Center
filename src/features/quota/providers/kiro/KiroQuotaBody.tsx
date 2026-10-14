@@ -7,13 +7,20 @@ import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import { formatQuotaPercent } from '../../quotaSummary';
+import { usageCapTooltip } from '../../usageCaps';
 import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
 const formatRequests = (value: number): string => Number(value.toFixed(2)).toString();
 const formatCredits = (value: number, locale: string | undefined): string =>
   new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value);
 
-export function KiroQuotaBody({ quota, classes, credential }: QuotaBodyProps<KiroQuotaState>) {
+export function KiroQuotaBody({
+  quota,
+  classes,
+  credential,
+  usageCaps,
+  usageCapHits,
+}: QuotaBodyProps<KiroQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
   const soonestRowId = useMemo(
@@ -92,6 +99,12 @@ export function KiroQuotaBody({ quota, classes, credential }: QuotaBodyProps<Kir
                   resetAtMs: window.resetAtMs,
                   plan: quota.subscription?.title,
                   hint: soon ? t('quota_management.soonest_row_hint') : undefined,
+                  cap: usageCapTooltip(
+                    t,
+                    usageCaps?.[window.id],
+                    usageCapHits?.[window.id],
+                    i18n.resolvedLanguage
+                  ),
                 })}
               >
                 <div className={classes.quotaRowHeader}>
@@ -108,7 +121,13 @@ export function KiroQuotaBody({ quota, classes, credential }: QuotaBodyProps<Kir
                     )}
                   </div>
                 </div>
-                <QuotaMeter percent={percent} classes={classes} index={index} label={label} />
+                <QuotaMeter
+                  percent={percent}
+                  classes={classes}
+                  index={index}
+                  label={label}
+                  capPercent={usageCaps?.[window.id]}
+                />
                 <div className={classes.quotaAmount}>
                   {amount}
                   {overage}

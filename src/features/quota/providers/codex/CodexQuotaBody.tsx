@@ -20,6 +20,7 @@ import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId, resetCreditRowId } from '../../resetSchedule';
 import { quotaWindowTitle } from '../../windowGating';
+import { usageCapTooltip } from '../../usageCaps';
 import { buildQuotaRowTitle, type QuotaBodyProps, type QuotaClassMap } from '../../types';
 
 const getPlanValueClass = (planType: string | null, classes: QuotaClassMap): string => {
@@ -30,7 +31,13 @@ const getPlanValueClass = (planType: string | null, classes: QuotaClassMap): str
   return classes.planMetaValue;
 };
 
-export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<CodexQuotaState>) {
+export function CodexQuotaBody({
+  quota,
+  classes,
+  credential,
+  usageCaps,
+  usageCapHits,
+}: QuotaBodyProps<CodexQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
   const locale = i18n.resolvedLanguage;
@@ -236,6 +243,12 @@ export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<Co
                   resetAtMs: window.resetAtMs,
                   plan: planLabel,
                   hint: quotaWindowTitle(t, { soon, disabled: window.disabled }),
+                  cap: usageCapTooltip(
+                    t,
+                    usageCaps?.[window.id],
+                    usageCapHits?.[window.id],
+                    i18n.resolvedLanguage
+                  ),
                 })}
               >
                 <div className={classes.quotaRowHeader}>
@@ -252,6 +265,7 @@ export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<Co
                   classes={classes}
                   index={index}
                   disabled={window.disabled}
+                  capPercent={usageCaps?.[window.id]}
                 />
               </div>
             );

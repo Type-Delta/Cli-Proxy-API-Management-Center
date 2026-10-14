@@ -12,6 +12,7 @@ import { buildHeaderObject } from '@/utils/headers';
 import { isRecord } from '@/utils/helpers';
 import { readCredentialWeight } from '@/utils/credentialWeight';
 import { normalizeModelOptions, normalizeModelThinking } from './providerModels';
+import { normalizeUsageCapBypassKeys, normalizeUsageCaps } from '@/features/quota/usageCaps';
 
 const normalizeBoolean = (value: unknown): boolean | undefined =>
   typeof value === 'boolean' ? value : undefined;
@@ -119,7 +120,7 @@ const normalizeApiKeyEntry = (entry: unknown): ApiKeyEntry | null => {
 
   const proxyUrl = record?.['proxy-url'];
   const weight = readCredentialWeight(record?.weight);
-  const authIndex = normalizeAuthIndex(record?.['auth-index']);
+  const authIndex = normalizeAuthIndex(record?.['auth_index'] ?? record?.['auth-index']);
   const label = normalizePrefix(record?.label);
 
   const result: ApiKeyEntry = {
@@ -197,12 +198,16 @@ const normalizeProviderKeyConfig = (item: unknown): ProviderKeyConfig | null => 
   if (models.length) config.models = models;
   const excludedModels = normalizeExcludedModels(record?.['excluded-models']);
   if (excludedModels.length) config.excludedModels = excludedModels;
-  const authIndex = normalizeAuthIndex(record?.['auth-index']);
+  const authIndex = normalizeAuthIndex(record?.['auth_index'] ?? record?.['auth-index']);
   if (authIndex) config.authIndex = authIndex;
   const pricingCatalog = normalizePrefix(record?.['pricing-catalog']);
   if (pricingCatalog) config.pricingCatalog = pricingCatalog;
   const usageProbe = normalizeUsageProbe(record?.['usage-probe']);
   if (usageProbe !== undefined) config.usageProbe = usageProbe;
+  const usageCaps = normalizeUsageCaps(record?.['usage-caps']);
+  if (Object.keys(usageCaps).length) config.usageCaps = usageCaps;
+  const usageCapBypassKeys = normalizeUsageCapBypassKeys(record?.['usage-cap-bypass-keys']);
+  if (usageCapBypassKeys.length) config.usageCapBypassKeys = usageCapBypassKeys;
 
   const cloakRaw = record?.cloak;
   if (isRecord(cloakRaw)) {
@@ -271,12 +276,16 @@ const normalizeGeminiKeyConfig = (item: unknown): GeminiKeyConfig | null => {
   if (headers) config.headers = headers;
   const excludedModels = normalizeExcludedModels(record?.['excluded-models']);
   if (excludedModels.length) config.excludedModels = excludedModels;
-  const authIndex = normalizeAuthIndex(record?.['auth-index']);
+  const authIndex = normalizeAuthIndex(record?.['auth_index'] ?? record?.['auth-index']);
   if (authIndex) config.authIndex = authIndex;
   const pricingCatalog = normalizePrefix(record?.['pricing-catalog']);
   if (pricingCatalog) config.pricingCatalog = pricingCatalog;
   const usageProbe = normalizeUsageProbe(record?.['usage-probe']);
   if (usageProbe !== undefined) config.usageProbe = usageProbe;
+  const usageCaps = normalizeUsageCaps(record?.['usage-caps']);
+  if (Object.keys(usageCaps).length) config.usageCaps = usageCaps;
+  const usageCapBypassKeys = normalizeUsageCapBypassKeys(record?.['usage-cap-bypass-keys']);
+  if (usageCapBypassKeys.length) config.usageCapBypassKeys = usageCapBypassKeys;
   return config;
 };
 
@@ -326,7 +335,11 @@ const normalizeOpenAIProvider = (
   if (pricingCatalog) result.pricingCatalog = pricingCatalog;
   const usageProbe = normalizeUsageProbe(provider['usage-probe']);
   if (usageProbe !== undefined) result.usageProbe = usageProbe;
-  const authIndex = normalizeAuthIndex(provider['auth-index']);
+  const usageCaps = normalizeUsageCaps(provider['usage-caps']);
+  if (Object.keys(usageCaps).length) result.usageCaps = usageCaps;
+  const usageCapBypassKeys = normalizeUsageCapBypassKeys(provider['usage-cap-bypass-keys']);
+  if (usageCapBypassKeys.length) result.usageCapBypassKeys = usageCapBypassKeys;
+  const authIndex = normalizeAuthIndex(provider['auth_index'] ?? provider['auth-index']);
   if (authIndex) result.authIndex = authIndex;
   if (sourceIndex !== undefined) result.sourceIndex = sourceIndex;
   return result;

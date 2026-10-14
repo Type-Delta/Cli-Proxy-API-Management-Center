@@ -13,6 +13,7 @@ import { isRuntimeOnlyAuthFile, type QuotaProviderType } from '@/features/authFi
 import { Button } from '@/components/ui/Button';
 import { IconRefreshCw } from '@/components/ui/icons';
 import { bindQuotaClasses } from '@/features/quota/types';
+import { usageCapHitsById } from '@/features/quota/usageCaps';
 import { QUOTA_ADAPTERS, type QuotaCardState } from '@/features/quota/providers';
 import styles from './AuthFileQuota.module.scss';
 
@@ -52,6 +53,10 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
     if (quotaType === 'kiro') return state.kiroQuota[cacheKey] as QuotaCardState | undefined;
     if (quotaType === 'meta') return state.metaQuota[cacheKey] as QuotaCardState | undefined;
     if (quotaType === 'xai') return state.xaiQuota[cacheKey] as QuotaCardState | undefined;
+    if (quotaType === 'opencode-go') {
+      return state.opencodeGoQuota[cacheKey] as QuotaCardState | undefined;
+    }
+    if (quotaType === 'zai') return state.zaiQuota[cacheKey] as QuotaCardState | undefined;
     return assertNever(quotaType);
   });
   const quota = storedQuota;
@@ -208,6 +213,8 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
           quota={quota}
           classes={compactQuotaClasses}
           credential={{ displayName: getQuotaDisplayName(file) }}
+          usageCaps={file.usageCaps}
+          usageCapHits={usageCapHitsById(file.usageCapState)}
         />
       ) : (
         <div className={styles.quotaMessage}>{t(`${adapter.i18nPrefix}.idle`)}</div>

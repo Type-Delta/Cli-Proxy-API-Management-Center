@@ -12,12 +12,19 @@ import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import { quotaWindowTitle } from '../../windowGating';
+import { usageCapTooltip } from '../../usageCaps';
 import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
 const formatCredits = (value: number | null): string =>
   value === null ? '--' : new Intl.NumberFormat(undefined).format(value);
 
-export function ZaiQuotaBody({ quota, classes, credential }: QuotaBodyProps<ZaiQuotaState>) {
+export function ZaiQuotaBody({
+  quota,
+  classes,
+  credential,
+  usageCaps,
+  usageCapHits,
+}: QuotaBodyProps<ZaiQuotaState>) {
   const { t, i18n } = useTranslation();
   // Ahead of the early return below — hooks cannot be conditional.
   const now = useNow();
@@ -82,6 +89,12 @@ export function ZaiQuotaBody({ quota, classes, credential }: QuotaBodyProps<ZaiQ
                 hint: [creditsLabel, quotaWindowTitle(t, { soon, disabled: row.disabled })]
                   .filter(Boolean)
                   .join(' · '),
+                cap: usageCapTooltip(
+                  t,
+                  usageCaps?.[row.id],
+                  usageCapHits?.[row.id],
+                  i18n.resolvedLanguage
+                ),
               })}
             >
               <div className={classes.quotaRowHeader}>
@@ -100,6 +113,7 @@ export function ZaiQuotaBody({ quota, classes, credential }: QuotaBodyProps<ZaiQ
                 classes={classes}
                 index={index}
                 disabled={row.disabled}
+                capPercent={usageCaps?.[row.id]}
               />
             </div>
           );

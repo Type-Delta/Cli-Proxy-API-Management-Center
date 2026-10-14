@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import i18n from '@/i18n';
+import type { UsageCapHit } from './usageCaps';
 
 /**
  * Typed style contract for quota rendering.
@@ -59,6 +60,9 @@ export interface QuotaClassMap {
   quotaBarFillLow: string;
   /** Candy-striped fill for an allowance another window on the credential has blocked. */
   quotaBarFillDisabled: string;
+  quotaBarCapHigh: string;
+  quotaBarCapMedium: string;
+  quotaBarCapLow: string;
 }
 
 export const QUOTA_CLASS_KEYS: readonly (keyof QuotaClassMap)[] = [
@@ -99,6 +103,9 @@ export const QUOTA_CLASS_KEYS: readonly (keyof QuotaClassMap)[] = [
   'quotaBarFillMedium',
   'quotaBarFillLow',
   'quotaBarFillDisabled',
+  'quotaBarCapHigh',
+  'quotaBarCapMedium',
+  'quotaBarCapLow',
 ];
 
 /** Host CSS Module to typed contract. Missing keys throw, and `source` locates the host. */
@@ -125,6 +132,10 @@ export interface QuotaBodyProps<TState> {
    * first item of their meta column so every meta line stays in one stack.
    */
   leadingMeta?: ReactNode;
+  /** Minimum remaining percent keyed by provider bar ID. */
+  usageCaps?: Record<string, number>;
+  /** Active cap observations keyed by the same bar IDs. */
+  usageCapHits?: Record<string, UsageCapHit>;
 }
 
 /** Minimal credential context shared by the full quota card and compact hosts. */
@@ -147,6 +158,8 @@ export interface QuotaRowTooltipDetails {
   plan?: string | null;
   /** Existing provider-specific hint, such as the blocked-window explanation. */
   hint?: string | null;
+  /** Already-localized reserved cap explanation. */
+  cap?: string | null;
 }
 
 /**
@@ -181,6 +194,7 @@ export function buildQuotaRowTitle(
     weekdayPart,
     details.plan,
     details.hint,
+    details.cap,
   ]
     .map((value) => (typeof value === 'string' ? value.trim() : ''))
     .filter((value) => value !== '' && value !== '-');

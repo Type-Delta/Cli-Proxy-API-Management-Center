@@ -508,3 +508,18 @@
     transform: none;
   }
 }
+
+.cappedBadge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  width: fit-content;
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, var(--warning-border) 78%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warning-bg) 72%, transparent);
+  color: var(--warning-text);
+  font-size: 10.5px;
+  font-weight: 650;
+  line-height: 1.4;
+}
