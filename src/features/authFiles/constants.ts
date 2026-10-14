@@ -109,6 +109,15 @@ export const normalizeProviderKey = normalizeOAuthProviderKey;
 export const supportsAuthFileManualRefresh = (provider: unknown): boolean =>
   AUTH_FILE_MANUAL_REFRESH_PROVIDERS.has(normalizeProviderKey(String(provider ?? '')));
 
+/**
+ * Provider types of OAuth credentials, for the OAuth excluded-models and model-alias pickers.
+ * API-key credentials are listed only for their usage probe; OAuth rules never apply to them.
+ */
+export const oauthCredentialProviders = (files: readonly AuthFileItem[]): unknown[] =>
+  files
+    .filter((file) => !String(file.usageProbe ?? file['usage_probe'] ?? '').trim())
+    .flatMap((file) => [file.type, file.provider]);
+
 export const buildOAuthProviderOptions = (values: Iterable<unknown>): string[] => {
   const extraProviders = new Set<string>();
 

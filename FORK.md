@@ -1111,3 +1111,15 @@ field. Other ranges retain their existing widths.
 
 Validation: the analytics range regression test covers 1h → 15m, 6h → 30m, and the unchanged 24h
 hourly mapping. TypeScript compilation and lint pass.
+
+### DL054: OAuth rule editors skip API-key credentials
+
+The OAuth excluded-models and model-alias editors build their provider picker through one
+`oauthCredentialProviders` helper, which skips credentials that carry a `usage_probe`. Those are
+API-key entries (for example Z.AI or OpenCode Go under `openai-compatibility`) listed only so the
+quota page can poll them; CPA applies neither `oauth-excluded-models` nor OAuth aliases to API-key
+credentials, so offering them produced an unsupported model list and rules that never apply.
+
+Validation: a unit test covers the helper, and a CDP check against a CPA with a Kiro OAuth file
+plus Z.AI and OpenCode Go usage-probe keys showed only OAuth providers in both editors, with Kiro
+listing the Claude catalog served by CPA.

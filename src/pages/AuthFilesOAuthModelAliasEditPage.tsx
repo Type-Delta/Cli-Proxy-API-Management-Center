@@ -12,7 +12,11 @@ import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { useAuthStore, useNotificationStore } from '@/stores';
 import { authFilesApi } from '@/services/api';
-import { buildOAuthProviderOptions, normalizeProviderKey } from '@/features/authFiles/constants';
+import {
+  buildOAuthProviderOptions,
+  normalizeProviderKey,
+  oauthCredentialProviders,
+} from '@/features/authFiles/constants';
 import {
   getModelAliasDraftSignature,
   isOAuthEditorDirty,
@@ -83,21 +87,15 @@ export function AuthFilesOAuthModelAliasEditPage() {
     setProvider(providerFromParams);
   }, [providerFromParams]);
 
-  const providerOptions = useMemo(() => {
-    const extraProviders = new Set<string>();
-    Object.keys(excluded).forEach((value) => extraProviders.add(value));
-    Object.keys(modelAlias).forEach((value) => extraProviders.add(value));
-    files.forEach((file) => {
-      if (typeof file.type === 'string') {
-        extraProviders.add(file.type);
-      }
-      if (typeof file.provider === 'string') {
-        extraProviders.add(file.provider);
-      }
-    });
-
-    return buildOAuthProviderOptions(extraProviders);
-  }, [excluded, files, modelAlias]);
+  const providerOptions = useMemo(
+    () =>
+      buildOAuthProviderOptions([
+        ...Object.keys(excluded),
+        ...Object.keys(modelAlias),
+        ...oauthCredentialProviders(files),
+      ]),
+    [excluded, files, modelAlias]
+  );
 
   const resolvedProviderKey = useMemo(() => normalizeProviderKey(provider), [provider]);
   const isEditing = useMemo(() => {
