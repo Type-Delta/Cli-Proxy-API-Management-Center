@@ -1,3 +1,4 @@
+import { codexPlanLabelKey } from '@/utils/quota/planTier';
 import { getQuotaCacheKey, getQuotaDisplayName } from '@/utils/quota/identity';
 import type { QuotaFileEntry } from './logic';
 import type { QuotaProviderType } from './providers/types';
@@ -10,6 +11,8 @@ export interface QuotaSummaryWindow {
   resetAtMs: number | null;
   periodHours?: number | null;
   disabled?: boolean;
+  /** Absolute allowance of the window (credits, requests) when the provider reports one. */
+  capacity?: number | null;
 }
 
 export interface QuotaSummaryLine {
@@ -32,10 +35,13 @@ export interface QuotaProviderSummary {
   primaryRemainingPercent: number | null;
   secondaryLabel: string | null;
   secondaryRemainingPercent: number | null;
+  /** The largest plan, which 100% of `tierCapacityPercent` stands for. */
   tierLabel: string | null;
   tierCapacityPercent: number | null;
   lines: QuotaSummaryLine[];
   secondaryLines: QuotaSummaryLine[];
+  /** Soonest instant any credential becomes usable again; set only when every one is blocked. */
+  unblockAtMs: number | null;
 }
 
 /** Window IDs are deliberately explicit: recovery summaries must not pick a short window by accident. */
@@ -52,19 +58,25 @@ export const LONGEST_RECOVERY_WINDOW_MAP: Readonly<
   zai: ['weekly', 'daily'],
 };
 
-const CLAUDE_PLAN_VALUE: Record<string, number> = {
-  pro: 20,
-  max: 100,
-  max5: 100,
-  max20: 200,
-  team: 100,
-  free: 0,
+/**
+ * Relative usage allowance per plan, keyed by the provider's normalized plan id. Only ratios
+ * within one provider matter: a credential's share is its value over the largest one present.
+ */
+const PLAN_VALUE: Partial<Record<QuotaProviderType, Record<string, number>>> = {
+  claude: { pro: 20, max: 100, max5: 100, max20: 200, team: 100, free: 0 },
+  // × Plus. Business matches Plus (learn.chatgpt.com/docs/pricing); Pro 200 is 10×, Pro 100
+  // and Pro 500 scale with price. OpenAI publishes no Pro multipliers.
+  codex: { plus: 1, team: 1, prolite: 5, pro: 10, promax: 25 },
+  // Credits per 5 hours (docs.z.ai/devpack/overview).
+  zai: { lite: 2000, pro: 12000, max: 28000 },
 };
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
+
+const asString = (value: unknown): string | null => (typeof value === 'string' ? value : null);
 
 const asNumber = (value: unknown): number | null => {
   const number =
@@ -116,7 +128,8 @@ const getQuotaPlanLabel = (
   if (type === 'meta') return planLabel(asRecord(state.data)?.planName);
   if (type === 'xai') return planLabel(asRecord(state.billing)?.planLabel);
   if (type === 'zai') return planLabel(state.level);
-  if (type === 'opencode-go') return 'OpenCode Go';
+  if (type === 'opencode-go') return 'opencode_go_quota.plan_value';
+  if (type === 'codex') return codexPlanLabelKey(asString(state.planType));
   return planLabel(state.planType);
 };
 
@@ -198,6 +211,7 @@ const windowsFor = (type: QuotaProviderType, quota: QuotaCardState): QuotaSummar
           resetAtMs: resetMs(row.resetAtMs),
           periodHours: asNumber(row.periodHours),
           disabled: row.disabled === true,
+          capacity: limit,
         },
       ];
     });
@@ -218,6 +232,7 @@ const windowsFor = (type: QuotaProviderType, quota: QuotaCardState): QuotaSummar
           remainingPercent: remaining,
           resetAtMs: resetMs(row.resetAtMs),
           periodHours: null,
+          capacity: limit,
         },
       ];
     });
@@ -349,12 +364,62 @@ export function percentageOfLargestTier(value: number, largestTierValue: number)
   return Math.round((value / largestTierValue) * 10000) / 100;
 }
 
-const claudePlanValue = (quota: QuotaCardState | undefined): number | null => {
+/** Raw plan id each provider reports, before normalization. */
+const rawPlanId = (type: QuotaProviderType, state: Record<string, unknown>): unknown => {
+  if (type === 'antigravity') return asRecord(state.subscription)?.plan;
+  if (type === 'devin') return state.plan;
+  if (type === 'kiro') return asRecord(state.subscription)?.type;
+  if (type === 'meta') return asRecord(state.data)?.planName;
+  if (type === 'xai') return asRecord(state.billing)?.planLabel;
+  if (type === 'zai') return state.level;
+  return state.planType;
+};
+
+/**
+ * A credential's plan size: the window's own allowance when the provider reports one (Kiro
+ * credits, Kimi requests), otherwise its plan's entry in PLAN_VALUE; null when unknown.
+ */
+const planValue = (
+  type: QuotaProviderType,
+  quota: QuotaCardState | undefined,
+  window?: QuotaSummaryWindow | null
+): number | null => {
   if (!quota || quota.status !== 'success') return null;
-  const plan = normalizedPlan(asRecord(quota)?.planType);
-  return Object.prototype.hasOwnProperty.call(CLAUDE_PLAN_VALUE, plan)
-    ? CLAUDE_PLAN_VALUE[plan]
-    : null;
+  if (window?.capacity != null && window.capacity > 0) return window.capacity;
+  const table = PLAN_VALUE[type];
+  const plan = normalizedPlan(rawPlanId(type, asRecord(quota) ?? {})).replace(/[^a-z0-9]/g, '');
+  return table && Object.prototype.hasOwnProperty.call(table, plan) ? table[plan] : null;
+};
+
+/**
+ * When a credential becomes usable again: undefined while some window can still be spent (or the
+ * quota is not loaded), null when it is blocked with no known recovery (an error, or a spent
+ * window without a reset instant), otherwise the reset that frees it. Gated windows (`disabled`)
+ * wait for every spent blocker, so the last reset wins; independent buckets free the credential
+ * as soon as the first one resets.
+ */
+const credentialUnblockMs = (
+  quota: QuotaCardState | undefined,
+  windows: QuotaSummaryWindow[]
+): number | null | undefined => {
+  if (quota?.status === 'error') return null;
+  if (quota?.status !== 'success') return undefined;
+  const known = windows.filter((window) => window.remainingPercent !== null);
+  const isSpent = (window: QuotaSummaryWindow) => (window.remainingPercent as number) <= 0;
+  if (known.length === 0 || known.some((window) => !isSpent(window) && !window.disabled)) {
+    return undefined;
+  }
+  const resets = known.filter(isSpent).map((window) => window.resetAtMs);
+  if (resets.length === 0 || resets.some((value) => value === null)) return null;
+  const times = resets as number[];
+  return known.some((window) => window.disabled) ? Math.max(...times) : Math.min(...times);
+};
+
+/** Soonest recovery across a provider's credentials, only when none of them is usable now. */
+const providerUnblockMs = (unblocks: (number | null | undefined)[]): number | null => {
+  if (unblocks.length === 0 || unblocks.some((value) => value === undefined)) return null;
+  const known = unblocks.filter((value): value is number => typeof value === 'number');
+  return known.length ? Math.min(...known) : null;
 };
 
 export function aggregateQuotaSummaries(
@@ -369,6 +434,9 @@ export function aggregateQuotaSummaries(
       return { entry, quota, windows: quota ? windowsFor(type, quota) : [] };
     });
     const loaded = records.filter(({ quota }) => quota?.status === 'success');
+    const unblockAtMs = providerUnblockMs(
+      records.map(({ quota, windows }) => credentialUnblockMs(quota, windows))
+    );
     const linesFor = (id: string, largestPlanValue?: number): QuotaSummaryLine[] =>
       records.flatMap(({ entry, quota, windows }) => {
         if (!quota || quota.status !== 'success') return [];
@@ -376,13 +444,10 @@ export function aggregateQuotaSummaries(
         if (!window) return [];
         const state = quota as QuotaCardState & Record<string, unknown>;
         const plan = getQuotaPlanLabel(type, state);
-        const planValue = type === 'claude' ? claudePlanValue(quota) : null;
+        const value = planValue(type, quota);
         const capacityPercent =
-          type === 'claude' &&
-          largestPlanValue !== undefined &&
-          largestPlanValue > 0 &&
-          planValue !== null
-            ? percentageOfLargestTier(planValue, largestPlanValue)
+          largestPlanValue !== undefined && largestPlanValue > 0 && value !== null
+            ? percentageOfLargestTier(value, largestPlanValue)
             : undefined;
         return [
           {
@@ -403,25 +468,37 @@ export function aggregateQuotaSummaries(
         .map((window) => window?.label)
         .filter((label): label is string => Boolean(label));
       const providerPrimaryLabel = labels[0] ?? 'Quota';
-      const selectedRemaining = selected
-        .map((window) => window?.remainingPercent ?? null)
-        .filter((value): value is number => value !== null);
-      const providerPrimaryRemaining = selectedRemaining.length
-        ? selectedRemaining.reduce((sum, value) => sum + value, 0)
-        : null;
+      const plans = records.map(({ quota }) =>
+        quota?.status === 'success' ? getQuotaPlanLabel(type, asRecord(quota)) : null
+      );
+      // Credentials with a known reading count toward capacity, each by its plan size. When a size
+      // is unknown they all count equally, which names a plan only if they share one.
+      const counted = selected.map(
+        (window, index) =>
+          records[index].quota?.status === 'success' && window?.remainingPercent != null
+      );
+      const known = records.map(({ quota }, index) => planValue(type, quota, selected[index]));
+      const sized = counted.every((on, index) => !on || known[index] !== null);
+      const countedPlans = plans.filter((_, index) => counted[index]);
+      const named =
+        sized || countedPlans.every((plan) => plan !== null && plan === countedPlans[0]);
+      const values = counted.map((on, index) => (!on ? 0 : sized ? (known[index] ?? 0) : 1));
+      const largest = Math.max(0, ...values);
       const lines = selected.flatMap((window, index) => {
         if (!window) return [];
         const record = records[index];
-        const state = asRecord(record.quota);
         return [
           {
             key: `${type}:${getQuotaCacheKey(record.entry.file)}`,
             credential: getQuotaDisplayName(record.entry.file),
             remainingPercent: window.remainingPercent,
             resetAtMs: window.resetAtMs,
-            plan: getQuotaPlanLabel(type, state),
+            plan: plans[index],
             windowLabel: window.label,
             disabled: window.disabled,
+            ...(counted[index] && largest > 0
+              ? { capacityPercent: percentageOfLargestTier(values[index], largest) }
+              : {}),
           },
         ];
       });
@@ -430,25 +507,32 @@ export function aggregateQuotaSummaries(
         credentialCount: providerEntries.length,
         loadedCount: loaded.length,
         primaryLabel: providerPrimaryLabel,
-        primaryRemainingPercent: providerPrimaryRemaining,
+        // Unrounded: credit-based windows report fractional usage worth keeping.
+        primaryRemainingPercent:
+          largest > 0
+            ? selected.reduce(
+                (sum, window, index) => sum + (window?.remainingPercent ?? 0) * values[index],
+                0
+              ) / largest
+            : null,
         secondaryLabel: null,
         secondaryRemainingPercent: null,
-        tierLabel: null,
+        tierLabel: named && largest > 0 ? plans[values.indexOf(largest)] : null,
         tierCapacityPercent:
-          type === 'xai'
-            ? selectedRemaining.length
-              ? selectedRemaining.length * 100
-              : null
-            : providerEntries.length
-              ? providerEntries.length * 100
-              : null,
+          largest > 0
+            ? percentageOfLargestTier(
+                values.reduce((sum, value) => sum + value, 0),
+                largest
+              )
+            : null,
         lines,
         secondaryLines: [],
+        unblockAtMs,
       };
     }
 
     const windowsByCredential = records.map(({ windows }) => windows);
-    const planValuesByCredential = records.map(({ quota }) => claudePlanValue(quota));
+    const planValuesByCredential = records.map(({ quota }) => planValue(type, quota));
     const primaryId = selectClaudePrimaryWindow(windowsByCredential, planValuesByCredential);
     const secondaryId = primaryId === 'seven-day-fable' ? 'seven-day' : 'seven-day-fable';
     const primaryLabel =
@@ -496,6 +580,7 @@ export function aggregateQuotaSummaries(
       tierCapacityPercent,
       lines,
       secondaryLines,
+      unblockAtMs,
     };
   });
 }

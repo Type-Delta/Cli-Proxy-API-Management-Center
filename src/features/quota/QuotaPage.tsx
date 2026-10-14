@@ -182,6 +182,11 @@ export function QuotaPage() {
 
   const entries = useMemo(() => classifyQuotaFiles(files), [files]);
   const tabCounts = useMemo(() => buildTabCounts(entries), [entries]);
+  // Providers without credentials stay hidden unless a persisted selection still points at one.
+  const visibleTabs = useMemo(
+    () => TAB_IDS.filter((id) => id === 'all' || id === tab || (tabCounts[id] ?? 0) > 0),
+    [tabCounts, tab]
+  );
   const filteredEntries = useMemo(
     () => filterEntriesBySearch(filterEntriesByTab(entries, tab), search),
     [entries, tab, search]
@@ -348,7 +353,7 @@ export function QuotaPage() {
         {/* Provider navigation and the search toolbar stay on separate layers so the controls do not compete. */}
         <div className={styles.tabsRow} data-reveal>
           <ProviderTabs
-            types={TAB_IDS}
+            types={visibleTabs}
             counts={tabCounts}
             active={tab}
             resolvedTheme={resolvedTheme}
@@ -411,7 +416,7 @@ export function QuotaPage() {
         {loading ? (
           <div className={styles.grid} aria-hidden="true">
             {Array.from({ length: SKELETON_CARD_COUNT }, (_, index) => (
-              <Skeleton key={index} height={72} rounded={0} />
+              <Skeleton key={index} height={72} className={styles.skeletonRow} />
             ))}
           </div>
         ) : isEmpty ? (

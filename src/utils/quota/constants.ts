@@ -46,6 +46,14 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#e0f7fa', text: '#006064' },
     dark: { bg: '#004d40', text: '#80deea' },
   },
+  zai: {
+    light: { bg: '#e4ecff', text: '#1f4fd1' },
+    dark: { bg: '#172f73', text: '#9bb5ff' },
+  },
+  'opencode-go': {
+    light: { bg: '#eceff3', text: '#334155' },
+    dark: { bg: '#273241', text: '#cbd5e1' },
+  },
   xai: {
     light: { bg: '#f3f4f6', text: '#111827', border: '1px solid #d1d5db' },
     dark: { bg: '#111827', text: '#f9fafb', border: '1px solid #374151' },

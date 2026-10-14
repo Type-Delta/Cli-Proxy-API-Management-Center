@@ -1509,7 +1509,6 @@
     "expires_label": "Renewal time",
     "credit_balance_label": "Credit balance",
     "credit_unlimited": "Unlimited",
-    "reset_credits_label": "Manual resets",
     "reset_credits_expiry_label": "Manual reset expiry ({{timezone}})",
     "reset_credit_number": "Reset {{index}}",
     "reset_credit_count_one": "{{count}} reset",
@@ -1527,6 +1526,7 @@
     "plan_free": "Free",
     "plan_pro": "Pro 200",
     "plan_prolite": "Pro 100",
+    "plan_promax": "Pro 500",
     "plan_business_premium": "Business Premium"
   },
   "devin_quota": {
@@ -2663,6 +2663,7 @@
     "summary_reset_unknown": "reset unknown",
     "summary_resets": "resets {{absolute}} ({{relative}})",
     "summary_of": "of",
+    "summary_unblock": "Unblock",
     "summary_breakdown": "Credential quota breakdown",
     "summary_show": "Show",
     "summary_hide": "Hide",

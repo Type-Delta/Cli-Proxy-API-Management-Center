@@ -197,6 +197,22 @@
   gap: 0;
 }
 
+/* The end rows share the summary grid's 14px corners, so a hovered row (or the loading
+ * skeleton) reads as one rounded list. */
+.grid > .skeletonRow {
+  border-radius: 0;
+}
+
+.grid > :first-child {
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+}
+
+.grid > :last-child {
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
 /* ---------- Pagination ---------- */
 
 .pagination {

@@ -108,15 +108,7 @@ export function KiroQuotaBody({ quota, classes, credential }: QuotaBodyProps<Kir
                     )}
                   </div>
                 </div>
-                <div
-                  role={percent === null ? undefined : 'meter'}
-                  aria-label={label}
-                  aria-valuemin={percent === null ? undefined : 0}
-                  aria-valuemax={percent === null ? undefined : 100}
-                  aria-valuenow={percent === null ? undefined : percent}
-                >
-                  <QuotaMeter percent={percent} classes={classes} index={index} />
-                </div>
+                <QuotaMeter percent={percent} classes={classes} index={index} label={label} />
                 <div className={classes.quotaAmount}>
                   {amount}
                   {overage}

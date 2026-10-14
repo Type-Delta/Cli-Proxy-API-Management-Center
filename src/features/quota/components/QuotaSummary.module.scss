@@ -9,9 +9,9 @@ $card-surface: color-mix(in srgb, var(--bg-primary) 82%, transparent);
   container-type: inline-size;
 }
 
-/* Provider columns wrap onto the next row instead of scrolling sideways. The dividers
- * are the 1px gaps showing the grid's own border colour through. The tail element below
- * covers the unused cells in a partial row, so the divider colour cannot pool there. */
+/* Provider columns wrap onto the next row instead of scrolling sideways. The grid wears the
+ * card surface, so unused cells in a partial row match the cards; each card's outline fills the
+ * 1px gaps around it to draw the dividers. */
 .grid {
   display: grid;
   grid-template-columns: repeat(var(--summary-columns), minmax(0, 1fr));
@@ -19,14 +19,7 @@ $card-surface: color-mix(in srgb, var(--bg-primary) 82%, transparent);
   overflow: hidden;
   border: 1px solid var(--border-color);
   border-radius: 14px;
-  background: var(--border-color);
-}
-
-.grid::after {
-  content: '';
-  grid-column: auto / -1;
-  min-height: 0;
-  background: $card-surface;
+  background: linear-gradient($card-surface, $card-surface), var(--border-color);
 }
 
 .card {
@@ -37,12 +30,7 @@ $card-surface: color-mix(in srgb, var(--bg-primary) 82%, transparent);
   gap: 8px;
   min-height: 178px;
   padding: 16px;
-  background: $card-surface;
-  transition: background-color 180ms ease;
-}
-
-.active {
-  background: $card-surface;
+  outline: 1px solid var(--border-color);
 }
 
 .cardButton {
@@ -203,11 +191,23 @@ $card-surface: color-mix(in srgb, var(--bg-primary) 82%, transparent);
 }
 
 .resetLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
   min-height: 15px;
   font-family: $font-mono;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* Every credential is blocked: when the first one comes back, pinned right. Ordered after the
+ * shared reset label, which carries `order: 4` for the quota-row layout. */
+.unblock {
+  order: 5;
+  margin-left: auto;
+  color: var(--text-tertiary);
 }
 
 .secondaryRow {
@@ -257,15 +257,5 @@ $card-surface: color-mix(in srgb, var(--bg-primary) 82%, transparent);
 @include mobile {
   .grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .grid::after {
-    display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card {
-    transition: none;
   }
 }

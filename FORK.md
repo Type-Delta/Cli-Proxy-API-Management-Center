@@ -1045,6 +1045,37 @@ Reset instants share one format: resets within six local calendar days read as w
 (`Mon, 10:32`), later or past instants keep `MM/DD, HH:mm`. The summary reset line reuses the shared
 reset label, so it reads absolute time first and countdown second like the rows.
 
+List polish: the first and last quota rows (and the loading skeleton) take the summary grid's 14px
+corners, so the hover wash reads as one rounded list. The quota area is capped at 960px; once a row
+is wide enough that the capped body cannot reach under the actions, the actions centre vertically
+on the whole row instead of the identity line. Codex rows drop the "Manual resets" count because the
+reset-credit stack already shows it. `QuotaMeter` takes an optional `label` and carries the meter
+role itself, so Kiro, Meta, and Devin no longer wrap the bar in a div that collapsed it to zero
+width. Provider tabs without credentials are hidden, except a persisted selection.
+Validation: CDP checks at 1900, 1300, and 390px against a mock backend with Kiro credit data, plus
+the full test suite, lint, type-check, and build. The test suite still has the legacy-backend probe
+failure, and also fails `tooltipProvider` when `happy-dom` is missing from local dependencies.
+
+Summary and windows follow-up: the Quota windows chart now draws Z.AI lanes from their reported
+window lengths and OpenCode Go lanes from the fixed rolling (5h), weekly, and monthly windows. Both
+get their own lane colours, and both have official LobeHub marks (light and dark) in the shared
+provider icon table. Every provider's summary now weights credentials by plan size the way Claude
+does: 100% is the largest plan present, which the tier names (`of 110% Pro 200` for Pro 200 + Plus),
+and bar widths follow each plan's share. Sizes come from the window's own allowance where the
+provider reports one (Kiro credits, Kimi requests), else from `PLAN_VALUE` in `quotaSummary.ts`:
+Codex in multiples of Plus (Business 1×, Pro 100 5×, Pro 200 10×, Pro 500 `pro max` 25×; OpenAI
+publishes no Pro multipliers) and Z.AI by 5-hour credits (Lite 2,000, Pro 12,000, Max 28,000 per
+docs.z.ai). Providers without published sizes count each credential equally and name a plan only
+when they all share it. Only credentials with a reading count, so errored ones no longer inflate
+the capacity. OpenCode Go's basis reads `Go`, and Codex Pro 500 gets its own name and the elite
+badge. The summary grid wears the card surface itself, with outline dividers per card, so a partial
+last row no longer shows the divider colour in its empty cells. Codex plan names come from one
+shared helper. When no credential of a
+provider can be used (each is errored, or spent with no unblocked window left), the summary card
+shows `Unblock in <countdown>` right-aligned on the reset line. Its tooltip holds the absolute time
+and countdown. Gated windows wait for their last reset; independent buckets free the credential at
+the first one.
+
 ### DL051: Upstream v1.25.4 sync with v8 contract preservation
 
 Status: integrated in merge commit `ed24daa0e210e3d4ce49f64cae8120457bc73c32`

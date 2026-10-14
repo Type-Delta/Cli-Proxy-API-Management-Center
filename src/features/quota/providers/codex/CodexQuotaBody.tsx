@@ -7,9 +7,8 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CodexQuotaState } from '@/types';
 import {
-  normalizePlanType,
+  codexPlanLabelKey,
   resolvePlanTier,
-  PREMIUM_CODEX_PLAN_TYPES,
   buildResetDisplay,
   parseIsoToMs,
   resolveResetMs,
@@ -46,27 +45,11 @@ export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<Co
   const subscriptionActiveUntil = quota.subscriptionActiveUntil ?? null;
   const creditBalance = quota.creditBalance ?? null;
   const creditsUnlimited = quota.creditsUnlimited === true;
-  const rateLimitResetCreditsAvailableCount = quota.rateLimitResetCreditsAvailableCount ?? null;
   const rateLimitResetCredits = quota.rateLimitResetCredits ?? [];
   const rateLimitResetCreditsError = quota.rateLimitResetCreditsError ?? '';
 
-  const getPlanLabel = (pt?: string | null): string | null => {
-    const normalized = normalizePlanType(pt);
-    if (!normalized) return null;
-    if (normalized === 'self_serve_business_prolite') {
-      return t('codex_quota.plan_business_premium');
-    }
-    if (normalized === 'pro') return t('codex_quota.plan_pro');
-    if (PREMIUM_CODEX_PLAN_TYPES.has(normalized) && normalized !== 'pro') {
-      return t('codex_quota.plan_prolite');
-    }
-    if (normalized === 'plus') return t('codex_quota.plan_plus');
-    if (normalized === 'team') return t('codex_quota.plan_team');
-    if (normalized === 'free') return t('codex_quota.plan_free');
-    return pt || normalized;
-  };
-
-  const planLabel = getPlanLabel(planType);
+  const planLabelKey = codexPlanLabelKey(planType);
+  const planLabel = planLabelKey && t(planLabelKey, { defaultValue: planLabelKey });
   const planValueClass = getPlanValueClass(planType, classes);
 
   // Renewal was the one date on this card in a different shape (a full
@@ -88,15 +71,10 @@ export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<Co
         expiryDisplay ||
         creditsUnlimited ||
         creditBalance !== null ||
-        rateLimitResetCreditsAvailableCount !== null ||
         rateLimitResetCredits.length > 0 ||
         rateLimitResetCreditsError) && (
         <div className={classes.metaColumn}>
-          {(planLabel ||
-            expiryDisplay ||
-            creditsUnlimited ||
-            creditBalance !== null ||
-            rateLimitResetCreditsAvailableCount !== null) && (
+          {(planLabel || expiryDisplay || creditsUnlimited || creditBalance !== null) && (
             <div className={classes.planMeta}>
               {planLabel && (
                 <span className={classes.planMetaItem}>
@@ -120,16 +98,6 @@ export function CodexQuotaBody({ quota, classes, credential }: QuotaBodyProps<Co
                   </span>
                   <span className={classes.planMetaValue}>
                     {creditsUnlimited ? t('codex_quota.credit_unlimited') : creditBalance}
-                  </span>
-                </span>
-              )}
-              {rateLimitResetCreditsAvailableCount !== null && (
-                <span className={classes.planMetaItem}>
-                  <span className={classes.planMetaLabel}>
-                    {t('codex_quota.reset_credits_label')}
-                  </span>
-                  <span className={classes.planMetaValue}>
-                    {rateLimitResetCreditsAvailableCount.toString()}
                   </span>
                 </span>
               )}

@@ -374,6 +374,71 @@ describe('buildTimelineLane', () => {
     ]);
   });
 
+  test('zai: anchors on the longest fitting window and keeps its label params', () => {
+    const lane = buildTimelineLane({
+      ...base,
+      provider: 'zai',
+      quota: {
+        status: 'success',
+        windows: [
+          {
+            id: 'zai-five-hour',
+            labelKey: 'zai_quota.five_hour',
+            labelParams: { number: 5 },
+            usedPercent: 36,
+            resetAtMs: 5000,
+            periodHours: 5,
+          },
+          {
+            id: 'zai-weekly',
+            labelKey: 'zai_quota.weekly',
+            usedPercent: 22,
+            resetAtMs: 9000,
+            periodHours: 168,
+          },
+        ],
+      },
+      maxPeriodHours: 14 * 24,
+    });
+
+    expect(lane.anchorMs).toBe(9000);
+    expect(lane.periodHours).toBe(168);
+    expect(lane.remaining).toBe(78);
+    expect(lane.limits).toEqual([
+      { label: 'zai_quota.five_hour', labelParams: { number: 5 }, remaining: 64 },
+      { label: 'zai_quota.weekly', remaining: 78 },
+    ]);
+  });
+
+  test('opencode-go: derives window lengths from the fixed rolling / weekly / monthly ids', () => {
+    const quota = {
+      status: 'success',
+      windows: [
+        { id: 'opencode-go-rolling', labelKey: 'r', usedPercent: 18, resetAtMs: 5000 },
+        { id: 'opencode-go-weekly', labelKey: 'w', usedPercent: 42, resetAtMs: 9000 },
+        { id: 'opencode-go-monthly', labelKey: 'm', usedPercent: 26, resetAtMs: at(2026, 10, 1) },
+      ],
+    };
+    const weekly = buildTimelineLane({
+      ...base,
+      provider: 'opencode-go',
+      quota,
+      maxPeriodHours: 14 * 24,
+    });
+    const session = buildTimelineLane({
+      ...base,
+      provider: 'opencode-go',
+      quota,
+      maxPeriodHours: 5,
+    });
+
+    expect(weekly.anchorMs).toBe(9000);
+    expect(weekly.periodHours).toBe(168);
+    expect(weekly.remaining).toBe(58);
+    expect(session.periodHours).toBe(5);
+    expect(session.remaining).toBe(82);
+  });
+
   test('antigravity anchors on its bucket reset, with remaining from the fraction', () => {
     const lane = buildTimelineLane({
       ...base,

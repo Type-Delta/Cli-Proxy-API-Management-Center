@@ -29,6 +29,8 @@ const SESSION_PERIOD_HOURS = 5;
 /** A limit summarized in the lane's left column. */
 export interface TimelineLimit {
   label: string;
+  /** Interpolation values when `label` is an i18n key. */
+  labelParams?: Record<string, string | number>;
   /** Remaining percent, 0..100. */
   remaining: number;
 }
@@ -574,6 +576,40 @@ export function buildTimelineLane(input: TimelineLaneInput): TimelineLane {
       limits: windows
         .map((window) => ({ label: labelOf(window), remaining: remainingOf(window) }))
         .filter((limit): limit is TimelineLimit => limit.remaining !== null),
+    };
+  }
+
+  if (provider === 'zai' || provider === 'opencode-go') {
+    // Both store percent USED. OpenCode Go reports fixed rolling / weekly / monthly windows
+    // without a length, so the period comes from the window id.
+    const periodFor = (window: WindowLike & { periodHours?: number | null }) => {
+      if (provider === 'zai') return window.periodHours ?? null;
+      if (window.id === 'opencode-go-rolling') return SESSION_PERIOD_HOURS;
+      if (window.id === 'opencode-go-weekly') return 7 * 24;
+      return monthlyPeriodHours(window.resetAtMs as number);
+    };
+    const windows = (
+      (quota as { windows?: (WindowLike & { labelParams?: Record<string, string | number> })[] })
+        .windows ?? []
+    )
+      .filter((window) => typeof window.resetAtMs === 'number')
+      .map((window) => ({ ...window, periodHours: periodFor(window) }));
+    const chosen = pickLaneWindow(windows, maxPeriodHours);
+    if (!chosen) return empty;
+
+    return {
+      ...empty,
+      anchorMs: chosen.resetAtMs ?? null,
+      periodHours: chosen.periodHours,
+      remaining:
+        typeof chosen.usedPercent === 'number' ? clampPercent(100 - chosen.usedPercent) : null,
+      limits: windows
+        .filter((window) => typeof window.usedPercent === 'number')
+        .map((window) => ({
+          label: window.labelKey ?? window.label ?? window.id ?? '',
+          labelParams: window.labelParams,
+          remaining: clampPercent(100 - (window.usedPercent as number)),
+        })),
     };
   }
 

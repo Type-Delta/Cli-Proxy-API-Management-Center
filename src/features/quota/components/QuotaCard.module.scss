@@ -134,6 +134,7 @@
 .body > [class*='__quotaArea___'] {
   flex: 1 1 200px;
   min-width: 200px;
+  max-width: 960px;
 }
 
 .body > [class*='__quotaArea___']:has(> :nth-child(2)) {
@@ -356,6 +357,20 @@
 @keyframes quota-card-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Wide rows: once the row fits the widest body (300px meta + 18px gap + 960px quota area)
+ * beside the widest action group (~222px), the quota area never reaches under the actions.
+ * The body then keeps to the first column and the actions centre on the whole row instead
+ * of riding the identity line. */
+@container quota-card (min-width: 1520px) {
+  .body {
+    grid-column: 1;
+  }
+
+  .actionRow {
+    grid-row: 1 / span 2;
   }
 }
 

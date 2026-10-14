@@ -176,6 +176,8 @@ describe('CodexQuotaBody', () => {
     // header no longer repeats "Reset 1", which now only prefixes a list line.
     expect(markup).toContain('title="codex-pro-01 · Pro 200\nReset 1: ');
     expect(markup).not.toMatch(/title="codex-pro-01 · Reset 1/);
+    // The reset stack already carries the count; the plan meta does not repeat it.
+    expect(markup).not.toContain('Manual resets');
   });
 
   test('keeps a single reset credit on the one-line tooltip', () => {
@@ -399,6 +401,8 @@ describe('KiroQuotaBody', () => {
     expect(markup).toContain('9,990.11 credits left');
     expect(markup).toContain(formatQuotaPercent(remainingPercent));
     expect(markup).toContain(`aria-valuenow="${remainingPercent}"`);
+    // The bar itself is the meter: a wrapper would steal its flex slot in the row.
+    expect(markup).toContain('<div class="quotaBar" role="meter" aria-label="Credits"');
     expect(markup).not.toContain('CREDIT');
     expect(markup).not.toContain('Agentic requests');
     expect(markup).not.toContain('requests left');

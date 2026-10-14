@@ -8,7 +8,8 @@
  * already spent, so this allowance exists but cannot be used right now.
  *
  * `index` is written to `--meter-index` for the full-page host's per-row entrance stagger;
- * the compact host ignores it.
+ * the compact host ignores it. `label` exposes a known level as an ARIA meter on the bar itself,
+ * so hosts never wrap the bar (a wrapper would steal its flex slot in the quota row).
  */
 
 import type { CSSProperties } from 'react';
@@ -23,9 +24,11 @@ export interface QuotaMeterProps {
   index?: number;
   /** Another window on this credential is spent; show the level but mark it unusable. */
   disabled?: boolean;
+  /** Accessible name; when set and the level is known, the bar is announced as a meter. */
+  label?: string;
 }
 
-export function QuotaMeter({ percent, classes, index, disabled }: QuotaMeterProps) {
+export function QuotaMeter({ percent, classes, index, disabled, label }: QuotaMeterProps) {
   const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
   const normalized = percent === null ? null : clamp(percent, 0, 100);
   const fillClass =
@@ -46,8 +49,19 @@ export function QuotaMeter({ percent, classes, index, disabled }: QuotaMeterProp
     ? `${classes.quotaBarFill} ${classes.quotaBarFillDisabled}`
     : `${classes.quotaBarFill} ${fillClass}`;
 
+  const meter =
+    label && normalized !== null
+      ? {
+          role: 'meter',
+          'aria-label': label,
+          'aria-valuemin': 0,
+          'aria-valuemax': 100,
+          'aria-valuenow': normalized,
+        }
+      : undefined;
+
   return (
-    <div className={classes.quotaBar}>
+    <div className={classes.quotaBar} {...meter}>
       <div className={fillClasses} style={style} />
     </div>
   );

@@ -8,6 +8,7 @@ import {
   PREMIUM_CODEX_PLAN_TYPES,
   resolvePlanTier,
 } from '@/utils/quota';
+import { codexPlanLabelKey } from '@/utils/quota/planTier';
 
 describe('Codex Pro display names', () => {
   for (const [locale, messages] of Object.entries({ en, 'zh-CN': zhCN, 'zh-TW': zhTW, ru })) {
@@ -30,6 +31,13 @@ describe('resolvePlanTier', () => {
     expect(resolvePlanTier('PRO')).toBe('elite');
     expect(resolvePlanTier('  Pro  ')).toBe('elite');
     expect(resolvePlanTier('Pro-Lite')).toBe('premium');
+  });
+
+  test('gives every Pro 500 spelling the elite badge and its own name', () => {
+    for (const plan of ['pro max', 'Pro_Max', 'pro-max', 'promax']) {
+      expect(resolvePlanTier(plan)).toBe('elite');
+      expect(codexPlanLabelKey(plan)).toBe('codex_quota.plan_promax');
+    }
   });
 
   test('maps every pro-lite spelling to premium', () => {

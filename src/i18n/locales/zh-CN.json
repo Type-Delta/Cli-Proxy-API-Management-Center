@@ -1507,7 +1507,6 @@
     "expires_label": "续期时间",
     "credit_balance_label": "Credit 余额",
     "credit_unlimited": "无限额",
-    "reset_credits_label": "主动重置次数",
     "reset_credits_expiry_label": "主动重置过期时间（{{timezone}}）",
     "reset_credit_number": "第 {{index}} 次",
     "reset_credit_count_other": "{{count}} 次",
@@ -1524,6 +1523,7 @@
     "plan_free": "Free",
     "plan_pro": "Pro 200",
     "plan_prolite": "Pro 100",
+    "plan_promax": "Pro 500",
     "plan_business_premium": "Business Premium"
   },
   "devin_quota": {
@@ -2660,6 +2660,7 @@
     "summary_reset_unknown": "重置时间未知",
     "summary_resets": "重置于 {{absolute}}（{{relative}}）",
     "summary_of": "共",
+    "summary_unblock": "解除阻塞",
     "summary_breakdown": "凭证额度明细",
     "summary_show": "显示",
     "summary_hide": "隐藏",

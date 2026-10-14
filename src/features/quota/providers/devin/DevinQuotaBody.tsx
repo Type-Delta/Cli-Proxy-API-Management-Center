@@ -71,15 +71,12 @@ export function DevinQuotaBody({ quota, classes, credential }: QuotaBodyProps<De
                   )}
                 </div>
               </div>
-              <div
-                role={window.remainingPercent === null ? undefined : 'meter'}
-                aria-label={window.remainingPercent === null ? undefined : label}
-                aria-valuemin={window.remainingPercent === null ? undefined : 0}
-                aria-valuemax={window.remainingPercent === null ? undefined : 100}
-                aria-valuenow={window.remainingPercent ?? undefined}
-              >
-                <QuotaMeter percent={window.remainingPercent} classes={classes} index={index} />
-              </div>
+              <QuotaMeter
+                percent={window.remainingPercent}
+                classes={classes}
+                index={index}
+                label={label}
+              />
             </div>
           );
         })}

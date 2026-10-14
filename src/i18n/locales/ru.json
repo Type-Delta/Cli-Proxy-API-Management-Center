@@ -1512,7 +1512,6 @@
     "expires_label": "Истекает",
     "credit_balance_label": "Остаток кредитов",
     "credit_unlimited": "Без ограничений",
-    "reset_credits_label": "Ручные сбросы",
     "reset_credits_expiry_label": "Срок действия ручных сбросов ({{timezone}})",
     "reset_credit_number": "Сброс {{index}}",
     "reset_credit_count_one": "{{count}} сброс",
@@ -1532,6 +1531,7 @@
     "plan_free": "Free",
     "plan_pro": "Pro 200",
     "plan_prolite": "Pro 100",
+    "plan_promax": "Pro 500",
     "plan_business_premium": "Business Premium"
   },
   "devin_quota": {
@@ -2668,6 +2668,7 @@
     "summary_reset_unknown": "время сброса неизвестно",
     "summary_resets": "сброс {{absolute}} ({{relative}})",
     "summary_of": "из",
+    "summary_unblock": "Разблокировка",
     "summary_breakdown": "Разбивка квоты по учетным данным",
     "summary_show": "Показать",
     "summary_hide": "Скрыть",

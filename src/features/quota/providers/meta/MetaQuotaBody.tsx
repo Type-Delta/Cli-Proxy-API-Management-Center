@@ -89,15 +89,7 @@ export function MetaQuotaBody({ quota, classes, credential }: QuotaBodyProps<Met
                   )}
                 </div>
               </div>
-              <div
-                role={remaining === null ? undefined : 'meter'}
-                aria-label={remaining === null ? undefined : label}
-                aria-valuemin={remaining === null ? undefined : 0}
-                aria-valuemax={remaining === null ? undefined : 100}
-                aria-valuenow={remaining ?? undefined}
-              >
-                <QuotaMeter percent={remaining} classes={classes} index={index} />
-              </div>
+              <QuotaMeter percent={remaining} classes={classes} index={index} label={label} />
             </div>
           );
         })}

@@ -34,6 +34,8 @@ import type { QuotaCardState } from '../providers';
 import styles from './QuotaTimeline.module.scss';
 
 const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+/** Providers whose lane limit labels are i18n keys rather than display text. */
+const KEYED_LIMIT_PROVIDERS = new Set(['meta', 'kiro', 'zai', 'opencode-go']);
 
 const pad = (value: number) => String(value).padStart(2, '0');
 const formatDay = (ms: number) => {
@@ -358,7 +360,9 @@ function Lane({ lane, span, now, mode, cells, nowPercent, resolvedTheme }: LaneP
         <div className={styles.laneLimits}>
           {lane.limits.map((limit) => (
             <span key={limit.label} className={styles.laneLimit}>
-              {lane.provider === 'meta' || lane.provider === 'kiro' ? t(limit.label) : limit.label}{' '}
+              {KEYED_LIMIT_PROVIDERS.has(lane.provider)
+                ? t(limit.label, limit.labelParams)
+                : limit.label}{' '}
               <b>{formatQuotaPercent(limit.remaining)}</b>
             </span>
           ))}

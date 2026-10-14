@@ -28,11 +28,17 @@ type Props = {
   onSelect: (type: string) => void;
 };
 
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+/** Labels are either i18n keys (`ns.key`) or provider-reported text shown as-is. */
+const labelText = (t: Translate, value: string | null): string | null =>
+  value?.includes('.') ? t(value, { defaultValue: value.split('.').slice(-1)[0] }) : value;
+
 const formatReset = (
   value: number | null,
   now: number,
   locale: string | undefined,
-  t: (key: string, options?: Record<string, unknown>) => string
+  t: Translate
 ): string =>
   value === null
     ? t('quota_management.summary_reset_unknown', { defaultValue: 'reset unknown' })
@@ -46,14 +52,10 @@ const lineTitle = (
   line: QuotaSummaryLine,
   now: number,
   locale: string | undefined,
-  t: (key: string, options?: Record<string, unknown>) => string
+  t: Translate
 ): string => {
-  const windowLabel = line.windowLabel.includes('.')
-    ? t(line.windowLabel, { defaultValue: line.windowLabel.split('.').slice(-1)[0] })
-    : line.windowLabel;
-  const planLabel = line.plan?.includes('.')
-    ? t(line.plan, { defaultValue: line.plan.split('.').slice(-1)[0] })
-    : line.plan;
+  const windowLabel = labelText(t, line.windowLabel);
+  const planLabel = labelText(t, line.plan);
   return `${line.credential} · ${windowLabel} · ${t('quota_management.summary_remaining', {
     percent: formatPercent(line.remainingPercent),
     defaultValue: '{{percent}} remaining',
@@ -79,7 +81,7 @@ function SummaryMeter({
   lines: QuotaSummaryLine[];
   now: number;
   locale: string | undefined;
-  t: (key: string, options?: Record<string, unknown>) => string;
+  t: Translate;
 }) {
   return (
     <div
@@ -148,9 +150,14 @@ function SummaryCard({
     .sort((a, b) => a - b)[0];
   const resetDisplay =
     resetAt !== undefined ? buildResetDisplay(null, resetAt, now, i18n.resolvedLanguage) : null;
+  const unblockDisplay =
+    summary.unblockAtMs !== null && summary.unblockAtMs > now
+      ? buildResetDisplay(null, summary.unblockAtMs, now, i18n.resolvedLanguage)
+      : null;
+  const tierBasis = labelText(t, summary.tierLabel);
 
   return (
-    <article className={`${styles.card} ${active ? styles.active : ''}`}>
+    <article className={styles.card}>
       <button type="button" className={styles.cardButton} onClick={onSelect} aria-pressed={active}>
         <span className={styles.cardHeading}>
           <span
@@ -178,18 +185,25 @@ function SummaryCard({
             <span className={styles.tier}>
               {t('quota_management.summary_of', { defaultValue: 'of' })}{' '}
               {formatPercent(summary.tierCapacityPercent)}
-              {summary.tierLabel
-                ? ` ${t(summary.tierLabel, { defaultValue: summary.tierLabel })}`
-                : ''}
+              {tierBasis ? ` ${tierBasis}` : ''}
             </span>
           )}
         </div>
       </div>
 
       <SummaryMeter lines={summary.lines} now={now} locale={i18n.resolvedLanguage} t={t} />
-      {resetDisplay && (
+      {(resetDisplay || unblockDisplay) && (
         <div className={styles.resetLine}>
-          <QuotaResetLabel display={resetDisplay} classes={quotaClasses} />
+          {resetDisplay && <QuotaResetLabel display={resetDisplay} classes={quotaClasses} />}
+          {unblockDisplay && (
+            <span
+              className={styles.unblock}
+              title={[unblockDisplay.absolute, unblockDisplay.relative].filter(Boolean).join(' · ')}
+            >
+              {t('quota_management.summary_unblock')}{' '}
+              <span className={quotaClasses.quotaResetRelative}>{unblockDisplay.relative}</span>
+            </span>
+          )}
         </div>
       )}
 

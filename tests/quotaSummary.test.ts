@@ -243,11 +243,8 @@ describe('quota summary selection', () => {
       subscription: parsed?.subscription ?? null,
     }));
 
-    expect(summary).toMatchObject({
-      type: 'kiro',
-      primaryLabel: 'kiro_quota.credits',
-      primaryRemainingPercent: remainingPercent,
-    });
+    expect(summary).toMatchObject({ type: 'kiro', primaryLabel: 'kiro_quota.credits' });
+    expect(summary.primaryRemainingPercent).toBeCloseTo(remainingPercent, 9);
     expect(summary.lines).toEqual([
       expect.objectContaining({
         credential: 'kiro-power.json',
@@ -258,5 +255,110 @@ describe('quota summary selection', () => {
       }),
     ]);
     expect(formatQuotaPercent(summary.primaryRemainingPercent)).toBe('99.9%');
+  });
+
+  const codexQuota = (planType: string, usedPercent: number, resetAtMs: number | null) => ({
+    status: 'success' as const,
+    planType,
+    windows: [{ id: 'weekly', label: 'Weekly', usedPercent, resetAtMs }],
+  });
+
+  const kiroQuota = (type: string, limit: number, used: number) => ({
+    status: 'success' as const,
+    subscription: { title: type.toUpperCase(), type, status: 'ACTIVE' },
+    windows: [{ id: 'credit', currentUsage: used, usageLimit: limit, resetAtMs: 1 }],
+  });
+
+  test('weights credentials by their own allowance and names the largest plan', () => {
+    const entries = [entry('a.json', 'kiro'), entry('b.json', 'kiro')];
+    const quotas = [kiroQuota('power', 10000, 5000), kiroQuota('pro', 1000, 0)];
+    const [summary] = aggregateQuotaSummaries(entries, (item) => quotas[entries.indexOf(item)]);
+
+    expect(summary.tierLabel).toBe('POWER');
+    expect(summary.tierCapacityPercent).toBe(110);
+    expect(summary.primaryRemainingPercent).toBe(60);
+    expect(summary.lines.map((line) => line.capacityPercent)).toEqual([100, 10]);
+  });
+
+  test('weights Codex plans by their multiple of Plus and names the largest', () => {
+    const entries = [entry('a.json', 'codex'), entry('b.json', 'codex')];
+    const quotas = [codexQuota('pro max', 50, 1), codexQuota('plus', 0, 1)];
+    const [summary] = aggregateQuotaSummaries(entries, (item) => quotas[entries.indexOf(item)]);
+
+    expect(summary.tierLabel).toBe('codex_quota.plan_promax');
+    expect(summary.tierCapacityPercent).toBe(104);
+    expect(summary.primaryRemainingPercent).toBe(54);
+    expect(summary.lines.map((line) => line.capacityPercent)).toEqual([100, 4]);
+  });
+
+  test('names a shared plan of unknown size but not a mix of unknown plans', () => {
+    const entries = [entry('a.json', 'zai'), entry('b.json', 'zai')];
+    const zaiQuota = (level: string) => ({
+      status: 'success' as const,
+      level,
+      windows: [{ id: 'weekly', usedPercent: 50, resetAtMs: 1 }],
+    });
+    const summarize = (quotas: unknown[]) =>
+      aggregateQuotaSummaries(entries, (item) => quotas[entries.indexOf(item)] as never)[0];
+
+    const same = summarize([zaiQuota('mystery'), zaiQuota('mystery')]);
+    expect(same.tierLabel).toBe('mystery');
+    expect(same.tierCapacityPercent).toBe(200);
+
+    const mixed = summarize([zaiQuota('mystery'), zaiQuota('enigma')]);
+    expect(mixed.tierLabel).toBeNull();
+    expect(mixed.tierCapacityPercent).toBe(200);
+    expect(mixed.lines.map((line) => line.capacityPercent)).toEqual([100, 100]);
+  });
+
+  test('reports the soonest unblock only once every credential is blocked', () => {
+    const entries = [entry('a.json', 'codex'), entry('b.json', 'codex'), entry('c.json', 'codex')];
+    const summarize = (quotas: unknown[]) =>
+      aggregateQuotaSummaries(entries, (item) => quotas[entries.indexOf(item)] as never)[0];
+
+    // An error counts as blocked; the spent credentials decide when one comes back.
+    expect(
+      summarize([codexQuota('pro', 100, 9000), codexQuota('pro', 100, 5000), { status: 'error' }])
+        .unblockAtMs
+    ).toBe(5000);
+    // One credential still has headroom, so nothing is blocked provider-wide.
+    expect(
+      summarize([codexQuota('pro', 100, 9000), codexQuota('pro', 40, 5000), { status: 'error' }])
+        .unblockAtMs
+    ).toBeNull();
+    // An unloaded credential might be usable, so the provider is not reported as blocked.
+    expect(
+      summarize([codexQuota('pro', 100, 9000), undefined, { status: 'error' }]).unblockAtMs
+    ).toBeNull();
+  });
+
+  test('waits for every spent gate but frees independent buckets on the first reset', () => {
+    const gated = {
+      status: 'success' as const,
+      planType: 'pro',
+      windows: [
+        { id: 'five-hour', label: '5h', usedPercent: 100, resetAtMs: 1000, disabled: true },
+        { id: 'weekly', label: 'Weekly', usedPercent: 100, resetAtMs: 9000, disabled: true },
+      ],
+    };
+    const [codex] = aggregateQuotaSummaries([entry('a.json', 'codex')], () => gated);
+    expect(codex.unblockAtMs).toBe(9000);
+
+    const independent = {
+      status: 'success' as const,
+      groups: [
+        {
+          buckets: [
+            { id: 'a', label: 'A', remainingFraction: 0, resetAtMs: 1_700_000_000_000 },
+            { id: 'b', label: 'B', remainingFraction: 0, resetAtMs: 1_700_100_000_000 },
+          ],
+        },
+      ],
+    };
+    const [antigravity] = aggregateQuotaSummaries(
+      [entry('b.json', 'antigravity')],
+      () => independent as never
+    );
+    expect(antigravity.unblockAtMs).toBe(1_700_000_000_000);
   });
 });
