@@ -7,6 +7,10 @@
  * amount but desaturates the fill into candy stripes: another window on this credential is
  * already spent, so this allowance exists but cannot be used right now.
  *
+ * `capPercent` marks a usage-cap reserve. The fill keeps its tone, and the part of it that lies
+ * inside the reserve (0..cap of the track) is candy-striped in that same tone, so a level below
+ * the reserve reads as fully striped and a level above it shows the usable remainder solid.
+ *
  * `index` is written to `--meter-index` for the full-page host's per-row entrance stagger;
  * the compact host ignores it. `label` exposes a known level as an ARIA meter on the bar itself,
  * so hosts never wrap the bar (a wrapper would steal its flex slot in the quota row).
@@ -27,9 +31,7 @@ export type QuotaMeterClasses = Pick<
   | 'quotaBarFillMedium'
   | 'quotaBarFillLow'
   | 'quotaBarFillDisabled'
-  | 'quotaBarCapHigh'
-  | 'quotaBarCapMedium'
-  | 'quotaBarCapLow'
+  | 'quotaBarFillCapped'
 >;
 
 export interface QuotaMeterProps {
@@ -40,7 +42,7 @@ export interface QuotaMeterProps {
   disabled?: boolean;
   /** Accessible name; when set and the level is known, the bar is announced as a meter. */
   label?: string;
-  /** Reserved remainder, 0-99, drawn from the left edge in the bar's own tone. */
+  /** Usage-cap reserve, 0-99 percent of the track, striped on the fill in its own tone. */
   capPercent?: number;
 }
 
@@ -65,14 +67,22 @@ export function QuotaMeter({
   const widthPercent = Math.round((normalized ?? 0) * 100) / 100;
   const normalizedCap =
     capPercent === undefined ? null : Math.max(0, Math.min(99, Math.round(capPercent)));
-  const style: CSSProperties & { '--meter-index'?: number } = { width: `${widthPercent}%` };
+  const style: CSSProperties & { '--meter-index'?: number; '--cap-stop'?: string } = {
+    width: `${widthPercent}%`,
+  };
   if (index !== undefined) {
     style['--meter-index'] = index;
+  }
+  const capped = !disabled && normalizedCap !== null && normalizedCap > 0 && widthPercent > 0;
+  if (capped) {
+    // The fill is a fraction of the track, so the reserve edge is restated in fill-relative
+    // units; past 100% the whole fill sits inside the reserve.
+    style['--cap-stop'] = `${Math.round((normalizedCap / widthPercent) * 10000) / 100}%`;
   }
 
   const fillClasses = disabled
     ? `${classes.quotaBarFill} ${classes.quotaBarFillDisabled}`
-    : `${classes.quotaBarFill} ${fillClass}`;
+    : `${classes.quotaBarFill} ${fillClass}${capped ? ` ${classes.quotaBarFillCapped}` : ''}`;
 
   const meter =
     label && normalized !== null
@@ -85,23 +95,9 @@ export function QuotaMeter({
         }
       : undefined;
 
-  const capClass =
-    fillClass === classes.quotaBarFillHigh
-      ? classes.quotaBarCapHigh
-      : fillClass === classes.quotaBarFillMedium
-        ? classes.quotaBarCapMedium
-        : classes.quotaBarCapLow;
-
   return (
     <div className={classes.quotaBar} {...meter}>
       <div className={fillClasses} style={style} />
-      {normalizedCap !== null && normalizedCap > 0 && (
-        <div
-          className={capClass}
-          style={{ width: `${Math.round((normalizedCap / 100) * 10000) / 100}%` }}
-          aria-hidden="true"
-        />
-      )}
     </div>
   );
 }

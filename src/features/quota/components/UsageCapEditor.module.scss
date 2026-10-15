@@ -245,30 +245,20 @@
   );
 }
 
-.quotaBarCapHigh {
-  --quota-bar-color: var(--viz-success);
-}
-
-.quotaBarCapMedium {
-  --quota-bar-color: var(--quota-medium-color);
-}
-
-.quotaBarCapLow {
-  --quota-bar-color: var(--viz-failure);
-}
-
-.quotaBarCapHigh,
-.quotaBarCapMedium,
-.quotaBarCapLow {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  background: repeating-linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--quota-bar-color) 58%, transparent) 0 3px,
-    color-mix(in srgb, var(--quota-bar-color) 18%, transparent) 3px 6px
-  );
+/* Usage-cap reserve: the fill is striped in its own tone up to --cap-stop (the reserve edge,
+ * relative to the fill) and solid beyond it, so only the usable remainder reads solid. */
+.quotaBarFillCapped {
+  background:
+    linear-gradient(
+      to right,
+      transparent 0 var(--cap-stop),
+      var(--quota-bar-color) var(--cap-stop)
+    ),
+    repeating-linear-gradient(
+      135deg,
+      var(--quota-bar-color) 0 3px,
+      color-mix(in srgb, var(--quota-bar-color) 35%, transparent) 3px 6px
+    );
 }
 
 .picker :global(.form-group) {

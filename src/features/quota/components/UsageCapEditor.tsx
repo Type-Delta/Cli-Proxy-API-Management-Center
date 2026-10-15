@@ -24,9 +24,7 @@ const meterClasses: QuotaMeterClasses = {
   quotaBarFillMedium: styles.quotaBarFillMedium,
   quotaBarFillLow: styles.quotaBarFillLow,
   quotaBarFillDisabled: styles.quotaBarFillDisabled,
-  quotaBarCapHigh: styles.quotaBarCapHigh,
-  quotaBarCapMedium: styles.quotaBarCapMedium,
-  quotaBarCapLow: styles.quotaBarCapLow,
+  quotaBarFillCapped: styles.quotaBarFillCapped,
 };
 
 const DEFAULT_CAP = 20;

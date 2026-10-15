@@ -1127,8 +1127,9 @@ listing the Claude catalog served by CPA.
 ### DL055: Usage caps and bypass keys
 
 Credentials can reserve a minimum remaining percentage on supported quota bars: Claude, Codex,
-Z.AI, OpenCode Go, and Kiro. The quota page and auth-file cards paint that reservation in candy
-stripes using the bar's own health colour, append cap details and the current capped-until time to
+Z.AI, OpenCode Go, and Kiro. On the quota page and auth-file cards, the part of a bar's fill that lies
+inside the reserve is candy-striped in the bar's own health colour and the usable remainder stays
+solid, so a level below the reserve reads fully striped; append cap details and the current capped-until time to
 row tooltips, and show a compact Capped badge on affected auth files.
 
 The auth-file editor and Z.AI/OpenCode Go provider forms load the credential's bars, enable caps

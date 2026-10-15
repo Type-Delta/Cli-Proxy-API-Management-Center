@@ -60,9 +60,8 @@ export interface QuotaClassMap {
   quotaBarFillLow: string;
   /** Candy-striped fill for an allowance another window on the credential has blocked. */
   quotaBarFillDisabled: string;
-  quotaBarCapHigh: string;
-  quotaBarCapMedium: string;
-  quotaBarCapLow: string;
+  /** Fill modifier: candy-stripes the part of the fill inside the usage-cap reserve. */
+  quotaBarFillCapped: string;
 }
 
 export const QUOTA_CLASS_KEYS: readonly (keyof QuotaClassMap)[] = [
@@ -103,9 +102,7 @@ export const QUOTA_CLASS_KEYS: readonly (keyof QuotaClassMap)[] = [
   'quotaBarFillMedium',
   'quotaBarFillLow',
   'quotaBarFillDisabled',
-  'quotaBarCapHigh',
-  'quotaBarCapMedium',
-  'quotaBarCapLow',
+  'quotaBarFillCapped',
 ];
 
 /** Host CSS Module to typed contract. Missing keys throw, and `source` locates the host. */
