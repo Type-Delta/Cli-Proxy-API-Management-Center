@@ -211,3 +211,34 @@ export function QuotaCard(props: QuotaCardProps) {
     </article>
   );
 }
+
+/** Loading placeholder for a whole credential row; mirrors QuotaCard's identity / actions / meta + meters layout. */
+export function QuotaCardSkeleton() {
+  return (
+    <div className={styles.card} aria-hidden="true">
+      <div className={styles.identity}>
+        <span className={`${styles.iconWrap} ${styles.skeletonBlock}`} />
+        <span className={`${styles.skeletonBlock} ${styles.skeletonName}`} />
+      </div>
+      <div className={styles.actionRow}>
+        <span className={`${styles.skeletonBlock} ${styles.skeletonPill}`} />
+        <span className={`${styles.skeletonBlock} ${styles.skeletonPill}`} />
+      </div>
+      <div className={styles.body}>
+        <div className={styles.skeletonMeta}>
+          <span className={`${styles.skeletonBlock} ${styles.skeletonLabel}`} />
+          <span className={`${styles.skeletonBlock} ${styles.skeletonLabel}`} />
+        </div>
+        <div className={styles.skeleton}>
+          {[0, 1, 2].map((column) => (
+            <div key={column} className={styles.skeletonRow}>
+              <span className={styles.skeletonLabel} />
+              <span className={styles.skeletonTrack} />
+              <span className={`${styles.skeletonBlock} ${styles.skeletonReset}`} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

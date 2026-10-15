@@ -1045,13 +1045,16 @@ Reset instants share one format: resets within six local calendar days read as w
 (`Mon, 10:32`), later or past instants keep `MM/DD, HH:mm`. The summary reset line reuses the shared
 reset label, so it reads absolute time first and countdown second like the rows.
 
-List polish: the first and last quota rows (and the loading skeleton) take the summary grid's 14px
+List polish: the first and last quota rows take the summary grid's 14px
 corners, so the hover wash reads as one rounded list. The quota area is capped at 960px; once a row
 is wide enough that the capped body cannot reach under the actions, the actions centre vertically
 on the whole row instead of the identity line. Codex rows drop the "Manual resets" count because the
 reset-credit stack already shows it. `QuotaMeter` takes an optional `label` and carries the meter
 role itself, so Kiro, Meta, and Devin no longer wrap the bar in a div that collapsed it to zero
 width. Provider tabs without credentials are hidden, except a persisted selection.
+The list-loading skeleton draws one placeholder per credential row with the row's own layout:
+icon and name, two action pills, a meta column, and three label, bar, and reset meters that wrap at
+the same 200px basis as real meters on narrow screens.
 Validation: CDP checks at 1900, 1300, and 390px against a mock backend with Kiro credit data, plus
 the full test suite, lint, type-check, and build. The test suite still has the legacy-backend probe
 failure, and also fails `tooltipProvider` when `happy-dom` is missing from local dependencies.
