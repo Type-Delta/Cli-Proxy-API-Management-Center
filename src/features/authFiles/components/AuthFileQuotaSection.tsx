@@ -13,7 +13,7 @@ import { isRuntimeOnlyAuthFile, type QuotaProviderType } from '@/features/authFi
 import { Button } from '@/components/ui/Button';
 import { IconRefreshCw } from '@/components/ui/icons';
 import { bindQuotaClasses } from '@/features/quota/types';
-import { usageCapHitsById } from '@/features/quota/usageCaps';
+import { quotaReserveHitsById } from '@/features/quota/quotaReserve';
 import { QUOTA_ADAPTERS, type QuotaCardState } from '@/features/quota/providers';
 import styles from './AuthFileQuota.module.scss';
 
@@ -213,8 +213,8 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
           quota={quota}
           classes={compactQuotaClasses}
           credential={{ displayName: getQuotaDisplayName(file) }}
-          usageCaps={file.usageCaps}
-          usageCapHits={usageCapHitsById(file.usageCapState)}
+          quotaReserves={file.quotaReserves}
+          quotaReserveHits={quotaReserveHitsById(file.quotaReserveState)}
         />
       ) : (
         <div className={styles.quotaMessage}>{t(`${adapter.i18nPrefix}.idle`)}</div>

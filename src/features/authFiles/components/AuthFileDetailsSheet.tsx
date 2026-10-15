@@ -18,8 +18,8 @@ import {
   supportsAuthFileWebsockets,
 } from '@/features/authFiles/constants';
 import { MAX_CREDENTIAL_WEIGHT } from '@/utils/credentialWeight';
-import { usageCapProviderType } from '@/features/quota/usageCaps';
-import { UsageCapEditor } from '@/features/quota/components/UsageCapEditor';
+import { quotaReserveProviderType } from '@/features/quota/quotaReserve';
+import { QuotaReserveEditor } from '@/features/quota/components/QuotaReserveEditor';
 import { AuthFileExcludedModelsField } from './AuthFileExcludedModelsField';
 import { AuthFilePolicyFields } from './AuthFilePolicyFields';
 import { credentialPolicyError, readCredentialPolicy } from '../credentialPolicy';
@@ -358,19 +358,19 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
                     disabled={disableControls || editor.saving}
                     onChange={onChange}
                   />
-                  {usageCapProviderType(editor.providerKey) && (
-                    <UsageCapEditor
+                  {quotaReserveProviderType(editor.providerKey) && (
+                    <QuotaReserveEditor
                       providerKey={editor.providerKey}
                       credential={{
                         name: editor.fileName,
                         type: editor.providerKey,
                         provider: editor.providerKey,
                       }}
-                      caps={editor.usageCaps}
-                      bypassKeys={editor.usageCapBypassKeys}
+                      reserves={editor.quotaReserves}
+                      bypassKeys={editor.quotaReserveBypassKeys}
                       disabled={disableControls || editor.saving}
-                      onChangeCaps={(value) => onChange('usageCaps', value)}
-                      onChangeBypassKeys={(value) => onChange('usageCapBypassKeys', value)}
+                      onChangeReserves={(value) => onChange('quotaReserves', value)}
+                      onChangeBypassKeys={(value) => onChange('quotaReserveBypassKeys', value)}
                     />
                   )}
                   <Input

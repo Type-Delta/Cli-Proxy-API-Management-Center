@@ -12,10 +12,10 @@ import { useTranslation } from 'react-i18next';
 import { apiClient, authFilesApi, type AuthFileFieldsPatch } from '@/services/api';
 import { notifyAuthFilesChanged } from '@/features/authFiles/authFilesEvents';
 import {
-  buildUsageCapPatch,
-  readUsageCapBypassKeys,
-  readUsageCaps,
-} from '@/features/quota/usageCaps';
+  buildQuotaReservePatch,
+  readQuotaReserveBypassKeys,
+  readQuotaReserves,
+} from '@/features/quota/quotaReserve';
 import type { AuthFileItem } from '@/types';
 import { useNotificationStore } from '@/stores';
 import {
@@ -58,8 +58,8 @@ export type PrefixProxyEditorField =
   | 'note'
   | 'excludedModelsText'
   | 'headersText'
-  | 'usageCaps'
-  | 'usageCapBypassKeys';
+  | 'quotaReserves'
+  | 'quotaReserveBypassKeys';
 
 export type PrefixProxyEditorFieldValue =
   string | boolean | CredentialPolicyValue | Record<string, number> | string[];
@@ -94,10 +94,10 @@ export type PrefixProxyEditorState = {
   headersText: string;
   headersTouched: boolean;
   headersError: string | null;
-  usageCaps: Record<string, number>;
-  usageCapsTouched: boolean;
-  usageCapBypassKeys: string[];
-  usageCapBypassKeysTouched: boolean;
+  quotaReserves: Record<string, number>;
+  quotaReservesTouched: boolean;
+  quotaReserveBypassKeys: string[];
+  quotaReserveBypassKeysTouched: boolean;
 };
 
 export type UseAuthFilesPrefixProxyEditorOptions = {
@@ -402,18 +402,18 @@ export const buildAuthFileFieldsPatch = (
 
   Object.assign(
     patch,
-    buildUsageCapPatch(
+    buildQuotaReservePatch(
       {
-        caps: readUsageCaps(original),
-        capsTouched: false,
-        bypassKeys: readUsageCapBypassKeys(original),
+        reserves: readQuotaReserves(original),
+        reservesTouched: false,
+        bypassKeys: readQuotaReserveBypassKeys(original),
         bypassKeysTouched: false,
       },
       {
-        caps: editor.usageCaps,
-        capsTouched: editor.usageCapsTouched,
-        bypassKeys: editor.usageCapBypassKeys,
-        bypassKeysTouched: editor.usageCapBypassKeysTouched,
+        reserves: editor.quotaReserves,
+        reservesTouched: editor.quotaReservesTouched,
+        bypassKeys: editor.quotaReserveBypassKeys,
+        bypassKeysTouched: editor.quotaReserveBypassKeysTouched,
       }
     )
   );
@@ -485,18 +485,18 @@ const buildPrefixProxyUpdatedText = (
   applyCredentialPolicyPatch(next, patch);
   applyHeadersPatch(next, patch.headers);
 
-  if (patch.usage_caps !== undefined) {
-    if (patch.usage_caps && Object.keys(patch.usage_caps).length) {
-      next.usage_caps = patch.usage_caps;
+  if (patch.quota_reserve !== undefined) {
+    if (patch.quota_reserve && Object.keys(patch.quota_reserve).length) {
+      next.quota_reserve = patch.quota_reserve;
     } else {
-      delete next.usage_caps;
+      delete next.quota_reserve;
     }
   }
-  if (patch.usage_cap_bypass_keys !== undefined) {
-    if (patch.usage_cap_bypass_keys && patch.usage_cap_bypass_keys.length) {
-      next.usage_cap_bypass_keys = patch.usage_cap_bypass_keys;
+  if (patch.quota_reserve_bypass_keys !== undefined) {
+    if (patch.quota_reserve_bypass_keys && patch.quota_reserve_bypass_keys.length) {
+      next.quota_reserve_bypass_keys = patch.quota_reserve_bypass_keys;
     } else {
-      delete next.usage_cap_bypass_keys;
+      delete next.quota_reserve_bypass_keys;
     }
   }
 
@@ -589,10 +589,10 @@ export function useAuthFilesPrefixProxyEditor(
       headersText: '',
       headersTouched: false,
       headersError: null,
-      usageCaps: {},
-      usageCapsTouched: false,
-      usageCapBypassKeys: [],
-      usageCapBypassKeysTouched: false,
+      quotaReserves: {},
+      quotaReservesTouched: false,
+      quotaReserveBypassKeys: [],
+      quotaReserveBypassKeysTouched: false,
     });
 
     try {
@@ -642,8 +642,8 @@ export function useAuthFilesPrefixProxyEditor(
       const note = typeof json.note === 'string' ? json.note : '';
       const excludedModelsText = readExcludedModels(json).join('\n');
       const headers = json.headers;
-      const usageCaps = readUsageCaps(json);
-      const usageCapBypassKeys = readUsageCapBypassKeys(json);
+      const quotaReserves = readQuotaReserves(json);
+      const quotaReserveBypassKeys = readQuotaReserveBypassKeys(json);
       let headersText = '';
       let headersError: string | null = null;
       if (headers !== undefined) {
@@ -681,10 +681,10 @@ export function useAuthFilesPrefixProxyEditor(
           headersText,
           headersTouched: false,
           headersError,
-          usageCaps,
-          usageCapsTouched: false,
-          usageCapBypassKeys,
-          usageCapBypassKeysTouched: false,
+          quotaReserves,
+          quotaReservesTouched: false,
+          quotaReserveBypassKeys,
+          quotaReserveBypassKeysTouched: false,
           error: null,
         };
       });
@@ -749,19 +749,19 @@ export function useAuthFilesPrefixProxyEditor(
           excludedModelsTouched: true,
         };
       }
-      if (field === 'usageCaps') {
+      if (field === 'quotaReserves') {
         return {
           ...prev,
-          usageCaps: value as Record<string, number>,
-          usageCapsTouched: true,
+          quotaReserves: value as Record<string, number>,
+          quotaReservesTouched: true,
         };
       }
-      if (field === 'usageCapBypassKeys') {
+      if (field === 'quotaReserveBypassKeys') {
         if (!Array.isArray(value)) return prev;
         return {
           ...prev,
-          usageCapBypassKeys: value.filter((item): item is string => typeof item === 'string'),
-          usageCapBypassKeysTouched: true,
+          quotaReserveBypassKeys: value.filter((item): item is string => typeof item === 'string'),
+          quotaReserveBypassKeysTouched: true,
         };
       }
       if (field === 'headersText') {

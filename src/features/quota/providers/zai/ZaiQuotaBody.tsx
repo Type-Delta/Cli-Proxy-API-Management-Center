@@ -12,7 +12,7 @@ import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import { quotaWindowTitle } from '../../windowGating';
-import { usageCapTooltip } from '../../usageCaps';
+import { quotaReserveTooltip } from '../../quotaReserve';
 import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
 const formatCredits = (value: number | null): string =>
@@ -22,8 +22,8 @@ export function ZaiQuotaBody({
   quota,
   classes,
   credential,
-  usageCaps,
-  usageCapHits,
+  quotaReserves,
+  quotaReserveHits,
 }: QuotaBodyProps<ZaiQuotaState>) {
   const { t, i18n } = useTranslation();
   // Ahead of the early return below — hooks cannot be conditional.
@@ -89,10 +89,10 @@ export function ZaiQuotaBody({
                 hint: [creditsLabel, quotaWindowTitle(t, { soon, disabled: row.disabled })]
                   .filter(Boolean)
                   .join(' · '),
-                cap: usageCapTooltip(
+                reserve: quotaReserveTooltip(
                   t,
-                  usageCaps?.[row.id],
-                  usageCapHits?.[row.id],
+                  quotaReserves?.[row.id],
+                  quotaReserveHits?.[row.id],
                   i18n.resolvedLanguage
                 ),
               })}
@@ -113,7 +113,7 @@ export function ZaiQuotaBody({
                 classes={classes}
                 index={index}
                 disabled={row.disabled}
-                capPercent={usageCaps?.[row.id]}
+                reservePercent={quotaReserves?.[row.id]}
               />
             </div>
           );

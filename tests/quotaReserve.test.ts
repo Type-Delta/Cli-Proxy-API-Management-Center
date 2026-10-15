@@ -5,18 +5,18 @@ import {
 import { describe, expect, test } from 'bun:test';
 import { buildQuotaRowTitle } from '@/features/quota/types';
 import {
-  buildUsageCapPatch,
-  clampUsageCapPercent,
+  buildQuotaReservePatch,
+  clampQuotaReservePercent,
   extractQuotaCapBars,
-  normalizeUsageCapBypassKeys,
-  normalizeUsageCaps,
-  resolveUsageCapFields,
-  readUsageCapBypassKeys,
-  readUsageCaps,
-  usageCapBadgeTitle,
-  usageCapProviderType,
-  usageCapTooltip,
-} from '@/features/quota/usageCaps';
+  normalizeQuotaReserveBypassKeys,
+  normalizeQuotaReserves,
+  resolveQuotaReserveFields,
+  readQuotaReserveBypassKeys,
+  readQuotaReserves,
+  quotaReserveBadgeTitle,
+  quotaReserveProviderType,
+  quotaReserveTooltip,
+} from '@/features/quota/quotaReserve';
 
 const t = (key: string, options?: Record<string, string | number>) => {
   const suffix = options
@@ -27,55 +27,59 @@ const t = (key: string, options?: Record<string, string | number>) => {
   return suffix ? `${key}:${suffix}` : key;
 };
 
-describe('usage cap normalization', () => {
-  test('keeps integer caps in the backend range and rejects invalid values', () => {
-    expect(normalizeUsageCaps({ a: 0, b: '20', c: 99, d: 100, e: -1, f: 1.4, g: 'bad' })).toEqual({
+describe('quota reserve normalization', () => {
+  test('keeps integer reserves in the backend range and rejects invalid values', () => {
+    expect(
+      normalizeQuotaReserves({ a: 0, b: '20', c: 99, d: 100, e: -1, f: 1.4, g: 'bad' })
+    ).toEqual({
       a: 0,
       b: 20,
       c: 99,
       f: 1,
     });
-    expect(clampUsageCapPercent('39.4')).toBe(39);
-    expect(clampUsageCapPercent(100)).toBeNull();
+    expect(clampQuotaReservePercent('39.4')).toBe(39);
+    expect(clampQuotaReservePercent(100)).toBeNull();
   });
 
   test('normalizes bypass key IDs without exposing duplicates', () => {
     const key = `${'a'.repeat(32)}${'b'.repeat(32)}`;
-    expect(normalizeUsageCapBypassKeys([key.toUpperCase(), key, 'short', 42])).toEqual([key]);
+    expect(normalizeQuotaReserveBypassKeys([key.toUpperCase(), key, 'short', 42])).toEqual([key]);
   });
 
   test('maps only supported provider keys', () => {
-    expect(usageCapProviderType('Codex')).toBe('codex');
-    expect(usageCapProviderType('opencode-go')).toBe('opencode-go');
-    expect(usageCapProviderType('claude-api-key')).toBeNull();
+    expect(quotaReserveProviderType('Codex')).toBe('codex');
+    expect(quotaReserveProviderType('opencode-go')).toBe('opencode-go');
+    expect(quotaReserveProviderType('claude-api-key')).toBeNull();
   });
 });
 
 describe('whole-provider cap preservation', () => {
   const key = `${'a'.repeat(32)}${'b'.repeat(32)}`;
-  const saved = { usageCaps: { weekly: 30 }, usageCapBypassKeys: [key] };
+  const saved = { quotaReserves: { weekly: 30 }, quotaReserveBypassKeys: [key] };
 
   test('keeps saved fields when a form does not expose either editor', () => {
-    expect(resolveUsageCapFields(undefined, saved)).toEqual(saved);
-    expect(resolveUsageCapFields(undefined, undefined)).toEqual({});
+    expect(resolveQuotaReserveFields(undefined, saved)).toEqual(saved);
+    expect(resolveQuotaReserveFields(undefined, undefined)).toEqual({});
   });
 
   test('uses an explicit empty draft as removal while normalizing values', () => {
-    expect(resolveUsageCapFields({}, saved)).toEqual(saved);
-    expect(resolveUsageCapFields({ usageCaps: {}, usageCapBypassKeys: [] }, saved)).toEqual({
-      usageCaps: {},
-      usageCapBypassKeys: [],
+    expect(resolveQuotaReserveFields({}, saved)).toEqual(saved);
+    expect(
+      resolveQuotaReserveFields({ quotaReserves: {}, quotaReserveBypassKeys: [] }, saved)
+    ).toEqual({
+      quotaReserves: {},
+      quotaReserveBypassKeys: [],
     });
-    expect(resolveUsageCapFields({ usageCaps: {} }, saved)).toEqual({
-      usageCaps: {},
-      usageCapBypassKeys: [key],
+    expect(resolveQuotaReserveFields({ quotaReserves: {} }, saved)).toEqual({
+      quotaReserves: {},
+      quotaReserveBypassKeys: [key],
     });
     expect(
-      resolveUsageCapFields(
-        { usageCaps: { weekly: '31' }, usageCapBypassKeys: [key.toUpperCase(), 'bad'] },
+      resolveQuotaReserveFields(
+        { quotaReserves: { weekly: '31' }, quotaReserveBypassKeys: [key.toUpperCase(), 'bad'] },
         undefined
       )
-    ).toEqual({ usageCaps: { weekly: 31 }, usageCapBypassKeys: [key] });
+    ).toEqual({ quotaReserves: { weekly: 31 }, quotaReserveBypassKeys: [key] });
   });
 });
 
@@ -121,69 +125,69 @@ describe('quota cap bar extraction', () => {
   });
 });
 
-describe('usage cap patch building', () => {
+describe('quota reserve patch building', () => {
   test('emits removal only for touched changed fields', () => {
     const before = {
-      caps: { weekly: 30 },
-      capsTouched: false,
+      reserves: { weekly: 30 },
+      reservesTouched: false,
       bypassKeys: [`${'a'.repeat(64)}`],
       bypassKeysTouched: false,
     };
-    expect(buildUsageCapPatch(before, before)).toEqual({});
+    expect(buildQuotaReservePatch(before, before)).toEqual({});
 
     expect(
-      buildUsageCapPatch(
-        { ...before, capsTouched: true },
-        { ...before, caps: {}, capsTouched: true }
+      buildQuotaReservePatch(
+        { ...before, reservesTouched: true },
+        { ...before, reserves: {}, reservesTouched: true }
       )
-    ).toEqual({ usage_caps: null });
+    ).toEqual({ quota_reserve: null });
 
     const key = `${'c'.repeat(64)}`;
     expect(
-      buildUsageCapPatch(
+      buildQuotaReservePatch(
         { ...before, bypassKeysTouched: true },
         { ...before, bypassKeys: [key], bypassKeysTouched: true }
       )
-    ).toEqual({ usage_cap_bypass_keys: [key] });
+    ).toEqual({ quota_reserve_bypass_keys: [key] });
   });
 
   test('detects a changed value and preserves the other untouched field', () => {
     const before = {
-      caps: { weekly: 30 },
-      capsTouched: false,
+      reserves: { weekly: 30 },
+      reservesTouched: false,
       bypassKeys: [`${'a'.repeat(64)}`],
       bypassKeysTouched: false,
     };
     expect(
-      buildUsageCapPatch(before, { ...before, caps: { weekly: 20 }, capsTouched: true })
-    ).toEqual({ usage_caps: { weekly: 20 } });
+      buildQuotaReservePatch(before, { ...before, reserves: { weekly: 20 }, reservesTouched: true })
+    ).toEqual({ quota_reserve: { weekly: 20 } });
   });
 });
 
-describe('usage cap tooltips and badges', () => {
+describe('quota reserve tooltips and badges', () => {
   const resetMs = Date.UTC(2026, 0, 2, 3, 4);
 
-  test('includes reserved details and the current capped-until value', () => {
-    expect(usageCapTooltip(t, 30, undefined)).toBe(
-      'quota_management.usage_cap_reserved:percent=30'
+  test('includes reserved details and the current reserved-until value', () => {
+    expect(quotaReserveTooltip(t, 30, undefined)).toBe(
+      'quota_management.quota_reserve_reserved:percent=30'
     );
     expect(
-      usageCapTooltip(t, 30, {
+      quotaReserveTooltip(t, 30, {
         barId: 'weekly',
-        capPercent: 30,
+        reservePercent: 30,
         remainingPercent: 20,
         resetAtMs: null,
       })
-    ).toContain('usage_cap_until_unknown');
+    ).toContain('quota_reserve_until_unknown');
     expect(
-      usageCapTooltip(
+      quotaReserveTooltip(
         t,
         30,
-        { barId: 'weekly', capPercent: 30, remainingPercent: 20, resetAtMs: resetMs },
+        { barId: 'weekly', reservePercent: 30, remainingPercent: 20, resetAtMs: resetMs },
         'en'
       )
-    ).toContain('usage_cap_until');
-    expect(usageCapTooltip(t, undefined, undefined)).toBe('');
+    ).toContain('quota_reserve_until');
+    expect(quotaReserveTooltip(t, undefined, undefined)).toBe('');
   });
 
   test('appends cap text after existing row tooltip details', () => {
@@ -191,7 +195,7 @@ describe('usage cap tooltips and badges', () => {
       { displayName: 'Credential' },
       {
         label: 'Weekly',
-        cap: 'reserved',
+        reserve: 'reserved',
       }
     );
     expect(title).toBe('Credential · Weekly · reserved');
@@ -199,20 +203,20 @@ describe('usage cap tooltips and badges', () => {
 
   test('summarizes active hits without exposing credential material', () => {
     expect(
-      usageCapBadgeTitle(
+      quotaReserveBadgeTitle(
         t,
         {
-          hits: [{ barId: 'weekly', capPercent: 30, remainingPercent: 20, resetAtMs: resetMs }],
+          hits: [{ barId: 'weekly', reservePercent: 30, remainingPercent: 20, resetAtMs: resetMs }],
           checkedAtMs: resetMs,
         },
         'en'
       )
     ).toContain('bar=weekly');
-    expect(usageCapBadgeTitle(t, null)).toBe('');
+    expect(quotaReserveBadgeTitle(t, null)).toBe('');
   });
 });
 
-describe('auth-file usage cap patch', () => {
+describe('auth-file quota reserve patch', () => {
   const keyA = 'a'.repeat(64);
   const keyB = 'b'.repeat(64);
   const editor = (
@@ -230,31 +234,31 @@ describe('auth-file usage cap patch', () => {
       note: '',
       excludedModelsText: '',
       headersText: '',
-      usageCaps: readUsageCaps(json),
-      usageCapsTouched: false,
-      usageCapBypassKeys: readUsageCapBypassKeys(json),
-      usageCapBypassKeysTouched: false,
+      quotaReserves: readQuotaReserves(json),
+      quotaReservesTouched: false,
+      quotaReserveBypassKeys: readQuotaReserveBypassKeys(json),
+      quotaReserveBypassKeysTouched: false,
       ...overrides,
     }) as PrefixProxyEditorState;
 
-  test('saves a bypass-key-only edit without touching caps', () => {
-    const json = { usage_caps: { weekly: 30 }, usage_cap_bypass_keys: [keyA] };
+  test('saves a bypass-key-only edit without touching reserves', () => {
+    const json = { quota_reserve: { weekly: 30 }, quota_reserve_bypass_keys: [keyA] };
     expect(
       buildAuthFileFieldsPatch(
-        editor(json, { usageCapBypassKeys: [keyA, keyB], usageCapBypassKeysTouched: true }),
+        editor(json, { quotaReserveBypassKeys: [keyA, keyB], quotaReserveBypassKeysTouched: true }),
         (key) => key
       )
-    ).toEqual({ usage_cap_bypass_keys: [keyA, keyB] });
+    ).toEqual({ quota_reserve_bypass_keys: [keyA, keyB] });
   });
 
-  test('clears caps with null and leaves untouched fields out', () => {
-    const json = { usage_caps: { weekly: 30 }, usage_cap_bypass_keys: [keyA] };
+  test('clears reserves with null and leaves untouched fields out', () => {
+    const json = { quota_reserve: { weekly: 30 }, quota_reserve_bypass_keys: [keyA] };
     expect(
       buildAuthFileFieldsPatch(
-        editor(json, { usageCaps: {}, usageCapsTouched: true }),
+        editor(json, { quotaReserves: {}, quotaReservesTouched: true }),
         (key) => key
       )
-    ).toEqual({ usage_caps: null });
+    ).toEqual({ quota_reserve: null });
     expect(buildAuthFileFieldsPatch(editor(json, {}), (key) => key)).toEqual({});
   });
 });

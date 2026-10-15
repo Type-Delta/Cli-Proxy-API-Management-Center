@@ -211,14 +211,14 @@ button.quotaMessageAction {
   background: var(--quota-bar-color);
 }
 
-/* Usage-cap reserve: the fill is striped in its own tone up to --cap-stop (the reserve edge,
+/* Quota reserve: the fill is striped in its own tone up to --reserve-stop (the reserve edge,
  * relative to the fill) and solid beyond it, so only the usable remainder reads solid. */
-.quotaBarFillCapped {
+.quotaBarFillReserved {
   background:
     linear-gradient(
       to right,
-      transparent 0 var(--cap-stop),
-      var(--quota-bar-color) var(--cap-stop)
+      transparent 0 var(--reserve-stop),
+      var(--quota-bar-color) var(--reserve-stop)
     ),
     repeating-linear-gradient(
       135deg,

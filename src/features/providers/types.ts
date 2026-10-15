@@ -6,7 +6,7 @@ import type {
   GeminiKeyConfig,
   OpenAIProviderConfig,
   ProviderKeyConfig,
-  UsageCapConfig,
+  QuotaReserveConfig,
 } from '@/types';
 import type { ThinkingLevel } from './thinkingLevels';
 import type { RuntimePolicyDraft } from './runtimePolicy';
@@ -221,8 +221,8 @@ export interface ProviderEntryFormInput extends ProviderBehaviorOptions {
   /** Provider pricing catalog metadata. */
   pricingCatalog?: string;
   usageProbe?: '' | 'zai' | 'opencode-go';
-  usageCaps?: UsageCapConfig['usageCaps'];
-  usageCapBypassKeys?: UsageCapConfig['usageCapBypassKeys'];
+  quotaReserves?: QuotaReserveConfig['quotaReserves'];
+  quotaReserveBypassKeys?: QuotaReserveConfig['quotaReserveBypassKeys'];
   apiKeyEntries?: ApiKeyEntryInput[];
   /** APIKEY.FUN stores one grouped key per platform protocol. */
   sponsorKeyEntries?: SponsorKeyEntryInput[];

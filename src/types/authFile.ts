@@ -32,16 +32,16 @@ export interface AuthFileCooldown {
   httpStatus?: number;
 }
 
-export interface AuthFileUsageCapHit {
+export interface AuthFileQuotaReserveHit {
   barId: string;
-  capPercent: number;
+  reservePercent: number;
   remainingPercent: number | null;
   resetAtMs: number | null;
 }
 
-export interface AuthFileUsageCapState {
+export interface AuthFileQuotaReserveState {
   untilMs?: number | null;
-  hits: AuthFileUsageCapHit[];
+  hits: AuthFileQuotaReserveHit[];
   checkedAtMs?: number | null;
 }
 
@@ -63,11 +63,11 @@ export interface AuthFileItem {
   /** Usage probe identifier returned by the backend. */
   usageProbe?: string;
   /** Minimum remaining percent by quota bar ID. */
-  usageCaps?: Record<string, number>;
-  /** Client key IDs that bypass these caps. */
-  usageCapBypassKeys?: string[];
-  /** Present only while the credential is currently capped. */
-  usageCapState?: AuthFileUsageCapState;
+  quotaReserves?: Record<string, number>;
+  /** Client key IDs that bypass these reserves. */
+  quotaReserveBypassKeys?: string[];
+  /** Present only while the credential is currently reserved. */
+  quotaReserveState?: AuthFileQuotaReserveState;
   /** Pricing catalog provider identifier returned by the backend. */
   pricingCatalog?: string;
   type?: AuthFileType | string;

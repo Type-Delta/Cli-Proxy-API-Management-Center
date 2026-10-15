@@ -7,23 +7,23 @@ import type {
 } from '@/types';
 import { isRecord } from '@/utils/helpers';
 
-export type UsageCapProviderType = 'claude' | 'codex' | 'zai' | 'opencode-go' | 'kiro';
+export type QuotaReserveProviderType = 'claude' | 'codex' | 'zai' | 'opencode-go' | 'kiro';
 
-export type UsageCaps = Record<string, number>;
-export type UsageCapHit = {
+export type QuotaReserves = Record<string, number>;
+export type QuotaReserveHit = {
   barId: string;
-  capPercent: number;
+  reservePercent: number;
   remainingPercent: number | null;
   resetAtMs: number | null;
 };
 
-export type UsageCapState = {
+export type QuotaReserveState = {
   untilMs?: number | null;
-  hits: UsageCapHit[];
+  hits: QuotaReserveHit[];
   checkedAtMs?: number | null;
 };
 
-export type UsageCapBar = {
+export type QuotaReserveBar = {
   id: string;
   label: string;
   remainingPercent: number | null;
@@ -63,7 +63,7 @@ const parseTimestampMs = (value: unknown): number | null => {
   return Number.isNaN(parsed) ? null : parsed;
 };
 
-export const clampUsageCapPercent = (value: unknown): number | null => {
+export const clampQuotaReservePercent = (value: unknown): number | null => {
   const percent = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(percent)) return null;
   const rounded = Math.round(percent);
@@ -71,20 +71,20 @@ export const clampUsageCapPercent = (value: unknown): number | null => {
   return rounded;
 };
 
-export const normalizeUsageCaps = (value: unknown): UsageCaps => {
+export const normalizeQuotaReserves = (value: unknown): QuotaReserves => {
   if (!isRecord(value)) return {};
-  const caps: UsageCaps = {};
+  const reserves: QuotaReserves = {};
   Object.entries(value).forEach(([barId, rawPercent]) => {
-    const percent = clampUsageCapPercent(rawPercent);
-    if (percent !== null) caps[barId] = percent;
+    const percent = clampQuotaReservePercent(rawPercent);
+    if (percent !== null) reserves[barId] = percent;
   });
-  return caps;
+  return reserves;
 };
 
-export const readUsageCaps = (value: Record<string, unknown>): UsageCaps =>
-  normalizeUsageCaps(value.usage_caps);
+export const readQuotaReserves = (value: Record<string, unknown>): QuotaReserves =>
+  normalizeQuotaReserves(value.quota_reserve);
 
-export const normalizeUsageCapBypassKeys = (value: unknown): string[] => {
+export const normalizeQuotaReserveBypassKeys = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
   const seen = new Set<string>();
   const keys: string[] = [];
@@ -99,71 +99,79 @@ export const normalizeUsageCapBypassKeys = (value: unknown): string[] => {
   return keys;
 };
 
-export const readUsageCapBypassKeys = (value: Record<string, unknown>): string[] =>
-  normalizeUsageCapBypassKeys(value.usage_cap_bypass_keys);
+export const readQuotaReserveBypassKeys = (value: Record<string, unknown>): string[] =>
+  normalizeQuotaReserveBypassKeys(value.quota_reserve_bypass_keys);
 
-export type UsageCapDraft = {
-  caps: UsageCaps;
-  capsTouched: boolean;
+export type QuotaReserveDraft = {
+  reserves: QuotaReserves;
+  reservesTouched: boolean;
   bypassKeys: string[];
   bypassKeysTouched: boolean;
 };
 
-export type UsageCapPatch = {
-  usage_caps?: UsageCaps | null;
-  usage_cap_bypass_keys?: string[] | null;
+export type QuotaReservePatch = {
+  quota_reserve?: QuotaReserves | null;
+  quota_reserve_bypass_keys?: string[] | null;
 };
 
-export type UsageCapFields = {
-  usageCaps?: UsageCaps;
-  usageCapBypassKeys?: string[];
+export type QuotaReserveFields = {
+  quotaReserves?: QuotaReserves;
+  quotaReserveBypassKeys?: string[];
 };
 
-/** Keep untouched saved caps through whole-object provider edits while allowing explicit clears. */
-export const resolveUsageCapFields = (
-  input: UsageCapFields | undefined,
-  existing?: UsageCapFields | null
-): UsageCapFields => {
-  const caps =
-    input?.usageCaps !== undefined
-      ? normalizeUsageCaps(input.usageCaps)
-      : normalizeUsageCaps(existing?.usageCaps);
+/** Keep untouched saved reserves through whole-object provider edits while allowing explicit clears. */
+export const resolveQuotaReserveFields = (
+  input: QuotaReserveFields | undefined,
+  existing?: QuotaReserveFields | null
+): QuotaReserveFields => {
+  const reserves =
+    input?.quotaReserves !== undefined
+      ? normalizeQuotaReserves(input.quotaReserves)
+      : normalizeQuotaReserves(existing?.quotaReserves);
   const bypassKeys =
-    input?.usageCapBypassKeys !== undefined
-      ? normalizeUsageCapBypassKeys(input.usageCapBypassKeys)
-      : normalizeUsageCapBypassKeys(existing?.usageCapBypassKeys);
+    input?.quotaReserveBypassKeys !== undefined
+      ? normalizeQuotaReserveBypassKeys(input.quotaReserveBypassKeys)
+      : normalizeQuotaReserveBypassKeys(existing?.quotaReserveBypassKeys);
   return {
-    ...(input?.usageCaps !== undefined || Object.keys(caps).length ? { usageCaps: caps } : {}),
-    ...(input?.usageCapBypassKeys !== undefined || bypassKeys.length
-      ? { usageCapBypassKeys: bypassKeys }
+    ...(input?.quotaReserves !== undefined || Object.keys(reserves).length
+      ? { quotaReserves: reserves }
+      : {}),
+    ...(input?.quotaReserveBypassKeys !== undefined || bypassKeys.length
+      ? { quotaReserveBypassKeys: bypassKeys }
       : {}),
   };
 };
 
-/** Emit only changed cap fields so an unrelated provider save cannot silently reset them. */
-export const buildUsageCapPatch = (before: UsageCapDraft, after: UsageCapDraft): UsageCapPatch => {
-  const patch: UsageCapPatch = {};
-  if (after.capsTouched) {
+/** Emit only changed reserve fields so an unrelated provider save cannot silently reset them. */
+export const buildQuotaReservePatch = (
+  before: QuotaReserveDraft,
+  after: QuotaReserveDraft
+): QuotaReservePatch => {
+  const patch: QuotaReservePatch = {};
+  if (after.reservesTouched) {
     const changed =
-      Object.keys(before.caps).length !== Object.keys(after.caps).length ||
-      Object.entries(after.caps).some(([barId, percent]) => before.caps[barId] !== percent);
-    if (changed) patch.usage_caps = Object.keys(after.caps).length ? after.caps : null;
+      Object.keys(before.reserves).length !== Object.keys(after.reserves).length ||
+      Object.entries(after.reserves).some(([barId, percent]) => before.reserves[barId] !== percent);
+    if (changed) patch.quota_reserve = Object.keys(after.reserves).length ? after.reserves : null;
   }
   if (after.bypassKeysTouched) {
     const changed =
       before.bypassKeys.length !== after.bypassKeys.length ||
       before.bypassKeys.some((key, index) => key !== after.bypassKeys[index]);
     if (changed) {
-      patch.usage_cap_bypass_keys = after.bypassKeys.length ? after.bypassKeys : null;
+      patch.quota_reserve_bypass_keys = after.bypassKeys.length ? after.bypassKeys : null;
     }
   }
   return patch;
 };
 
-export type UsageCapTranslate = (key: string, options?: Record<string, string | number>) => string;
+export type QuotaReserveTranslate = (
+  key: string,
+  options?: Record<string, string | number>
+) => string;
 
 const translateLabel = (
-  t: UsageCapTranslate,
+  t: QuotaReserveTranslate,
   labelKey?: string,
   label?: string,
   params?: Record<string, string | number>
@@ -173,13 +181,13 @@ const translateLabel = (
 };
 
 export const extractQuotaCapBars = (
-  providerType: UsageCapProviderType,
+  providerType: QuotaReserveProviderType,
   state: unknown,
-  t: UsageCapTranslate
-): UsageCapBar[] => {
+  t: QuotaReserveTranslate
+): QuotaReserveBar[] => {
   if (!isRecord(state)) return [];
   const windows = Array.isArray(state.windows) ? state.windows : [];
-  return windows.flatMap((rawWindow): UsageCapBar[] => {
+  return windows.flatMap((rawWindow): QuotaReserveBar[] => {
     if (!isRecord(rawWindow)) return [];
     const id = String(rawWindow.id ?? '').trim();
     if (!id) return [];
@@ -247,14 +255,16 @@ export const extractQuotaCapBars = (
   });
 };
 
-export const normalizeUsageCapState = (value: unknown): UsageCapState | null => {
+export const normalizeQuotaReserveState = (value: unknown): QuotaReserveState | null => {
   if (!isRecord(value)) return null;
   const hits = Array.isArray(value.hits)
-    ? value.hits.flatMap((rawHit): UsageCapHit[] => {
+    ? value.hits.flatMap((rawHit): QuotaReserveHit[] => {
         if (!isRecord(rawHit)) return [];
         const barId = String(rawHit.bar_id ?? rawHit.barId ?? '').trim();
-        const capPercent = clampUsageCapPercent(rawHit.cap_percent ?? rawHit.capPercent);
-        if (!barId || capPercent === null) return [];
+        const reservePercent = clampQuotaReservePercent(
+          rawHit.reserve_percent ?? rawHit.reservePercent
+        );
+        if (!barId || reservePercent === null) return [];
         const remaining =
           typeof rawHit.remaining_percent === 'number'
             ? rawHit.remaining_percent
@@ -264,7 +274,7 @@ export const normalizeUsageCapState = (value: unknown): UsageCapState | null => 
         return [
           {
             barId,
-            capPercent,
+            reservePercent,
             remainingPercent: remaining === null ? null : Math.max(0, Math.min(100, remaining)),
             resetAtMs: parseTimestampMs(rawHit.reset_at ?? rawHit.resetAt),
           },
@@ -278,26 +288,26 @@ export const normalizeUsageCapState = (value: unknown): UsageCapState | null => 
   };
 };
 
-export const readUsageCapState = (value: Record<string, unknown>): UsageCapState | null =>
-  normalizeUsageCapState(value.usage_cap_state);
+export const readQuotaReserveState = (value: Record<string, unknown>): QuotaReserveState | null =>
+  normalizeQuotaReserveState(value.quota_reserve_state);
 
-export const usageCapHitForBar = (
-  state: UsageCapState | null | undefined,
+export const quotaReserveHitForBar = (
+  state: QuotaReserveState | null | undefined,
   barId: string
-): UsageCapHit | undefined => state?.hits.find((hit) => hit.barId === barId);
+): QuotaReserveHit | undefined => state?.hits.find((hit) => hit.barId === barId);
 
 export type SupportedQuotaState =
   ClaudeQuotaState | CodexQuotaState | ZaiQuotaState | OpenCodeGoQuotaState | KiroQuotaState;
 
 export const extractSupportedQuotaCapBars = (
-  providerType: UsageCapProviderType,
+  providerType: QuotaReserveProviderType,
   state: SupportedQuotaState,
-  t: UsageCapTranslate
-): UsageCapBar[] => extractQuotaCapBars(providerType, state, t);
+  t: QuotaReserveTranslate
+): QuotaReserveBar[] => extractQuotaCapBars(providerType, state, t);
 
-export const usageCapProviderType = (providerKey: string): UsageCapProviderType | null => {
+export const quotaReserveProviderType = (providerKey: string): QuotaReserveProviderType | null => {
   const normalized = providerKey.trim().toLowerCase();
-  const supported: readonly UsageCapProviderType[] = [
+  const supported: readonly QuotaReserveProviderType[] = [
     'claude',
     'codex',
     'zai',
@@ -307,38 +317,38 @@ export const usageCapProviderType = (providerKey: string): UsageCapProviderType 
   return supported.find((type) => type === normalized) ?? null;
 };
 
-export const usageCapHitsById = (
-  state: UsageCapState | null | undefined
-): Record<string, UsageCapHit> =>
-  (state?.hits ?? []).reduce<Record<string, UsageCapHit>>((hits, hit) => {
+export const quotaReserveHitsById = (
+  state: QuotaReserveState | null | undefined
+): Record<string, QuotaReserveHit> =>
+  (state?.hits ?? []).reduce<Record<string, QuotaReserveHit>>((hits, hit) => {
     hits[hit.barId] = hit;
     return hits;
   }, {});
 
-/** Tooltip text for a bar with a configured cap; adds the capped-until part while it blocks. */
-export const usageCapTooltip = (
-  t: UsageCapTranslate,
-  capPercent: number | undefined,
-  hit: UsageCapHit | undefined,
+/** Tooltip text for a bar with a configured reserve; adds the reached-until part while it holds. */
+export const quotaReserveTooltip = (
+  t: QuotaReserveTranslate,
+  reservePercent: number | undefined,
+  hit: QuotaReserveHit | undefined,
   locale = 'en'
 ): string => {
-  const percent = hit?.capPercent ?? capPercent;
+  const percent = hit?.reservePercent ?? reservePercent;
   if (percent === undefined) return '';
-  const reserved = t('quota_management.usage_cap_reserved', { percent });
+  const reserved = t('quota_management.quota_reserve_reserved', { percent });
   if (!hit) return reserved;
   if (hit.resetAtMs === null) {
-    return [reserved, t('quota_management.usage_cap_until_unknown')].join(' · ');
+    return [reserved, t('quota_management.quota_reserve_until_unknown')].join(' · ');
   }
   const reset = new Intl.DateTimeFormat(locale, {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(hit.resetAtMs);
-  return [reserved, t('quota_management.usage_cap_until', { reset })].join(' · ');
+  return [reserved, t('quota_management.quota_reserve_until', { reset })].join(' · ');
 };
 
-export const usageCapBadgeTitle = (
-  t: UsageCapTranslate,
-  state: UsageCapState | null | undefined,
+export const quotaReserveBadgeTitle = (
+  t: QuotaReserveTranslate,
+  state: QuotaReserveState | null | undefined,
   locale = 'en'
 ): string => {
   if (!state || state.hits.length === 0) return '';
@@ -350,11 +360,11 @@ export const usageCapBadgeTitle = (
     .map((hit) => {
       const until =
         hit.resetAtMs === null
-          ? t('quota_management.usage_cap_until_unknown')
-          : t('quota_management.usage_cap_until', {
+          ? t('quota_management.quota_reserve_until_unknown')
+          : t('quota_management.quota_reserve_until', {
               reset: formatter.format(hit.resetAtMs),
             });
-      return t('quota_management.usage_cap_bar_until', { bar: hit.barId, until });
+      return t('quota_management.quota_reserve_bar_until', { bar: hit.barId, until });
     })
     .join('\n');
 };

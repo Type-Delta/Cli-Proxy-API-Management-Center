@@ -11,7 +11,7 @@ import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import { quotaWindowTitle } from '../../windowGating';
-import { usageCapTooltip } from '../../usageCaps';
+import { quotaReserveTooltip } from '../../quotaReserve';
 import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
 export function ClaudeQuotaBody({
@@ -19,8 +19,8 @@ export function ClaudeQuotaBody({
   classes,
   credential,
   leadingMeta,
-  usageCaps,
-  usageCapHits,
+  quotaReserves,
+  quotaReserveHits,
 }: QuotaBodyProps<ClaudeQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
@@ -91,10 +91,10 @@ export function ClaudeQuotaBody({
                   resetAtMs: window.resetAtMs,
                   plan: planType ? t(`claude_quota.${planType}`) : null,
                   hint: quotaWindowTitle(t, { soon, disabled: window.disabled }),
-                  cap: usageCapTooltip(
+                  reserve: quotaReserveTooltip(
                     t,
-                    usageCaps?.[window.id],
-                    usageCapHits?.[window.id],
+                    quotaReserves?.[window.id],
+                    quotaReserveHits?.[window.id],
                     i18n.resolvedLanguage
                   ),
                 })}
@@ -113,7 +113,7 @@ export function ClaudeQuotaBody({
                   classes={classes}
                   index={index}
                   disabled={window.disabled}
-                  capPercent={usageCaps?.[window.id]}
+                  reservePercent={quotaReserves?.[window.id]}
                 />
               </div>
             );

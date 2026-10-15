@@ -9,15 +9,15 @@ import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import { quotaWindowTitle } from '../../windowGating';
-import { usageCapTooltip } from '../../usageCaps';
+import { quotaReserveTooltip } from '../../quotaReserve';
 import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
 export function OpenCodeGoQuotaBody({
   quota,
   classes,
   credential,
-  usageCaps,
-  usageCapHits,
+  quotaReserves,
+  quotaReserveHits,
 }: QuotaBodyProps<OpenCodeGoQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
@@ -65,10 +65,10 @@ export function OpenCodeGoQuotaBody({
                 resetAtMs: row.resetAtMs,
                 plan: t('opencode_go_quota.plan_value'),
                 hint: quotaWindowTitle(t, { soon, disabled: row.disabled }),
-                cap: usageCapTooltip(
+                reserve: quotaReserveTooltip(
                   t,
-                  usageCaps?.[row.id],
-                  usageCapHits?.[row.id],
+                  quotaReserves?.[row.id],
+                  quotaReserveHits?.[row.id],
                   i18n.resolvedLanguage
                 ),
               })}
@@ -87,7 +87,7 @@ export function OpenCodeGoQuotaBody({
                 classes={classes}
                 index={index}
                 disabled={row.disabled}
-                capPercent={usageCaps?.[row.id]}
+                reservePercent={quotaReserves?.[row.id]}
               />
             </div>
           );

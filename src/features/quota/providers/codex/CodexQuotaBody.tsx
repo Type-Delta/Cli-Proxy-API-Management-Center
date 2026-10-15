@@ -20,7 +20,7 @@ import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId, resetCreditRowId } from '../../resetSchedule';
 import { quotaWindowTitle } from '../../windowGating';
-import { usageCapTooltip } from '../../usageCaps';
+import { quotaReserveTooltip } from '../../quotaReserve';
 import { buildQuotaRowTitle, type QuotaBodyProps, type QuotaClassMap } from '../../types';
 
 const getPlanValueClass = (planType: string | null, classes: QuotaClassMap): string => {
@@ -35,8 +35,8 @@ export function CodexQuotaBody({
   quota,
   classes,
   credential,
-  usageCaps,
-  usageCapHits,
+  quotaReserves,
+  quotaReserveHits,
 }: QuotaBodyProps<CodexQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
@@ -243,10 +243,10 @@ export function CodexQuotaBody({
                   resetAtMs: window.resetAtMs,
                   plan: planLabel,
                   hint: quotaWindowTitle(t, { soon, disabled: window.disabled }),
-                  cap: usageCapTooltip(
+                  reserve: quotaReserveTooltip(
                     t,
-                    usageCaps?.[window.id],
-                    usageCapHits?.[window.id],
+                    quotaReserves?.[window.id],
+                    quotaReserveHits?.[window.id],
                     i18n.resolvedLanguage
                   ),
                 })}
@@ -265,7 +265,7 @@ export function CodexQuotaBody({
                   classes={classes}
                   index={index}
                   disabled={window.disabled}
-                  capPercent={usageCaps?.[window.id]}
+                  reservePercent={quotaReserves?.[window.id]}
                 />
               </div>
             );

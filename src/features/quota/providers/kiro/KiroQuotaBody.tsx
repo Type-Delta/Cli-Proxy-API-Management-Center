@@ -7,7 +7,7 @@ import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import { formatQuotaPercent } from '../../quotaSummary';
-import { usageCapTooltip } from '../../usageCaps';
+import { quotaReserveTooltip } from '../../quotaReserve';
 import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
 const formatRequests = (value: number): string => Number(value.toFixed(2)).toString();
@@ -18,8 +18,8 @@ export function KiroQuotaBody({
   quota,
   classes,
   credential,
-  usageCaps,
-  usageCapHits,
+  quotaReserves,
+  quotaReserveHits,
 }: QuotaBodyProps<KiroQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
@@ -99,10 +99,10 @@ export function KiroQuotaBody({
                   resetAtMs: window.resetAtMs,
                   plan: quota.subscription?.title,
                   hint: soon ? t('quota_management.soonest_row_hint') : undefined,
-                  cap: usageCapTooltip(
+                  reserve: quotaReserveTooltip(
                     t,
-                    usageCaps?.[window.id],
-                    usageCapHits?.[window.id],
+                    quotaReserves?.[window.id],
+                    quotaReserveHits?.[window.id],
                     i18n.resolvedLanguage
                   ),
                 })}
@@ -126,7 +126,7 @@ export function KiroQuotaBody({
                   classes={classes}
                   index={index}
                   label={label}
-                  capPercent={usageCaps?.[window.id]}
+                  reservePercent={quotaReserves?.[window.id]}
                 />
                 <div className={classes.quotaAmount}>
                   {amount}

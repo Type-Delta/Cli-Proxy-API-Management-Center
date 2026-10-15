@@ -17,10 +17,10 @@ import {
 import { parseTimestampMs } from '@/utils/timestamp';
 import { normalizeAuthFileCooldowns, normalizeCooldownTimestamp } from './authFileCooldowns';
 import {
-  normalizeUsageCapBypassKeys,
-  normalizeUsageCapState,
-  normalizeUsageCaps,
-} from '@/features/quota/usageCaps';
+  normalizeQuotaReserveBypassKeys,
+  normalizeQuotaReserveState,
+  normalizeQuotaReserves,
+} from '@/features/quota/quotaReserve';
 
 type AuthFileStatusResponse = { status: string; disabled: boolean };
 export type AuthFileLookup = { name: string; authIndex?: string };
@@ -54,8 +54,8 @@ export type AuthFileFieldsPatch = {
   excluded_models?: string[];
   'excluded-models'?: string[];
   expired?: string;
-  usage_caps?: Record<string, number> | null;
-  usage_cap_bypass_keys?: string[] | null;
+  quota_reserve?: Record<string, number> | null;
+  quota_reserve_bypass_keys?: string[] | null;
 };
 type AuthFileBatchFailure = { name: string; error: string };
 type AuthFileBatchUploadResponse = {
@@ -282,7 +282,7 @@ const normalizeAuthFileEntry = (
   const modified = readDateField(entry);
   const priority = readIntegerField(entry['priority']);
   const weight = readIntegerField(entry['weight']);
-  const normalizedUsageCapState = normalizeUsageCapState(entry.usage_cap_state);
+  const normalizedQuotaReserveState = normalizeQuotaReserveState(entry.quota_reserve_state);
 
   return {
     ...entry,
@@ -302,13 +302,13 @@ const normalizeAuthFileEntry = (
     displayName,
     ...(label ? { label } : {}),
     ...(usageProbe ? { usageProbe } : {}),
-    ...(Object.keys(normalizeUsageCaps(entry.usage_caps)).length
-      ? { usageCaps: normalizeUsageCaps(entry.usage_caps) }
+    ...(Object.keys(normalizeQuotaReserves(entry.quota_reserve)).length
+      ? { quotaReserves: normalizeQuotaReserves(entry.quota_reserve) }
       : {}),
-    ...(normalizeUsageCapBypassKeys(entry.usage_cap_bypass_keys).length
-      ? { usageCapBypassKeys: normalizeUsageCapBypassKeys(entry.usage_cap_bypass_keys) }
+    ...(normalizeQuotaReserveBypassKeys(entry.quota_reserve_bypass_keys).length
+      ? { quotaReserveBypassKeys: normalizeQuotaReserveBypassKeys(entry.quota_reserve_bypass_keys) }
       : {}),
-    ...(normalizedUsageCapState ? { usageCapState: normalizedUsageCapState } : {}),
+    ...(normalizedQuotaReserveState ? { quotaReserveState: normalizedQuotaReserveState } : {}),
     ...(pricingCatalog ? { pricingCatalog } : {}),
   };
 };

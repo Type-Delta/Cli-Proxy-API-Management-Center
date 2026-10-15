@@ -23,7 +23,7 @@ import {
 import { bindQuotaClasses } from '../types';
 import { QUOTA_ADAPTERS, type QuotaCardState } from '../providers';
 import { isQuotaRefreshDisabled, type QuotaFileEntry } from '../logic';
-import { usageCapHitsById } from '../usageCaps';
+import { quotaReserveHitsById } from '../quotaReserve';
 import { useClaudeResetGrants } from '../providers/claude/ClaudeResetGrants';
 import bodyStyles from './QuotaBody.module.scss';
 import styles from './QuotaCard.module.scss';
@@ -162,8 +162,8 @@ export function QuotaCard(props: QuotaCardProps) {
             classes={quotaClasses}
             credential={{ displayName }}
             leadingMeta={claudeResetMeta}
-            usageCaps={file.usageCaps}
-            usageCapHits={usageCapHitsById(file.usageCapState)}
+            quotaReserves={file.quotaReserves}
+            quotaReserveHits={quotaReserveHitsById(file.quotaReserveState)}
           />
         ) : (
           <div className={styles.idleHint}>{t(`${adapter.i18nPrefix}.idle`)}</div>

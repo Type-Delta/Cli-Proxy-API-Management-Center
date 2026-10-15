@@ -10,12 +10,12 @@ import { getQuotaCacheKey } from '@/utils/quota/identity';
 import { QUOTA_ADAPTERS, getQuotaMap } from '../providers';
 import {
   extractSupportedQuotaCapBars,
-  usageCapProviderType,
-  type UsageCapBar,
-  type UsageCaps,
-} from '../usageCaps';
+  quotaReserveProviderType,
+  type QuotaReserveBar,
+  type QuotaReserves,
+} from '../quotaReserve';
 import { QuotaMeter, type QuotaMeterClasses } from './QuotaMeter';
-import styles from './UsageCapEditor.module.scss';
+import styles from './QuotaReserveEditor.module.scss';
 
 const meterClasses: QuotaMeterClasses = {
   quotaBar: styles.quotaBarEditor,
@@ -24,40 +24,40 @@ const meterClasses: QuotaMeterClasses = {
   quotaBarFillMedium: styles.quotaBarFillMedium,
   quotaBarFillLow: styles.quotaBarFillLow,
   quotaBarFillDisabled: styles.quotaBarFillDisabled,
-  quotaBarFillCapped: styles.quotaBarFillCapped,
+  quotaBarFillReserved: styles.quotaBarFillReserved,
 };
 
-const DEFAULT_CAP = 20;
+const DEFAULT_RESERVE = 20;
 
 type EditorQuota = { status: 'success'; windows: unknown };
 
-export type UsageCapEditorProps = {
+export type QuotaReserveEditorProps = {
   providerKey: string;
   /** Auth-file editor passes its credential directly; provider forms pass a stable authIndex. */
   credential?: AuthFileItem;
   authIndex?: string | null;
-  caps: UsageCaps;
+  reserves: QuotaReserves;
   bypassKeys: string[];
   disabled?: boolean;
-  onChangeCaps: (caps: UsageCaps) => void;
+  onChangeReserves: (reserves: QuotaReserves) => void;
   onChangeBypassKeys: (keys: string[]) => void;
 };
 
 const sameAuthIndex = (left: unknown, right: unknown): boolean =>
   String(left ?? '').trim() !== '' && String(left ?? '').trim() === String(right ?? '').trim();
 
-export function UsageCapEditor({
+export function QuotaReserveEditor({
   providerKey,
   credential: initialCredential,
   authIndex,
-  caps,
+  reserves,
   bypassKeys,
   disabled = false,
-  onChangeCaps,
+  onChangeReserves,
   onChangeBypassKeys,
-}: UsageCapEditorProps) {
+}: QuotaReserveEditorProps) {
   const { t } = useTranslation();
-  const providerType = usageCapProviderType(providerKey);
+  const providerType = quotaReserveProviderType(providerKey);
   const [credential, setCredential] = useState(initialCredential);
   const [credentialError, setCredentialError] = useState<string | null>(null);
   const [quota, setQuota] = useState<EditorQuota | null>(null);
@@ -82,10 +82,10 @@ export function UsageCapEditor({
             sameAuthIndex(file.authIndex, authIndex) || sameAuthIndex(file['auth_index'], authIndex)
         );
         if (match) setCredential(match);
-        else setCredentialError(t('quota_management.usage_cap_credential_missing'));
+        else setCredentialError(t('quota_management.quota_reserve_credential_missing'));
       })
       .catch(() => {
-        if (active) setCredentialError(t('quota_management.usage_cap_credential_missing'));
+        if (active) setCredentialError(t('quota_management.quota_reserve_credential_missing'));
       });
     return () => {
       active = false;
@@ -136,28 +136,28 @@ export function UsageCapEditor({
     }
   }, [credential, providerType, quotaLoading, t]);
 
-  const bars = useMemo<UsageCapBar[]>(() => {
+  const bars = useMemo<QuotaReserveBar[]>(() => {
     if (!providerType || !quota) return [];
     const observed = extractSupportedQuotaCapBars(providerType, quota as never, t);
     const seen = new Set(observed.map((bar) => bar.id));
-    const savedOnly = Object.entries(caps)
+    const savedOnly = Object.entries(reserves)
       .filter(([id]) => !seen.has(id))
       .map(([id]) => ({ id, label: id, remainingPercent: null, resetAtMs: null }));
     return [...observed, ...savedOnly];
-  }, [caps, providerType, quota, t]);
+  }, [reserves, providerType, quota, t]);
 
-  const setBarCap = (barId: string, enabled: boolean) => {
-    const next = { ...caps };
-    if (enabled) next[barId] = Math.max(0, Math.min(99, next[barId] ?? DEFAULT_CAP));
+  const setBarReserve = (barId: string, enabled: boolean) => {
+    const next = { ...reserves };
+    if (enabled) next[barId] = Math.max(0, Math.min(99, next[barId] ?? DEFAULT_RESERVE));
     else delete next[barId];
-    onChangeCaps(next);
+    onChangeReserves(next);
   };
 
   const updatePointer = (barId: string, element: HTMLElement, clientX: number) => {
     const bounds = element.getBoundingClientRect();
     if (bounds.width <= 0) return;
     const percent = Math.round(((clientX - bounds.left) / bounds.width) * 100);
-    onChangeCaps({ ...caps, [barId]: Math.max(0, Math.min(99, percent)) });
+    onChangeReserves({ ...reserves, [barId]: Math.max(0, Math.min(99, percent)) });
   };
 
   const addBypassKey = (keyId: string) => {
@@ -170,19 +170,23 @@ export function UsageCapEditor({
   const keyById = (keyId: string) => clientKeys.find((identity) => identity.key_id === keyId);
 
   if (!providerType) {
-    return <div className={styles.sectionHint}>{t('quota_management.usage_cap_unsupported')}</div>;
+    return (
+      <div className={styles.sectionHint}>{t('quota_management.quota_reserve_unsupported')}</div>
+    );
   }
 
   return (
     <section className={styles.section}>
-      <h3 className={styles.sectionTitle}>{t('quota_management.usage_cap_title')}</h3>
-      <p className={styles.sectionHint}>{t('quota_management.usage_cap_hint')}</p>
+      <h3 className={styles.sectionTitle}>{t('quota_management.quota_reserve_title')}</h3>
+      <p className={styles.sectionHint}>{t('quota_management.quota_reserve_hint')}</p>
 
       {credentialError && <div className={styles.loadError}>{credentialError}</div>}
       {!credential ? (
-        <div className={styles.loadRow}>{t('quota_management.usage_cap_credential_missing')}</div>
+        <div className={styles.loadRow}>
+          {t('quota_management.quota_reserve_credential_missing')}
+        </div>
       ) : quotaLoading ? (
-        <div className={styles.loadRow}>{t('quota_management.usage_cap_loading')}</div>
+        <div className={styles.loadRow}>{t('quota_management.quota_reserve_loading')}</div>
       ) : quotaError ? (
         <div className={`${styles.loadRow} ${styles.loadError}`}>
           <span>{quotaError}</span>
@@ -197,13 +201,13 @@ export function UsageCapEditor({
           onClick={() => void loadQuota()}
           disabled={disabled}
         >
-          {t('quota_management.usage_cap_load')}
+          {t('quota_management.quota_reserve_load')}
         </Button>
       ) : (
         <div className={styles.bars}>
           {bars.map((bar) => {
-            const enabled = caps[bar.id] !== undefined;
-            const percent = enabled ? caps[bar.id] : DEFAULT_CAP;
+            const enabled = reserves[bar.id] !== undefined;
+            const percent = enabled ? reserves[bar.id] : DEFAULT_RESERVE;
             return (
               <div key={bar.id} className={styles.capRow}>
                 <div className={styles.capLabel}>
@@ -212,10 +216,10 @@ export function UsageCapEditor({
                     <ToggleSwitch
                       checked={enabled}
                       disabled={disabled}
-                      ariaLabel={t('quota_management.usage_cap_enable', {
+                      ariaLabel={t('quota_management.quota_reserve_enable', {
                         bar: bar.label || bar.id,
                       })}
-                      onChange={(value) => setBarCap(bar.id, value)}
+                      onChange={(value) => setBarReserve(bar.id, value)}
                     />
                   </div>
                 </div>
@@ -247,7 +251,7 @@ export function UsageCapEditor({
                   <QuotaMeter
                     percent={bar.remainingPercent}
                     classes={meterClasses}
-                    capPercent={enabled ? percent : undefined}
+                    reservePercent={enabled ? percent : undefined}
                   />
                   <button
                     type="button"
@@ -255,13 +259,13 @@ export function UsageCapEditor({
                     style={{ left: `${percent}%` }}
                     disabled={!enabled || disabled}
                     role="slider"
-                    aria-label={t('quota_management.usage_cap_handle', {
+                    aria-label={t('quota_management.quota_reserve_handle', {
                       bar: bar.label || bar.id,
                     })}
                     aria-valuemin={0}
                     aria-valuemax={99}
                     aria-valuenow={percent}
-                    aria-valuetext={t('quota_management.usage_cap_value', { percent })}
+                    aria-valuetext={t('quota_management.quota_reserve_value', { percent })}
                     onKeyDown={(event) => {
                       if (!enabled || disabled) return;
                       const step =
@@ -276,44 +280,44 @@ export function UsageCapEditor({
                                 : 0;
                       if (event.key === 'Home') {
                         event.preventDefault();
-                        onChangeCaps({ ...caps, [bar.id]: 0 });
+                        onChangeReserves({ ...reserves, [bar.id]: 0 });
                         return;
                       }
                       if (event.key === 'End') {
                         event.preventDefault();
-                        onChangeCaps({ ...caps, [bar.id]: 99 });
+                        onChangeReserves({ ...reserves, [bar.id]: 99 });
                         return;
                       }
                       if (step === 0) return;
                       event.preventDefault();
-                      onChangeCaps({
-                        ...caps,
+                      onChangeReserves({
+                        ...reserves,
                         [bar.id]: Math.max(0, Math.min(99, percent + step)),
                       });
                     }}
                   />
                 </div>
                 <div className={styles.value}>
-                  {t('quota_management.usage_cap_value', { percent })}
+                  {t('quota_management.quota_reserve_value', { percent })}
                 </div>
               </div>
             );
           })}
           {bars.length === 0 && (
-            <div className={styles.sectionHint}>{t('quota_management.usage_cap_empty')}</div>
+            <div className={styles.sectionHint}>{t('quota_management.quota_reserve_empty')}</div>
           )}
         </div>
       )}
 
       <div className={styles.picker}>
         <AutocompleteInput
-          label={t('quota_management.usage_cap_bypass_label')}
+          label={t('quota_management.quota_reserve_bypass_label')}
           value={keyQuery}
           onChange={setKeyQuery}
           onSelect={addBypassKey}
           disabled={disabled}
-          placeholder={t('quota_management.usage_cap_bypass_placeholder')}
-          hint={t('quota_management.usage_cap_bypass_hint')}
+          placeholder={t('quota_management.quota_reserve_bypass_placeholder')}
+          hint={t('quota_management.quota_reserve_bypass_hint')}
           options={clientKeys
             .filter((identity) => {
               const query = keyQuery.trim().toLowerCase();
@@ -325,7 +329,7 @@ export function UsageCapEditor({
             })
             .map((identity) => ({
               value: identity.key_id,
-              label: identity.label ?? t('quota_management.usage_cap_unlabeled_key'),
+              label: identity.label ?? t('quota_management.quota_reserve_unlabeled_key'),
               description: identity.key_id.slice(0, 8),
               searchText: `${identity.key_id} ${identity.label ?? ''}`,
             }))}
@@ -340,17 +344,17 @@ export function UsageCapEditor({
               <span
                 key={keyId}
                 className={`${styles.chip} ${missing ? styles.chipMissing : ''}`}
-                title={`${identity?.label ?? t('quota_management.usage_cap_missing_key')} · ${keyId.slice(0, 8)}`}
+                title={`${identity?.label ?? t('quota_management.quota_reserve_missing_key')} · ${keyId.slice(0, 8)}`}
               >
                 <span className={styles.chipText}>
-                  {identity?.label ?? t('quota_management.usage_cap_missing_key')} ·{' '}
+                  {identity?.label ?? t('quota_management.quota_reserve_missing_key')} ·{' '}
                   {keyId.slice(0, 8)}
                 </span>
                 <button
                   type="button"
                   className={styles.chipRemove}
                   disabled={disabled}
-                  aria-label={t('quota_management.usage_cap_remove_key', {
+                  aria-label={t('quota_management.quota_reserve_remove_key', {
                     key: keyId.slice(0, 8),
                   })}
                   onClick={() => onChangeBypassKeys(bypassKeys.filter((id) => id !== keyId))}

@@ -12,7 +12,10 @@ import { buildHeaderObject } from '@/utils/headers';
 import { isRecord } from '@/utils/helpers';
 import { readCredentialWeight } from '@/utils/credentialWeight';
 import { normalizeModelOptions, normalizeModelThinking } from './providerModels';
-import { normalizeUsageCapBypassKeys, normalizeUsageCaps } from '@/features/quota/usageCaps';
+import {
+  normalizeQuotaReserveBypassKeys,
+  normalizeQuotaReserves,
+} from '@/features/quota/quotaReserve';
 
 const normalizeBoolean = (value: unknown): boolean | undefined =>
   typeof value === 'boolean' ? value : undefined;
@@ -204,10 +207,12 @@ const normalizeProviderKeyConfig = (item: unknown): ProviderKeyConfig | null => 
   if (pricingCatalog) config.pricingCatalog = pricingCatalog;
   const usageProbe = normalizeUsageProbe(record?.['usage-probe']);
   if (usageProbe !== undefined) config.usageProbe = usageProbe;
-  const usageCaps = normalizeUsageCaps(record?.['usage-caps']);
-  if (Object.keys(usageCaps).length) config.usageCaps = usageCaps;
-  const usageCapBypassKeys = normalizeUsageCapBypassKeys(record?.['usage-cap-bypass-keys']);
-  if (usageCapBypassKeys.length) config.usageCapBypassKeys = usageCapBypassKeys;
+  const quotaReserves = normalizeQuotaReserves(record?.['quota-reserve']);
+  if (Object.keys(quotaReserves).length) config.quotaReserves = quotaReserves;
+  const quotaReserveBypassKeys = normalizeQuotaReserveBypassKeys(
+    record?.['quota-reserve-bypass-keys']
+  );
+  if (quotaReserveBypassKeys.length) config.quotaReserveBypassKeys = quotaReserveBypassKeys;
 
   const cloakRaw = record?.cloak;
   if (isRecord(cloakRaw)) {
@@ -282,10 +287,12 @@ const normalizeGeminiKeyConfig = (item: unknown): GeminiKeyConfig | null => {
   if (pricingCatalog) config.pricingCatalog = pricingCatalog;
   const usageProbe = normalizeUsageProbe(record?.['usage-probe']);
   if (usageProbe !== undefined) config.usageProbe = usageProbe;
-  const usageCaps = normalizeUsageCaps(record?.['usage-caps']);
-  if (Object.keys(usageCaps).length) config.usageCaps = usageCaps;
-  const usageCapBypassKeys = normalizeUsageCapBypassKeys(record?.['usage-cap-bypass-keys']);
-  if (usageCapBypassKeys.length) config.usageCapBypassKeys = usageCapBypassKeys;
+  const quotaReserves = normalizeQuotaReserves(record?.['quota-reserve']);
+  if (Object.keys(quotaReserves).length) config.quotaReserves = quotaReserves;
+  const quotaReserveBypassKeys = normalizeQuotaReserveBypassKeys(
+    record?.['quota-reserve-bypass-keys']
+  );
+  if (quotaReserveBypassKeys.length) config.quotaReserveBypassKeys = quotaReserveBypassKeys;
   return config;
 };
 
@@ -335,10 +342,12 @@ const normalizeOpenAIProvider = (
   if (pricingCatalog) result.pricingCatalog = pricingCatalog;
   const usageProbe = normalizeUsageProbe(provider['usage-probe']);
   if (usageProbe !== undefined) result.usageProbe = usageProbe;
-  const usageCaps = normalizeUsageCaps(provider['usage-caps']);
-  if (Object.keys(usageCaps).length) result.usageCaps = usageCaps;
-  const usageCapBypassKeys = normalizeUsageCapBypassKeys(provider['usage-cap-bypass-keys']);
-  if (usageCapBypassKeys.length) result.usageCapBypassKeys = usageCapBypassKeys;
+  const quotaReserves = normalizeQuotaReserves(provider['quota-reserve']);
+  if (Object.keys(quotaReserves).length) result.quotaReserves = quotaReserves;
+  const quotaReserveBypassKeys = normalizeQuotaReserveBypassKeys(
+    provider['quota-reserve-bypass-keys']
+  );
+  if (quotaReserveBypassKeys.length) result.quotaReserveBypassKeys = quotaReserveBypassKeys;
   const authIndex = normalizeAuthIndex(provider['auth_index'] ?? provider['auth-index']);
   if (authIndex) result.authIndex = authIndex;
   if (sourceIndex !== undefined) result.sourceIndex = sourceIndex;

@@ -53,9 +53,9 @@ export interface ModelAlias {
   thinking?: Record<string, unknown>;
 }
 
-export interface UsageCapConfig {
-  usageCaps?: Record<string, number>;
-  usageCapBypassKeys?: string[];
+export interface QuotaReserveConfig {
+  quotaReserves?: Record<string, number>;
+  quotaReserveBypassKeys?: string[];
 }
 
 export interface ApiKeyEntry {
@@ -74,7 +74,7 @@ export interface CloakConfig {
   cacheUserId?: boolean;
 }
 
-export interface GeminiKeyConfig extends ProviderRuntimePolicy, UsageCapConfig {
+export interface GeminiKeyConfig extends ProviderRuntimePolicy, QuotaReserveConfig {
   source?: ProviderSource;
   apiKey: string;
   label?: string;
@@ -93,7 +93,7 @@ export interface GeminiKeyConfig extends ProviderRuntimePolicy, UsageCapConfig {
 }
 
 export interface ProviderKeyConfig
-  extends ProviderRuntimePolicy, ProviderBehaviorOptions, UsageCapConfig {
+  extends ProviderRuntimePolicy, ProviderBehaviorOptions, QuotaReserveConfig {
   source?: ProviderSource;
   apiKey: string;
   label?: string;
@@ -115,7 +115,7 @@ export interface ProviderKeyConfig
 }
 
 export interface OpenAIProviderConfig
-  extends ProviderRuntimePolicy, ProviderBehaviorOptions, UsageCapConfig {
+  extends ProviderRuntimePolicy, ProviderBehaviorOptions, QuotaReserveConfig {
   source?: ProviderSource;
   name: string;
   prefix?: string;

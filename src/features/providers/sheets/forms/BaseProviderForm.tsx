@@ -43,8 +43,8 @@ import { readModelOptions, validateModelOptions } from '../../modelOptions';
 import { RuntimePolicyEditor } from './RuntimePolicyEditor';
 import { ProviderBehaviorEditor } from './ProviderBehaviorEditor';
 import { pickProviderBehavior } from '../../providerBehavior';
-import { usageCapProviderType } from '@/features/quota/usageCaps';
-import { UsageCapEditor } from '@/features/quota/components/UsageCapEditor';
+import { quotaReserveProviderType } from '@/features/quota/quotaReserve';
+import { QuotaReserveEditor } from '@/features/quota/components/QuotaReserveEditor';
 
 /** 模块级常量，免得每次渲染都给 picker 一个新数组引用。 */
 const DISABLE_ALL_RULES = [DISABLE_ALL_RULE];
@@ -173,8 +173,8 @@ function buildInitialForm(
         : [emptyApiKeyEntry()],
       pricingCatalog: cfg.pricingCatalog ?? '',
       usageProbe: cfg.usageProbe ?? '',
-      usageCaps: cfg.usageCaps ?? {},
-      usageCapBypassKeys: cfg.usageCapBypassKeys ?? [],
+      quotaReserves: cfg.quotaReserves ?? {},
+      quotaReserveBypassKeys: cfg.quotaReserveBypassKeys ?? [],
     };
   }
 
@@ -239,13 +239,15 @@ function buildInitialForm(
         : undefined,
     pricingCatalog: descriptor.supportsPricingCatalog ? (cfg.pricingCatalog ?? '') : undefined,
     usageProbe: descriptor.supportsUsageProbe ? (cfg.usageProbe ?? '') : undefined,
-    usageCaps: usageCapProviderType(descriptor.supportsUsageProbe ? (cfg.usageProbe ?? '') : '')
-      ? (cfg.usageCaps ?? {})
-      : undefined,
-    usageCapBypassKeys: usageCapProviderType(
+    quotaReserves: quotaReserveProviderType(
       descriptor.supportsUsageProbe ? (cfg.usageProbe ?? '') : ''
     )
-      ? (cfg.usageCapBypassKeys ?? [])
+      ? (cfg.quotaReserves ?? {})
+      : undefined,
+    quotaReserveBypassKeys: quotaReserveProviderType(
+      descriptor.supportsUsageProbe ? (cfg.usageProbe ?? '') : ''
+    )
+      ? (cfg.quotaReserveBypassKeys ?? [])
       : undefined,
   };
 }
@@ -952,16 +954,16 @@ export function BaseProviderForm({
         </div>
       ) : null}
 
-      {mode === 'edit' && resource?.authIndex && usageCapProviderType(form.usageProbe ?? '') ? (
-        <UsageCapEditor
+      {mode === 'edit' && resource?.authIndex && quotaReserveProviderType(form.usageProbe ?? '') ? (
+        <QuotaReserveEditor
           providerKey={form.usageProbe ?? ''}
           authIndex={resource.authIndex}
-          caps={form.usageCaps ?? {}}
-          bypassKeys={form.usageCapBypassKeys ?? []}
+          reserves={form.quotaReserves ?? {}}
+          bypassKeys={form.quotaReserveBypassKeys ?? []}
           disabled={mutating}
-          onChangeCaps={(usageCaps) => updateField('usageCaps', usageCaps)}
-          onChangeBypassKeys={(usageCapBypassKeys) =>
-            updateField('usageCapBypassKeys', usageCapBypassKeys)
+          onChangeReserves={(quotaReserves) => updateField('quotaReserves', quotaReserves)}
+          onChangeBypassKeys={(quotaReserveBypassKeys) =>
+            updateField('quotaReserveBypassKeys', quotaReserveBypassKeys)
           }
         />
       ) : null}
