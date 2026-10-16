@@ -170,6 +170,130 @@ describe('analytics GET revalidation', () => {
     expect(analyticsQueryCacheCount()).toBe(1);
   });
 
+  for (const custom of [false, true]) {
+    test(`revalidates ${custom ? 'custom' : 'explicit'} ranges within the same minutes without changing their bounds`, async () => {
+      const firstRange = {
+        start: '2026-09-01T00:00:11.123456789Z',
+        end: '2026-09-02T00:00:12.987654321Z',
+        time_zone: 'UTC',
+      };
+      const secondRange = {
+        ...firstRange,
+        start: '2026-09-01T00:00:59.999999999Z',
+        end: '2026-09-02T00:00:01.000000001Z',
+      };
+      const request = (range: typeof firstRange): AnalyticsQuery =>
+        custom
+          ? { schema_version: 2, operation: 'summary', range: { preset: 'custom', ...range } }
+          : { schema_version: 2, operation: 'summary', ...range };
+      const first = request(firstRange);
+      const second = request(secondRange);
+      const original = JSON.stringify([first, second]);
+      const cached = { meta: { range: firstRange }, total_requests: 17 };
+      const calls = mockTransport(okResponse(cached, 'W/"minute"'), notModified());
+
+      expect(await analyticsApi.summary(first)).toBe(cached);
+      expect(await analyticsApi.summary(second)).toBe(cached);
+
+      expect(calls.length).toBe(2);
+      expect(headersOf(calls[1])['If-None-Match']).toBe('W/"minute"');
+      expect(decodeQueryHeader(headersOf(calls[0])['X-Analytics-Query'])).toEqual(first);
+      expect(decodeQueryHeader(headersOf(calls[1])['X-Analytics-Query'])).toEqual(second);
+      expect(JSON.stringify([first, second])).toBe(original);
+      expect(cached.meta.range).toEqual(firstRange);
+      expect(analyticsQueryCacheCount()).toBe(1);
+    });
+  }
+
+  test('shares a minute cache entry across equivalent UTC offset bounds', async () => {
+    const first = {
+      ...summaryQuery('2026-09-01T00:00:11.100Z'),
+      end: '2026-09-02T00:00:12.200Z',
+    };
+    const second = {
+      ...first,
+      start: '2026-09-01T05:30:58.900+05:30',
+      end: '2026-09-02T05:30:59.999+05:30',
+    };
+    const cached = { meta: { range: first }, total_requests: 17 };
+    const calls = mockTransport(okResponse(cached, 'W/"offset"'), notModified());
+
+    await analyticsApi.summary(first);
+    expect(await analyticsApi.summary(second)).toBe(cached);
+
+    expect(headersOf(calls[1])['If-None-Match']).toBe('W/"offset"');
+    expect(decodeQueryHeader(headersOf(calls[1])['X-Analytics-Query'])).toEqual(second);
+  });
+
+  test('keeps a sub-minute range exact on the wire and in the cached response', async () => {
+    const first = {
+      ...summaryQuery('2026-09-01T00:00:11.100Z'),
+      end: '2026-09-01T00:00:12.200Z',
+    };
+    const second = {
+      ...first,
+      start: '2026-09-01T00:00:21.300Z',
+      end: '2026-09-01T00:00:22.400Z',
+    };
+    const cached = { meta: { range: first }, total_requests: 17 };
+    const calls = mockTransport(okResponse(cached, 'W/"short"'), notModified());
+
+    await analyticsApi.summary(first);
+    expect(await analyticsApi.summary(second)).toBe(cached);
+
+    expect(headersOf(calls[1])['If-None-Match']).toBe('W/"short"');
+    expect(decodeQueryHeader(headersOf(calls[0])['X-Analytics-Query'])).toEqual(first);
+    expect(decodeQueryHeader(headersOf(calls[1])['X-Analytics-Query'])).toEqual(second);
+    expect(cached.meta.range.start).toBe('2026-09-01T00:00:11.100Z');
+    expect(cached.meta.range.end).toBe('2026-09-01T00:00:12.200Z');
+  });
+
+  test('keeps neighboring minutes, zones, and timestamp-shaped filters separate', async () => {
+    const first = {
+      ...summaryQuery('2026-09-01T00:00:11.100Z'),
+      end: '2026-09-02T00:00:12.200Z',
+      filters: { model: ['2026-09-01T00:00:11.100Z'] },
+    };
+    const calls = mockTransport(okResponse({}, 'W/"separate"'));
+    await analyticsApi.summary(first);
+
+    for (const request of [
+      { ...first, start: '2026-09-01T00:01:11.100Z' },
+      { ...first, end: '2026-09-02T00:01:12.200Z' },
+      { ...first, time_zone: 'Asia/Kolkata' },
+      { ...first, filters: { model: ['2026-09-01T00:00:59.999Z'] } },
+    ]) {
+      await analyticsApi.summary(request);
+      expect(headersOf(calls[calls.length - 1])['If-None-Match']).toBeUndefined();
+    }
+
+    expect(analyticsQueryCacheCount()).toBe(5);
+  });
+
+  test('keeps cursor continuation bounds exact for revalidation', async () => {
+    const first = {
+      ...summaryQuery('2026-09-01T00:00:11.100Z'),
+      end: '2026-09-02T00:00:12.200Z',
+      cursor: 'signed-cursor',
+    };
+    const second = { ...first, start: '2026-09-01T00:00:11.101Z' };
+    const firstBody = { meta: { range: first }, total_requests: 17 };
+    const secondBody = { meta: { range: second }, total_requests: 18 };
+    const calls = mockTransport(
+      okResponse(firstBody, 'W/"cursor-a"'),
+      okResponse(secondBody, 'W/"cursor-b"'),
+      notModified()
+    );
+
+    await analyticsApi.summary(first);
+    await analyticsApi.summary(second);
+    expect(await analyticsApi.summary(first)).toBe(firstBody);
+
+    expect(headersOf(calls[1])['If-None-Match']).toBeUndefined();
+    expect(headersOf(calls[2])['If-None-Match']).toBe('W/"cursor-a"');
+    expect(analyticsQueryCacheCount()).toBe(2);
+  });
+
   test('reissues unconditionally when a 304 has no matching cached body', async () => {
     const query = summaryQuery();
     const recovered = {

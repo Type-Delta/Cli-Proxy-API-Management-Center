@@ -50,6 +50,12 @@ describe('analytics query key', () => {
       analyticsRequestKey({ ids: ['b', 'a'] })
     );
   });
+
+  test('keeps timestamp strings exact in the generic serializer', () => {
+    expect(analyticsRequestKey({ start: '2026-09-01T00:00:01.100Z' })).not.toBe(
+      analyticsRequestKey({ start: '2026-09-01T00:00:01.200Z' })
+    );
+  });
 });
 
 describe('analytics /analytics/query in-flight dedupe', () => {
@@ -69,6 +75,78 @@ describe('analytics /analytics/query in-flight dedupe', () => {
       read.mockRestore();
     }
   });
+
+  for (const custom of [false, true]) {
+    test(`shares concurrent ${custom ? 'custom' : 'explicit'} ranges within the same minutes`, async () => {
+      const firstRange = {
+        start: '2026-09-01T00:00:11.123456789Z',
+        end: '2026-09-02T00:00:12.987654321Z',
+        time_zone: 'UTC',
+      };
+      const secondRange = {
+        ...firstRange,
+        start: '2026-09-01T00:00:59.999999999Z',
+        end: '2026-09-02T00:00:01.000000001Z',
+      };
+      const request = (range: typeof firstRange): AnalyticsAnalysisQuery =>
+        custom
+          ? { schema_version: 2, operation: 'analysis', range: { preset: 'custom', ...range } }
+          : { schema_version: 2, operation: 'analysis', ...range };
+      const first = request(firstRange);
+      const second = request(secondRange);
+      const gate = deferred<unknown>();
+      const read = spyOn(apiClient, 'getRaw').mockImplementation(
+        () => gate.promise as Promise<never>
+      );
+      try {
+        const calls = [analyticsApi.analysis(first), analyticsApi.analysis(second)];
+        expect(read.mock.calls.length).toBe(1);
+        expect(read.mock.calls[0][1]?.headers?.['X-Analytics-Query']).toBe(
+          btoa(JSON.stringify(first)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+        );
+        gate.resolve(okResponse({ meta: { range: firstRange } }));
+        const responses = await Promise.all(calls);
+        expect(responses[0].meta.range).toEqual(firstRange);
+        expect(responses[1].meta.range).toEqual(firstRange);
+      } finally {
+        gate.resolve(okResponse(emptyAnalysis));
+        read.mockRestore();
+      }
+    });
+
+    test(`keeps concurrent ${custom ? 'custom' : 'explicit'} cursor ranges exact`, async () => {
+      const range = {
+        start: '2026-09-01T00:00:11.123456789Z',
+        end: '2026-09-02T00:00:12.987654321Z',
+        time_zone: 'UTC',
+      };
+      const request: AnalyticsAnalysisQuery = {
+        schema_version: 2,
+        operation: 'analysis',
+        cursor: 'signed-cursor',
+        ...(custom ? { range: { preset: 'custom', ...range } } : range),
+      };
+      const second: AnalyticsAnalysisQuery = custom
+        ? {
+            ...request,
+            range: { preset: 'custom', ...range, start: '2026-09-01T00:00:11.223456789Z' },
+          }
+        : { ...request, start: '2026-09-01T00:00:11.223456789Z' };
+      const gate = deferred<unknown>();
+      const read = spyOn(apiClient, 'getRaw').mockImplementation(
+        () => gate.promise as Promise<never>
+      );
+      try {
+        const calls = [analyticsApi.analysis(request), analyticsApi.analysis(second)];
+        expect(read.mock.calls.length).toBe(2);
+        gate.resolve(okResponse(emptyAnalysis));
+        await Promise.all(calls);
+      } finally {
+        gate.resolve(okResponse(emptyAnalysis));
+        read.mockRestore();
+      }
+    });
+  }
 
   test('does not merge requests with different bodies', async () => {
     const read = spyOn(apiClient, 'getRaw').mockImplementation(

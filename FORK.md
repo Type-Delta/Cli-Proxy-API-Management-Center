@@ -2,7 +2,7 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-10-07
+Last updated: 2026-10-16
 
 ## Repository relationship
 
@@ -1185,3 +1185,17 @@ suite: 1919 pass, 1 fail), which also fails at HEAD without these changes.
 Manual page refresh completion resets the shared 60-second automatic-refresh timer. A deterministic
 clock test checks completion at 50 seconds, no refresh at the previous 60-second deadline, and the
 next refresh at 110 seconds. Visibility, in-flight, and Retry-After guards remain active.
+
+Explicit query bounds and schema-v2 custom range bounds use their UTC minute for the ETag cache
+and concurrent-read identity. Seconds, fractions, and equivalent UTC offsets therefore reuse the
+same snapshot while the server's 60-second cache entry is live. The transmitted query and cached
+response keep the original exact bounds, including ranges shorter than a minute. Named rolling
+presets retain their existing identity. Cursor continuations keep exact bounds because their
+signatures bind the first page's resolved range. Time zones, filters, and all other fields stay
+significant; the generic request serializer still preserves timestamp strings exactly.
+
+Validation on 2026-10-16: 40 transport and dedupe tests pass, including same-minute 304 reuse,
+concurrent reads, neighboring minutes, offset equivalence, zone and filter isolation, exact cursor
+bounds, and unchanged sub-minute requests and response metadata. TypeScript compilation, lint, and
+the single-file production build pass. `bun run verify` reaches 1,933 passing tests and the same
+pre-existing `legacy backend login diagnostic` failure.

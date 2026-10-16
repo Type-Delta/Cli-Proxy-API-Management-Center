@@ -65,6 +65,33 @@ export function analyticsRequestKey(request: unknown): string {
   return JSON.stringify(request ?? null);
 }
 
+const analyticsRangeMinute = (value: string | undefined): string | undefined => {
+  if (value === undefined) return value;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp)
+    ? new Date(Math.floor(timestamp / 60_000) * 60_000).toISOString()
+    : value;
+};
+
+/** Cache identity only; requests and echoed ranges keep their original bounds. */
+function analyticsQueryRequestKey(request: AnalyticsQuery): string {
+  // Continuation signatures bind the exact range returned by the first page.
+  if (request.cursor) return analyticsRequestKey(request);
+  return analyticsRequestKey({
+    ...request,
+    start: analyticsRangeMinute(request.start),
+    end: analyticsRangeMinute(request.end),
+    range:
+      request.range?.preset === 'custom'
+        ? {
+            ...request.range,
+            start: analyticsRangeMinute(request.range.start),
+            end: analyticsRangeMinute(request.range.end),
+          }
+        : request.range,
+  });
+}
+
 /**
  * The analytics read route accepts the query as a base64url `X-Analytics-Query` header on a
  * GET, which lets the browser revalidate with `If-None-Match` and take a cheap 304 against the
@@ -211,7 +238,7 @@ const connectionChanged = (revision: number): boolean =>
 
 async function requestAnalyticsQuery<T extends QueryResult>(request: AnalyticsQuery): Promise<T> {
   const revision = apiClient.getConnectionRevision();
-  const requestKey = analyticsRequestKey(request);
+  const requestKey = analyticsQueryRequestKey(request);
   const encoded = encodeAnalyticsQuery(request);
 
   if (analyticsQueryUsesGet(encoded.length, revision)) {
@@ -257,7 +284,7 @@ async function requestAnalyticsQuery<T extends QueryResult>(request: AnalyticsQu
 const query = <T extends QueryResult>(request: AnalyticsQuery): Promise<T> => {
   const key = analyticsQueryCacheKey(
     apiClient.getConnectionRevision(),
-    analyticsRequestKey(request)
+    analyticsQueryRequestKey(request)
   );
   const shared = inFlightQueries.get(key);
   if (shared) return shared as Promise<T>;
