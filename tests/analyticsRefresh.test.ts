@@ -5,6 +5,7 @@ import {
   ANALYTICS_AUTO_REFRESH_INTERVAL_MS,
   analyticsRefreshFailure,
   canRunAnalyticsAutoRefresh,
+  noteAnalyticsManualRefreshCompleted,
   registerAnalyticsAutoRefresher,
   runAnalyticsAutoRefreshForTests,
 } from '@/features/analytics/analyticsRefreshState';
@@ -31,6 +32,8 @@ describe('analytics global refresh wiring', () => {
   test('registers only the visible analytics shell with the global header refresh', () => {
     expect(shellSource).toContain("import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';");
     expect(shellSource).toContain('useHeaderRefresh(refreshPage, isAnalyticsPath);');
+    expect(shellSource).toContain('noteAnalyticsManualRefreshCompleted();');
+    expect(shellSource).toContain('if (manual) noteAnalyticsManualRefreshCompleted();');
     expect(shellSource).toContain(
       "const isAnalyticsPath = pathname === '/analytics' || pathname.startsWith('/analytics/');"
     );
@@ -82,6 +85,47 @@ describe('analytics global refresh wiring', () => {
       await Promise.all([first, second]);
     } finally {
       unregister();
+    }
+  });
+
+  test('waits one full interval after a manual refresh completes', async () => {
+    let now = 0;
+    const originalNow = Date.now;
+    const originalSetInterval = globalThis.setInterval;
+    const originalClearInterval = globalThis.clearInterval;
+    const callbacks = new Map<number, () => void>();
+    const activeTimers = new Set<number>();
+    let nextTimer = 1;
+    globalThis.setInterval = ((callback: () => void) => {
+      const timer = nextTimer++;
+      callbacks.set(timer, callback);
+      activeTimers.add(timer);
+      return timer;
+    }) as unknown as typeof setInterval;
+    globalThis.clearInterval = ((timer: number) =>
+      activeTimers.delete(timer)) as unknown as typeof clearInterval;
+    Date.now = () => now;
+
+    let calls = 0;
+    const unregister = registerAnalyticsAutoRefresher(async () => {
+      calls += 1;
+    });
+    try {
+      now = 50_000;
+      noteAnalyticsManualRefreshCompleted();
+      now = 60_000;
+      callbacks.get(1)?.();
+      expect(calls).toBe(0);
+
+      now = 110_000;
+      callbacks.get(2)?.();
+      expect(calls).toBe(1);
+      await Promise.resolve();
+    } finally {
+      unregister();
+      Date.now = originalNow;
+      globalThis.setInterval = originalSetInterval;
+      globalThis.clearInterval = originalClearInterval;
     }
   });
 

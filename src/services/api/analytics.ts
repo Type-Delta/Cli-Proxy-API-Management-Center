@@ -1,4 +1,5 @@
 import type {
+  ApiError,
   AnalyticsActivity,
   AnalyticsActivityQuery,
   AnalyticsActivityResponse,
@@ -65,21 +66,202 @@ export function analyticsRequestKey(request: unknown): string {
 }
 
 /**
+ * The analytics read route accepts the query as a base64url `X-Analytics-Query` header on a
+ * GET, which lets the browser revalidate with `If-None-Match` and take a cheap 304 against the
+ * server's short-lived response cache. Encoded queries above the header budget use the POST
+ * form instead; the server answers those from the same cache with a plain 200 body.
+ */
+export const ANALYTICS_QUERY_GET_MAX_CHARS = 6000;
+
+const analyticsQueryPath = '/analytics/query';
+/** Bounds on retained revalidation bodies; a cached analysis body is large. */
+const analyticsQueryCacheMaxEntries = 64;
+const analyticsQueryCacheMaxBytes = 8 << 20;
+
+type AnalyticsQueryCacheEntry = { etag: string; body: unknown; bytes: number };
+
+const analyticsQueryResponses = new Map<string, AnalyticsQueryCacheEntry>();
+const inFlightQueries = new Map<string, Promise<unknown>>();
+let analyticsQueryCacheBytes = 0;
+let analyticsQueryGetUnsupportedRevision = -1;
+
+/** Test seam: the number of `/analytics/query` requests currently shared. */
+export const analyticsInFlightQueryCount = () => inFlightQueries.size;
+
+/** Test seam: the number of responses retained for `If-None-Match` revalidation. */
+export const analyticsQueryCacheCount = () => analyticsQueryResponses.size;
+
+/** Drops every cached body and validator. */
+export function clearAnalyticsQueryCache(): void {
+  analyticsQueryResponses.clear();
+  analyticsQueryCacheBytes = 0;
+}
+
+// A response cached under one session must not be revalidated by the next, so the cache follows
+// the connection: signing out or pointing the client at another server drops it immediately.
+apiClient.onConnectionChange(() => clearAnalyticsQueryCache());
+
+/**
+ * Base64url of the query's UTF-8 JSON: the `X-Analytics-Query` wire form. Bytes are encoded
+ * before `btoa` so non-ASCII filter values survive, and the binary string is built without
+ * spreading the byte array so a large query cannot overflow the call stack.
+ */
+export function encodeAnalyticsQuery(request: unknown): string {
+  const bytes = new TextEncoder().encode(JSON.stringify(request ?? null));
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+const analyticsQueryCacheKey = (revision: number, requestKey: string): string =>
+  `${revision}\u0000${requestKey}`;
+
+const analyticsQueryUsesGet = (encodedChars: number, revision: number): boolean =>
+  revision !== analyticsQueryGetUnsupportedRevision &&
+  encodedChars <= ANALYTICS_QUERY_GET_MAX_CHARS;
+
+/** Test seam: which HTTP form the next read of `request` on this connection will use. */
+export const analyticsQueryTransport = (request: AnalyticsQuery): 'GET' | 'POST' =>
+  analyticsQueryUsesGet(encodeAnalyticsQuery(request).length, apiClient.getConnectionRevision())
+    ? 'GET'
+    : 'POST';
+
+const responseEtag = (headers: unknown): string => {
+  if (!headers || typeof headers !== 'object') return '';
+  const read = (headers as { get?: (name: string) => unknown }).get;
+  const value =
+    typeof read === 'function'
+      ? read.call(headers, 'etag')
+      : (headers as Record<string, unknown>).etag;
+  return typeof value === 'string' ? value.trim() : '';
+};
+
+const responseBytes = (value: unknown): number =>
+  new TextEncoder().encode(JSON.stringify(value ?? null)).length;
+
+function cacheAnalyticsQueryResponse(
+  revision: number,
+  requestKey: string,
+  data: unknown,
+  etag: string
+): void {
+  // A response that arrives after the connection changed belongs to the previous session and
+  // must not repopulate the cache its successor would revalidate against.
+  if (!etag || apiClient.getConnectionRevision() !== revision) return;
+  const bytes = etag.length + responseBytes(data);
+  if (bytes > analyticsQueryCacheMaxBytes) return;
+  const key = analyticsQueryCacheKey(revision, requestKey);
+  const replaced = analyticsQueryResponses.get(key);
+  if (replaced) analyticsQueryCacheBytes -= replaced.bytes;
+  analyticsQueryResponses.delete(key);
+  analyticsQueryResponses.set(key, { etag, body: data, bytes });
+  analyticsQueryCacheBytes += bytes;
+  while (
+    analyticsQueryResponses.size > analyticsQueryCacheMaxEntries ||
+    analyticsQueryCacheBytes > analyticsQueryCacheMaxBytes
+  ) {
+    const oldest = analyticsQueryResponses.keys().next();
+    if (oldest.done) break;
+    const evicted = analyticsQueryResponses.get(oldest.value);
+    analyticsQueryResponses.delete(oldest.value);
+    analyticsQueryCacheBytes -= evicted?.bytes ?? 0;
+  }
+}
+
+/**
+ * Reads through the GET form, asking for a full response so the ETag and the 304 status are
+ * visible. Only this call treats 304 as a success: it is a revalidation, not a failure.
+ */
+const readAnalyticsQuery = async (encoded: string, etag: string) => {
+  const headers: Record<string, string> = {
+    'X-Analytics-Query': encoded,
+    // The client owns revalidation: the dashboard's refresh must reach the origin, and the
+    // origin answers with a 304 while its cache entry is live.
+    'Cache-Control': 'no-cache',
+  };
+  if (etag) headers['If-None-Match'] = etag;
+  const response = await apiClient.getRaw(analyticsQueryPath, {
+    headers,
+    validateStatus: (status) => (status >= 200 && status < 300) || status === 304,
+  });
+  return { status: response.status, data: response.data, etag: responseEtag(response.headers) };
+};
+
+/**
+ * A 404 or 405 without a Management API error code means the server predates the GET route.
+ * Analytics reports its own refusals, including a disabled module, as coded errors, so those
+ * are never mistaken for a missing route and always surface to the caller.
+ */
+const analyticsQueryRouteMissing = (caught: unknown): boolean => {
+  const { status, apiCode } = caught as ApiError;
+  if (status !== 404 && status !== 405) return false;
+  return !apiCode;
+};
+
+/**
+ * A read only completes while the connection that issued it is still current. Once the client is
+ * repointed (sign-out, server switch), its response belongs to the previous session, its validator
+ * cannot be reused, and replaying the query would send the previous session's key IDs to the new
+ * server, so the read is rejected instead.
+ */
+const analyticsQueryAbandoned = 'analytics query was discarded because the connection changed';
+
+const connectionChanged = (revision: number): boolean =>
+  apiClient.getConnectionRevision() !== revision;
+
+async function requestAnalyticsQuery<T extends QueryResult>(request: AnalyticsQuery): Promise<T> {
+  const revision = apiClient.getConnectionRevision();
+  const requestKey = analyticsRequestKey(request);
+  const encoded = encodeAnalyticsQuery(request);
+
+  if (analyticsQueryUsesGet(encoded.length, revision)) {
+    const cached = analyticsQueryResponses.get(analyticsQueryCacheKey(revision, requestKey));
+    try {
+      const response = await readAnalyticsQuery(encoded, cached?.etag ?? '');
+      if (connectionChanged(revision)) throw new Error(analyticsQueryAbandoned);
+      if (response.status !== 304) {
+        cacheAnalyticsQueryResponse(revision, requestKey, response.data, response.etag);
+        return response.data as T;
+      }
+      // A 304 body only exists in the entry whose validator was sent, so without that entry the
+      // read is reissued once without a validator rather than returning nothing.
+      if (cached) return cached.body as T;
+      const retry = await readAnalyticsQuery(encoded, '');
+      if (connectionChanged(revision)) throw new Error(analyticsQueryAbandoned);
+      if (retry.status === 304) {
+        throw new Error('analytics query was revalidated without a cached response');
+      }
+      cacheAnalyticsQueryResponse(revision, requestKey, retry.data, retry.etag);
+      return retry.data as T;
+    } catch (caught) {
+      // A connection change is never answered with the POST fallback: it would replay this
+      // query, including its key IDs, against the server the client just moved to.
+      if (connectionChanged(revision) || !analyticsQueryRouteMissing(caught)) throw caught;
+      analyticsQueryGetUnsupportedRevision = revision;
+    }
+  }
+
+  // Encoded queries over the header budget, and servers without the GET route, read through
+  // POST and rely on the server's own response cache for the body.
+  const body = await apiClient.post<T>(analyticsQueryPath, request);
+  if (connectionChanged(revision)) throw new Error(analyticsQueryAbandoned);
+  return body;
+}
+
+/**
  * In-flight dedupe for `/analytics/query`. One analytics page mounts many cards that ask for
- * the same payload (and React StrictMode mounts each twice), so concurrent identical POSTs
+ * the same payload (and React StrictMode mounts each twice), so concurrent identical reads
  * share a single request. The entry is dropped as soon as the promise settles, which keeps
  * per-card Retry honest: a retry issued after the shared load finished starts a new request.
  */
-const inFlightQueries = new Map<string, Promise<unknown>>();
-
-/** Test seam: the number of `/analytics/query` POSTs currently shared. */
-export const analyticsInFlightQueryCount = () => inFlightQueries.size;
-
 const query = <T extends QueryResult>(request: AnalyticsQuery): Promise<T> => {
-  const key = analyticsRequestKey(request);
+  const key = analyticsQueryCacheKey(
+    apiClient.getConnectionRevision(),
+    analyticsRequestKey(request)
+  );
   const shared = inFlightQueries.get(key);
   if (shared) return shared as Promise<T>;
-  const pending = apiClient.post<T>('/analytics/query', request).finally(() => {
+  const pending = requestAnalyticsQuery<T>(request).finally(() => {
     if (inFlightQueries.get(key) === pending) inFlightQueries.delete(key);
   });
   inFlightQueries.set(key, pending);

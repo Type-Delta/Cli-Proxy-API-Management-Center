@@ -20,6 +20,7 @@ import { AnalyticsLoadScope } from './AnalyticsLoadScope';
 import {
   AnalyticsRefreshContext,
   analyticsRefreshFailure,
+  noteAnalyticsManualRefreshCompleted,
   registerAnalyticsAutoRefreshOwner,
   type AnalyticsRefreshCoordinator,
 } from './analyticsRefreshState';
@@ -85,24 +86,28 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
     () => ({ register: registerRefresh, markUpdated }),
     [markUpdated, registerRefresh]
   );
-  const refreshPage = useCallback(async (manual = true) => {
-    if (refreshingRef.current) return;
-    refreshingRef.current = true;
-    setManualRefreshing(manual);
-    try {
-      const refreshers = [...(refreshersRef.current.get(kind)?.values() ?? [])];
-      const results = await Promise.allSettled([
-        capabilities.refreshOrThrow(),
-        filters.refreshKeysOrThrow(),
-        ...refreshers.map((refresh) => refresh()),
-      ]);
-      const failure = analyticsRefreshFailure(results);
-      if (failure) throw failure;
-    } finally {
-      refreshingRef.current = false;
-      setManualRefreshing(false);
-    }
-  }, [capabilities, filters, kind]);
+  const refreshPage = useCallback(
+    async (manual = true) => {
+      if (refreshingRef.current) return;
+      refreshingRef.current = true;
+      setManualRefreshing(manual);
+      try {
+        const refreshers = [...(refreshersRef.current.get(kind)?.values() ?? [])];
+        const results = await Promise.allSettled([
+          capabilities.refreshOrThrow(),
+          filters.refreshKeysOrThrow(),
+          ...refreshers.map((refresh) => refresh()),
+        ]);
+        const failure = analyticsRefreshFailure(results);
+        if (failure) throw failure;
+      } finally {
+        refreshingRef.current = false;
+        setManualRefreshing(false);
+        if (manual) noteAnalyticsManualRefreshCompleted();
+      }
+    },
+    [capabilities, filters, kind]
+  );
   useHeaderRefresh(refreshPage, isAnalyticsPath);
   useEffect(() => {
     if (!isAnalyticsPath) return;
