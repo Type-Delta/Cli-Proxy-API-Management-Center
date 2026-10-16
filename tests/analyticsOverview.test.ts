@@ -396,6 +396,21 @@ describe('analytics overview model', () => {
     });
   });
 
+  test('uses exact-subset cache rates for mixed-quality buckets', () => {
+    const point: TimeseriesPoint = {
+      start: '2026-09-03T10:00:00Z',
+      end: '2026-09-03T10:30:00Z',
+      proxy_requests: 60,
+      upstream_attempts: 62,
+      tokens: tokens({ quality: 'estimated', input: 2_000, total: 3_000 }),
+      cache_read_rate: '25',
+      known_cost_usd: '1.25',
+      unpriced_tokens: 0,
+    };
+
+    expect(overviewSparklines([point]).cache_rate).toEqual([25]);
+  });
+
   test('summarizes a trend without exposing its raw point list', () => {
     expect(summarizeTrend([0.09513888888888888, 2, 1], (value) => value.toFixed(1))).toEqual({
       first: '0.1',

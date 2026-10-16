@@ -224,7 +224,11 @@ export function overviewSparklines(points: readonly TimeseriesPoint[]): Overview
       return minutes > 0 ? point.tokens.total / minutes : 0;
     }),
     cache_rate: points.map((point) =>
-      point.tokens.quality === 'exact' ? rate(point.tokens.cache_read, point.tokens.input) : null
+      point.cache_read_rate !== undefined
+        ? numeric(point.cache_read_rate)
+        : point.tokens.quality === 'exact'
+          ? rate(point.tokens.cache_read, point.tokens.input)
+          : null
     ),
     cost: points.map((point) => numeric(point.known_cost_usd) ?? 0),
   };
@@ -265,8 +269,7 @@ export function buildOverviewMetrics(summary: AnalyticsSummary): OverviewMetrics
   const failed = finite(summary.failed);
   const inputTokens = finite(summary.tokens.input);
   const reportedCacheReadTokens = finite(summary.tokens.cache_read);
-  const breakdownAvailable =
-    summary.tokens.quality === 'exact' || summary.cache_read_rate !== null;
+  const breakdownAvailable = summary.tokens.quality === 'exact' || summary.cache_read_rate !== null;
   const cacheReadTokens = breakdownAvailable ? reportedCacheReadTokens : null;
   const requests = finite(summary.proxy_requests);
   const upstreamAttempts = finite(summary.upstream_attempts);
@@ -287,15 +290,13 @@ export function buildOverviewMetrics(summary: AnalyticsSummary): OverviewMetrics
     totalTokens,
     inputTokens,
     cacheReadTokens,
-    cacheCreationTokens:
-      breakdownAvailable ? finite(summary.tokens.cache_creation) : null,
+    cacheCreationTokens: breakdownAvailable ? finite(summary.tokens.cache_creation) : null,
     reasoningTokens: breakdownAvailable ? finite(summary.tokens.reasoning) : null,
     requestsPerMinute: numeric(summary.requests_per_minute) ?? 0,
     tokensPerMinute: numeric(summary.tokens_per_minute) ?? 0,
-    cacheReadRate:
-      breakdownAvailable
-        ? (numeric(summary.cache_read_rate) ?? rate(reportedCacheReadTokens, inputTokens))
-        : null,
+    cacheReadRate: breakdownAvailable
+      ? (numeric(summary.cache_read_rate) ?? rate(reportedCacheReadTokens, inputTokens))
+      : null,
     cost,
     costLabel: summary.known_cost_usd ?? '',
     unpricedTokens: finite(summary.unpriced_tokens),

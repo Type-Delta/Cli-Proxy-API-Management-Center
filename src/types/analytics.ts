@@ -120,6 +120,7 @@ export type TimeseriesPoint = {
   tokens: TokenUsage;
   known_cost_usd: string;
   unpriced_tokens: number;
+  cache_read_rate?: string | null;
   generation_time_ms?: number | null;
   generation_sample_count?: number;
 };
