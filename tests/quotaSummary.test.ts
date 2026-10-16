@@ -311,6 +311,36 @@ describe('quota summary selection', () => {
     expect(mixed.lines.map((line) => line.capacityPercent)).toEqual([100, 100]);
   });
 
+  test('carries each credential quota reserve and active hit onto its summary line', () => {
+    const reserved: QuotaFileEntry = {
+      type: 'zai',
+      file: {
+        name: 'a.json',
+        type: 'zai',
+        quotaReserves: { 'zai-week-1': 30 },
+        quotaReserveState: {
+          hits: [{ barId: 'zai-week-1', reservePercent: 30, remainingPercent: 4, resetAtMs: 5 }],
+        },
+      },
+    };
+    const plain = entry('b.json', 'zai');
+    const quota = (remaining: number) => ({
+      status: 'success' as const,
+      windows: [{ id: 'zai-week-1', usedPercent: 100 - remaining, resetAtMs: 5 }],
+    });
+    const quotas = [quota(4), quota(80)];
+    const [summary] = aggregateQuotaSummaries(
+      [reserved, plain],
+      (item) => quotas[item === reserved ? 0 : 1] as never
+    );
+    expect(summary.lines[0]).toMatchObject({
+      reservePercent: 30,
+      reserveHit: { barId: 'zai-week-1' },
+    });
+    expect(summary.lines[1].reservePercent).toBeUndefined();
+    expect(summary.lines[1].reserveHit).toBeUndefined();
+  });
+
   test('reports the soonest unblock only once every credential is blocked', () => {
     const entries = [entry('a.json', 'codex'), entry('b.json', 'codex'), entry('c.json', 'codex')];
     const summarize = (quotas: unknown[]) =>

@@ -163,15 +163,34 @@ $card-surface: color-mix(in srgb, var(--bg-primary) 82%, transparent);
 }
 
 .segmentHigh {
-  background: var(--viz-success);
+  --quota-bar-color: var(--viz-success);
+  background: var(--quota-bar-color);
 }
 
 .segmentMedium {
-  background: var(--quota-medium-color);
+  --quota-bar-color: var(--quota-medium-color);
+  background: var(--quota-bar-color);
 }
 
 .segmentLow {
-  background: var(--viz-failure);
+  --quota-bar-color: var(--viz-failure);
+  background: var(--quota-bar-color);
+}
+
+/* Quota reserve: same treatment as QuotaMeter's quotaBarFillReserved, striped in the segment's
+ * own tone up to --reserve-stop (the reserve edge, relative to the fill) and solid beyond it. */
+.segmentReserved {
+  background:
+    linear-gradient(
+      to right,
+      transparent 0 var(--reserve-stop),
+      var(--quota-bar-color) var(--reserve-stop)
+    ),
+    repeating-linear-gradient(
+      135deg,
+      var(--quota-bar-color) 0 3px,
+      color-mix(in srgb, var(--quota-bar-color) 35%, transparent) 3px 6px
+    );
 }
 
 .segmentDisabled {

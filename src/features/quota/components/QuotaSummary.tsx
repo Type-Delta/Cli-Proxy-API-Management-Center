@@ -12,6 +12,7 @@ import {
   type QuotaSummaryLine,
 } from '../quotaSummary';
 import type { QuotaCardState } from '../providers';
+import { quotaReserveTooltip } from '../quotaReserve';
 import { bindQuotaClasses } from '../types';
 import { QuotaResetLabel } from './QuotaResetLabel';
 import bodyStyles from './QuotaBody.module.scss';
@@ -56,11 +57,20 @@ const lineTitle = (
 ): string => {
   const windowLabel = labelText(t, line.windowLabel);
   const planLabel = labelText(t, line.plan);
+  const reserve = quotaReserveTooltip(t, line.reservePercent, line.reserveHit, locale);
   return `${line.credential} · ${windowLabel} · ${t('quota_management.summary_remaining', {
     percent: formatPercent(line.remainingPercent),
     defaultValue: '{{percent}} remaining',
-  })} · ${formatReset(line.resetAtMs, now, locale, t)}${planLabel ? ` · ${planLabel}` : ''}`;
+  })} · ${formatReset(line.resetAtMs, now, locale, t)}${planLabel ? ` · ${planLabel}` : ''}${
+    reserve ? ` · ${reserve}` : ''
+  }`;
 };
+
+/** Reserve edge relative to the fill, as QuotaMeter does, so stripes stop at the reserve. */
+const reserveStop = (line: QuotaSummaryLine, remaining: number): string | null =>
+  !line.disabled && line.reservePercent !== undefined && line.reservePercent > 0 && remaining > 0
+    ? `${Math.round((line.reservePercent / remaining) * 10000) / 100}%`
+    : null;
 
 const toneFor = (line: QuotaSummaryLine): string => {
   if (line.disabled) return styles.segmentDisabled;
@@ -96,6 +106,7 @@ function SummaryMeter({
         const segmentStyle = {
           '--segment-capacity': line.capacityPercent ?? 100,
         } as CSSProperties;
+        const stop = reserveStop(line, remaining);
         return (
           <span
             key={line.key}
@@ -107,8 +118,13 @@ function SummaryMeter({
             style={segmentStyle}
           >
             <span
-              className={`${styles.segmentFill} ${toneFor(line)}`}
-              style={{ width: `${remaining}%` }}
+              className={`${styles.segmentFill} ${toneFor(line)}${stop ? ` ${styles.segmentReserved}` : ''}`}
+              style={
+                {
+                  width: `${remaining}%`,
+                  ...(stop ? { '--reserve-stop': stop } : {}),
+                } as CSSProperties
+              }
             />
           </span>
         );

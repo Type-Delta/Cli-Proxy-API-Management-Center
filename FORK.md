@@ -1133,8 +1133,9 @@ Credentials can keep part of a supported quota bar in reserve: Claude, Codex, Z.
 and Kiro. Each reserve is a minimum remaining percentage per bar. On the quota page and auth-file
 cards, the part of a bar's fill that lies inside the reserve is candy-striped in the bar's own
 health colour and the usable remainder stays solid, so a level below the reserve reads fully
-striped. Row tooltips add the reserve and, while it holds, when it lifts; affected auth files show
-a compact Reserve reached badge.
+striped. Provider summary cards stripe each credential's segment the same way. Row and segment
+tooltips add the reserve and, while it holds, when it lifts; affected auth files show a compact
+Reserve reached badge.
 
 The auth-file editor and Z.AI/OpenCode Go provider forms load the credential's bars, enable a
 reserve per bar, and provide pointer and keyboard slider handles. Client keys that can use the

@@ -3,6 +3,7 @@ import { getQuotaCacheKey, getQuotaDisplayName } from '@/utils/quota/identity';
 import type { QuotaFileEntry } from './logic';
 import type { QuotaProviderType } from './providers/types';
 import type { QuotaCardState } from './providers';
+import { quotaReserveHitForBar, type QuotaReserveHit } from './quotaReserve';
 
 export interface QuotaSummaryWindow {
   id: string;
@@ -25,6 +26,9 @@ export interface QuotaSummaryLine {
   plan: string | null;
   windowLabel: string;
   disabled?: boolean;
+  /** Quota reserve on this credential's bar, and the hit while the reserve holds it. */
+  reservePercent?: number;
+  reserveHit?: QuotaReserveHit;
 }
 
 export interface QuotaProviderSummary {
@@ -422,6 +426,16 @@ const providerUnblockMs = (unblocks: (number | null | undefined)[]): number | nu
   return known.length ? Math.min(...known) : null;
 };
 
+/** Reserve fields for one credential's summary line, keyed by the line's window id. */
+const reserveFor = (entry: QuotaFileEntry, windowId: string) => {
+  const reservePercent = entry.file.quotaReserves?.[windowId];
+  const reserveHit = quotaReserveHitForBar(entry.file.quotaReserveState, windowId);
+  return {
+    ...(reservePercent === undefined ? {} : { reservePercent }),
+    ...(reserveHit ? { reserveHit } : {}),
+  };
+};
+
 export function aggregateQuotaSummaries(
   entries: readonly QuotaFileEntry[],
   quotaFor: (entry: QuotaFileEntry) => QuotaCardState | undefined
@@ -458,6 +472,7 @@ export function aggregateQuotaSummaries(
             plan,
             windowLabel: window.label,
             disabled: window.disabled,
+            ...reserveFor(entry, window.id),
             ...(capacityPercent === undefined ? {} : { capacityPercent }),
           },
         ];
@@ -496,6 +511,7 @@ export function aggregateQuotaSummaries(
             plan: plans[index],
             windowLabel: window.label,
             disabled: window.disabled,
+            ...reserveFor(record.entry, window.id),
             ...(counted[index] && largest > 0
               ? { capacityPercent: percentageOfLargestTier(values[index], largest) }
               : {}),
