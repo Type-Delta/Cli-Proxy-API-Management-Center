@@ -265,7 +265,9 @@ export function buildOverviewMetrics(summary: AnalyticsSummary): OverviewMetrics
   const failed = finite(summary.failed);
   const inputTokens = finite(summary.tokens.input);
   const reportedCacheReadTokens = finite(summary.tokens.cache_read);
-  const cacheReadTokens = summary.tokens.quality === 'exact' ? reportedCacheReadTokens : null;
+  const breakdownAvailable =
+    summary.tokens.quality === 'exact' || summary.cache_read_rate !== null;
+  const cacheReadTokens = breakdownAvailable ? reportedCacheReadTokens : null;
   const requests = finite(summary.proxy_requests);
   const upstreamAttempts = finite(summary.upstream_attempts);
   const totalTokens = finite(summary.tokens.total);
@@ -286,12 +288,12 @@ export function buildOverviewMetrics(summary: AnalyticsSummary): OverviewMetrics
     inputTokens,
     cacheReadTokens,
     cacheCreationTokens:
-      summary.tokens.quality === 'exact' ? finite(summary.tokens.cache_creation) : null,
-    reasoningTokens: summary.tokens.quality === 'exact' ? finite(summary.tokens.reasoning) : null,
+      breakdownAvailable ? finite(summary.tokens.cache_creation) : null,
+    reasoningTokens: breakdownAvailable ? finite(summary.tokens.reasoning) : null,
     requestsPerMinute: numeric(summary.requests_per_minute) ?? 0,
     tokensPerMinute: numeric(summary.tokens_per_minute) ?? 0,
     cacheReadRate:
-      summary.tokens.quality === 'exact'
+      breakdownAvailable
         ? (numeric(summary.cache_read_rate) ?? rate(reportedCacheReadTokens, inputTokens))
         : null,
     cost,

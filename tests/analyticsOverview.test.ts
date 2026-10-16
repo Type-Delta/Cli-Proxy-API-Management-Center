@@ -189,7 +189,7 @@ describe('analytics overview model', () => {
           cache_creation: 0,
           reasoning: 0,
         }),
-        cache_read_rate: '0',
+        cache_read_rate: null,
       })
     );
     expect(metrics.totalTokens).toBe(1_800);
@@ -211,6 +211,19 @@ describe('analytics overview model', () => {
       },
     ]);
     expect(points.cache_rate).toEqual([null]);
+  });
+
+  test('keeps exact breakdowns when estimated requests share the range', () => {
+    const metrics = buildOverviewMetrics(
+      summary({
+        tokens: tokens({ quality: 'estimated', input: 2_000, cache_read: 250 }),
+        cache_read_rate: '25',
+      })
+    );
+    expect(metrics.cacheReadRate).toBe(25);
+    expect(metrics.cacheReadTokens).toBe(250);
+    expect(metrics.cacheCreationTokens).toBe(0);
+    expect(metrics.reasoningTokens).toBe(0);
   });
 
   test('keeps timing axes nullable and exposes accumulated processing coverage', () => {
