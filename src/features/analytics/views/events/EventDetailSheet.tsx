@@ -442,10 +442,10 @@ export function EventDetailSheet({
             <dl className={styles.factGrid}>
               {(
                 [
-                  [t('analytics.total_tokens'), event.tokens.total],
-                  [t('analytics.input_tokens'), event.tokens.input],
-                  [t('analytics.output_tokens'), event.tokens.output],
-                  [t('analytics.reasoning_tokens'), event.tokens.reasoning],
+                  [t('analytics.total_tokens'), event.tokens.total, false],
+                  [t('analytics.input_tokens'), event.tokens.input, false],
+                  [t('analytics.output_tokens'), event.tokens.output, false],
+                  [t('analytics.reasoning_tokens'), event.tokens.reasoning, true],
                   [
                     t('analytics.analysis.unclassified', { defaultValue: 'Unclassified' }),
                     deriveUnclassifiedTokens(
@@ -453,22 +453,29 @@ export function EventDetailSheet({
                       event.tokens.input,
                       event.tokens.output
                     ),
+                    false,
                   ],
                   [
                     t('analytics.cached_tokens', { defaultValue: 'Cached tokens' }),
                     event.tokens.cached,
+                    true,
                   ],
                   [
                     t('analytics.cache_read_tokens', { defaultValue: 'Cache read tokens' }),
                     event.tokens.cache_read,
+                    true,
                   ],
                   [
                     t('analytics.cache_creation_tokens', { defaultValue: 'Cache creation tokens' }),
                     event.tokens.cache_creation,
+                    true,
                   ],
                 ] as const
-              ).map(([label, value]) => {
-                const formatted = formatCompactTokens(value, locale);
+              ).map(([label, value, breakdownMetric]) => {
+                const formatted =
+                  event.tokens.quality !== 'exact' && breakdownMetric
+                    ? { text: t('analytics.unavailable', { defaultValue: 'Unavailable' }) }
+                    : formatCompactTokens(value, locale);
                 return (
                   <Fact key={label} label={label} value={formatted.text} title={formatted.title} />
                 );

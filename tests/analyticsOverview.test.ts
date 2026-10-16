@@ -178,6 +178,41 @@ describe('analytics overview model', () => {
     expect(fallback.avgCost).toBe(1.7);
   });
 
+  test('keeps estimated token totals while marking unreported breakdowns unavailable', () => {
+    const metrics = buildOverviewMetrics(
+      summary({
+        tokens: tokens({
+          quality: 'estimated',
+          input: 1_000,
+          total: 1_800,
+          cache_read: 0,
+          cache_creation: 0,
+          reasoning: 0,
+        }),
+        cache_read_rate: '0',
+      })
+    );
+    expect(metrics.totalTokens).toBe(1_800);
+    expect(metrics.inputTokens).toBe(1_000);
+    expect(metrics.cacheReadTokens).toBeNull();
+    expect(metrics.cacheCreationTokens).toBeNull();
+    expect(metrics.reasoningTokens).toBeNull();
+    expect(metrics.cacheReadRate).toBeNull();
+
+    const points = overviewSparklines([
+      {
+        start: '2026-09-01T00:00:00Z',
+        end: '2026-09-01T01:00:00Z',
+        proxy_requests: 1,
+        upstream_attempts: 1,
+        tokens: tokens({ quality: 'estimated', input: 100 }),
+        known_cost_usd: '0',
+        unpriced_tokens: 0,
+      },
+    ]);
+    expect(points.cache_rate).toEqual([null]);
+  });
+
   test('keeps timing axes nullable and exposes accumulated processing coverage', () => {
     const metrics = buildOverviewMetrics(
       summary({

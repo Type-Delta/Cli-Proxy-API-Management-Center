@@ -495,7 +495,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
       case 'total_tokens':
         return <span title={tokens.title}>{tokens.text}</span>;
       case 'cache_read_rate':
-        return event.tokens.input > 0
+        return event.tokens.quality === 'exact' && event.tokens.input > 0
           ? formatPercent(
               (event.tokens.cache_read / event.tokens.input) * 100,
               i18n.resolvedLanguage

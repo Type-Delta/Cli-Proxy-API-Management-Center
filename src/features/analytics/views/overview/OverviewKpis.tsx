@@ -305,6 +305,10 @@ export function OverviewKpis({
     animatedValue: value,
     animatedFormat: (animated: number) => formatCompactTokens(animated, locale).text,
   });
+  const compactOptional = (value: number | null): FormattedValue =>
+    value === null
+      ? { text: t('analytics.unavailable', { defaultValue: 'Unavailable' }) }
+      : compact(value);
   const costValue = (value: number | string | null | undefined): FormattedValue => {
     const numericValue =
       value === null || value === undefined || value === ''
@@ -323,11 +327,11 @@ export function OverviewKpis({
   };
   const numberText = (value: number) => exactNumberValue(value).text;
   const percentText = (value: number | null) => exactPercent(value, locale).text;
-  const compactText = (value: number) => compact(value).text;
+  const compactText = (value: number | null) => compactOptional(value).text;
   const costText = (value: number) => formatCostValue(value, locale).text;
   const requestTone = toneForSuccessRate(metrics.successRate);
   const cacheTone = toneForCacheRate(metrics.cacheReadRate);
-  const trend = (points: number[], formatter: (value: number) => string) => ({
+  const trend = (points: Array<number | null>, formatter: (value: number) => string) => ({
     points,
     times: sparklines.times,
     formatter,
@@ -373,15 +377,15 @@ export function OverviewKpis({
         <MetricDetail>
           <DetailValue
             label={t('analytics.overview.cache_read', { defaultValue: 'Cache read' })}
-            value={compact(metrics.cacheReadTokens)}
+            value={compactOptional(metrics.cacheReadTokens)}
           />
           <DetailValue
             label={t('analytics.overview.cache_write', { defaultValue: 'Cache write' })}
-            value={compact(metrics.cacheCreationTokens)}
+            value={compactOptional(metrics.cacheCreationTokens)}
           />
           <DetailValue
             label={t('analytics.overview.reasoning', { defaultValue: 'Reasoning' })}
-            value={compact(metrics.reasoningTokens)}
+            value={compactOptional(metrics.reasoningTokens)}
           />
         </MetricDetail>
       ),

@@ -96,7 +96,9 @@ export const requestHealthIntensities = (buckets: readonly ActivityBucket[]): nu
 export type OverviewMetricKey = Exclude<ComparisonMetric, 'processing'>;
 
 /** The six trend series plus the bucket starts they share, so tooltips can name the bucket. */
-export type OverviewSparklines = Record<OverviewMetricKey, number[]> & { times: string[] };
+export type OverviewSparklines = Record<OverviewMetricKey, Array<number | null>> & {
+  times: string[];
+};
 
 export type TrendSummary = {
   first: string;
@@ -125,7 +127,7 @@ export type MetricCard<Key extends string = string> = {
   icon?: ComponentType<IconProps>;
   comparison?: { metric: ComparisonMetric; value: number | null };
   trend?: {
-    points: number[];
+    points: Array<number | null>;
     /** Bucket starts, parallel to `points`; the tooltip names the bucket the cursor snapped to. */
     times?: string[];
     formatter: (value: number) => string;
@@ -165,7 +167,7 @@ export const exactNumber = (value: number, locale?: string): FormattedValue => (
 export function trendAriaLabel(
   t: TFunction,
   label: string,
-  points: readonly number[],
+  points: readonly (number | null)[],
   formatter: (value: number) => string
 ): string {
   const summary = summarizeTrend(points, formatter);
@@ -180,10 +182,10 @@ export function trendAriaLabel(
 }
 
 export function summarizeTrend(
-  points: readonly number[],
+  points: readonly (number | null)[],
   formatter: (value: number) => string
 ): TrendSummary | null {
-  const values = points.filter(Number.isFinite);
+  const values = points.filter((value): value is number => Number.isFinite(value));
   if (values.length === 0) return null;
   const first = values[0];
   const last = values[values.length - 1];
@@ -221,7 +223,9 @@ export function overviewSparklines(points: readonly TimeseriesPoint[]): Overview
       const minutes = bucketMinutes(point);
       return minutes > 0 ? point.tokens.total / minutes : 0;
     }),
-    cache_rate: points.map((point) => rate(point.tokens.cache_read, point.tokens.input) ?? 0),
+    cache_rate: points.map((point) =>
+      point.tokens.quality === 'exact' ? rate(point.tokens.cache_read, point.tokens.input) : null
+    ),
     cost: points.map((point) => numeric(point.known_cost_usd) ?? 0),
   };
 }
@@ -234,9 +238,9 @@ export type OverviewMetrics = {
   successRate: number | null;
   totalTokens: number;
   inputTokens: number;
-  cacheReadTokens: number;
-  cacheCreationTokens: number;
-  reasoningTokens: number;
+  cacheReadTokens: number | null;
+  cacheCreationTokens: number | null;
+  reasoningTokens: number | null;
   requestsPerMinute: number;
   tokensPerMinute: number;
   cacheReadRate: number | null;
@@ -260,7 +264,8 @@ export function buildOverviewMetrics(summary: AnalyticsSummary): OverviewMetrics
   const succeeded = finite(summary.succeeded);
   const failed = finite(summary.failed);
   const inputTokens = finite(summary.tokens.input);
-  const cacheReadTokens = finite(summary.tokens.cache_read);
+  const reportedCacheReadTokens = finite(summary.tokens.cache_read);
+  const cacheReadTokens = summary.tokens.quality === 'exact' ? reportedCacheReadTokens : null;
   const requests = finite(summary.proxy_requests);
   const upstreamAttempts = finite(summary.upstream_attempts);
   const totalTokens = finite(summary.tokens.total);
@@ -280,11 +285,15 @@ export function buildOverviewMetrics(summary: AnalyticsSummary): OverviewMetrics
     totalTokens,
     inputTokens,
     cacheReadTokens,
-    cacheCreationTokens: finite(summary.tokens.cache_creation),
-    reasoningTokens: finite(summary.tokens.reasoning),
+    cacheCreationTokens:
+      summary.tokens.quality === 'exact' ? finite(summary.tokens.cache_creation) : null,
+    reasoningTokens: summary.tokens.quality === 'exact' ? finite(summary.tokens.reasoning) : null,
     requestsPerMinute: numeric(summary.requests_per_minute) ?? 0,
     tokensPerMinute: numeric(summary.tokens_per_minute) ?? 0,
-    cacheReadRate: numeric(summary.cache_read_rate) ?? rate(cacheReadTokens, inputTokens),
+    cacheReadRate:
+      summary.tokens.quality === 'exact'
+        ? (numeric(summary.cache_read_rate) ?? rate(reportedCacheReadTokens, inputTokens))
+        : null,
     cost,
     costLabel: summary.known_cost_usd ?? '',
     unpricedTokens: finite(summary.unpriced_tokens),
@@ -345,7 +354,7 @@ export function calendarHeatmapCells(data: CalendarDatum[]) {
 export function sparklineOption(input: {
   animationDelay?: number;
   /** [bucket start ISO, value] so the tooltip can name the bucket the cursor snapped to. */
-  data: Array<[string, number]>;
+  data: Array<[string, number | null]>;
   seriesName: string;
   color: string;
   tooltipFormatter: (params: unknown) => string;
