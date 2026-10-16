@@ -9,6 +9,9 @@ const range = {
   time_zone: 'Asia/Kolkata',
 };
 
+/** Analytics fan-out reads answer through `apiClient.getRaw`, so mocks return a full response. */
+const okResponse = (data: unknown) => ({ status: 200, data, headers: {} });
+
 const eventsQuery: AnalyticsQuery = {
   schema_version: 2,
   operation: 'events',
@@ -25,16 +28,16 @@ const eventsQuery: AnalyticsQuery = {
 
 describe('analytics v2 API adapter', () => {
   test('normalizes event rows while preserving root total_count', async () => {
-    const originalPost = apiClient.post;
-    const post = mock(async () => ({ meta: {}, total_count: 37, events: null }));
-    apiClient.post = post as typeof apiClient.post;
+    const originalGetRaw = apiClient.getRaw;
+    const getRaw = mock(async () => okResponse({ meta: {}, total_count: 37, events: null }));
+    apiClient.getRaw = getRaw as unknown as typeof apiClient.getRaw;
 
     try {
       const page = await analyticsApi.events(eventsQuery);
       expect(page.events).toEqual([]);
       expect(page.total_count).toBe(37);
     } finally {
-      apiClient.post = originalPost;
+      apiClient.getRaw = originalGetRaw;
     }
   });
 
@@ -94,19 +97,20 @@ describe('analytics v2 API adapter', () => {
   });
 
   test('normalizes nullable v2 activity, analysis, and pricing collections', async () => {
-    const originalPost = apiClient.post;
+    const originalGetRaw = apiClient.getRaw;
     const originalGet = apiClient.get;
-    const post = mock(async (_url: string, request: AnalyticsQuery) =>
-      request.operation === 'analysis'
-        ? {
-            meta: {},
-            series_by_category: { meta: { partial: false }, buckets: null },
-            model_by_time: { meta: { partial: false }, models: null, buckets: null },
-            latency: { meta: { partial: false }, samples: null },
-            cost_components: null,
-            key_model_matrix: { meta: { partial: false }, keys: null, models: null, cells: null },
-          }
-        : { meta: {}, grain: '1d', zone: 'UTC', buckets: null }
+    const getRaw = mock(async () =>
+      okResponse({
+        meta: {},
+        grain: '1d',
+        zone: 'UTC',
+        buckets: null,
+        series_by_category: { meta: { partial: false }, buckets: null },
+        model_by_time: { meta: { partial: false }, models: null, buckets: null },
+        latency: { meta: { partial: false }, samples: null },
+        cost_components: null,
+        key_model_matrix: { meta: { partial: false }, keys: null, models: null, cells: null },
+      })
     );
     const get = mock(async () => ({
       currency_unit: 'nano_usd',
@@ -116,7 +120,7 @@ describe('analytics v2 API adapter', () => {
       sync_state: 'ready',
       updated_at: null,
     }));
-    apiClient.post = post as typeof apiClient.post;
+    apiClient.getRaw = getRaw as unknown as typeof apiClient.getRaw;
     apiClient.get = get as typeof apiClient.get;
 
     try {
@@ -141,7 +145,7 @@ describe('analytics v2 API adapter', () => {
       expect(pricing.rules).toEqual([]);
       expect(pricing.missing).toEqual([]);
     } finally {
-      apiClient.post = originalPost;
+      apiClient.getRaw = originalGetRaw;
       apiClient.get = originalGet;
     }
   });

@@ -84,6 +84,14 @@ function startAutoRefreshTimer() {
   }
 }
 
+/** Restart the shared cycle after a manual refresh so its next tick is one interval later. */
+export function noteAnalyticsManualRefreshCompleted() {
+  lastAutoRefreshAt = Date.now();
+  if (autoRefreshTimer === null) return;
+  clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(() => void runAutoRefresh(), ANALYTICS_AUTO_REFRESH_INTERVAL_MS);
+}
+
 export function registerAnalyticsAutoRefresher(refresh: AutoRefreshCallback) {
   const token = Symbol('analytics-auto-refresh');
   unscopedRefreshers.set(token, refresh);

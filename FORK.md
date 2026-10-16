@@ -2,7 +2,7 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-10-07
+Last updated: 2026-10-16
 
 ## Repository relationship
 
@@ -1156,3 +1156,46 @@ reserve and its tooltip on the quota page and the badge on the auth-file card. I
 form, pointer drag moved the weekly reserve from 30% to 50% and ArrowRight moved it to 51%.
 Saving persisted 51% with the bypass key unchanged, and the editor had no overflow at 375px. The
 only failing suite test, `legacy backend login diagnostic`, also fails without these changes.
+
+### DL056: Analytics reads revalidate against a cached response
+
+Analytics reads now travel through the header form of the read route: the query is base64url JSON in
+`X-Analytics-Query` on a `GET` to `/v8/management/analytics/query` while the encoded header stays
+within 6000 characters, and the previous `POST` body form carries anything larger. The client keeps a
+bounded in-memory cache (64 entries, 8 MiB) of the last response body and its ETag per connection
+revision and canonical query, sends that validator with `If-None-Match` and `Cache-Control: no-cache`
+so a dashboard refresh always reaches the origin, and answers a 304 from the cached body. A cached body
+is only returned while the entry that produced the validator is still held and the connection that
+produced it is current; otherwise the read is reissued once without a validator, and a second 304 is
+reported as a failure rather than retried again.
+
+Older servers are detected by a 404/405 that carries no Management API error code, which switches that
+connection to `POST` for the rest of its lifetime; coded refusals such as a disabled module still
+surface as errors. `apiClient` gained `onConnectionChange`, fired whenever the server address or
+management key changes, so the analytics cache is dropped on sign-out or a server switch without the
+client importing domain-specific cache modules. The in-flight dedupe key includes the connection revision, and a
+response that arrives after the connection changed is rejected rather than returned to the caller or
+replayed against the new server.
+
+**Validation:** `bun test tests/analyticsQueryTransport.test.ts` (18 tests), the updated dedupe and v2
+adapter suites, and the full analytics filter (289 tests) pass. `bun run lint` and `bun run build`
+pass. `bun run verify` stops on the pre-existing `legacy backend login diagnostic` failure (full
+suite: 1919 pass, 1 fail), which also fails at HEAD without these changes.
+
+Manual page refresh completion resets the shared 60-second automatic-refresh timer. A deterministic
+clock test checks completion at 50 seconds, no refresh at the previous 60-second deadline, and the
+next refresh at 110 seconds. Visibility, in-flight, and Retry-After guards remain active.
+
+Explicit query bounds and schema-v2 custom range bounds use their UTC minute for the ETag cache
+and concurrent-read identity. Seconds, fractions, and equivalent UTC offsets therefore reuse the
+same snapshot while the server's 60-second cache entry is live. The transmitted query and cached
+response keep the original exact bounds, including ranges shorter than a minute. Named rolling
+presets retain their existing identity. Cursor continuations keep exact bounds because their
+signatures bind the first page's resolved range. Time zones, filters, and all other fields stay
+significant; the generic request serializer still preserves timestamp strings exactly.
+
+Validation on 2026-10-16: 40 transport and dedupe tests pass, including same-minute 304 reuse,
+concurrent reads, neighboring minutes, offset equivalence, zone and filter isolation, exact cursor
+bounds, and unchanged sub-minute requests and response metadata. TypeScript compilation, lint, and
+the single-file production build pass. `bun run verify` reaches 1,933 passing tests and the same
+pre-existing `legacy backend login diagnostic` failure.
