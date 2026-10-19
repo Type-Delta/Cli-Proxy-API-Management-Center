@@ -4,8 +4,10 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import i18n from '@/i18n';
-import { OAuthPage } from '@/pages/OAuthPage';
-import { validateKiroLoginSettings } from '@/pages/kiroOAuth';
+import { OAuthPage } from '@/features/oauth/OAuthPage';
+import { KiroLoginSetup } from '@/features/oauth/components/KiroLoginSetup';
+import { validateKiroLoginSettings } from '@/features/oauth/kiroOAuth';
+import { CALLBACK_SUPPORTED, OAUTH_PROVIDERS } from '@/features/oauth/providers';
 import { KiroQuotaBody } from '@/features/quota/providers/kiro/KiroQuotaBody';
 import { KIRO_CONFIG } from '@/features/quota/providers/kiro/data';
 import {
@@ -315,16 +317,33 @@ describe('Kiro frontend integration', () => {
     ).toEqual({ startUrlValid: false, regionValid: true });
   });
 
-  test('renders the compact account choice and uses the Kiro callback placeholder', async () => {
+  test('renders Kiro as a gallery tile with its account choice inside the dialog', async () => {
     await i18n.changeLanguage('en');
-    const markup = renderToStaticMarkup(
-      createElement(MemoryRouter, null, createElement(OAuthPage))
-    );
-    const source = readFileSync('src/pages/OAuthPage.tsx', 'utf8');
+    const page = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(OAuthPage)));
+    expect(page).toContain('Kiro');
 
-    expect(markup).toContain('AWS Builder ID');
-    expect(markup).toContain('IAM Identity Center');
-    expect(source).toContain("'auth_login.kiro_callback_placeholder'");
+    const builderId = renderToStaticMarkup(
+      createElement(KiroLoginSetup, {
+        settings: { method: 'builder-id', startUrl: '', region: 'us-east-1' },
+        onChange: () => {},
+      })
+    );
+    expect(builderId).toContain('AWS Builder ID');
+    expect(builderId).toContain('IAM Identity Center');
+    expect(builderId).not.toContain('Start URL');
+
+    const identityCenter = renderToStaticMarkup(
+      createElement(KiroLoginSetup, {
+        settings: { method: 'identity-center', startUrl: 'http://bad', region: 'us-east-1' },
+        onChange: () => {},
+      })
+    );
+    expect(identityCenter).toContain('Start URL');
+    expect(identityCenter).toContain('Region');
+    expect(identityCenter).toContain('full https start URL');
+
+    const dialogSource = readFileSync('src/features/oauth/components/OAuthFlowDialog.tsx', 'utf8');
+    expect(dialogSource).toContain("'auth_login.kiro_callback_placeholder'");
   });
 
   test('renders separate included and free-trial rows', async () => {
@@ -383,13 +402,11 @@ describe('Kiro frontend integration', () => {
   });
 
   test('keeps Kiro on the normal OAuth launch flow and all locales in parity', () => {
-    const source = readFileSync('src/pages/OAuthPage.tsx', 'utf8');
-    expect(source).toContain("id: 'kiro'");
-    expect(source).toContain("titleKey: 'auth_login.kiro_oauth_title'");
-    expect(source).toMatch(/CALLBACK_SUPPORTED = new Set<string>\(\[[^\]]*\]\)/);
-    expect(source.match(/CALLBACK_SUPPORTED = new Set<string>\(\[[^\]]*\]\)/)?.[0]).toContain(
-      'kiro'
-    );
+    const kiro = OAUTH_PROVIDERS.find((provider) => provider.id === 'kiro');
+    expect(kiro).toMatchObject({ titleKey: 'auth_login.kiro_oauth_title', requiresSetup: true });
+    expect(CALLBACK_SUPPORTED.has('kiro')).toBeTrue();
+    const pageSource = readFileSync('src/features/oauth/OAuthPage.tsx', 'utf8');
+    expect(pageSource).toContain('start_url: kiroLoginSettings.startUrl.trim()');
 
     for (const locale of LOCALES) {
       const translations = JSON.parse(

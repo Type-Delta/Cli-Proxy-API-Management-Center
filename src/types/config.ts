@@ -7,8 +7,6 @@ import type { GeminiKeyConfig, ProviderKeyConfig, OpenAIProviderConfig } from '.
 import type { InboundApiKeyEntry } from './apiKeys';
 
 export interface QuotaExceededConfig {
-  switchProject?: boolean;
-  switchPreviewModel?: boolean;
   antigravityCredits?: boolean;
 }
 

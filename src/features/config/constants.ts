@@ -7,7 +7,6 @@ import {
   IconScrollText,
   IconShield,
   IconSlidersHorizontal,
-  IconTimer,
   type IconProps,
 } from '@/components/ui/icons';
 import type { VisualConfigFieldPath } from '@/types/visualConfig';
@@ -16,14 +15,13 @@ import type { VisualSectionId } from './searchIndex';
 /** Configuration editor mode: visual form or YAML source. */
 export type ConfigEditorMode = 'visual' | 'source';
 
-/** Top tabs: Common, which replaces simple mode, plus seven canonical sections. */
+/** Top tabs: Common, which replaces simple mode, plus six canonical sections. */
 export type ConfigTabId = 'common' | VisualSectionId;
 
 export const CONFIG_SECTION_IDS = [
   'connectivity',
   'network',
   'logging',
-  'quota',
   'streaming',
   'advanced',
   'payload',
@@ -31,15 +29,14 @@ export const CONFIG_SECTION_IDS = [
 
 export const CONFIG_TAB_IDS: readonly ConfigTabId[] = ['common', ...CONFIG_SECTION_IDS];
 
-/** Section numbers 01 through 07. Common is an alias view and has no number. */
+/** Section numbers 01 through 06. Common is an alias view and has no number. */
 export const SECTION_INDEX_LABELS: Record<VisualSectionId, string> = {
   connectivity: '01',
   network: '02',
   logging: '03',
-  quota: '04',
-  streaming: '05',
-  advanced: '06',
-  payload: '07',
+  streaming: '04',
+  advanced: '05',
+  payload: '06',
 };
 
 export const CONFIG_TAB_ICONS: Record<ConfigTabId, ComponentType<IconProps>> = {
@@ -47,7 +44,6 @@ export const CONFIG_TAB_ICONS: Record<ConfigTabId, ComponentType<IconProps>> = {
   connectivity: IconKey,
   network: IconNetwork,
   logging: IconScrollText,
-  quota: IconTimer,
   streaming: IconSatellite,
   advanced: IconShield,
   payload: IconCode,
@@ -61,8 +57,6 @@ export const COMMON_FIELD_IDS = [
   'proxyUrl',
   'debug',
   'loggingToFile',
-  'quotaSwitchProject',
-  'quotaSwitchPreviewModel',
   'analyticsEnabled',
   'analyticsPath',
   'analyticsQueueCapacity',
@@ -108,7 +102,6 @@ export const SECTION_VALIDATION_FIELDS: Record<VisualSectionId, readonly VisualC
       'analyticsStorageTimeZone',
       'analyticsViewerTrustedProxyCidrs',
     ],
-    quota: [],
     streaming: [
       'streaming.keepaliveSeconds',
       'streaming.bootstrapRetries',
@@ -161,6 +154,7 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   codexLiveMediaRelayICEServers: ['codexLiveMediaRelayICEServers'],
 
   // ── connectivity ──────────────────────────────────────────────────────────
+  githubToken: ['githubToken'],
   trustedProxies: ['trustedProxies'],
   discoveryEnabled: ['discoveryEnabled'],
   discoveryServiceName: ['discoveryServiceName'],
@@ -218,15 +212,12 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   analyticsStoreCredentialId: ['analyticsStoreCredentialId'],
   analyticsViewerTrustedProxyCidrs: ['analyticsViewerTrustedProxyCidrs'],
   analyticsViewerAllowLoopbackHttp: ['analyticsViewerAllowLoopbackHttp'],
-  // ── quota ─────────────────────────────────────────────────────────────────
-  quotaSwitchProject: ['quotaSwitchProject'],
-  quotaSwitchPreviewModel: ['quotaSwitchPreviewModel'],
-  quotaAntigravityCredits: ['quotaAntigravityCredits'],
   // ── streaming ─────────────────────────────────────────────────────────────
   streamingKeepaliveSeconds: ['streaming.keepaliveSeconds'],
   streamingBootstrapRetries: ['streaming.bootstrapRetries'],
   streamingNonstreamKeepalive: ['streaming.nonstreamKeepaliveInterval'],
   // ── advanced ──────────────────────────────────────────────────────────────
+  quotaAntigravityCredits: ['quotaAntigravityCredits'],
   pluginsEnabled: ['pluginsEnabled'],
   pluginStoreSources: ['pluginStoreSources'],
   pluginStoreAuth: ['pluginStoreAuth'],

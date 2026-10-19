@@ -1,0 +1,46 @@
+@use '../../../styles/mixins' as *;
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.method {
+  align-self: flex-start;
+
+  :global(button) {
+    min-height: 36px;
+    padding: 6px 14px;
+  }
+
+  @include mobile {
+    align-self: stretch;
+
+    :global(button) {
+      flex: 1 1 0;
+      min-width: 0;
+      white-space: normal;
+    }
+  }
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(130px, 1fr);
+  gap: 12px;
+
+  :global(.form-group) {
+    margin-bottom: 0;
+  }
+
+  :global(.form-group > label) {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}

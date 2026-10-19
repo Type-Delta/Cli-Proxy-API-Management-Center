@@ -1,10 +1,7 @@
 export type PayloadParamValueType = 'string' | 'number' | 'boolean' | 'json';
 export type DisableImageGenerationMode = 'false' | 'true' | 'chat' | 'passthrough';
 export type RoutingStrategy =
-  | 'round-robin'
-  | 'weighted-round-robin'
-  | 'fill-first'
-  | 'greedy-soonest-recovery';
+  'round-robin' | 'weighted-round-robin' | 'fill-first' | 'greedy-soonest-recovery';
 export type PluginStoreAuthType = 'none' | 'bearer' | 'basic' | 'header' | 'github-token';
 export type PluginStoreAuthApplyTo = 'registry' | 'metadata' | 'artifact';
 export type PayloadParamValidationErrorCode =
@@ -140,6 +137,7 @@ export type PluginStoreAuthRule = {
 
 /** UI draft keys; YAML persistence uses the v8 tree, not these flattened names. */
 export type VisualConfigValues = {
+  githubToken: string;
   trustedProxies: string[];
   discoveryEnabled: boolean;
   discoveryServiceName: string;
@@ -223,8 +221,6 @@ export type VisualConfigValues = {
   disableImageGeneration: DisableImageGenerationMode;
   gptImage2BaseModel: string;
   authAutoRefreshWorkers: string;
-  quotaSwitchProject: boolean;
-  quotaSwitchPreviewModel: boolean;
   /** OAuth-only: oauth.providers.antigravity.antigravity-credits. */
   quotaAntigravityCredits: boolean;
   routingStrategy: RoutingStrategy;
@@ -259,6 +255,7 @@ export const makeClientId = () => {
 };
 
 export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
+  githubToken: '',
   trustedProxies: [],
   discoveryEnabled: false,
   discoveryServiceName: '',
@@ -341,8 +338,6 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   disableImageGeneration: 'false',
   gptImage2BaseModel: '',
   authAutoRefreshWorkers: '',
-  quotaSwitchProject: false,
-  quotaSwitchPreviewModel: false,
   quotaAntigravityCredits: false,
   routingStrategy: 'round-robin',
   routingSessionAffinity: false,

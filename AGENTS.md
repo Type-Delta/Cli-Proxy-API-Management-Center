@@ -49,7 +49,7 @@ This is a React 19 + TypeScript + Vite management frontend for CLI Proxy API, no
 Fork-only CPA routes (`/capabilities`, `/analytics/*`, `/api-keys`, `/api-key-limits`) are
 addressed relative to the same v8 base; the public analytics viewer keeps `/v0/analytics/viewer`. Plugin resources and custom HTTP extensions are exceptions: preserve their backend-declared paths.
 
-- `src/features/`: feature-owned pages, components, hooks, types, and logic. Current features include `dashboard`, `providers`, `authFiles`, `quota`, `config`, `plugins`, and Analytics.
+- `src/features/`: feature-owned pages, components, hooks, types, and logic. Current features include `dashboard`, `providers`, `authFiles`, `oauth`, `quota`, `config`, `logs`, `plugins`, and Analytics.
 - `src/pages/`: existing route pages outside the feature layout. Follow nearby conventions when modifying these; do not migrate unrelated code.
 - `src/components/`, `src/hooks/`, and `src/utils/`: shared UI, hooks, and utilities. Keep feature-specific code in its feature.
 - `src/services/api/`: API client, domain endpoints, and backend data normalization.
@@ -59,7 +59,7 @@ addressed relative to the same v8 base; the public analytics viewer keeps `/v0/a
 - `src/styles/`: global styles and theme tokens. Component-specific SCSS Modules stay beside their component.
 - `src/assets/`: bundled assets, including provider icons in `icons/`.
 - `src/router/`: application routes.
-- `src/i18n/locales/`: English, Simplified Chinese, Traditional Chinese, Russian, and Vietnamese locale files.
+- `src/i18n/locales/`: English, Simplified Chinese, Traditional Chinese, Russian, Vietnamese, and Korean locale files, registered in `src/i18n/index.ts`.
 - `tests/`: Bun tests.
 - `dist/index.html`: the single-file production artifact.
 
@@ -116,7 +116,8 @@ falling back to `dev`.
 - Name component files in PascalCase, hooks with a `use` prefix, and API modules by domain.
 - Keep API modules grouped by domain. Place SCSS Modules beside the component or page that owns them.
 - Reuse shared components and existing theme tokens before adding new primitives or hard-coded colors. Vite injects `src/styles/variables.scss` into SCSS modules.
-- Keep user-facing text in i18n and update all five locales, including accessible labels, when adding translation keys.
+- For motion, reuse the timing tokens in `src/styles/themes.scss` and the helpers in `src/hooks/motion.ts` instead of ad hoc durations and easings.
+- Keep user-facing text in i18n and update all six locales, including accessible labels, when adding translation keys.
 - Preserve keyboard interaction, accessible names, focus behavior, and reduced-motion handling when modifying interactive UI.
 - Preserve unknown backend fields when reading and writing configuration.
 - Do not put raw API keys, management keys, viewer credentials, or full key IDs in URLs, logs, browser storage, error reports, or console output. Keep raw API keys concealed until an administrator explicitly reveals or copies one.
@@ -126,7 +127,8 @@ falling back to `dev`.
 
 ## Testing & Verification
 
-Tests are centralized under `tests/` as `*.test.ts` files and use `bun:test`. Existing suites cover
+Tests are centralized under `tests/` as `*.test.ts` files and use `bun:test`; shared fixtures live in
+`tests/fixtures/` and helpers in `tests/helpers/`. Existing suites cover
 pure logic, React server-side static rendering via `renderToStaticMarkup`, and source/contract checks.
 There is no configured browser DOM test harness; static markup tests do not verify browser interactions.
 Prefer extracting testable logic and following nearby test patterns rather than introducing a new

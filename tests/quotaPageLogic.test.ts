@@ -49,6 +49,18 @@ describe('resolveQuotaProviderType', () => {
     );
     expect(resolveQuotaProviderType(file('a', 'gemini'))).toBeNull();
     expect(resolveQuotaProviderType(file('a', 'claude', { disabled: true }))).toBeNull();
+    expect(
+      resolveQuotaProviderType(
+        file('acme-a.json', 'acme', { supportsQuota: true, quotaProvider: 'acme', authIndex: '1' })
+      )
+    ).toBe('plugin');
+    expect(resolveQuotaProviderType(file('acme-probe.json', 'acme', { supportsQuota: true }))).toBe(
+      'plugin'
+    );
+    // Kiro has a fork built-in card, which wins over an advertised plugin quota.
+    expect(resolveQuotaProviderType(file('kiro-a.json', 'kiro', { supportsQuota: true }))).toBe(
+      'kiro'
+    );
   });
 });
 
@@ -88,6 +100,7 @@ describe('buildTabCounts', () => {
       'opencode-go': 1,
       devin: 0,
       meta: 0,
+      plugin: 0,
     });
   });
 });

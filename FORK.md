@@ -2,15 +2,15 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-10-16
+Last updated: 2026-10-19
 
 ## Repository relationship
 
 - Fork: https://github.com/Type-Delta/Cli-Proxy-API-Management-Center
 - Upstream: https://github.com/router-for-me/Cli-Proxy-API-Management-Center
 - Initial fork head: `d249ff008e0bc2803deb23fb3e2c62418a1e8d17`
-- Current upstream base: `6abace9ffb83a9ac349464ded04bb4e7f7cb309e`
-- Upstream release at the base: `v1.25.4`
+- Current upstream base: `fe2963330f32a933f562282165f62ae52cf57145`
+- Upstream release at the base: `v1.26.5`
 
 The fork uses append-only merge history. Routine upstream syncs merge official history into `main`; they do not rebase or force-push published commits.
 
@@ -885,9 +885,9 @@ Claude data. The description explains that direct Anthropic OAuth requests must
 match the active reference and fail closed only if no valid active reference
 exists. A failed candidate update preserves the last successfully captured
 active reference. Visual config loading and saving preserve the boolean; the
-setting appears in search and all four supported locales. Shared toggle controls
-show keyboard focus and connect descriptions to their checkboxes for assistive
-technology.
+setting appears in search and every supported locale. It renders as a setting row
+(`ToggleSetting`): an external `<label for>` names the switch and the description is
+connected through `aria-describedby`; the switch track shows keyboard focus.
 
 Validation: focused config, accessibility, and four-locale copy tests pass.
 `bun run verify` passes 758 tests, TypeScript, and the production build; lint
@@ -1005,6 +1005,12 @@ shows `Unblock in <countdown>` right-aligned on the reset line. Its tooltip hold
 and countdown. Gated windows wait for their last reset; independent buckets free the credential at
 the first one.
 
+Upstream quota data added in the 2026-10-19 sync renders inside this shell rather than upstream's
+linear rows: Claude stale-snapshot notice, extra-usage state and amounts, and reset-grant expiry
+details join the meta column; Claude dollar balances, xAI product-usage breakdown, and plugin quota
+groups render as quota-area rows with credential tooltips and soonest-reset ranking. Meta windows use
+hour labels when the duration is a whole number of hours.
+
 ### DL059: Dense short-range analytics buckets
 
 Analytics requests for the rolling one-hour and six-hour presets now use 15-minute and 30-minute
@@ -1044,6 +1050,9 @@ eight-character key fragments; missing saved IDs remain removable. API normaliza
 whole-family provider serialization preserve `quota_reserve` / `quota-reserve` and the bypass-key
 lists through unrelated edits, while explicit empties remove them. All five locales are updated.
 The feature was first named usage caps; it was renamed before release, so no alias exists.
+Generic plugin quota cards (from upstream) render through the same reserve-aware meter, and
+fork usage-probe credentials (`usage_probe: zai` / `opencode-go`) keep their built-in cards even when
+CPA also marks them `supports_quota`.
 
 OpenAI-compatible provider rows now take their auth index from the first key entry, where CPA
 reports it as `auth_index`; the provider transformers accept both `auth_index` and `auth-index`.
@@ -1100,6 +1109,34 @@ bounds, and unchanged sub-minute requests and response metadata. TypeScript comp
 the single-file production build pass. `bun run verify` reaches 1,933 passing tests and the same
 pre-existing `legacy backend login diagnostic` failure.
 
+### DL060: Kiro sign-in in the OAuth gallery
+
+Kiro is a first-class tile in the upstream provider gallery (`src/features/oauth/providers.ts`). Unlike
+the other browser providers, opening the tile does not start sign-in: the flow dialog first shows the
+Kiro account choice (`KiroLoginSetup`), AWS Builder ID or IAM Identity Center. Identity Center adds
+Start URL and Region fields, validated in `kiroOAuth.ts` (https start URL, AWS region pattern) and
+remembered in browser storage; an invalid entry disables the start button, and the Start URL error
+only appears once something is typed. Starting sends `start_url` and `region` with
+`/oauth/auth-url?provider=kiro`. Kiro accepts manual callback submission with its
+`http://127.0.0.1/oauth/callback` placeholder, and "Start over" / "Log in another account" return to
+the account choice instead of reusing the previous options. The fork's former inline Kiro card on
+`src/pages/OAuthPage.tsx` was removed with that page.
+
+Validation on 2026-10-19: `tests/kiroProvider.test.ts` covers the registry entry, callback support,
+both setup states, and validation. Through Chrome CDP against a CPA built from the fork, the gallery
+showed the Kiro tile; the dialog started a Builder ID login (AWS authorize URL, status polling), and an
+Identity Center attempt sent `start_url` and `region` to CPA. Desktop 1440px and mobile 390px had no
+horizontal overflow.
+
+### DL061: Korean coverage for fork-only strings
+
+Upstream ships a Korean locale that covers only upstream keys. The fork adds Korean text for every
+fork-only key (analytics, structured API keys, quota reserves and summaries, Kiro, Z.AI, OpenCode Go,
+and related config), so `tests/koreanLocale.test.ts` holds for the whole English key set with matching
+interpolation tokens instead of falling back to Simplified Chinese.
+
+Validation on 2026-10-19: the Korean locale test passes; key sets and `{{…}}` tokens match English.
+
 ## Merge History
 
 This is an append-only historical decision record. It provides context for integrations but never, by itself, establishes an ongoing fork divergence; use the current Divergence Log for that determination.
@@ -1134,6 +1171,35 @@ path were removed so application code cannot probe the deprecated `/v0/managemen
 Validation: `bun run verify` passes 1,820 tests, ESLint, TypeScript, and the Vite single-file
 production build. Parent CPA v8 route registration and the bundled panel were checked with an
 isolated Chrome CDP login; the panel issued only `/v8/management/...` requests.
+
+### 2026-10-19 - Merge upstream `main` at `fe29633` (`v1.26.5`)
+
+Merged 41 upstream commits into the fork's 77 with a single merge commit. Decisions:
+
+- OAuth: adopted upstream's provider gallery and focused flow dialog (`src/features/oauth/`). Kiro was
+  ported into it as a tile with its account choice inside the dialog (DL060); plugin OAuth cards,
+  Vertex import, Devin cancellation, and callback handling come from upstream's flow hook, which already
+  matched the fork's behavior. `src/pages/OAuthPage.tsx` and its stylesheet were removed.
+- Config: adopted upstream's setting-row primitives (`FieldPrimitives`, generated IDs, `ToggleSwitch`
+  external label) for ordinary fields and the upstream GitHub token field. The fork tab order, CPAUK
+  analytics groups (rewritten on the setting rows), OAuth safeguard toggle, GSR routing option, and the
+  full-width structured API-key editor stay. Upstream's removal of the Quota section and its deprecated
+  `quota-exceeded` switches was accepted; CPA v8 only exposes those through deprecated v0 routes.
+  Antigravity credits moved to Advanced as upstream did.
+- API keys and quota: kept the fork's labelled key rows (under upstream's header copy) and the fork
+  quota shell; ported upstream Claude extra usage, dollar balances, stale snapshots and reset grants,
+  xAI shared-usage breakdown and pay-as-you-go state, Antigravity group labels and visibility, Codex
+  cooldown reset, hour-based Meta windows, and generic plugin quota (`quota_plugin_id`, v8 plugin
+  routes) with plugin cards after every built-in, including Kiro, Z.AI, and OpenCode Go.
+- Provider `testModel` is no longer persisted, matching upstream and CPA (no such config field).
+- Adopted as-is: Korean locale (extended in DL061), i18n fixes, sponsor card, Kimi tile icons, the
+  OAuth polling resume fix. Locale files are the key union of both sides.
+
+Validation: `bun run test` 2075 pass and 2 fail; both failures (`legacy backend login diagnostic` and a
+test-order-dependent cooldown hint assertion) also fail on the pre-merge fork head. Lint, TypeScript,
+and the single-file build pass. Chrome CDP checks against a temporary CPA built from the fork covered
+the OAuth gallery and Kiro dialog, config sections, quota (live Z.AI usage with a reserve stripe),
+auth files, and analytics pages at 1440px and 390px with no horizontal overflow.
 
 ## Sync procedure
 

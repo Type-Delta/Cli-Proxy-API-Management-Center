@@ -3,13 +3,14 @@ import { join } from 'node:path';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, test } from 'bun:test';
-import { ToggleRow } from '../src/features/config/components/fields/FieldPrimitives';
+import { ToggleSetting } from '../src/features/config/components/fields/FieldPrimitives';
 
 describe('toggle switch accessibility', () => {
   test('associates each toggle description with its checkbox', () => {
     const markup = renderToStaticMarkup(
-      createElement(ToggleRow, {
-        title: 'OAuth safeguard',
+      createElement(ToggleSetting, {
+        fieldId: 'claudeHeaderOauthSafeguard',
+        label: 'OAuth safeguard',
         description: 'Blocks direct OAuth requests when capture is missing or stale.',
         checked: false,
         onChange: () => {},
@@ -17,7 +18,10 @@ describe('toggle switch accessibility', () => {
     );
     const describedById = markup.match(/aria-describedby="([^"]+)"/)?.[1];
 
-    expect(markup).toContain('aria-label="OAuth safeguard"');
+    // The setting row names the switch through an external <label for>.
+    const inputId = markup.match(/<input[^>]*id="([^"]+)"/)?.[1];
+    expect(inputId).toBeDefined();
+    expect(markup).toMatch(new RegExp(`<label[^>]*for="${inputId}"[^>]*>OAuth safeguard</label>`));
     expect(describedById).toBeDefined();
     expect(markup).toContain(`id="${describedById}"`);
     expect(markup).toContain('Blocks direct OAuth requests when capture is missing or stale.');

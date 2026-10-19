@@ -231,7 +231,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       return;
     }
     const editingIndex = editingRowId ? renderRowIds.findIndex((id) => id === editingRowId) : -1;
-    const editingServerIndex = editingIndex >= 0 ? editingConfigIndex ?? undefined : undefined;
+    const editingServerIndex = editingIndex >= 0 ? (editingConfigIndex ?? undefined) : undefined;
     const editingIdentity = editingIndex >= 0 ? identityFor(editingIndex) : undefined;
     const duplicateDraftLabel =
       labelValue !== '' &&
@@ -325,13 +325,24 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
     });
 
   return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <div className={styles.blockHeaderRow}>
-        <label style={{ margin: 0 }}>{t('config_management.visual.api_keys.label')}</label>
+    <div className={styles.apiKeys}>
+      <div className={styles.apiKeysHeader}>
+        <div className={styles.apiKeysCopy}>
+          <span className={styles.apiKeysTitle}>
+            {t('config_management.visual.api_keys.label')}
+          </span>
+          <span className={styles.apiKeysHint}>{t('config_management.visual.api_keys.hint')}</span>
+        </div>
         <Button size="sm" onClick={openAddModal} disabled={disabled || busy}>
           {t('config_management.visual.api_keys.add')}
         </Button>
       </div>
+
+      {!supportsWrites && contract.structured && (
+        <div className="warning-box">
+          {t('config_management.visual.api_keys.compatibility_blocked')}
+        </div>
+      )}
 
       {contract.warnings.length > 0 && (
         <div className="warning-box" role="status">
@@ -341,7 +352,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       {apiKeys.length === 0 ? (
         <div className={styles.emptyState}>{t('config_management.visual.api_keys.empty')}</div>
       ) : (
-        <div className="item-list" style={{ marginTop: 4 }}>
+        <div className={`item-list ${styles.apiKeyItems}`}>
           {apiKeys.map((key, index) => {
             const identity = identityFor(index);
             const shortId = identity ? shortIds.get(identity.key_id) : undefined;
@@ -428,13 +439,6 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
               </div>
             );
           })}
-        </div>
-      )}
-
-      <div className="hint">{t('config_management.visual.api_keys.hint')}</div>
-      {!supportsWrites && contract.structured && (
-        <div className="warning-box">
-          {t('config_management.visual.api_keys.compatibility_blocked')}
         </div>
       )}
 

@@ -27,6 +27,8 @@ import { KIRO_CONFIG } from './kiro/data';
 import { KiroQuotaBody } from './kiro/KiroQuotaBody';
 import { OPENCODE_GO_CONFIG } from './opencode-go/data';
 import { OpenCodeGoQuotaBody } from './opencode-go/OpenCodeGoQuotaBody';
+import { PLUGIN_CONFIG } from './plugin/data';
+import { PluginQuotaBody } from './plugin/PluginQuotaBody';
 import { XAI_CONFIG } from './xai/data';
 import { XaiQuotaBody } from './xai/XaiQuotaBody';
 import { ZAI_CONFIG } from './zai/data';
@@ -70,6 +72,7 @@ export const QUOTA_ADAPTERS: Record<QuotaProviderType, QuotaAdapter> = {
     Body: OpenCodeGoQuotaBody,
   } as unknown as QuotaAdapter,
   meta: { ...META_CONFIG, Body: MetaQuotaBody } as unknown as QuotaAdapter,
+  plugin: { ...PLUGIN_CONFIG, Body: PluginQuotaBody } as unknown as QuotaAdapter,
   xai: { ...XAI_CONFIG, Body: XaiQuotaBody } as unknown as QuotaAdapter,
   zai: { ...ZAI_CONFIG, Body: ZaiQuotaBody } as unknown as QuotaAdapter,
 };

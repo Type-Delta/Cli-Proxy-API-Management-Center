@@ -5,7 +5,7 @@ import type { ConfigSectionProps } from '../../types';
 import { getValidationMessage } from '../blocks/shared';
 import { SectionCard } from '../SectionCard';
 import { AnalyticsSettingsFields } from './AnalyticsSettingsFields';
-import { FieldGrid, FieldStack } from '../fields/FieldPrimitives';
+import { SettingList } from '../fields/FieldPrimitives';
 import {
   ApiKeysField,
   DebugToggle,
@@ -13,14 +13,14 @@ import {
   LoggingToFileToggle,
   PortField,
   ProxyUrlField,
-  QuotaSwitchPreviewModelToggle,
-  QuotaSwitchProjectToggle,
-  SponsorHintSpacer,
 } from '../fields/sharedFields';
 
 const Icon = CONFIG_TAB_ICONS.common;
 
-/** Common is an unnumbered alias view backed by the same visual-config state. */
+/**
+ * Common is an unnumbered alias view backed by the same visual-config state. Its fields share
+ * renderers with their canonical sections; the fork adds the CPAUK analytics card.
+ */
 export function SectionCommon({
   values,
   validationErrors,
@@ -30,6 +30,7 @@ export function SectionCommon({
 }: ConfigSectionProps) {
   const { t } = useTranslation();
   const portError = getValidationMessage(t, validationErrors?.port);
+  const fieldProps = { values, disabled, onChange };
 
   return (
     <>
@@ -39,33 +40,18 @@ export function SectionCommon({
         description={t('config_management.visual.sections.common.description')}
         animateIn={animateIn}
       >
-        <FieldStack>
-          <FieldGrid>
-            <HostField
-              values={values}
-              disabled={disabled}
-              onChange={onChange}
-              topExtra={<SponsorHintSpacer />}
-            />
-            <PortField
-              values={values}
-              disabled={disabled}
-              onChange={onChange}
-              error={portError}
-              topExtra={<SponsorHintSpacer />}
-            />
-            <ProxyUrlField values={values} disabled={disabled} onChange={onChange} />
-          </FieldGrid>
+        <SettingList>
+          <HostField {...fieldProps} />
+          <PortField {...fieldProps} error={portError} />
+          <ProxyUrlField {...fieldProps} wide />
+        </SettingList>
 
-          <ApiKeysField values={values} disabled={disabled} onChange={onChange} />
+        <ApiKeysField {...fieldProps} />
 
-          <FieldGrid>
-            <DebugToggle values={values} disabled={disabled} onChange={onChange} />
-            <LoggingToFileToggle values={values} disabled={disabled} onChange={onChange} />
-            <QuotaSwitchProjectToggle values={values} disabled={disabled} onChange={onChange} />
-            <QuotaSwitchPreviewModelToggle values={values} disabled={disabled} onChange={onChange} />
-          </FieldGrid>
-        </FieldStack>
+        <SettingList>
+          <DebugToggle {...fieldProps} />
+          <LoggingToFileToggle {...fieldProps} />
+        </SettingList>
       </SectionCard>
 
       <SectionCard

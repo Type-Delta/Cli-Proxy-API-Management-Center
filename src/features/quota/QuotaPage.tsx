@@ -134,6 +134,7 @@ export function QuotaPage() {
   const kiroQuota = useQuotaStore((state) => state.kiroQuota);
   const opencodeGoQuota = useQuotaStore((state) => state.opencodeGoQuota);
   const metaQuota = useQuotaStore((state) => state.metaQuota);
+  const pluginQuota = useQuotaStore((state) => state.pluginQuota);
   const xaiQuota = useQuotaStore((state) => state.xaiQuota);
   const zaiQuota = useQuotaStore((state) => state.zaiQuota);
 
@@ -148,6 +149,7 @@ export function QuotaPage() {
         kiro: kiroQuota,
         'opencode-go': opencodeGoQuota,
         meta: metaQuota,
+        plugin: pluginQuota,
         xai: xaiQuota,
         zai: zaiQuota,
       }) as unknown as Record<QuotaProviderType, Record<string, QuotaCardState>>,
@@ -160,6 +162,7 @@ export function QuotaPage() {
       kiroQuota,
       metaQuota,
       opencodeGoQuota,
+      pluginQuota,
       xaiQuota,
       zaiQuota,
     ]

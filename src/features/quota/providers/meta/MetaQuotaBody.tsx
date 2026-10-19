@@ -26,22 +26,13 @@ export function MetaQuotaBody({ quota, classes, credential }: QuotaBodyProps<Met
 
   return (
     <>
-      {(data.planName || data.isSubscriptionActive !== undefined) && (
+      {data.planName && (
         <div className={classes.metaColumn}>
           <div className={classes.planMeta}>
-            {data.planName && (
-              <span className={classes.planMetaItem}>
-                <span className={classes.planMetaLabel}>{t('meta_quota.plan')}</span>
-                <span className={classes.planMetaValue}>{data.planName}</span>
-              </span>
-            )}
-            {data.isSubscriptionActive !== undefined && (
-              <span className={classes.planMetaItem}>
-                <span className={classes.planMetaValue}>
-                  {t(data.isSubscriptionActive ? 'meta_quota.active' : 'meta_quota.inactive')}
-                </span>
-              </span>
-            )}
+            <span className={classes.planMetaItem}>
+              <span className={classes.planMetaLabel}>{t('meta_quota.plan')}</span>
+              <span className={classes.planMetaValue}>{data.planName}</span>
+            </span>
           </div>
         </div>
       )}
@@ -64,7 +55,9 @@ export function MetaQuotaBody({ quota, classes, credential }: QuotaBodyProps<Met
           const soon = window.id === soonestRowId;
           const label =
             window.id === 'window' && window.durationMinutes
-              ? t('meta_quota.window_duration', { minutes: window.durationMinutes })
+              ? window.durationMinutes % 60 === 0
+                ? t('meta_quota.window_duration_hours', { hours: window.durationMinutes / 60 })
+                : t('meta_quota.window_duration', { minutes: window.durationMinutes })
               : t(`meta_quota.${window.id}`);
           return (
             <div

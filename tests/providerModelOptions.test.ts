@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { createInstance } from 'i18next';
+import { I18nextProvider } from 'react-i18next';
 import {
   readModelOptions,
   buildModelOptions,
@@ -9,6 +11,10 @@ import {
 import { ModelAdvancedFields } from '@/features/providers/sheets/forms/ModelAdvancedFields';
 import type { ModelEntryInput, ProviderBrand } from '@/features/providers/types';
 import type { ModelAlias } from '@/types';
+
+// Keep key-based assertions independent of other suites initializing the app's i18n.
+const translations = createInstance();
+await translations.init({ lng: 'cimode', resources: {}, react: { useSuspense: false } });
 
 const draft = (model: ModelAlias): ModelEntryInput => ({
   name: model.name,
@@ -174,45 +180,47 @@ describe('provider model options', () => {
 
   const render = (brand: ProviderBrand, disabled = false, enabled = true) =>
     renderToStaticMarkup(
-      createElement(ModelAdvancedFields, {
-        entry: { name: 'model', thinkingEnabled: enabled },
-        providerBrand: brand,
-        disabled,
-        supportsThinking: true,
-        onUpdate: () => {},
-      })
+      createElement(
+        I18nextProvider,
+        { i18n: translations },
+        createElement(ModelAdvancedFields, {
+          entry: { name: 'model', thinkingEnabled: enabled },
+          providerBrand: brand,
+          disabled,
+          supportsThinking: true,
+          onUpdate: () => {},
+        })
+      )
     );
 
   test('gates fields by provider capability', () => {
     const vertex = render('vertex');
-    const label = (key: string, translated: string) =>
-      (html: string) => html.includes(key) || html.includes(translated);
+    const label = (key: string, translated: string) => (html: string) =>
+      html.includes(key) || html.includes(translated);
     expect(label('providersPage.modelOptions.displayName', 'Display name')(vertex)).toBe(true);
-    expect(label('providersPage.modelOptions.forceMapping', 'Rewrite response model to alias')(vertex)).toBe(true);
+    expect(
+      label('providersPage.modelOptions.forceMapping', 'Rewrite response model to alias')(vertex)
+    ).toBe(true);
     expect(vertex).not.toContain('Maximum context length');
     expect(vertex).not.toContain('Compatibility mode');
     for (const brand of ['gemini', 'codex', 'openaiCompatibility'] as const) {
       const html = render(brand);
-      expect(label('providersPage.modelOptions.maxContextLength', 'Context length')(html)).toBe(true);
+      expect(label('providersPage.modelOptions.maxContextLength', 'Context length')(html)).toBe(
+        true
+      );
       expect(label('providersPage.modelOptions.isCompat', 'Compatibility mode')(html)).toBe(true);
       expect(
         html.includes('providersPage.modelOptions.supportConfigurationUpdate') ||
           html.includes('Allow configuration updates')
-      ).toBe(
-        brand === 'codex'
-      );
+      ).toBe(brand === 'codex');
       expect(
         html.includes('providersPage.modelOptions.inputModalitiesText') ||
           html.includes('Input modalities')
-      ).toBe(
-        brand === 'openaiCompatibility'
-      );
+      ).toBe(brand === 'openaiCompatibility');
       expect(
         html.includes('providersPage.modelOptions.useMaxCompletionTokens') ||
           html.includes('Use max_completion_tokens')
-      ).toBe(
-        brand === 'openaiCompatibility'
-      );
+      ).toBe(brand === 'openaiCompatibility');
     }
   });
 

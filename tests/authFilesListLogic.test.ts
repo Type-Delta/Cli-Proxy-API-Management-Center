@@ -47,6 +47,21 @@ describe('resolveAuthFileQuotaType', () => {
     expect(resolveAuthFileQuotaType(authFile({ type: 'codex' }), 'claude')).toBeNull();
     expect(resolveAuthFileQuotaType(authFile({ type: 'codex' }), null)).toBeNull();
   });
+
+  test('exposes a plugin quota on its own provider tab', () => {
+    const acme = authFile({ type: 'acme', supportsQuota: true, quotaProvider: 'acme' });
+    expect(resolveAuthFileQuotaType(acme, 'all')).toBe('plugin');
+    expect(resolveAuthFileQuotaType(acme, 'acme')).toBe('plugin');
+  });
+
+  test('exposes a probe-only plugin quota without a provider identifier', () => {
+    expect(resolveAuthFileQuotaType(authFile({ type: 'acme', supportsQuota: true }), 'all')).toBe(
+      'plugin'
+    );
+    expect(
+      resolveAuthFileQuotaType(authFile({ type: 'acme', supportsQuota: true }), 'plugin')
+    ).toBe('plugin');
+  });
 });
 
 describe('matchesAuthFileSearch', () => {

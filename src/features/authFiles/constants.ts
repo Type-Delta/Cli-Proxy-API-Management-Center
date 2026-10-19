@@ -39,11 +39,12 @@ export type QuotaProviderType =
   | 'devin'
   | 'kiro'
   | 'kimi'
-  | 'xai'
   | 'meta'
   | 'opencode-go'
+  | 'plugin'
+  | 'xai'
   | 'zai';
-export type AuthFileQuotaFilter = QuotaProviderType | 'all' | null;
+export type AuthFileQuotaFilter = string | null;
 export type OAuthConfigLoadError = 'loading' | 'unsupported' | 'load' | null;
 
 export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
@@ -54,6 +55,7 @@ export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
   'devin',
   'kiro',
   'kimi',
+  'plugin',
   'xai',
   'opencode-go',
   'zai',

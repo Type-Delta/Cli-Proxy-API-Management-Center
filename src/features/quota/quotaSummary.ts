@@ -123,7 +123,7 @@ const getQuotaPlanLabel = (
     const plan = normalizedPlan(state.planType);
     return plan ? `claude_quota.plan_${plan}` : null;
   }
-  if (type === 'antigravity') {
+  if (type === 'antigravity' || type === 'plugin') {
     const subscription = asRecord(state.subscription);
     return planLabel(subscription?.tierName ?? subscription?.plan);
   }
@@ -158,7 +158,8 @@ const windowsFor = (type: QuotaProviderType, quota: QuotaCardState): QuotaSummar
       ];
     });
   }
-  if (type === 'antigravity') {
+  // Plugin quota reuses the Antigravity group/bucket shape.
+  if (type === 'antigravity' || type === 'plugin') {
     const groups = Array.isArray(state.groups) ? state.groups : [];
     return groups.flatMap((group): QuotaSummaryWindow[] => {
       const groupRecord = asRecord(group);

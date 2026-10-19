@@ -16,6 +16,7 @@ import type {
   KimiQuotaState,
   OpenCodeGoQuotaState,
   MetaQuotaState,
+  PluginQuotaState,
   XaiQuotaState,
   ZaiQuotaState,
 } from '@/types';
@@ -35,6 +36,7 @@ export type QuotaProviderType =
   | 'kimi'
   | 'meta'
   | 'opencode-go'
+  | 'plugin'
   | 'xai'
   | 'zai';
 
@@ -48,6 +50,7 @@ export interface QuotaStore {
   kiroQuota: Record<string, KiroQuotaState>;
   opencodeGoQuota: Record<string, OpenCodeGoQuotaState>;
   metaQuota: Record<string, MetaQuotaState>;
+  pluginQuota: Record<string, PluginQuotaState>;
   xaiQuota: Record<string, XaiQuotaState>;
   zaiQuota: Record<string, ZaiQuotaState>;
   setAntigravityQuota: (updater: QuotaUpdater<Record<string, AntigravityQuotaState>>) => void;
@@ -58,6 +61,7 @@ export interface QuotaStore {
   setKiroQuota: (updater: QuotaUpdater<Record<string, KiroQuotaState>>) => void;
   setOpenCodeGoQuota: (updater: QuotaUpdater<Record<string, OpenCodeGoQuotaState>>) => void;
   setMetaQuota: (updater: QuotaUpdater<Record<string, MetaQuotaState>>) => void;
+  setPluginQuota: (updater: QuotaUpdater<Record<string, PluginQuotaState>>) => void;
   setXaiQuota: (updater: QuotaUpdater<Record<string, XaiQuotaState>>) => void;
   setZaiQuota: (updater: QuotaUpdater<Record<string, ZaiQuotaState>>) => void;
   clearQuotaCache: () => void;

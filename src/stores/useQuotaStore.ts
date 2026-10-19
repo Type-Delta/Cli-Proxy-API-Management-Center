@@ -13,6 +13,7 @@ import type {
   KimiQuotaState,
   OpenCodeGoQuotaState,
   MetaQuotaState,
+  PluginQuotaState,
   XaiQuotaState,
   ZaiQuotaState,
 } from '@/types';
@@ -30,6 +31,7 @@ interface QuotaStoreState {
   kiroQuota: Record<string, KiroQuotaState>;
   opencodeGoQuota: Record<string, OpenCodeGoQuotaState>;
   metaQuota: Record<string, MetaQuotaState>;
+  pluginQuota: Record<string, PluginQuotaState>;
   xaiQuota: Record<string, XaiQuotaState>;
   zaiQuota: Record<string, ZaiQuotaState>;
   setAntigravityQuota: (updater: QuotaUpdater<Record<string, AntigravityQuotaState>>) => void;
@@ -40,6 +42,7 @@ interface QuotaStoreState {
   setKiroQuota: (updater: QuotaUpdater<Record<string, KiroQuotaState>>) => void;
   setOpenCodeGoQuota: (updater: QuotaUpdater<Record<string, OpenCodeGoQuotaState>>) => void;
   setMetaQuota: (updater: QuotaUpdater<Record<string, MetaQuotaState>>) => void;
+  setPluginQuota: (updater: QuotaUpdater<Record<string, PluginQuotaState>>) => void;
   setXaiQuota: (updater: QuotaUpdater<Record<string, XaiQuotaState>>) => void;
   setZaiQuota: (updater: QuotaUpdater<Record<string, ZaiQuotaState>>) => void;
   clearQuotaCache: (names?: string[]) => void;
@@ -63,6 +66,7 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
   kiroQuota: {},
   opencodeGoQuota: {},
   metaQuota: {},
+  pluginQuota: {},
   xaiQuota: {},
   zaiQuota: {},
   setAntigravityQuota: (updater) =>
@@ -70,9 +74,35 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
       antigravityQuota: resolveUpdater(updater, state.antigravityQuota),
     })),
   setClaudeQuota: (updater) =>
-    set((state) => ({
-      claudeQuota: resolveUpdater(updater, state.claudeQuota),
-    })),
+    set((state) => {
+      const next = resolveUpdater(updater, state.claudeQuota);
+      let retained = next;
+      for (const [key, quota] of Object.entries(next)) {
+        const previous = state.claudeQuota[key];
+        if (
+          previous &&
+          quota !== previous &&
+          (quota.status === 'loading' || quota.status === 'error') &&
+          !quota.observedAt &&
+          (previous.observedAt ||
+            previous.windows.length ||
+            previous.extraUsage ||
+            previous.dollarWindows?.length)
+        ) {
+          if (retained === next) retained = { ...next };
+          retained[key] = {
+            ...quota,
+            windows: previous.windows,
+            extraUsage: previous.extraUsage,
+            dollarWindows: previous.dollarWindows,
+            observedAt: previous.observedAt,
+            planType: previous.planType,
+            stale: quota.status === 'error' || previous.stale,
+          };
+        }
+      }
+      return { claudeQuota: retained };
+    }),
   setCodexQuota: (updater) =>
     set((state) => ({
       codexQuota: resolveUpdater(updater, state.codexQuota),
@@ -93,6 +123,10 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
     })),
   setMetaQuota: (updater) =>
     set((state) => ({ metaQuota: resolveUpdater(updater, state.metaQuota) })),
+  setPluginQuota: (updater) =>
+    set((state) => ({
+      pluginQuota: resolveUpdater(updater, state.pluginQuota),
+    })),
   setXaiQuota: (updater) =>
     set((state) => ({
       xaiQuota: resolveUpdater(updater, state.xaiQuota),
@@ -129,6 +163,7 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
           kiroQuota: omitNames(state.kiroQuota),
           metaQuota: omitNames(state.metaQuota),
           opencodeGoQuota: omitNames(state.opencodeGoQuota),
+          pluginQuota: omitNames(state.pluginQuota),
           xaiQuota: omitNames(state.xaiQuota),
           zaiQuota: omitNames(state.zaiQuota),
         };
@@ -144,6 +179,7 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
         kiroQuota: {},
         metaQuota: {},
         opencodeGoQuota: {},
+        pluginQuota: {},
         xaiQuota: {},
         zaiQuota: {},
       };

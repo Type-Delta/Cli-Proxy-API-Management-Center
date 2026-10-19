@@ -6,12 +6,13 @@
  * - loading: dual ghost-row skeleton (aria-busy, with a visually hidden text equivalent);
  * - error: failure strip, and the footer refresh retries;
  * - success: the provider Body (wearing the QuotaBody.module.scss page skin).
+ * Claude observations remain visible while refreshing or after a failed read.
  */
 
 import { useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconRefreshCw } from '@/components/ui/icons';
-import type { ResolvedTheme } from '@/types';
+import type { ClaudeQuotaState, ResolvedTheme } from '@/types';
 import { resolveQuotaErrorMessage } from '@/utils/quota';
 import { getQuotaDisplayName } from '@/utils/quota/identity';
 import {
@@ -25,6 +26,8 @@ import { QUOTA_ADAPTERS, type QuotaCardState } from '../providers';
 import { isQuotaRefreshDisabled, type QuotaFileEntry } from '../logic';
 import { quotaReserveHitsById } from '../quotaReserve';
 import { useClaudeResetGrants } from '../providers/claude/ClaudeResetGrants';
+import { ClaudeResetGrantDetails } from '../providers/claude/ClaudeResetGrantDetails';
+import { hasClaudeUsageData } from '../providers/claude/data';
 import bodyStyles from './QuotaBody.module.scss';
 import styles from './QuotaCard.module.scss';
 
@@ -37,7 +40,7 @@ export type QuotaCardProps = {
   resolvedTheme: ResolvedTheme;
   canRefresh: boolean;
   resetting: boolean;
-  /** 首屏级联入场延迟；null = 不入场（切 tab / 翻页 / 刷新新挂载的卡片）。 */
+  /** Initial cascade delay; null disables entrance motion for later mounts. */
   entranceDelayMs?: number | null;
   onRefresh: () => void;
   onReset: () => void;
@@ -57,6 +60,8 @@ export function QuotaCard(props: QuotaCardProps) {
   const { t } = useTranslation();
   const adapter = QUOTA_ADAPTERS[entry.type];
   const file = entry.file;
+  const retainedClaudeUsage =
+    entry.type === 'claude' && hasClaudeUsageData(quota as ClaudeQuotaState | undefined);
   const displayName = getQuotaDisplayName(file);
 
   // Capture the delay once at mount: a later null prop must not re-trigger this row.
@@ -76,8 +81,14 @@ export function QuotaCard(props: QuotaCardProps) {
     quota,
     onRefresh
   );
-  const iconSrc = getAuthFileIcon(entry.type, resolvedTheme);
-  const typeLabel = getTypeLabel(t, entry.type);
+  const providerType =
+    entry.type === 'plugin'
+      ? String(
+          file.quotaProvider ?? file['quota_provider'] ?? file.provider ?? file.type ?? 'plugin'
+        )
+      : entry.type;
+  const iconSrc = getAuthFileIcon(providerType, resolvedTheme);
+  const typeLabel = getTypeLabel(t, providerType);
   const errorMessage = resolveQuotaErrorMessage(
     t,
     quota?.errorStatus,
@@ -97,6 +108,7 @@ export function QuotaCard(props: QuotaCardProps) {
             <span className={quotaClasses.planMetaValue}>{claudeReset.count ?? '--'}</span>
           </span>
         </div>
+        <ClaudeResetGrantDetails grants={claudeReset.grants} classes={quotaClasses} />
         {claudeReset.message && (
           <div role="status" className={quotaClasses.codexResetCreditsError}>
             {t(`claude_reset.${claudeReset.message}`)}
@@ -104,6 +116,16 @@ export function QuotaCard(props: QuotaCardProps) {
         )}
       </>
     ) : undefined;
+  const quotaBody = quota ? (
+    <adapter.Body
+      quota={quota}
+      classes={quotaClasses}
+      credential={{ displayName }}
+      leadingMeta={claudeResetMeta}
+      quotaReserves={file.quotaReserves}
+      quotaReserveHits={quotaReserveHitsById(file.quotaReserveState)}
+    />
+  ) : null;
 
   return (
     <article
@@ -115,7 +137,7 @@ export function QuotaCard(props: QuotaCardProps) {
           className={styles.iconWrap}
           title={typeLabel}
           style={
-            isThemeSurfaceIconProvider(entry.type)
+            isThemeSurfaceIconProvider(providerType)
               ? { background: getThemeSurfaceIconBackground(resolvedTheme) }
               : undefined
           }
@@ -142,7 +164,7 @@ export function QuotaCard(props: QuotaCardProps) {
             <IconRefreshCw size={15} aria-hidden="true" className={styles.idleGlyph} />
             <span className={styles.idleHint}>{t(`${adapter.i18nPrefix}.idle`)}</span>
           </button>
-        ) : loading ? (
+        ) : loading && !retainedClaudeUsage ? (
           <div className={styles.skeleton} aria-busy="true">
             <span className={styles.srOnly}>{t(`${adapter.i18nPrefix}.loading`)}</span>
             {[0, 1].map((row) => (
@@ -156,18 +178,17 @@ export function QuotaCard(props: QuotaCardProps) {
           <div className={styles.errorStrip} role="alert">
             {t(`${adapter.i18nPrefix}.load_failed`, { message: errorMessage })}
           </div>
-        ) : quota ? (
-          <adapter.Body
-            quota={quota}
-            classes={quotaClasses}
-            credential={{ displayName }}
-            leadingMeta={claudeResetMeta}
-            quotaReserves={file.quotaReserves}
-            quotaReserveHits={quotaReserveHitsById(file.quotaReserveState)}
-          />
-        ) : (
+        ) : quota && !retainedClaudeUsage ? (
+          quotaBody
+        ) : !retainedClaudeUsage ? (
           <div className={styles.idleHint}>{t(`${adapter.i18nPrefix}.idle`)}</div>
+        ) : null}
+        {loading && retainedClaudeUsage && (
+          <div role="status" aria-busy="true" className={quotaClasses.quotaMessage}>
+            {t(`${adapter.i18nPrefix}.loading`)}
+          </div>
         )}
+        {retainedClaudeUsage && quotaBody}
       </div>
 
       {status !== 'idle' && (

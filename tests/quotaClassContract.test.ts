@@ -24,6 +24,24 @@ const readHost = (path: string) => Bun.file(new URL(`../${path}`, import.meta.ur
 
 describe('quota class contract', () => {
   for (const [host, path] of Object.entries(HOSTS)) {
+    test(`${host} gives standalone amounts the same size as quota metadata`, async () => {
+      const css = await readHost(path);
+      const amount = css.match(/^\.quotaAmount\s*\{([^}]+)\}/m)?.[1] ?? '';
+      // The page skin sizes row telemetry through one `.quotaRow …` group rule, so use it when
+      // `.quotaMeta` itself carries no font size.
+      const meta =
+        [
+          css.match(/\.quotaMeta\s*\{([^}]+)\}/)?.[1] ?? '',
+          css.match(/\.quotaRow \.quotaAmount\s*\{([^}]+)\}/)?.[1] ?? '',
+        ].find((rule) => /font-size:/.test(rule)) ?? '';
+      const size = amount.match(/font-size:\s*([^;]+);/)?.[1];
+      expect(size).toBeDefined();
+      expect(size).toBe(meta.match(/font-size:\s*([^;]+);/)?.[1]);
+      expect(amount).toContain('font-family: $font-mono;');
+      expect(amount).toContain('font-weight: 500;');
+      expect(amount).toContain('font-variant-numeric: tabular-nums;');
+    });
+
     test(`${host} defines every QuotaClassMap key`, async () => {
       const css = await readHost(path);
       const missing = QUOTA_CLASS_KEYS.filter(
