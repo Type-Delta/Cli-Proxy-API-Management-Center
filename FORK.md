@@ -14,16 +14,17 @@ Last updated: 2026-10-16
 
 The fork uses append-only merge history. Routine upstream syncs merge official history into `main`; they do not rebase or force-push published commits.
 
-## Current divergence
+## Divergence Log
 
-The in-progress 2026-10-07 sync preserves the divergence entries below while incorporating
-upstream through `6abace9` (`v1.25.4`). The fork's provider logos, analytics workspace,
-structured key handling, and YAML-preserving configuration updates remain active alongside
-upstream's provider, quota, OAuth, localization, and configuration fixes. The CPAMC contract
-continues to use `/v8/management` and the v8 YAML tree: fork routes `/capabilities`,
-`/analytics/*`, revisioned `/api-keys`, and `/api-key-limits` are relative to that base, while
-the public analytics viewer remains `/v0/analytics/viewer`. No browser verification is recorded
-here; the parent CPA integration and live browser pass remain root-owned.
+This is a current-state record only. Entries describe surviving differences from official CPAMC.
+Do not record merge or sync details, branch history, current commit pins, or other volatile
+integration references here; keep those in **Merge History** or the relevant build metadata.
+
+Update this section only when a new fork feature or behavior is introduced, or when an existing
+divergence changes. Keep IDs stable and unique: gaps and out-of-order IDs are intentional when
+entries are removed. If duplicate IDs are found, remove the duplicate when the content is the same;
+when the content is different, assign the distinct entry the next unused ID. Remove or rewrite an
+entry when upstream absorbs its difference rather than preserving chronology.
 
 ### DL001: Fork maintenance convention
 
@@ -240,81 +241,6 @@ The four CPAMC locale files were re-synced for the round: the four `analytics.ra
 
 **Last updated:** 2026-09-04
 
-## Upstream comparison
-
-The in-progress 2026-10-07 sync starts at `d6b64f8c85b2a3c42d728dfc0a0f271234a27384`
-with 53 fork commits and 103 incoming upstream commits. It merges `6abace9` (`v1.25.4`)
-without rewriting existing history. The resolved worktree remains in the merge state with
-`MERGE_HEAD=6abace9`; no merge commit is created by this handoff.
-
-The preceding 2026-09-09 sync started at `ef9606a` with 34 fork commits and 23 incoming
-upstream commits and merged `ed5f1c4`.
-
-Before the initial sync, from `d249ff008e0bc2803deb23fb3e2c62418a1e8d17`:
-
-```bash
-git rev-list --left-right --count origin/main...upstream/main
-```
-
-Result: `0 2`. The fork had no unique commits and was two upstream commits behind.
-
-After the 2026-09-09 merge commit and before adding fork documentation:
-
-```bash
-git rev-list --left-right --count main...upstream/main
-```
-
-Result: `1 0`. The merge-forward record was one commit ahead and no commits behind.
-
-## Append-only merge history
-
-| Date | Fork before sync | Upstream merged | Merge commit | Before count | After count | Validation |
-| --- | --- | --- | --- | --- | --- | --- |
-| 2026-08-31 | `d249ff008e0bc2803deb23fb3e2c62418a1e8d17` | `e0ee7123dfb5aa89a14ff73ac5a5c3bf4db658e0` | `c1a2044` | `0 2` | `1 0` | Bun 1.3.14: 424 tests, lint, type-check/build passed |
-| 2026-10-07 | `d6b64f8c85b2a3c42d728dfc0a0f271234a27384` | `6abace9ffb83a9ac349464ded04bb4e7f7cb309e` (`v1.25.4`) | pending (`MERGE_HEAD=6abace9`) | `53 103` | pending; expected `53 0` after merge commit | `bun run verify`: 1,824 tests, lint, type-check/build passed; browser check pending |
-
-### 2026-09-09 - Merge upstream `main` at `ed5f1c4`
-
-Merged 23 upstream commits into `ef9606a` with a single merge commit. Conflict resolutions
-combine the fork's `ProviderLogo` and analytics configuration handling with upstream's provider
-quick-fill filtering, Kimi styles, segmented toolbar styles, and Antigravity sensitive-word
-parsing. Repository guidance retains the fork sync rules and upstream testing guidance.
-
-Validation: `bun run verify` passes 708 tests, lint, TypeScript, and the production build.
-Isolated Chrome CDP checks against the existing server on port 18527 cover provider and config
-pages, OAuth editors, and analytics on desktop and mobile, with no reported browser errors or
-horizontal overflow. Event fixtures confirm raw payload rendering and the routing-inclusive
-total. These browser checks use the existing development backend; merged CPA behavior is
-validated separately with the Go test suite and build. Independent review found no additional frontend issues.
-
-### 2026-10-07 - Merge upstream `main` at `6abace9`
-
-The resolved merge combines 103 upstream commits with the fork's 53 commits. Upstream fixes
-take precedence where behavior overlaps; fork-only analytics, structured API-key, provider
-workbench, quota, and YAML-preserving configuration behavior remains. The CPAMC request layer
-continues to resolve all management routes below `/v8/management`, including the fork-owned
-capabilities, analytics, revisioned API-key, and API-key-limit surfaces. The public viewer stays
-on `/v0/analytics/viewer`.
-
-The merge is recorded in `eee096218c48dcc95bc80207e21645f927da8273`; the `base` tag and CPA
-gitlink now point to this commit. The upstream legacy backend probe and its compatibility error
-path were removed so application code cannot probe the deprecated `/v0/management` surface.
-
-Validation: `bun run verify` passes 1,820 tests, ESLint, TypeScript, and the Vite single-file
-production build. Parent CPA v8 route registration and the bundled panel were checked with an
-isolated Chrome CDP login; the panel issued only `/v8/management/...` requests.
-
-## Sync procedure
-
-1. Fetch `origin` and `upstream`.
-2. Record `git rev-list --left-right --count origin/main...upstream/main`.
-3. Review the incoming range and merge the agreed upstream commit with `git merge --no-ff <sha>`.
-4. Run the exact Bun version from `package.json`, install with the frozen lockfile, and run `bun run verify`.
-5. Update the upstream base, comparison counts, validation evidence, divergence entries, and merge-history table in this file.
-6. Push `main` without rewriting published history.
-7. Update CPA's `web/management-center` gitlink only after this commit is pushed.
-
-
 ### DL013: Stable overview hover and Sunday-first activity cells
 
 Overview sparklines keep explicit CSS-variable colors during ECharts emphasis, preventing hover from clearing the SVG line and area. Their cursor stays default because they have no click action. KPI sparkline options request body-level placement, while `AnalyticsChart` adapts that request into a per-chart fixed portal clipped to the viewport. When a port does not supply a custom position, the adapter places the panel 20px above and right of the pointer, translates the viewport-clamped point back to chart-local coordinates for ECharts, and preserves custom positions. This keeps the panel outside the card's rounded `overflow: hidden` boundary without letting a hidden stale tooltip coordinate create page overflow after a resize.
@@ -324,8 +250,6 @@ The activity calendars use a CSS grid with Sunday in the first row. Grid cells a
 Validation: `bun run verify` passes all 626 tests, lint, TypeScript compilation, and the production build. Chrome CDP checks against the running dev server and its mock data at 1440 × 900 and 390 × 844 confirm KPI tooltip panels are visible at desktop and mobile probe points, preserve the existing ECharts motion and placement, and do not add page overflow. The resize regression check records the prior 1,219px scroll width after a desktop hover and 382px after the fix at a 390px viewport. The same checks confirm visible sparklines on hover, default computed cursors, all rendered cells at 12 × 12px, Sunday-first placement, fixed weekday labels beside the responsive date window, and visible hover tooltips and cell outlines on both calendars. Pointer probes in horizontal and vertical gutters reproduce missing tooltips before the hitbox fix and pass afterward. The calendar test covers unsorted dates, missing days, and year boundaries.
 
 ### DL014: Free KPI tooltip positioning
-
-Status: working tree
 
 The KPI option removes `confine: true`, which had constrained a 64px tooltip to the 32px sparkline canvas and placed it over the graph. The adapter supplies a typed default position callback only for portaled tooltips without a custom position. It uses the document client width and height so scrollbar space is excluded from the viewport bounds. It clamps the desired viewport coordinates, then converts them through the chart host rectangle back to the coordinates ECharts expects before it translates them into the fixed portal. The portal's `overflow: clip` remains in place for stale coordinates after resize. Heatmap options and behavior are unchanged.
 
@@ -414,9 +338,11 @@ Quick Stats sparklines run 15% faster: initial duration 870ms and update duratio
 
 DL023 validation: `bun run verify` passes 646 tests, lint, TypeScript, and production build; Go compile and both diff checks pass. Live CDP checks confirm the Model Cost Efficiency 10-row limit, case-insensitive search, numeric sorting, mobile layout, and staggered Quick Stats frames. After the dev backend temporarily rate-limited fresh logins, isolated browser read fixtures verified all five management tables with 51 rows: 50 on page 1 and 1 on page 2, with mobile Action columns pinned within 0.5px of the scroll edge. Synchronous page clamps and a regression test prevent stale rows/ranges after a collection shrinks. Fresh independent review passes.
 
-### DL023: Shared upstream surfaces touched by the analytics UX pass
+### DL057: Shared surfaces used by the analytics UX pass
 
-The DL013–DL022 work makes small additive changes to files that upstream CPAMC also owns; the next upstream sync should expect conflicts there and preserve the fork side:
+The DL013–DL022 work makes small additive changes to shared CPAMC components. These components
+remain compatible with their existing callers while exposing the optional behavior required by the
+fork's analytics workspace:
 
 - `src/components/ui/Button.tsx` — optional `icon` prop rendered before the label (hidden while loading).
 - `src/components/ui/Card.tsx` — optional `ref` forwarded to the root `div` (React 19 ref-as-prop) so scroll reveals need no wrapper.
@@ -539,7 +465,7 @@ their prefixes. Validation: `bun run verify` passed 654 tests, lint, TypeScript,
 build. Chrome CDP verified mouse, keyboard and mobile touch toggles, filtered tooltip totals, hiding
 the last category, all-off/re-enable behavior, and selection retention across dimension tabs.
 
-### DL030: Remote development access
+### DL058: Remote development access
 
 Vite listens on all network interfaces and accepts all host names so the existing mock-data
 workspace can be opened through a remote IP address or a custom development hostname.
@@ -1079,33 +1005,7 @@ shows `Unblock in <countdown>` right-aligned on the reset line. Its tooltip hold
 and countdown. Gated windows wait for their last reset; independent buckets free the credential at
 the first one.
 
-### DL051: Upstream v1.25.4 sync with v8 contract preservation
-
-Status: integrated in merge commit `ed24daa0e210e3d4ce49f64cae8120457bc73c32`
-
-Files: `src/**`, `tests/**`, `AGENTS.md`, `README*.md`, `package.json`, `bun.lock`
-
-The merge keeps upstream fixes when they overlap, including the removal of retired quick-access
-provider brands and the upstream Vietnamese locale update. Fork-only CPAMC behavior remains
-available: analytics uses the CPAUK data model, API-key rows retain structured labels and limits
-with revision-aware mutations, and the configuration adapter round-trips `access.api-keys`,
-`analytics.*`, and `upstream.claude.header-defaults.oauth-safeguard` without flattening unknown
-v8 YAML. Analytics storage values retain the complete signed 64-bit range through serialization
-and validation. The shared Select keeps a stable accessible name, and the API-key editor remains
-safe in static previews while clearing revealed rows on router navigation or connection changes.
-
-The frontend targets only the versioned v8 management contract and does not expand deprecated
-`/v0/management` routes; the upstream legacy backend probe and its compatibility error path were
-removed so application code cannot silently probe that deprecated surface. The parent CPA snapshot now registers the matching v8 capabilities,
-analytics, API-key, and API-key-limit routes; root owns its backend and browser verification.
-
-Validation for this merge worktree:
-
-- `bun run verify`
-- Result: 1,824 tests passed, ESLint passed, TypeScript compilation passed, and the Vite
-  single-file production build passed.
-
-### DL052: Dense short-range analytics buckets
+### DL059: Dense short-range analytics buckets
 
 Analytics requests for the rolling one-hour and six-hour presets now use 15-minute and 30-minute
 buckets respectively. The range URL state and displayed range labels remain unchanged, while the
@@ -1199,3 +1099,48 @@ concurrent reads, neighboring minutes, offset equivalence, zone and filter isola
 bounds, and unchanged sub-minute requests and response metadata. TypeScript compilation, lint, and
 the single-file production build pass. `bun run verify` reaches 1,933 passing tests and the same
 pre-existing `legacy backend login diagnostic` failure.
+
+## Merge History
+
+This is an append-only historical decision record. It provides context for integrations but never, by itself, establishes an ongoing fork divergence; use the current Divergence Log for that determination.
+
+### 2026-09-09 - Merge upstream `main` at `ed5f1c4`
+
+Merged 23 upstream commits into `ef9606a` with a single merge commit. Conflict resolutions
+combine the fork's `ProviderLogo` and analytics configuration handling with upstream's provider
+quick-fill filtering, Kimi styles, segmented toolbar styles, and Antigravity sensitive-word
+parsing. Repository guidance retains the fork sync rules and upstream testing guidance.
+
+Validation: `bun run verify` passes 708 tests, lint, TypeScript, and the production build.
+Isolated Chrome CDP checks against the existing server on port 18527 cover provider and config
+pages, OAuth editors, and analytics on desktop and mobile, with no reported browser errors or
+horizontal overflow. Event fixtures confirm raw payload rendering and the routing-inclusive
+total. These browser checks use the existing development backend; merged CPA behavior is
+validated separately with the Go test suite and build. Independent review found no additional frontend issues.
+
+### 2026-10-07 - Merge upstream `main` at `6abace9`
+
+The resolved merge combines 103 upstream commits with the fork's 53 commits. Upstream fixes
+take precedence where behavior overlaps; fork-only analytics, structured API-key, provider
+workbench, quota, and YAML-preserving configuration behavior remains. The CPAMC request layer
+continues to resolve all management routes below `/v8/management`, including the fork-owned
+capabilities, analytics, revisioned API-key, and API-key-limit surfaces. The public viewer stays
+on `/v0/analytics/viewer`.
+
+The merge is recorded in `e795e5554e6559c7501733b1c06b02f979c8f53f`; the `base` tag points to
+that merge. Later fork commits update the CPAMC branch and CPA gitlink. The upstream legacy backend probe and its compatibility error
+path were removed so application code cannot probe the deprecated `/v0/management` surface.
+
+Validation: `bun run verify` passes 1,820 tests, ESLint, TypeScript, and the Vite single-file
+production build. Parent CPA v8 route registration and the bundled panel were checked with an
+isolated Chrome CDP login; the panel issued only `/v8/management/...` requests.
+
+## Sync procedure
+
+1. Fetch `origin` and `upstream`.
+2. Record `git rev-list --left-right --count origin/main...upstream/main`.
+3. Review the incoming range and merge the agreed upstream commit with `git merge --no-ff <sha>`.
+4. Run the exact Bun version from `package.json`, install with the frozen lockfile, and run `bun run verify`.
+5. Update the upstream base, comparison counts, validation evidence, divergence entries, and merge-history table in this file.
+6. Push `main` without rewriting published history.
+7. Update CPA's `web/management-center` gitlink only after this commit is pushed.
