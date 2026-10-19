@@ -9,6 +9,7 @@ import type { AuthState, LoginCredentials, ConnectionStatus } from '@/types';
 import { STORAGE_KEY_AUTH } from '@/utils/constants';
 import { obfuscatedStorage } from '@/services/storage/secureStorage';
 import { apiClient } from '@/services/api/client';
+import { LegacyBackendError, probeLegacyBackend } from '@/services/api/legacyBackendProbe';
 import { useConfigStore } from './useConfigStore';
 import { useModelsStore } from './useModelsStore';
 import { useQuotaStore } from './useQuotaStore';
@@ -112,8 +113,21 @@ export const useAuthStore = create<AuthStoreState>()(
             managementKey,
           });
 
-          // Test the v8 management connection.
-          await useConfigStore.getState().fetchConfig(true);
+          // Test the v8 management connection; diagnose an old backend only when v8 routes are missing.
+          const revision = apiClient.getConnectionRevision();
+          try {
+            await useConfigStore.getState().fetchConfig(true);
+          } catch (error) {
+            if (
+              (error as { status?: number })?.status === 404 &&
+              revision === apiClient.getConnectionRevision() &&
+              (await probeLegacyBackend(apiBase, managementKey)) &&
+              revision === apiClient.getConnectionRevision()
+            ) {
+              throw new LegacyBackendError();
+            }
+            throw error;
+          }
 
           // 登录成功
           set({

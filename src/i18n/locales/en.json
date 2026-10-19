@@ -88,7 +88,8 @@
     "error_not_found": "v8 Management API not found. Check the server address and upgrade CLIProxyAPI to v8 or later; v0 is not supported.",
     "error_server": "Backend failed while handling the management request, check the server logs",
     "error_cors": "Cross-origin request blocked, please check server configuration",
-    "error_ssl": "SSL/TLS certificate verification failed"
+    "error_ssl": "SSL/TLS certificate verification failed",
+    "error_legacy_backend": "This backend accepts v0 Management API but does not provide v8. Upgrade CLIProxyAPI to v8 or later to use this management page."
   },
   "header": {
     "refresh_all": "Refresh All",

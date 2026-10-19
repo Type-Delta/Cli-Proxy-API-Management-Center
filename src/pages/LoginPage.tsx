@@ -12,6 +12,7 @@ import { LANGUAGE_LABEL_KEYS, LANGUAGE_ORDER } from '@/utils/constants';
 import { isSupportedLanguage } from '@/utils/language';
 import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
 import type { ApiError } from '@/types';
+import { LegacyBackendError } from '@/services/api/legacyBackendProbe';
 import styles from './LoginPage.module.scss';
 
 /**
@@ -30,6 +31,7 @@ export function loginRedirectFromState(state: unknown) {
 }
 
 function getLocalizedErrorMessage(error: unknown, t: (key: string) => string): string {
+  if (error instanceof LegacyBackendError) return t('login.error_legacy_backend');
   const apiError = error as Partial<ApiError>;
   const status = typeof apiError.status === 'number' ? apiError.status : undefined;
   const code = typeof apiError.code === 'string' ? apiError.code : undefined;
