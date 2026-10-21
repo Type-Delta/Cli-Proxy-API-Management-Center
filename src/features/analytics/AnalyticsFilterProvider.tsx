@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { analyticsApi } from '@/services/api';
 import type { AnalyticsKey, AnalyticsRange as AnalyticsResolvedRange } from '@/types';
 import { AnalyticsFilterContext } from './AnalyticsFilterContext';
+import { readAnalyticsFilterSearch, writeAnalyticsFilterSearch } from './analyticsFilterStorage';
 import {
   analyticsRangeKey,
   parseAnalyticsUrlState,
@@ -29,7 +30,33 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const enabled = location.pathname === '/analytics' || location.pathname.startsWith('/analytics/');
-  const urlState = useMemo(() => parseAnalyticsUrlState(location.search), [location.search]);
+  const rememberedSearch = useMemo(
+    () => (enabled && !location.search ? readAnalyticsFilterSearch() : ''),
+    [enabled, location.search]
+  );
+  const effectiveSearch = location.search || rememberedSearch;
+  const urlState = useMemo(() => parseAnalyticsUrlState(effectiveSearch), [effectiveSearch]);
+  useEffect(() => {
+    if (!enabled) return;
+    if (!location.search) {
+      if (rememberedSearch) {
+        navigate(
+          { pathname: location.pathname, search: rememberedSearch, hash: location.hash },
+          { replace: true }
+        );
+      }
+      return;
+    }
+    writeAnalyticsFilterSearch(serializeAnalyticsUrlState(urlState));
+  }, [
+    enabled,
+    location.hash,
+    location.pathname,
+    location.search,
+    navigate,
+    rememberedSearch,
+    urlState,
+  ]);
   const rangeKey = analyticsRangeKey(urlState.range);
   const [reportedRange, setReportedRange] = useState<{
     key: string;
@@ -92,7 +119,7 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
 
   const updateUrl = useCallback(
     (patch: Partial<AnalyticsUrlState>) => {
-      const next = { ...parseAnalyticsUrlState(location.search), ...patch };
+      const next = { ...parseAnalyticsUrlState(effectiveSearch), ...patch };
       navigate(
         {
           pathname: location.pathname,
@@ -102,7 +129,7 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
         { replace: true }
       );
     },
-    [location.hash, location.pathname, location.search, navigate]
+    [effectiveSearch, location.hash, location.pathname, navigate]
   );
   const setRange = useCallback((range: AnalyticsRange) => updateUrl({ range }), [updateUrl]);
   const setSelectedKeyIds = useCallback(

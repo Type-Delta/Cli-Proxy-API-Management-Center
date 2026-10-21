@@ -1137,6 +1137,16 @@ interpolation tokens instead of falling back to Simplified Chinese.
 
 Validation on 2026-10-19: the Korean locale test passes; key sets and `{{…}}` tokens match English.
 
+### DL062: Analytics filter restoration
+
+Status: shipped
+
+Files: `src/features/analytics/AnalyticsFilterProvider.tsx`, `src/features/analytics/analyticsFilterStorage.ts`, `tests/analyticsFilterStorage.test.ts`
+
+CPAMC remembers the last serialized Analytics filter query in browser local storage. Returning to an `/analytics/*` route without query parameters restores that query and updates the URL. Explicit query parameters remain authoritative, so shared links and deliberate filter changes are preserved.
+
+Validation on 2026-10-21: focused analytics storage and contract tests pass; lint, TypeScript, and the single-file production build pass.
+
 ## Merge History
 
 This is an append-only historical decision record. It provides context for integrations but never, by itself, establishes an ongoing fork divergence; use the current Divergence Log for that determination.
