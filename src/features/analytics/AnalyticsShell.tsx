@@ -198,6 +198,8 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
                 sort={filters.sort}
                 setSort={filters.setSort}
                 showSort={kind === 'keys'}
+                // The Keys catalog always ranks every key, so a key selection would do nothing there.
+                keysDisabled={kind === 'keys'}
               />
             )}
             <div className={styles.contentHost} data-analytics-content-host>

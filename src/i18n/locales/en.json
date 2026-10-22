@@ -1089,6 +1089,7 @@
       "unpriced": "Tokens without a matching price rule.",
       "share": "Share of the selected leaderboard total.",
       "top_model": "Model with the most tokens for this key; the smaller line is its token count.",
+      "top_cost_model": "Model with the highest known cost for this key; the smaller line is its cost.",
       "generation_time": "Accumulated observed generation time, when available.",
       "requests": "Proxy requests recorded in the selected range.",
       "indexes": "Configuration indexes linked to this key.",

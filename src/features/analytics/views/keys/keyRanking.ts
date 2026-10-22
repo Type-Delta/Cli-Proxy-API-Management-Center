@@ -24,7 +24,7 @@ export type KeyColumnSort =
 
 export type KeySortDirection = 'asc' | 'desc';
 
-export type KeyRankingRow = Omit<AnalyticsKey, 'top_model_tokens'> & {
+export type KeyRankingRow = Omit<AnalyticsKey, 'top_model_tokens' | 'top_cost_model_usd'> & {
   rank: number | null;
   proxy_requests: number;
   upstream_attempts: number;
@@ -33,6 +33,8 @@ export type KeyRankingRow = Omit<AnalyticsKey, 'top_model_tokens'> & {
   requests: number;
   top_model: string | null;
   top_model_tokens: number | null;
+  top_cost_model: string | null;
+  top_cost_model_usd: string | null;
   generation_time_ms: number | null;
   generation_sample_count: number;
 };
@@ -79,6 +81,19 @@ export function keyActivityDate(
   };
 }
 
+/** The key's top model under the selected "Rank by" metric, with that model's metric value. */
+export function keyTopModel(
+  row: Pick<
+    KeyRankingRow,
+    'top_model' | 'top_model_tokens' | 'top_cost_model' | 'top_cost_model_usd'
+  >,
+  rankBy: AnalyticsLeaderboardSort
+) {
+  return rankBy === 'cost'
+    ? { model: row.top_cost_model, value: row.top_cost_model_usd }
+    : { model: row.top_model, value: row.top_model_tokens };
+}
+
 export function joinKeyRanking(
   keys: readonly AnalyticsKey[],
   leaderboard: readonly LeaderboardRow[]
@@ -100,6 +115,8 @@ export function joinKeyRanking(
       requests: key?.requests ?? row.proxy_requests,
       top_model: key?.top_model ?? null,
       top_model_tokens: key?.top_model_tokens ?? null,
+      top_cost_model: key?.top_cost_model ?? null,
+      top_cost_model_usd: key?.top_cost_model_usd ?? null,
       generation_time_ms: key?.generation_time_ms ?? null,
       generation_sample_count: key?.generation_sample_count ?? 0,
       total_tokens: row.tokens.total,
@@ -124,6 +141,8 @@ export function joinKeyRanking(
       requests: key.requests ?? 0,
       top_model: key.top_model ?? null,
       top_model_tokens: key.top_model_tokens ?? null,
+      top_cost_model: key.top_cost_model ?? null,
+      top_cost_model_usd: key.top_cost_model_usd ?? null,
       generation_time_ms: key.generation_time_ms ?? null,
       generation_sample_count: key.generation_sample_count ?? 0,
     }));
@@ -133,7 +152,8 @@ export function joinKeyRanking(
 export function sortKeyRanking(
   rows: readonly KeyRankingRow[],
   sort: KeyColumnSort,
-  direction: KeySortDirection
+  direction: KeySortDirection,
+  rankBy: AnalyticsLeaderboardSort = 'tokens'
 ): KeyRankingRow[] {
   if (sort === 'server') return [...rows].sort((a, b) => a.server_order - b.server_order);
   const factor = direction === 'asc' ? 1 : -1;
@@ -162,10 +182,11 @@ export function sortKeyRanking(
           (right.config_indexes?.[0] ?? Number.MAX_SAFE_INTEGER)
         );
       case 'top_model':
-        return (left.top_model ?? '').localeCompare(right.top_model ?? '', undefined, {
-          numeric: true,
-          sensitivity: 'base',
-        });
+        return (keyTopModel(left, rankBy).model ?? '').localeCompare(
+          keyTopModel(right, rankBy).model ?? '',
+          undefined,
+          { numeric: true, sensitivity: 'base' }
+        );
       case 'generation_time':
         return numberValue(left.generation_time_ms) - numberValue(right.generation_time_ms);
       case 'requests':

@@ -1147,6 +1147,20 @@ CPAMC remembers the last serialized Analytics filter query in browser local stor
 
 Validation on 2026-10-21: focused analytics storage and contract tests pass; lint, TypeScript, and the single-file production build pass.
 
+### DL063: Keys catalog follows Rank by; stable Top Models colors
+
+Status: shipped
+
+Files: `src/features/analytics/views/KeysView.tsx`, `src/features/analytics/views/keys/keyRanking.ts`, `src/features/analytics/views/analysis/{analysisModel.ts,TimeSeriesCharts.tsx}`, `src/features/analytics/{AnalyticsKeyFilter.tsx,AnalyticsShell.tsx,components/AnalyticsShared.tsx}`, `tests/{analyticsKeysView,analyticsAnalysis,analyticsPalette}.test.ts`
+
+The Keys catalog's Top model column follows the selected Rank by metric. Ranked by tokens it shows the key's highest-token model and token count. Ranked by cost it shows the key's highest-known-cost model and that cost, read from CPA's additive `top_cost_model` / `top_cost_model_usd` key catalog fields. A backend without those fields shows Unknown in cost mode instead of the token leader. Sorting the column and its header help follow the same metric.
+
+Top Models assigns each model's hue from its token rank, whatever metric is selected, so switching between Tokens, Price, and Generation time reorders the ranking without repainting models. The hue ramp starts after the token-category colors and wraps through all ten categorical tokens, so every server-ranked model keeps a distinct hue even when the cost ranking surfaces a model outside the token top six.
+
+The API keys filter is disabled on the Keys tab and shows All API keys, because the catalog always ranks every key and ignored the selection. The selection persists for the other tabs.
+
+Validation on 2026-10-22: `bun run verify` passes 2,081 tests, lint, TypeScript, and the production build. An isolated Chrome CDP run against a fresh local CPA, a priced mock OpenAI-compatible upstream, and real proxied requests confirmed cost-mode `pricey-small $0.10` versus token-mode `cheap-bulk 150K tokens`, identical per-model swatch colors across all three Top Models modes, and a disabled `All API keys` filter on Keys only.
+
 ## Merge History
 
 This is an append-only historical decision record. It provides context for integrations but never, by itself, establishes an ongoing fork divergence; use the current Divergence Log for that determination.

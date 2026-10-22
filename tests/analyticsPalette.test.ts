@@ -159,7 +159,7 @@ describe('token category palette', () => {
 });
 
 describe('top model palette', () => {
-  // Analysis.module.scss maps --analysis-model-1..6 to --viz-cat-6,7,8,9,10,1 and the
+  // topModelColor maps the first six token ranks to --viz-cat-6,7,8,9,10,1 and the
   // "Other" band to --viz-cat-other.
   const MODEL_STACK = [
     '--viz-cat-6',

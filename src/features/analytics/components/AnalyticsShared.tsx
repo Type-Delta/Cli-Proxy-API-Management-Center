@@ -132,6 +132,7 @@ export function Filters({
   keysError,
   retryKeys,
   showKeys = true,
+  keysDisabled = false,
   sort,
   setSort,
   showSort = false,
@@ -146,6 +147,7 @@ export function Filters({
   keysError: string;
   retryKeys: () => void;
   showKeys?: boolean;
+  keysDisabled?: boolean;
   sort: AnalyticsLeaderboardSort;
   setSort: (sort: AnalyticsLeaderboardSort) => void;
   showSort?: boolean;
@@ -164,6 +166,7 @@ export function Filters({
               error={keysError}
               onChange={setSelected}
               onRetry={retryKeys}
+              disabled={keysDisabled}
             />
           )}
           {showSort && (

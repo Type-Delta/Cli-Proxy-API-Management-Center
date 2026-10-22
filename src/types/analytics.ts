@@ -239,6 +239,8 @@ export type AnalyticsKey = {
   requests?: number;
   top_model?: string | null;
   top_model_tokens?: number;
+  top_cost_model?: string | null;
+  top_cost_model_usd?: string;
   generation_time_ms?: number | null;
   generation_sample_count?: number;
 };

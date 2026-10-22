@@ -149,7 +149,10 @@ export function TopModelsChart({
   const [rankFocus, setRankFocus] = useState(0);
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const rankRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const ranked = useMemo(() => (section ? buildTopModelSeries(section, metric) : []), [metric, section]);
+  const ranked = useMemo(
+    () => (section ? buildTopModelSeries(section, metric) : []),
+    [metric, section]
+  );
   const buckets = useMemo(
     () => (section?.buckets ?? []).map((bucket) => bucket.start),
     [section?.buckets]
@@ -222,9 +225,9 @@ export function TopModelsChart({
                 defaultValue:
                   'Estimated API-equivalent cost over time, synchronized with the ranking.',
               })
-          : t('analytics.analysis.top_models_description', {
-              defaultValue: 'Model metric over time, synchronized with the ranking.',
-            })
+            : t('analytics.analysis.top_models_description', {
+                defaultValue: 'Model metric over time, synchronized with the ranking.',
+              })
       }
       loading={loading}
       error={error}
@@ -267,8 +270,7 @@ export function TopModelsChart({
           option={option}
           height={ANALYSIS_CHART_HEIGHT}
           ariaLabel={t('analytics.analysis.top_models_chart_summary', {
-            defaultValue:
-              '{{count}} models ranked by {{metric}} across {{buckets}} time buckets',
+            defaultValue: '{{count}} models ranked by {{metric}} across {{buckets}} time buckets',
             count: ranked.length,
             buckets: buckets.length,
             metric: metricLabels[metric],
@@ -320,7 +322,7 @@ export function TopModelsChart({
                   <span className={styles.rankNumber}>{index + 1}</span>
                   {/* Data-driven fill: the swatch has to read the same resolved hue as its band. */}
                   <i
-                    style={{ background: topModelColor(palette, index, model.other) }}
+                    style={{ background: topModelColor(palette, model.colorIndex, model.other) }}
                     aria-hidden="true"
                   />
                   <span className={styles.rankName} title={name}>

@@ -253,6 +253,8 @@ export type RankedModelSeries = {
   share: number | null;
   /** Bucket values for the selected metric. Generation gaps stay null. */
   values: Array<number | null>;
+  /** Hue slot from the model's token rank, so a model keeps its colour across metrics. */
+  colorIndex: number;
   /** Set on the aggregate band that stands for every model past the cap. */
   other?: boolean;
 };
@@ -340,6 +342,7 @@ const toRankedModel = (
   accumulator: ModelAccumulator,
   metric: TopModelMetric,
   metricTotal: number,
+  colorIndex: number,
   other = false
 ): RankedModelSeries => {
   const rawTotal = accumulatorMetricTotal(accumulator, metric);
@@ -352,6 +355,7 @@ const toRankedModel = (
     metricValue: accumulatorMetricValue(accumulator, metric),
     share: metricTotal > 0 ? (rawTotal / metricTotal) * 100 : null,
     values: accumulatorBucketValues(accumulator, metric),
+    colorIndex,
     ...(other ? { other: true } : {}),
   };
 };
@@ -394,23 +398,28 @@ export function buildTopModelSeries(
     (sum, accumulator) => sum + accumulatorMetricTotal(accumulator, metric),
     0
   );
-  const ordered = Array.from(accumulators.values()).sort(
-    (left, right) =>
-      (accumulatorMetricValue(right, metric) ?? -1) -
-        (accumulatorMetricValue(left, metric) ?? -1) || left.model.localeCompare(right.model)
+  const rank = (by: TopModelMetric) =>
+    Array.from(accumulators.values()).sort(
+      (left, right) =>
+        (accumulatorMetricValue(right, by) ?? -1) - (accumulatorMetricValue(left, by) ?? -1) ||
+        left.model.localeCompare(right.model)
+    );
+  // Hues follow the token ranking whatever the selected metric, so switching modes reorders the
+  // bands without repainting them.
+  const colorIndexes = new Map(
+    rank('tokens').map((accumulator, index) => [accumulator.model, index])
   );
-  if (ordered.length <= TOP_MODEL_LIMIT) {
-    return ordered.map((accumulator) => toRankedModel(accumulator, metric, metricTotal));
-  }
+  const ranked = (accumulator: ModelAccumulator) =>
+    toRankedModel(accumulator, metric, metricTotal, colorIndexes.get(accumulator.model) ?? 0);
+  const ordered = rank(metric);
+  if (ordered.length <= TOP_MODEL_LIMIT) return ordered.map(ranked);
 
-  // Fold the tail into one band so the chart never needs a seventh hue.
+  // Fold the tail into one band so the stack never shows more than six named models.
   const tail = ordered.slice(TOP_MODEL_LIMIT);
   const other = tail.reduce(mergeAccumulators);
   return [
-    ...ordered
-      .slice(0, TOP_MODEL_LIMIT)
-      .map((accumulator) => toRankedModel(accumulator, metric, metricTotal)),
-    toRankedModel(other, metric, metricTotal, true),
+    ...ordered.slice(0, TOP_MODEL_LIMIT).map(ranked),
+    toRankedModel(other, metric, metricTotal, 0, true),
   ];
 }
 
@@ -459,11 +468,7 @@ export function buildModelEfficiency(
       const whollyUnpriced = tokens > 0 && unpriced != null && unpricedCount >= tokens;
       const coverageUnknown = unpriced == null && !(tokens > 0 && cost >= 0);
       const pricingStatus: ModelEfficiencyRow['pricingStatus'] =
-        coverageUnknown || whollyUnpriced
-          ? 'unknown'
-          : unpricedCount > 0
-            ? 'partial'
-            : 'complete';
+        coverageUnknown || whollyUnpriced ? 'unknown' : unpricedCount > 0 ? 'partial' : 'complete';
       return {
         ...model,
         costPerMillion:
@@ -741,11 +746,17 @@ const categoryAxis = (values: string[], formatter: (value: string) => string, bo
   axisLabel: { interval: axisLabelInterval(values.length), formatter, hideOverlap: true },
 });
 
-/** Top Models continues the categorical sequence after the token-category hues. */
-export const topModelColor = (palette: AnalyticsPalette, index: number, other = false) =>
+/**
+ * Top Models starts after the token-category hues (--viz-cat-6..10, then --viz-cat-1) and wraps
+ * through the rest of the categorical ramp, so all ten server-ranked models get distinct hues.
+ */
+const TOP_MODEL_HUES = [5, 6, 7, 8, 9, 0, 1, 2, 3, 4];
+
+export const topModelColor = (palette: AnalyticsPalette, colorIndex: number, other = false) =>
   other
     ? palette.categoricalOther
-    : (palette.categorical[TOKEN_CATEGORY_KEYS.length + index] ?? palette.categorical[0]);
+    : (palette.categorical[TOP_MODEL_HUES[colorIndex % TOP_MODEL_HUES.length]] ??
+      palette.categorical[0]);
 
 export type TokenUsageOptionInput = {
   points: TokenSeriesPoint[];
@@ -920,7 +931,7 @@ export function topModelsOption({
     },
     xAxis: categoryAxis(buckets, formatBucket, palette.border),
     yAxis: { type: 'value', axisLabel: { formatter: formatValue }, splitNumber: 4 },
-    series: ranked.map((model, index) => ({
+    series: ranked.map((model) => ({
       name: model.other ? otherLabel : model.model,
       // Generation time is an average, so its bars stay grouped: stacking per-bucket averages
       // would produce a meaningless total.
@@ -928,7 +939,7 @@ export function topModelsOption({
         ? { type: 'bar' as const, barMaxWidth: 14 }
         : { type: 'bar' as const, stack: 'models', barMaxWidth: 34 }),
       itemStyle: {
-        color: topModelColor(palette, index, model.other),
+        color: topModelColor(palette, model.colorIndex, model.other),
         borderColor: palette.card,
         borderWidth: 1,
         opacity: !highlighted || highlighted === model.model ? 1 : 0.18,

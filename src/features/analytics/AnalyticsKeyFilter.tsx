@@ -14,6 +14,8 @@ type AnalyticsKeyFilterProps = {
   error: string;
   onChange: (ids: string[]) => void;
   onRetry: () => void;
+  /** Shown as "All keys" and locked on pages whose data ignores the key selection. */
+  disabled?: boolean;
 };
 
 export function AnalyticsKeyFilter({
@@ -23,6 +25,7 @@ export function AnalyticsKeyFilter({
   error,
   onChange,
   onRetry,
+  disabled = false,
 }: AnalyticsKeyFilterProps) {
   const { t } = useTranslation();
   const labelId = `${useId().replace(/:/g, '')}-label`;
@@ -44,8 +47,9 @@ export function AnalyticsKeyFilter({
       <span id={labelId}>{t('analytics.key_filter')}</span>
       <Select
         mode="multiple"
-        value={selected}
+        value={disabled ? [] : selected}
         options={options}
+        disabled={disabled}
         onChange={onChange}
         ariaLabelledBy={labelId}
         allOptionLabel={t('analytics.all_keys')}

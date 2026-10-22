@@ -33,6 +33,7 @@ import {
   analyticsRangeLabel,
   buildAnalyticsQuery,
   freezeAnalyticsCursorQuery,
+  type AnalyticsLeaderboardSort,
   type AnalyticsRange,
 } from '../query';
 import { useAnalyticsLoad } from '../useAnalyticsLoad';
@@ -40,6 +41,7 @@ import {
   joinKeyRanking,
   keyActivityDate,
   keyStatusForDisplay,
+  keyTopModel,
   shouldShowPricingDisclosure,
   sortKeyRanking,
   type KeyColumnSort,
@@ -236,25 +238,27 @@ function KeyStatus({
 
 function TopModelValue({
   row,
+  rankBy,
 }: {
-  row: { top_model: string | null; top_model_tokens: number | null };
+  row: Parameters<typeof keyTopModel>[0];
+  rankBy: AnalyticsLeaderboardSort;
 }) {
   const { t, i18n } = useTranslation();
-  const tokenValue =
-    row.top_model_tokens === null
-      ? null
-      : formatCompactTokens(row.top_model_tokens, i18n.resolvedLanguage);
+  const { model, value } = keyTopModel(row, rankBy);
+  const unknown = t('analytics.unknown_value', { defaultValue: 'Unknown' });
+  const detail =
+    !model || value === null
+      ? unknown
+      : rankBy === 'cost'
+        ? formatCostValue(value, i18n.resolvedLanguage).text
+        : t('analytics.model_token_count', {
+            defaultValue: '{{count}} tokens',
+            count: formatCompactTokens(Number(value), i18n.resolvedLanguage).text,
+          });
   return (
-    <span className={styles.topModelValue} title={row.top_model ?? undefined}>
-      <span>{row.top_model || t('analytics.unknown_value', { defaultValue: 'Unknown' })}</span>
-      <small>
-        {row.top_model && tokenValue
-          ? t('analytics.model_token_count', {
-              defaultValue: '{{count}} tokens',
-              count: tokenValue.text,
-            })
-          : t('analytics.unknown_value', { defaultValue: 'Unknown' })}
-      </small>
+    <span className={styles.topModelValue} title={model ?? undefined}>
+      <span>{model || unknown}</span>
+      <small>{detail}</small>
     </span>
   );
 }
@@ -291,8 +295,9 @@ export function KeysView({ keys, range }: { keys: AnalyticsKey[]; range: Analyti
   }, JSON.stringify(rankingRequest));
   const rankingFailure = analyticsErrorCopy(t, ranking.error);
   const rows = useMemo(
-    () => sortKeyRanking(joinKeyRanking(keys, ranking.data?.rows ?? []), columnSort, direction),
-    [columnSort, direction, keys, ranking.data?.rows]
+    () =>
+      sortKeyRanking(joinKeyRanking(keys, ranking.data?.rows ?? []), columnSort, direction, sort),
+    [columnSort, direction, keys, ranking.data?.rows, sort]
   );
   const activeColumnSort =
     columnSort === 'server' && (sort === 'tokens' || sort === 'cost') ? sort : columnSort;
@@ -390,7 +395,7 @@ export function KeysView({ keys, range }: { keys: AnalyticsKey[]; range: Analyti
                     <div>
                       <dt>{t('analytics.top_model', { defaultValue: 'Top model' })}</dt>
                       <dd>
-                        <TopModelValue row={row} />
+                        <TopModelValue row={row} rankBy={sort} />
                       </dd>
                     </div>
                     <div>
@@ -454,9 +459,13 @@ export function KeysView({ keys, range }: { keys: AnalyticsKey[]; range: Analyti
               <TableRow>
                 {SORTABLE_COLUMNS.map((column) => {
                   const label = t(column.labelKey, { defaultValue: column.defaultValue });
-                  const description = t(column.descriptionKey, {
-                    defaultValue: column.descriptionDefault,
-                  });
+                  const description =
+                    column.id === 'top_model' && sort === 'cost'
+                      ? t('analytics.keys_header_help.top_cost_model', {
+                          defaultValue:
+                            'Model with the highest known cost for this key; the smaller line is its cost.',
+                        })
+                      : t(column.descriptionKey, { defaultValue: column.descriptionDefault });
                   return (
                     <CatalogHeader
                       key={column.id}
@@ -499,7 +508,7 @@ export function KeysView({ keys, range }: { keys: AnalyticsKey[]; range: Analyti
                       </span>
                     </TableCell>
                     <TableCell>
-                      <TopModelValue row={row} />
+                      <TopModelValue row={row} rankBy={sort} />
                     </TableCell>
                     <TableCell alignRight>
                       <span

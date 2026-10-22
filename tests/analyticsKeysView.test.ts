@@ -6,6 +6,7 @@ import {
   joinKeyRanking,
   keyActivityDate,
   keyStatusForDisplay,
+  keyTopModel,
   shouldShowPricingDisclosure,
   sortKeyRanking,
 } from '@/features/analytics/views/keys/keyRanking';
@@ -40,6 +41,8 @@ const key = (id: string, label: string, shortId: string): AnalyticsKey => ({
   requests: 14,
   top_model: 'model-top',
   top_model_tokens: 900,
+  top_cost_model: 'model-costly',
+  top_cost_model_usd: '0.75',
   generation_time_ms: 1_250,
   generation_sample_count: 5,
 });
@@ -95,6 +98,24 @@ describe('Keys ranking model', () => {
       generation_time_ms: 1_250,
       generation_sample_count: 5,
     });
+  });
+
+  test('shows the top model for the selected rank-by metric', () => {
+    const [row] = joinKeyRanking([key('key-a', 'Alpha', 'a-safe')], []);
+    expect(keyTopModel(row, 'tokens')).toEqual({ model: 'model-top', value: 900 });
+    expect(keyTopModel(row, 'cost')).toEqual({ model: 'model-costly', value: '0.75' });
+    // Older backends omit the cost leader; the cell falls back to Unknown rather than tokens.
+    const [legacy] = joinKeyRanking(
+      [
+        {
+          ...key('key-b', 'Bravo', 'b-safe'),
+          top_cost_model: undefined,
+          top_cost_model_usd: undefined,
+        },
+      ],
+      []
+    );
+    expect(keyTopModel(legacy, 'cost')).toEqual({ model: null, value: null });
   });
 
   test('uses server order to break client-column ties', () => {

@@ -882,6 +882,36 @@ describe('analysis ECharts options', () => {
     expect(html).toContain('>1100<');
   });
 
+  test('keeps each Top Models colour when the metric reorders the ranking', () => {
+    const entry = (name: string, tokens: number, cost: string) => ({
+      model: name,
+      requests: 1,
+      input_tokens: tokens,
+      output_tokens: 0,
+      cached_tokens: 0,
+      cache_read_tokens: 0,
+      cache_creation_tokens: 0,
+      reasoning_tokens: 0,
+      total_tokens: tokens,
+      known_cost_usd: cost,
+    });
+    // Token order is a, b, c; cost order is the reverse.
+    const section = {
+      meta: { partial: false },
+      models: [entry('model-a', 300, '1'), entry('model-b', 200, '2'), entry('model-c', 100, '3')],
+      buckets: [],
+    } satisfies AnalysisModelByTime;
+    const byTokens = buildTopModelSeries(section, 'tokens');
+    const byCost = buildTopModelSeries(section, 'cost');
+    expect(byCost.map((item) => item.model)).toEqual(['model-c', 'model-b', 'model-a']);
+    const colors = (ranked: typeof byTokens) =>
+      Object.fromEntries(
+        ranked.map((item) => [item.model, topModelColor(PALETTE, item.colorIndex)])
+      );
+    expect(colors(byCost)).toEqual(colors(byTokens));
+    expect(new Set(Object.values(colors(byTokens))).size).toBe(3);
+  });
+
   test('ranks Top Models onto the palette slots after the token categories', () => {
     const ranked = buildTopModelSeries({
       meta: { partial: false },
@@ -919,7 +949,7 @@ describe('analysis ECharts options', () => {
     for (const series of option.series) {
       expect(series.itemStyle).toMatchObject({ borderColor: PALETTE.card, borderWidth: 1 });
     }
-    expect(option.series[0].itemStyle?.color).toBe(PALETTE.categorical[TOKEN_CATEGORY_KEYS.length]);
+    expect(option.series[0].itemStyle?.color).toBe(PALETTE.categorical[5]);
     expect(option.series.at(-1)?.name).toBe('Other models');
     expect(option.series.at(-1)?.itemStyle?.color).toBe('#8e867f');
     expect(topModelColor(PALETTE, 0, true)).toBe('#8e867f');
@@ -962,15 +992,43 @@ describe('analysis ECharts options', () => {
         {
           start: '2026-09-01T00:00:00Z',
           models: [
-            { ...model, model: 'model-a', total_tokens: 40, known_cost_usd: '0.4', generation_time_ms: 400, generation_sample_count: 1 },
-            { ...model, model: 'model-b', total_tokens: 120, known_cost_usd: '1.2', generation_time_ms: 900, generation_sample_count: 1 },
+            {
+              ...model,
+              model: 'model-a',
+              total_tokens: 40,
+              known_cost_usd: '0.4',
+              generation_time_ms: 400,
+              generation_sample_count: 1,
+            },
+            {
+              ...model,
+              model: 'model-b',
+              total_tokens: 120,
+              known_cost_usd: '1.2',
+              generation_time_ms: 900,
+              generation_sample_count: 1,
+            },
           ],
         },
         {
           start: '2026-09-01T01:00:00Z',
           models: [
-            { ...model, model: 'model-a', total_tokens: 60, known_cost_usd: '0.6', generation_time_ms: 600, generation_sample_count: 1 },
-            { ...model, model: 'model-b', total_tokens: 180, known_cost_usd: '1.8', generation_time_ms: 2_100, generation_sample_count: 2 },
+            {
+              ...model,
+              model: 'model-a',
+              total_tokens: 60,
+              known_cost_usd: '0.6',
+              generation_time_ms: 600,
+              generation_sample_count: 1,
+            },
+            {
+              ...model,
+              model: 'model-b',
+              total_tokens: 180,
+              known_cost_usd: '1.8',
+              generation_time_ms: 2_100,
+              generation_sample_count: 2,
+            },
           ],
         },
       ],
@@ -980,6 +1038,7 @@ describe('analysis ECharts options', () => {
       { model: 'model-b', metricValue: 3, values: [1.2, 1.8], share: 75 },
       { model: 'model-a', metricValue: 1, values: [0.4, 0.6], share: 25 },
     ]);
+
     const ranked = buildTopModelSeries(section, 'generation');
     expect(ranked).toMatchObject([
       {
