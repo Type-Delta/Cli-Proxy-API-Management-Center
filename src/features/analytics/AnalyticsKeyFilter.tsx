@@ -43,7 +43,7 @@ export function AnalyticsKeyFilter({
   );
 
   return (
-    <label className={styles.filterField}>
+    <label className={`${styles.filterField} ${disabled ? styles.filterFieldDisabled : ''}`}>
       <span id={labelId}>{t('analytics.key_filter')}</span>
       <Select
         mode="multiple"
