@@ -1,4 +1,4 @@
-import { describe, expect, spyOn, test } from 'bun:test';
+import { beforeAll, describe, expect, spyOn, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import i18n from '../src/i18n/index';
@@ -27,6 +27,16 @@ const modelRecord = {
 const normalize = (value: unknown) => normalizeAuthFileCooldowns(value, observedAt, receivedAtMs);
 const snapshot = normalize([modelRecord])!;
 const record = snapshot.records![0];
+// Pin the language: i18n is a shared singleton, so otherwise the active language is whatever an
+// earlier test file left behind and the copy assertions depend on test-file order.
+beforeAll(async () => {
+  await i18n.changeLanguage('en');
+});
+
+// React escapes quotes in attribute values, so compare attribute copy in its escaped form.
+const escapeAttribute = (text: string) =>
+  text.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll("'", '&#x27;');
+
 const render = (
   value?: AuthFileCooldownSnapshot,
   options: { resetting?: boolean; resetDisabled?: boolean; onReset?: () => void } = {}
@@ -225,7 +235,7 @@ describe('cooldown section rendering', () => {
 
     const available = render(snapshot, { onReset: () => {} });
     expect(available).toContain(i18n.t('auth_files.cooldown_reset_button'));
-    expect(available).toContain(i18n.t('auth_files.cooldown_reset_hint'));
+    expect(available).toContain(escapeAttribute(i18n.t('auth_files.cooldown_reset_hint')));
     expect(available).not.toContain('disabled=""');
 
     const pending = render(snapshot, { onReset: () => {}, resetting: true });
