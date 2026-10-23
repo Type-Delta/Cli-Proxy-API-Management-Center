@@ -7,11 +7,12 @@ import {
   IconListTree,
   IconServerCog,
   IconShare2,
+  IconTrophy,
   IconWrench,
   type IconProps,
 } from '@/components/ui/icons';
 
-export const ANALYTICS_PAGE_IDS = ['usage', 'management'] as const;
+export const ANALYTICS_PAGE_IDS = ['usage', 'model-leaderboard', 'management'] as const;
 export type AnalyticsPage = (typeof ANALYTICS_PAGE_IDS)[number];
 
 export const ANALYTICS_PAGE_DEFINITIONS = [
@@ -19,6 +20,8 @@ export const ANALYTICS_PAGE_DEFINITIONS = [
   { kind: 'analysis', page: 'usage', icon: IconChartNoAxesCombined },
   { kind: 'keys', page: 'usage', icon: IconKeyRound },
   { kind: 'events', page: 'usage', icon: IconListTree },
+  // A standalone page with a single kind: it has no sibling tabs, only its own route.
+  { kind: 'model-leaderboard', page: 'model-leaderboard', icon: IconTrophy },
   { kind: 'pricing', page: 'management', icon: IconBadgeDollarSign },
   { kind: 'providers', page: 'management', icon: IconServerCog },
   { kind: 'shared', page: 'management', icon: IconShare2 },
@@ -71,6 +74,7 @@ export const ANALYTICS_PAGE_ICONS: Record<AnalyticsPageKind, ComponentType<IconP
   analysis: IconChartNoAxesCombined,
   keys: IconKeyRound,
   events: IconListTree,
+  'model-leaderboard': IconTrophy,
   pricing: IconBadgeDollarSign,
   providers: IconServerCog,
   shared: IconShare2,

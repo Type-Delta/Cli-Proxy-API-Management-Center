@@ -272,6 +272,50 @@ export type AnalyticsLeaderboardResponse = Omit<AnalyticsLeaderboard, 'rows'> & 
   rows: LeaderboardRow[] | null;
 };
 
+/**
+ * Model Leaderboard (operation 'model_leaderboard'): four CPAUK-computed awards over a fixed
+ * rolling week, global across keys and providers. Ranks are 1-based and contiguous; ranks 1-3
+ * form the podium and 4-6 the runners-up. Fields beyond rank/model/value are metric-specific.
+ */
+export type AnalyticsModelLeaderboardMetric =
+  | 'most_used'
+  | 'most_reliable'
+  | 'speed'
+  | 'most_talkative';
+
+export type AnalyticsModelLeaderboardRow = {
+  rank: number;
+  model: string;
+  value: number;
+  providers?: number;
+  attempts?: number;
+  failed?: number;
+  samples?: number;
+  reasoning_share?: number;
+};
+
+export type AnalyticsModelLeaderboardAward = {
+  metric: AnalyticsModelLeaderboardMetric;
+  rows: AnalyticsModelLeaderboardRow[];
+};
+
+export type AnalyticsModelLeaderboard = {
+  start: string;
+  end: string;
+  awards: AnalyticsModelLeaderboardAward[];
+};
+
+/**
+ * Wire form of the leaderboard query. Unlike the other v2 operations it carries the IANA zone
+ * beside the range (the range itself omits it) and rejects keys, filters, cursors, and sorting.
+ */
+export type AnalyticsModelLeaderboardQuery = {
+  schema_version: 2;
+  operation: 'model_leaderboard';
+  range: { preset: 'last_n_days'; n: 7 };
+  time_zone: string;
+};
+
 export type ActivityWindow = 'day' | 'week' | 'month' | 'year';
 export type ActivityGrain = '5m' | '1h' | '1d';
 
@@ -420,7 +464,14 @@ export type AnalyticsAnalysis = {
 };
 
 export type AnalyticsOperation =
-  'summary' | 'timeseries' | 'dimensions' | 'events' | 'leaderboard' | 'activity' | 'analysis';
+  | 'summary'
+  | 'timeseries'
+  | 'dimensions'
+  | 'events'
+  | 'leaderboard'
+  | 'activity'
+  | 'analysis'
+  | 'model_leaderboard';
 
 export type AnalyticsFilters = {
   provider?: string[];

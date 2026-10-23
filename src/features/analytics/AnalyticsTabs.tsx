@@ -91,6 +91,8 @@ export function AnalyticsTabs({ active }: { active: AnalyticsPageKind }) {
   const tabDefinitions = ANALYTICS_PAGE_DEFINITIONS.filter(
     (definition) => definition.page === page
   );
+  // Standalone analytics pages (a single kind, own sidebar entry) have no sibling tabs.
+  if (tabDefinitions.length <= 1) return null;
 
   return (
     <nav

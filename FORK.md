@@ -1161,6 +1161,37 @@ The API keys filter is disabled on the Keys tab and shows All API keys, because 
 
 Validation on 2026-10-22: `bun run verify` passes 2,081 tests, lint, TypeScript, and the production build. An isolated Chrome CDP run against a fresh local CPA, a priced mock OpenAI-compatible upstream, and real proxied requests confirmed cost-mode `pricey-small $0.10` versus token-mode `cheap-bulk 150K tokens`, identical per-model swatch colors across all three Top Models modes, and a disabled `All API keys` filter on Keys only, rendered at 0.6 opacity with a not-allowed cursor while Analysis keeps full opacity.
 
+### DL064: Standalone Model Leaderboard analytics page
+
+Status: shipped
+
+Files: 'src/types/analytics.ts', 'src/services/api/analytics.ts', 'src/features/analytics/navigation.ts', 'src/features/analytics/{AnalyticsPage.tsx,AnalyticsTabs.tsx}', 'src/components/layout/MainLayout.tsx', 'src/features/analytics/views/ModelLeaderboard.tsx', 'src/features/analytics/views/leaderboard/*', 'src/styles/themes.scss', 'src/i18n/locales/*', 'tests/analyticsModelLeaderboard.test.ts', 'tests/analyticsContracts.test.ts'
+
+Adds a standalone Analytics page at '/analytics/model-leaderboard' (sidebar group between Usage and Analytics Management; the legacy '/analytics/leaderboard' Keys redirect is untouched). The page reads a fixed rolling week through the v2 analytics query with the new 'model_leaderboard' operation — schema_version 2, named 'last_n_days' range with n=7, and the viewer's IANA zone beside the range — and renders the four CPAUK awards (Most Used, Most Reliable, Speed Maniac, Most Talkative) as podium cards: ranks 2-1-3 on the left with medal-framed avatars, award header and runners-up (ranks 4-6) in the right rail. Below the mobile breakpoint the runners-up collapse into a keyboard-operable details accordion; empty awards show per-metric copy, and podiums with one or two ranked models keep dashed placeholder slots instead of collapsing. Avatars resolve a provider-independent model family from the model id; the mascot registry ships empty (one line adds a family mascot) and falls back to lab logos, with a neutral placeholder for unknown families. Medal tokens ('--medal-*') join every theme, and all six locales carry the new strings.
+
+Validation on 2026-10-23: 'bun run verify' passes 2,097 tests (including new model-leaderboard coverage for family resolution, empty awards, 1- and 2-row podiums, runners-up visibility, navigation mapping, and the wire request), lint, TypeScript, and the production build. An isolated Chrome CDP session against the dev server with intercepted '/analytics/query' responses (full, empty, 1-row, 2-row) confirmed desktop and mobile renders in light and dark themes, correct sidebar highlighting, hidden tab bar on the standalone page, expanded/collapsed runners-up per breakpoint, and the legacy redirect.
+
+Live check on 2026-10-23: a CPA build from the same change set served this bundle as its management panel, proxied seven real Z.ai 'glm-5.3-flash' requests carrying four distinct 'X-Session-ID' values, and the page reached through the sidebar after a real login showed Most Used 4 sessions and Most Talkative 322 tokens at 76% reasoning, matching a hand computation from the stored events, while Most Reliable (7 attempts) and Speed Maniac (P70 64 tok/s) showed their floor empty states. Lab-logo avatars render at 55% of the medal frame on desktop (1440px) and mobile (390px) with no console errors.
+
+Follow-up on 2026-10-23: Most Talkative hides the reasoning-share line when a model's share is zero, because providers that never break reasoning out store zero and the line would read as "0% reasoning". Name glyphs now render the light/dark pair like podium avatars, so the OpenAI and Grok marks no longer vanish on light themes, and the mobile Runners-up summary renders as a list item so its disclosure marker shows. A seeded preview (12 models, 11,929 events) viewed over the tailnet confirmed a no-reasoning model on the podium without the line.
+
+Polish on 2026-10-23: first load shows a leaderboard-shaped skeleton (chip, four cards, 2-1-3 podium, runners-up) whose geometry matches the loaded cards exactly at desktop width, through a new optional 'skeleton' slot on the shared 'AsyncState'; reloads over existing data keep the cards and show the Usage-style 'Refreshing' pill in each card's corner, dimming content on a manual refresh. Podium values count up with the shared 'AnimatedMetric' once visible. Cards gain 24px padding, the chip-to-card gap is restored (the extra AsyncState wrapper had swallowed it), and 2nd/3rd frames grow to 80px. Layout-shift observation on remount and on Refresh All reports a cumulative score of 0.0002.
+
+Mascots on 2026-10-23: podium avatars gain optional family mascot art — eight 192x192 WebPs under
+'public/management-assets/mascots/<family>.webp' (claude, deepseek, gemini, glm, gpt, grok, kimi,
+qwen) referenced by relative URL, so 'dist/index.html' stays a single file and Vite copies the
+images verbatim next to it; CPA serves them from its embedded bundle at the same path. Registry
+entries are one line each ('MODEL_FAMILY_MASCOTS'); a failed load falls back to the lab logo via
+img onError with the url remembered (no retry, no broken image, and the quiet logo-tile styling
+and frame geometry carry over). Mascot photos fill the frame with 'object-fit: cover' and the
+frame's inner corner radius; minimax and unknown families keep the lab logo/placeholder. Tests
+cover family-to-url resolution, the public/ file-exists check, and the remembered-failure fallback;
+'bun run verify' passes and the single-file artifact does not grow by the image bytes. Isolated
+Chrome CDP sessions against the dev server with the seeded preview confirmed desktop (1440px)
+light and dark plus mobile (390px) renders with all eight mascots loading at the 96px and 80px
+medal frames, and a 404-intercepted claude.webp swapping to the lab-logo tile with a single
+request (no retry), no broken image, and no layout change. Mascot photos never take the dark-theme logo inversion, and the 14px name and runners-up glyphs always show the lab logo, because a photo is unreadable at that size. Served from CPA's embedded bundle over the tailnet, the six podium mascots loaded with 200 responses and no console errors. Frames drop their inner padding and use a 4px medal border so the photo fills the frame, and the GLM family uses the Z.ai light/dark logo pair (the auth-file list already uses it) instead of the Zhipu mark.
+
 ## Merge History
 
 This is an append-only historical decision record. It provides context for integrations but never, by itself, establishes an ongoing fork divergence; use the current Divergence Log for that determination.

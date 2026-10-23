@@ -31,6 +31,7 @@ import {
   IconSidebarQuota,
   IconSidebarStore,
   IconSidebarSystem,
+  IconTrophy,
 } from '@/components/ui/icons';
 import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
 import {
@@ -74,6 +75,7 @@ const sidebarIcons: Record<string, ReactNode> = {
   logs: <IconSidebarLogs size={18} />,
   system: <IconSidebarSystem size={18} />,
   analytics: <ANALYTICS_WORKSPACE_ICON size={18} />,
+  analyticsLeaderboard: <IconTrophy size={18} />,
   analyticsManagement: <IconNotebookPen size={18} />,
 };
 
@@ -653,6 +655,14 @@ export function MainLayout() {
                 metaKey: 'nav_meta.analytics_usage',
                 metaDefault: 'Usage metrics and activity',
                 icon: sidebarIcons.analytics,
+              },
+              {
+                path: '/analytics/model-leaderboard',
+                labelKey: 'nav.analytics_leaderboard',
+                labelDefault: 'Model Leaderboard',
+                metaKey: 'nav_meta.analytics_leaderboard',
+                metaDefault: 'Top models of the week',
+                icon: sidebarIcons.analyticsLeaderboard,
               },
               {
                 path: '/analytics/management',

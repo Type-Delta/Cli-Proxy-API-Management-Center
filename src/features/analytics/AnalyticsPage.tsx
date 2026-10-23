@@ -11,6 +11,7 @@ import { Analysis } from './views/Analysis';
 import { Events } from './views/Events';
 import { KeysView } from './views/KeysView';
 import { Maintenance } from './views/Maintenance';
+import { ModelLeaderboard } from './views/ModelLeaderboard';
 import { Overview } from './views/Overview';
 import { Pricing } from './views/Pricing';
 import { Providers } from './views/Providers';
@@ -47,7 +48,7 @@ export function AnalyticsPage({ kind }: { kind: AnalyticsPageKind }) {
         />
       </Card>
     );
-  const queryPage = ['overview', 'analysis', 'keys', 'events'].includes(kind);
+  const queryPage = ['overview', 'analysis', 'keys', 'events', 'model-leaderboard'].includes(kind);
   if ((queryPage && !analytics.management_query_v1) || (kind === 'shared' && !analytics.viewer_v1))
     return (
       <Card>
@@ -72,6 +73,7 @@ function AnalyticsWorkspace({ kind }: { kind: AnalyticsPageKind }) {
       {kind === 'analysis' && <Analysis range={range} keyIds={selected} />}
       {kind === 'keys' && <KeysView keys={keys} range={range} />}
       {kind === 'events' && <Events range={range} keyIds={selected} />}
+      {kind === 'model-leaderboard' && <ModelLeaderboard />}
       {kind === 'pricing' && <Pricing />}
       {kind === 'providers' && <Providers />}
       {kind === 'shared' && <SharedViews keys={keys} />}

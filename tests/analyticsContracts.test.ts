@@ -221,12 +221,13 @@ describe('analytics client contracts', () => {
     expect(analyticsRangeInputToIso('2026-03-08T02:30', 'America/St_Johns')).toBeNull();
   });
 
-  test('maps the eight analytics kinds onto two four-tab pages', () => {
+  test('maps the analytics kinds onto their pages', () => {
     expect(ANALYTICS_PAGES).toEqual([
       'overview',
       'analysis',
       'keys',
       'events',
+      'model-leaderboard',
       'pricing',
       'providers',
       'shared',
@@ -236,6 +237,9 @@ describe('analytics client contracts', () => {
     expect(analyticsPageForKind('overview')).toBe('usage');
     expect(analyticsPageForKind('pricing')).toBe('management');
     expect(analyticsKindsForPage('usage')).toEqual(['overview', 'analysis', 'keys', 'events']);
+    // The leaderboard is a standalone page with a single kind of its own.
+    expect(analyticsPageForKind('model-leaderboard')).toBe('model-leaderboard');
+    expect(analyticsKindsForPage('model-leaderboard')).toEqual(['model-leaderboard']);
     expect(analyticsKindsForPage('management')).toEqual([
       'pricing',
       'providers',
@@ -243,11 +247,17 @@ describe('analytics client contracts', () => {
       'maintenance',
     ]);
     expect(analyticsPageRedirectTarget('usage')).toBe('/analytics/overview');
+    expect(analyticsPageRedirectTarget('model-leaderboard')).toBe('/analytics/model-leaderboard');
     expect(analyticsPageRedirectTarget('management')).toBe('/analytics/pricing');
     expect(analyticsPageKindFromPathname('/analytics/events')).toBe('events');
+    expect(analyticsPageKindFromPathname('/analytics/model-leaderboard')).toBe(
+      'model-leaderboard'
+    );
+    // The legacy /analytics/leaderboard redirect target still resolves like a Usage path.
     expect(analyticsPageKindFromPathname('/analytics/leaderboard')).toBe('overview');
     expect(analyticsPageFromPathname('/analytics')).toBe('usage');
     expect(analyticsPageFromPathname('/analytics/usage')).toBe('usage');
+    expect(analyticsPageFromPathname('/analytics/model-leaderboard')).toBe('model-leaderboard');
     expect(analyticsPageFromPathname('/analytics/management')).toBe('management');
   });
 

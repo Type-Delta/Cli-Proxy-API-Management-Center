@@ -45,6 +45,7 @@ export function AsyncState({
   retryAt,
   stale,
   onRetry,
+  skeleton,
   children,
 }: {
   loading: boolean;
@@ -53,6 +54,8 @@ export function AsyncState({
   retryAt?: number;
   stale?: boolean;
   onRetry?: () => void;
+  /** First-load placeholder shaped like the content, so the swap does not shift the layout. */
+  skeleton?: ReactNode;
   children: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -71,7 +74,7 @@ export function AsyncState({
   const failure = analyticsErrorCopy(t, error, errorStatus);
   // Retrying before the server's Retry-After elapses only earns another 429.
   const retryIn = useAnalyticsRetryCountdown(retryAt);
-  if (state === 'initial-loading') return <AnalyticsSkeleton />;
+  if (state === 'initial-loading') return skeleton ?? <AnalyticsSkeleton />;
   if (state === 'error')
     return (
       <Card>

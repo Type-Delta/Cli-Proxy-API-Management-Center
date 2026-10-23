@@ -111,7 +111,8 @@
     "logs": "記錄檢視",
     "system_info": "中心資訊",
     "analytics_usage": "用量",
-    "analytics_management": "分析管理"
+    "analytics_management": "分析管理",
+    "analytics_leaderboard": "模型排行榜"
   },
   "nav_groups": {
     "operate": "運行",
@@ -134,7 +135,9 @@
     "config_management": "閘道基礎設定",
     "system_info": "運行與診斷資訊",
     "analytics_usage": "用量指標與活動",
-    "analytics_management": "定價、供應商與維護"
+    "analytics_management": "定價、供應商與維護",
+    "analytics_leaderboard": "每週最佳模型",
+    "analytics_model-leaderboard": "本週跨所有供應商與憑證的最佳模型。"
   },
   "analytics": {
     "events_pagination": "嘗試記錄分頁",
@@ -248,6 +251,7 @@
       "analysis": "分析",
       "keys": "金鑰",
       "events": "事件",
+      "model-leaderboard": "模型排行榜",
       "pricing": "定價",
       "providers": "供應商與配額",
       "shared": "共享視圖",
@@ -1103,6 +1107,49 @@
       "deleted": "此金鑰已從設定中移除，其用量歷史仍保留。",
       "historical": "此金鑰出現在用量歷史中，但目前未設定。",
       "identity_conflict": "偵測到金鑰身分衝突，無法可靠地確定用量歸屬。"
+    },
+    "page_title_model-leaderboard": "模型排行榜",
+    "leaderboard": {
+      "range_label": "{{range}} · {{dates}}",
+      "award_most_used_title": "最多使用",
+      "award_most_used_description": "模型出現的獨立工作階段數",
+      "award_most_reliable_title": "最可靠",
+      "award_most_reliable_description": "成功率，與請求健康度同規則 · 至少 200 次請求",
+      "award_speed_title": "速度狂人",
+      "award_speed_description": "P70 輸出 token/秒，不含無 TPS 的請求",
+      "award_most_talkative_title": "最健談",
+      "award_most_talkative_description": "P95 每請求輸出 + 推理 token",
+      "unit_sessions": "工作階段",
+      "unit_success": "成功",
+      "unit_speed": "tok/s",
+      "unit_tokens": "token",
+      "providers_other": "{{count}} 個供應商",
+      "failed": "{{attempts, number}} 次中 {{failed, number}} 次失敗",
+      "measured_other": "{{count, number}} 次實測",
+      "reasoning": "{{percent}}% 推理",
+      "empty_most_used": "尚無工作階段資料 — 工作階段僅從本版本開始統計",
+      "empty_most_reliable": "沒有模型達到 200 次請求的可靠性門檻",
+      "empty_speed": "沒有模型的 P70 達到 80 tok/s",
+      "empty_most_talkative": "此時間範圍內尚無生成 token 資料",
+      "runners_up": "緊隨其後",
+      "rank_first": "冠軍",
+      "rank_second": "亞軍",
+      "rank_third": "季軍",
+      "family_claude": "Claude",
+      "family_gpt": "GPT",
+      "family_gemini": "Gemini",
+      "family_glm": "GLM",
+      "family_deepseek": "DeepSeek",
+      "family_kimi": "Kimi",
+      "family_qwen": "Qwen",
+      "family_grok": "Grok",
+      "family_minimax": "MiniMax",
+      "family_unknown": "未知模型家族",
+      "avatar_mascot": "{{family}} 吉祥物",
+      "avatar_logo": "{{family}} 標誌",
+      "avatar_placeholder": "未知模型",
+      "providers_one": "1 個供應商",
+      "measured_one": "1 次實測"
     }
   },
   "dashboard": {
@@ -1533,7 +1580,6 @@
     "reset_confirm_button": "確認重置",
     "reset_not_confirmed": "尚未確認額度重置成功，請重新整理額度後再決定是否重試。",
     "reset_cooldown_failed": "額度已重置，但代理冷卻清除失敗。請在原連線的認證檔案頁面使用「清除冷卻」，不要再次消耗重置卡。",
-
     "reset_success": "已重置「{{name}}」的 Codex 配額",
     "reset_failed": "重置「{{name}}」的 Codex 配額失敗：{{message}}",
     "plan_plus": "Plus",

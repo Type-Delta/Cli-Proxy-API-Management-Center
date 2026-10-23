@@ -94,7 +94,12 @@ by `vite-plugin-singlefile`. The release workflow renames it to `management.html
 `vX.Y.Z` tags trigger releases.
 
 Preserve hash routing and single-file deployment. Changes to assets, imports, code splitting, or build
-configuration must not introduce required external build artifacts. Do not edit generated `dist/` files.
+configuration must not introduce required external build artifacts. Optional static assets may live only
+under `public/management-assets/`: Vite copies them verbatim next to `dist/index.html`, and CPA serves
+them from its embedded bundle at the same relative path. They must stay optional — the single-file
+artifact keeps loading when one is missing, and the app degrades gracefully (a leaderboard mascot that
+404s falls back to the family lab logo on `img` error, with the failure remembered so it is not retried).
+Do not edit generated `dist/` files.
 App version is injected as `__APP_VERSION__` from `VERSION`, then git tags, then the package version,
 falling back to `dev`.
 

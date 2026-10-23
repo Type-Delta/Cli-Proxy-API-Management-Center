@@ -158,6 +158,15 @@
   --viz-tooltip-text: #f6f4f1;
   --viz-tooltip-text-dim: #a29c95;
 
+  // Leaderboard podium medals (approved mock v3).
+  --medal-gold: #d4a017;
+  --medal-gold-bg: #fbf1d3;
+  --medal-silver: #9aa1ab;
+  --medal-silver-bg: #eef0f3;
+  --medal-bronze: #b9784a;
+  --medal-bronze-bg: #f6e6da;
+  --medal-ink: #2d2a26;
+
   // Interaction motion uses a strong deceleration curve.
   // Press feedback takes 160ms and hover feedback 200ms; UI feedback stays under 300ms.
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
@@ -233,6 +242,15 @@
   --muted-bg: var(--bg-tertiary);
   --muted-foreground: var(--text-secondary);
   --accent-bg: var(--bg-tertiary);
+
+  // Leaderboard podium medals (approved mock v3).
+  --medal-gold: #d4a017;
+  --medal-gold-bg: #fbf1d3;
+  --medal-silver: #9aa1ab;
+  --medal-silver-bg: #eef0f3;
+  --medal-bronze: #b9784a;
+  --medal-bronze-bg: #f6e6da;
+  --medal-ink: #2d2a26;
 }
 
 // Dark theme
@@ -353,6 +371,15 @@
   --viz-tooltip-border: rgba(246, 244, 241, 0.16);
   --viz-tooltip-text: #f6f4f1;
   --viz-tooltip-text-dim: #a29c95;
+
+  // Leaderboard podium medals on the dark surfaces (approved mock v3).
+  --medal-gold: #d4a017;
+  --medal-gold-bg: #3a3020;
+  --medal-silver: #9aa1ab;
+  --medal-silver-bg: #2f3236;
+  --medal-bronze: #b9784a;
+  --medal-bronze-bg: #3a2b20;
+  --medal-ink: #151412;
 }
 
 @media (max-width: 768px),

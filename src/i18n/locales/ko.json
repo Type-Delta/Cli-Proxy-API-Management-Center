@@ -111,7 +111,8 @@
     "logs": "로그 뷰어",
     "system_info": "관리 센터 정보",
     "analytics_usage": "사용량",
-    "analytics_management": "분석 관리"
+    "analytics_management": "분석 관리",
+    "analytics_leaderboard": "모델 리더보드"
   },
   "nav_groups": {
     "operate": "운영",
@@ -134,7 +135,9 @@
     "config_management": "게이트웨이 설정",
     "system_info": "런타임 및 진단",
     "analytics_usage": "사용량 지표와 활동",
-    "analytics_management": "가격, 공급자, 유지 관리"
+    "analytics_management": "가격, 공급자, 유지 관리",
+    "analytics_leaderboard": "이번 주 최고 모델",
+    "analytics_model-leaderboard": "모든 공급자와 자격 증명에서 이번 주 최고 모델."
   },
   "analytics": {
     "events_pagination": "시도 기록 페이지 매김",
@@ -885,6 +888,7 @@
       "analysis": "분석",
       "keys": "키",
       "events": "이벤트",
+      "model-leaderboard": "모델 리더보드",
       "pricing": "가격",
       "providers": "공급자 및 할당량",
       "shared": "공유 뷰",
@@ -1103,6 +1107,49 @@
       "deleted": "설정에서 제거된 키입니다. 사용 기록은 유지됩니다.",
       "historical": "사용 기록에는 나타나지만 현재는 설정되어 있지 않습니다.",
       "identity_conflict": "키 식별자 충돌이 감지되었습니다. 사용량 귀속을 신뢰할 수 없습니다."
+    },
+    "page_title_model-leaderboard": "모델 리더보드",
+    "leaderboard": {
+      "range_label": "{{range}} · {{dates}}",
+      "award_most_used_title": "가장 많이 사용",
+      "award_most_used_description": "모델이 등장한 고유 세션 수",
+      "award_most_reliable_title": "가장 신뢰할 수 있는",
+      "award_most_reliable_description": "성공률, 요청 상태와 동일한 규칙 · 최소 200건의 요청",
+      "award_speed_title": "속도 광",
+      "award_speed_description": "P70 출력 토큰/초, TPS 없는 요청 제외",
+      "award_most_talkative_title": "가장 수다스러운",
+      "award_most_talkative_description": "요청당 P95 출력 + 추론 토큰",
+      "unit_sessions": "세션",
+      "unit_success": "성공",
+      "unit_speed": "tok/s",
+      "unit_tokens": "토큰",
+      "providers_other": "공급자 {{count}}곳",
+      "failed": "{{attempts, number}}건 중 {{failed, number}}건 실패",
+      "measured_other": "{{count, number}}회 측정",
+      "reasoning": "추론 {{percent}}%",
+      "empty_most_used": "아직 세션 데이터가 없습니다 — 세션은 이 릴리스부터 집계됩니다",
+      "empty_most_reliable": "200회 요청 신뢰성 기준을 충족한 모델이 없습니다",
+      "empty_speed": "P70 80 tok/s를 달성한 모델이 없습니다",
+      "empty_most_talkative": "이 기간에 생성된 토큰 데이터가 아직 없습니다",
+      "runners_up": "준우승자",
+      "rank_first": "1위",
+      "rank_second": "2위",
+      "rank_third": "3위",
+      "family_claude": "Claude",
+      "family_gpt": "GPT",
+      "family_gemini": "Gemini",
+      "family_glm": "GLM",
+      "family_deepseek": "DeepSeek",
+      "family_kimi": "Kimi",
+      "family_qwen": "Qwen",
+      "family_grok": "Grok",
+      "family_minimax": "MiniMax",
+      "family_unknown": "알 수 없는 모델 계열",
+      "avatar_mascot": "{{family}} 마스코트",
+      "avatar_logo": "{{family}} 로고",
+      "avatar_placeholder": "알 수 없는 모델",
+      "providers_one": "공급자 1곳",
+      "measured_one": "1회 측정"
     }
   },
   "dashboard": {

@@ -111,7 +111,8 @@
     "logs": "Trình xem Log",
     "system_info": "Thông tin Trung tâm Quản lý",
     "analytics_usage": "Usage",
-    "analytics_management": "Analytics Management"
+    "analytics_management": "Analytics Management",
+    "analytics_leaderboard": "Bảng xếp hạng mô hình"
   },
   "nav_groups": {
     "operate": "Vận hành",
@@ -134,7 +135,9 @@
     "config_management": "Cấu hình gateway",
     "system_info": "Runtime & chẩn đoán",
     "analytics_usage": "Usage metrics and activity",
-    "analytics_management": "Pricing, providers, and maintenance"
+    "analytics_management": "Pricing, providers, and maintenance",
+    "analytics_leaderboard": "Các mô hình hàng đầu trong tuần",
+    "analytics_model-leaderboard": "Các mô hình hàng đầu trong tuần trên mọi nhà cung cấp và thông tin xác thực."
   },
   "analytics": {
     "events_pagination": "Attempt history pagination",
@@ -885,6 +888,7 @@
       "analysis": "Analysis",
       "keys": "Keys",
       "events": "Events",
+      "model-leaderboard": "Bảng xếp hạng mô hình",
       "pricing": "Pricing",
       "providers": "Providers & quotas",
       "shared": "Shared views",
@@ -1103,6 +1107,49 @@
       "deleted": "This key was removed from configuration; its usage history is retained.",
       "historical": "This key appears in usage history but is not currently configured.",
       "identity_conflict": "Conflicting key identities were detected; attribution cannot be resolved reliably."
+    },
+    "page_title_model-leaderboard": "Bảng xếp hạng mô hình",
+    "leaderboard": {
+      "range_label": "{{range}} · {{dates}}",
+      "award_most_used_title": "Được dùng nhiều nhất",
+      "award_most_used_description": "Số phiên độc nhất mà mô hình xuất hiện",
+      "award_most_reliable_title": "Đáng tin cậy nhất",
+      "award_most_reliable_description": "Tỷ lệ thành công, cùng quy tắc với Request Health · tối thiểu 200 yêu cầu",
+      "award_speed_title": "Ma tốc độ",
+      "award_speed_description": "P70 token đầu ra/giây, loại trừ yêu cầu không có TPS",
+      "award_most_talkative_title": "Nói nhiều nhất",
+      "award_most_talkative_description": "P95 token đầu ra + suy luận mỗi yêu cầu",
+      "unit_sessions": "phiên",
+      "unit_success": "thành công",
+      "unit_speed": "tok/s",
+      "unit_tokens": "token",
+      "providers_other": "{{count}} nhà cung cấp",
+      "failed": "{{failed, number}} trong {{attempts, number}} thất bại",
+      "measured_other": "{{count, number}} lượt đo",
+      "reasoning": "{{percent}}% suy luận",
+      "empty_most_used": "Chưa có dữ liệu phiên — phiên chỉ được tính từ bản phát hành này",
+      "empty_most_reliable": "Không mô hình nào đạt ngưỡng độ tin cậy 200 yêu cầu",
+      "empty_speed": "Không mô hình nào đạt P70 80 tok/s",
+      "empty_most_talkative": "Chưa có dữ liệu token đã tạo trong khoảng thời gian này",
+      "runners_up": "Theo sát",
+      "rank_first": "Nhất",
+      "rank_second": "Nhì",
+      "rank_third": "Ba",
+      "family_claude": "Claude",
+      "family_gpt": "GPT",
+      "family_gemini": "Gemini",
+      "family_glm": "GLM",
+      "family_deepseek": "DeepSeek",
+      "family_kimi": "Kimi",
+      "family_qwen": "Qwen",
+      "family_grok": "Grok",
+      "family_minimax": "MiniMax",
+      "family_unknown": "Nhóm mô hình không xác định",
+      "avatar_mascot": "Linh vật {{family}}",
+      "avatar_logo": "Logo {{family}}",
+      "avatar_placeholder": "Mô hình không xác định",
+      "providers_one": "1 nhà cung cấp",
+      "measured_one": "1 lượt đo"
     }
   },
   "dashboard": {

@@ -111,7 +111,8 @@
     "logs": "Logs Viewer",
     "system_info": "Management Center Info",
     "analytics_usage": "Usage",
-    "analytics_management": "Analytics Management"
+    "analytics_management": "Analytics Management",
+    "analytics_leaderboard": "Model Leaderboard"
   },
   "nav_groups": {
     "operate": "Operate",
@@ -134,7 +135,9 @@
     "config_management": "Gateway configuration",
     "system_info": "Runtime & diagnostics",
     "analytics_usage": "Usage metrics and activity",
-    "analytics_management": "Pricing, providers, and maintenance"
+    "analytics_management": "Pricing, providers, and maintenance",
+    "analytics_leaderboard": "Top models of the week",
+    "analytics_model-leaderboard": "Top models of the week, across every provider and credential."
   },
   "analytics": {
     "events_pagination": "Attempt history pagination",
@@ -885,6 +888,7 @@
       "analysis": "Analysis",
       "keys": "Keys",
       "events": "Events",
+      "model-leaderboard": "Model Leaderboard",
       "pricing": "Pricing",
       "providers": "Providers & quotas",
       "shared": "Shared views",
@@ -1103,6 +1107,49 @@
       "deleted": "This key was removed from configuration; its usage history is retained.",
       "historical": "This key appears in usage history but is not currently configured.",
       "identity_conflict": "Conflicting key identities were detected; attribution cannot be resolved reliably."
+    },
+    "page_title_model-leaderboard": "Model Leaderboard",
+    "leaderboard": {
+      "range_label": "{{range}} · {{dates}}",
+      "award_most_used_title": "Most Used",
+      "award_most_used_description": "Unique sessions the model appeared in",
+      "award_most_reliable_title": "Most Reliable",
+      "award_most_reliable_description": "Success rate, same rule as Request Health · min 200 requests",
+      "award_speed_title": "Speed Maniac",
+      "award_speed_description": "P70 output tokens/second, requests without TPS excluded",
+      "award_most_talkative_title": "Most Talkative",
+      "award_most_talkative_description": "P95 output + reasoning tokens per request",
+      "unit_sessions": "sessions",
+      "unit_success": "success",
+      "unit_speed": "tok/s",
+      "unit_tokens": "tokens",
+      "providers_one": "1 provider",
+      "providers_other": "{{count}} providers",
+      "failed": "{{failed, number}} of {{attempts, number}} failed",
+      "measured_one": "1 measured",
+      "measured_other": "{{count, number}} measured",
+      "reasoning": "{{percent}}% reasoning",
+      "empty_most_used": "No session data yet — sessions only count from this release",
+      "empty_most_reliable": "No model met the reliability floor of 200 attempts",
+      "empty_speed": "No model reached 80 tok/s P70",
+      "empty_most_talkative": "No generated-token data in this window yet",
+      "runners_up": "Runners-up",
+      "rank_first": "1st",
+      "rank_second": "2nd",
+      "rank_third": "3rd",
+      "family_claude": "Claude",
+      "family_gpt": "GPT",
+      "family_gemini": "Gemini",
+      "family_glm": "GLM",
+      "family_deepseek": "DeepSeek",
+      "family_kimi": "Kimi",
+      "family_qwen": "Qwen",
+      "family_grok": "Grok",
+      "family_minimax": "MiniMax",
+      "family_unknown": "Unknown model family",
+      "avatar_mascot": "{{family}} mascot",
+      "avatar_logo": "{{family}} logo",
+      "avatar_placeholder": "Unknown model"
     }
   },
   "dashboard": {

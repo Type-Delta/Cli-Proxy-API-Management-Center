@@ -20,6 +20,8 @@ import type {
   AnalyticsKeyPageResponse,
   AnalyticsLeaderboard,
   AnalyticsLeaderboardResponse,
+  AnalyticsModelLeaderboard,
+  AnalyticsModelLeaderboardQuery,
   AnalyticsProvidersResponse,
   AnalyticsQuery,
   AnalyticsQuotasResponse,
@@ -45,7 +47,8 @@ type QueryResult =
   | AnalyticsEventPageResponse
   | AnalyticsLeaderboardResponse
   | AnalyticsActivityResponse
-  | AnalyticsAnalysis;
+  | AnalyticsAnalysis
+  | AnalyticsModelLeaderboard;
 
 export const analyticsCollection = <T>(value: T[] | null | undefined): T[] => value ?? [];
 
@@ -74,7 +77,9 @@ const analyticsRangeMinute = (value: string | undefined): string | undefined => 
 };
 
 /** Cache identity only; requests and echoed ranges keep their original bounds. */
-function analyticsQueryRequestKey(request: AnalyticsQuery): string {
+function analyticsQueryRequestKey(request: AnalyticsReadQuery): string {
+  // The leaderboard request has no cursor and no caller bounds; its identity is the request itself.
+  if (request.operation === 'model_leaderboard') return analyticsRequestKey(request);
   // Continuation signatures bind the exact range returned by the first page.
   if (request.cursor) return analyticsRequestKey(request);
   return analyticsRequestKey({
@@ -139,6 +144,8 @@ export function encodeAnalyticsQuery(request: unknown): string {
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
+
+type AnalyticsReadQuery = AnalyticsQuery | AnalyticsModelLeaderboardQuery;
 
 const analyticsQueryCacheKey = (revision: number, requestKey: string): string =>
   `${revision}\u0000${requestKey}`;
@@ -236,7 +243,7 @@ const analyticsQueryAbandoned = 'analytics query was discarded because the conne
 const connectionChanged = (revision: number): boolean =>
   apiClient.getConnectionRevision() !== revision;
 
-async function requestAnalyticsQuery<T extends QueryResult>(request: AnalyticsQuery): Promise<T> {
+async function requestAnalyticsQuery<T extends QueryResult>(request: AnalyticsReadQuery): Promise<T> {
   const revision = apiClient.getConnectionRevision();
   const requestKey = analyticsQueryRequestKey(request);
   const encoded = encodeAnalyticsQuery(request);
@@ -281,7 +288,7 @@ async function requestAnalyticsQuery<T extends QueryResult>(request: AnalyticsQu
  * share a single request. The entry is dropped as soon as the promise settles, which keeps
  * per-card Retry honest: a retry issued after the shared load finished starts a new request.
  */
-const query = <T extends QueryResult>(request: AnalyticsQuery): Promise<T> => {
+const query = <T extends QueryResult>(request: AnalyticsReadQuery): Promise<T> => {
   const key = analyticsQueryCacheKey(
     apiClient.getConnectionRevision(),
     analyticsQueryRequestKey(request)
@@ -376,6 +383,21 @@ function exportQuery(request: AnalyticsQuery): AnalyticsQuery {
   return fullFilter;
 }
 
+/**
+ * The Model Leaderboard always reads a rolling week in the viewer's zone and ignores the global
+ * analytics filters, so its request is fixed and built here instead of from AnalyticsRange.
+ */
+export function buildModelLeaderboardRequest(
+  timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+): AnalyticsModelLeaderboardQuery {
+  return {
+    schema_version: 2,
+    operation: 'model_leaderboard',
+    range: { preset: 'last_n_days', n: 7 },
+    time_zone: timeZone,
+  };
+}
+
 export const analyticsApi = {
   health: () => apiClient.get<AnalyticsHealth>('/analytics/health'),
   summary: (request: AnalyticsQuery) => query<AnalyticsSummary>(request),
@@ -390,6 +412,18 @@ export const analyticsApi = {
   async events(request: AnalyticsQuery): Promise<AnalyticsEventPage> {
     const data = await query<AnalyticsEventPageResponse>(request);
     return { ...data, events: analyticsCollection(data.events) };
+  },
+  async modelLeaderboard(
+    request: AnalyticsModelLeaderboardQuery = buildModelLeaderboardRequest()
+  ): Promise<AnalyticsModelLeaderboard> {
+    const data = await query<AnalyticsModelLeaderboard>(request);
+    return {
+      ...data,
+      awards: analyticsCollection(data.awards).map((award) => ({
+        ...award,
+        rows: analyticsCollection(award.rows),
+      })),
+    };
   },
   event: (attemptId: string, request: AnalyticsEventDetailQuery) =>
     apiClient.get<AnalyticsEvent>(
