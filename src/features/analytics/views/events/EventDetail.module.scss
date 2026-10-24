@@ -405,6 +405,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.rateApprox {
+  margin-right: 4px;
+  color: var(--text-secondary);
+}
+
 // Fact lists ---------------------------------------------------------------
 .factGrid {
   display: grid;

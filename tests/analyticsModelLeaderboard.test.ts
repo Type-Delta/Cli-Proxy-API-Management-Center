@@ -159,12 +159,7 @@ describe('model leaderboard layout model', () => {
         { metric: 'most_used', rows: [row(1, 'claude-sonnet-5-5', 1284, { providers: 3 })] },
       ],
     });
-    expect(LEADERBOARD_METRICS).toEqual([
-      'most_used',
-      'most_reliable',
-      'speed',
-      'most_talkative',
-    ]);
+    expect(LEADERBOARD_METRICS).toEqual(['most_used', 'most_reliable', 'speed', 'most_talkative']);
     expect(indexed.most_used).toHaveLength(1);
     expect(indexed.most_reliable).toEqual([]);
     expect(indexed.speed).toHaveLength(1);
@@ -172,12 +167,7 @@ describe('model leaderboard layout model', () => {
   });
 
   test('fills podium display order 2nd-1st-3rd and keeps empty slots as placeholders', () => {
-    const full = podiumSlots([
-      row(1, 'a', 3),
-      row(2, 'b', 2),
-      row(3, 'c', 1),
-      row(4, 'd', 0.5),
-    ]);
+    const full = podiumSlots([row(1, 'a', 3), row(2, 'b', 2), row(3, 'c', 1), row(4, 'd', 0.5)]);
     expect(full.map((slot) => (slot.kind === 'rank' ? slot.row.rank : null))).toEqual([2, 1, 3]);
 
     const single = podiumSlots([row(1, 'gpt-5.6-luna', 967)]);
@@ -211,14 +201,19 @@ describe('model leaderboard layout model', () => {
 });
 
 describe('model leaderboard award card rendering', () => {
-  const render = (metric: Parameters<typeof ModelLeaderboardAwardCard>[0]['metric'], rows: AnalyticsModelLeaderboardRow[]) =>
+  const render = (
+    metric: Parameters<typeof ModelLeaderboardAwardCard>[0]['metric'],
+    rows: AnalyticsModelLeaderboardRow[]
+  ) =>
     renderToStaticMarkup(
       createElement(ModelLeaderboardAwardCard, { metric, rows, runnersCollapsed: false })
     );
 
   test('shows a calm empty message for an award with no rows', () => {
     const markup = render('speed', []);
-    expect(markup).toContain('No model reached 80 tok/s P70');
+    expect(markup).toContain(
+      'No model reached the 80 tok/s floor with a measurable arrival window'
+    );
     expect(markup).not.toContain('1st');
     expect(markup).not.toContain('tok/s</span>');
   });
@@ -231,6 +226,14 @@ describe('model leaderboard award card rendering', () => {
     expect(markup).not.toContain('Runners-up');
   });
 
+  test('shows qualified sample coverage against successful attempts', () => {
+    const markup = render('speed', [row(1, 'glm-5.3-flash', 1500, { samples: 15, attempts: 100 })]);
+    expect(markup).toContain('P70 observed token arrival rate');
+    expect(markup).toContain('Generation-speed prediction is unavailable');
+    expect(markup).toContain('15 of 100 successful requests measured');
+    expect(markup).not.toContain('failed');
+  });
+
   test('renders two ranks plus one placeholder slot', () => {
     const markup = render('most_used', [
       row(1, 'claude-sonnet-5-5', 1284, { providers: 3 }),
@@ -238,7 +241,9 @@ describe('model leaderboard award card rendering', () => {
     ]);
     expect((markup.match(/data-podium-placeholder/g) ?? []).length).toBe(1);
     expect(markup.indexOf('2nd')).toBeLessThan(markup.indexOf('1st'));
-    expect(markup.indexOf('1st')).toBeLessThan(markup.indexOf('3rd') === -1 ? Infinity : markup.indexOf('3rd'));
+    expect(markup.indexOf('1st')).toBeLessThan(
+      markup.indexOf('3rd') === -1 ? Infinity : markup.indexOf('3rd')
+    );
   });
 
   test('hides the reasoning share when a model reported no reasoning tokens', () => {
@@ -290,9 +295,7 @@ describe('model leaderboard award card rendering', () => {
 describe('model leaderboard navigation model', () => {
   test('routes the new page and keeps the sidebar pages unchanged', () => {
     expect(ANALYTICS_PAGES).toContain('model-leaderboard');
-    expect(analyticsPageKindFromPathname('/analytics/model-leaderboard')).toBe(
-      'model-leaderboard'
-    );
+    expect(analyticsPageKindFromPathname('/analytics/model-leaderboard')).toBe('model-leaderboard');
     expect(analyticsPageFromPathname('/analytics/model-leaderboard')).toBe('model-leaderboard');
     expect(analyticsKindsForPage('model-leaderboard')).toEqual(['model-leaderboard']);
     // Sidebar highlighting for the existing pages stays exactly as before.

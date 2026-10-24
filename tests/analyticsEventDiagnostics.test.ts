@@ -52,7 +52,25 @@ const fullyInstrumented = (overrides: Partial<AnalyticsEvent> = {}) =>
     upstream_status_code: 200,
     proxy_status_code: 200,
     upstream_usage_raw: { total_tokens: 150, completion_tokens: 150 },
-    tokens_per_second: 100,
+    throughput: {
+      status: 'observed',
+      method: 'arrival_window_v1',
+      tokens_per_second: 100,
+      basis: 'visible_deltas',
+      token_quality: 'exact',
+    },
+    output_timing: {
+      version: 1,
+      protocol: 'chat',
+      source: 'source_reader',
+      status: 'observed',
+      first_arrival_ns: 500_000_000,
+      last_arrival_ns: 2_000_000_000,
+      arrival_count: 6,
+      window_tokens: 150,
+      token_quality: 'exact',
+      coverage: 'visible_deltas',
+    },
     ...overrides,
   });
 
@@ -172,7 +190,12 @@ describe('buildEventTiming', () => {
     expect(timing.rows.find((row) => row.id === 'generation')?.startMs).toBe(500);
     expect(timing.totalMs).toBe(2_000);
     expect(timing.scaleMs).toBe(2_000);
-    expect(timing.throughput).toEqual({ tokens: 150, tokensPerSecond: 100, estimated: false });
+    expect(timing.throughput).toEqual({
+      tokens: 150,
+      tokensPerSecond: 100,
+      estimated: false,
+      legacy: false,
+    });
   });
 
   test('marks unrecorded segments null instead of back-filling remaining time', () => {
@@ -199,9 +222,23 @@ describe('buildEventTiming', () => {
 
   test('renders the throughput CPA published as an estimate', () => {
     const timing = buildEventTiming(
-      makeEvent({ generation_time_ms: 10, tokens_per_second: 250, speed_estimated: true })
+      makeEvent({
+        generation_time_ms: 10,
+        throughput: {
+          status: 'observed',
+          method: 'arrival_window_v1',
+          tokens_per_second: 250,
+          basis: 'wire_deltas',
+          token_quality: 'estimated',
+        },
+      })
     );
-    expect(timing.throughput).toEqual({ tokens: 150, tokensPerSecond: 250, estimated: true });
+    expect(timing.throughput).toEqual({
+      tokens: 150,
+      tokensPerSecond: 250,
+      estimated: true,
+      legacy: false,
+    });
 
     const html = renderToStaticMarkup(
       createElement(EventTimingGraph, {
@@ -212,7 +249,7 @@ describe('buildEventTiming', () => {
       })
     );
 
-    expect(html).toContain('Estimated');
+    expect(html).toContain('Approximate token count');
   });
 
   test('keeps throughput unavailable when CPA publishes no rate', () => {
@@ -328,23 +365,28 @@ describe('raw payload helpers', () => {
   });
 });
 
-
-beforeAll(async () => { await i18n.changeLanguage('en'); });
+beforeAll(async () => {
+  await i18n.changeLanguage('en');
+});
 
 test('timing durations stay visible when their timeline position is unavailable', () => {
-  const timing = buildEventTiming(makeEvent({
-    routing_time_ms: null,
-    upstream_sent_at: null,
-    provider_latency_ms: 120,
-    first_token_latency_ms: 350,
-    generation_time_ms: 500,
-  }));
-  const html = renderToStaticMarkup(createElement(EventTimingGraph, {
-    timing,
-    providerLabel: 'Codex',
-    providerStatus: 200,
-    providerFailed: false,
-  }));
+  const timing = buildEventTiming(
+    makeEvent({
+      routing_time_ms: null,
+      upstream_sent_at: null,
+      provider_latency_ms: 120,
+      first_token_latency_ms: 350,
+      generation_time_ms: 500,
+    })
+  );
+  const html = renderToStaticMarkup(
+    createElement(EventTimingGraph, {
+      timing,
+      providerLabel: 'Codex',
+      providerStatus: 200,
+      providerFailed: false,
+    })
+  );
   expect(html).toContain('120 ms</span>');
   expect(html).toContain('230 ms</span>');
   expect(html).toContain('500 ms</span>');
@@ -388,6 +430,95 @@ test('event details prefer the credential filename over the privacy ID', () => {
 
   expect(html).toContain('codex-account.json');
   expect(html).not.toContain(`${credentialID.slice(0, 8)}…${credentialID.slice(-6)}`);
+});
+
+test('event details keep the arrival rate and effective output rate separate', () => {
+  const html = renderToStaticMarkup(
+    createElement(
+      I18nextProvider,
+      { i18n },
+      createElement(EventDetailSheet, {
+        open: true,
+        event: fullyInstrumented({
+          throughput: {
+            status: 'observed',
+            method: 'arrival_window_v1',
+            tokens_per_second: 640.5,
+            basis: 'wire_deltas',
+            token_quality: 'estimated',
+          },
+          effective_output_tokens_per_second: 42.5,
+        }),
+        loading: false,
+        error: '',
+        keyIdentity: 'test-key',
+        onClose: () => {},
+        onRetry: () => {},
+      })
+    )
+  );
+
+  expect(html).toContain('Arrival rate');
+  expect(html).toContain('Approximate arrival rate: 640.5 tokens/s');
+  expect(html).toContain('Token source');
+  expect(html).toContain('Wire deltas');
+  expect(html).toContain('Effective output rate');
+  expect(html).toContain('42.5 tokens/s');
+  expect(html).toContain('Arrival window');
+  expect(html).toContain('Generation-speed prediction is unavailable');
+});
+
+test('event details explain unavailable arrival evidence in plain language', () => {
+  const html = renderToStaticMarkup(
+    createElement(
+      I18nextProvider,
+      { i18n },
+      createElement(EventDetailSheet, {
+        open: true,
+        event: fullyInstrumented({
+          throughput: {
+            status: 'unavailable',
+            method: 'arrival_window_v1',
+            reason: 'insufficient_arrivals',
+          },
+          effective_output_tokens_per_second: null,
+        }),
+        loading: false,
+        error: '',
+        keyIdentity: 'test-key',
+        onClose: () => {},
+        onRetry: () => {},
+      })
+    )
+  );
+
+  expect(html).toContain('Unavailable — Too few distinct token arrivals to measure a rate.');
+  expect(html).toContain('Effective output rate');
+});
+
+test('event details label a pre-arrival alias as legacy rather than qualified', () => {
+  const html = renderToStaticMarkup(
+    createElement(
+      I18nextProvider,
+      { i18n },
+      createElement(EventDetailSheet, {
+        open: true,
+        event: fullyInstrumented({
+          throughput: undefined,
+          tokens_per_second: 250,
+          speed_estimated: true,
+        }),
+        loading: false,
+        error: '',
+        keyIdentity: 'test-key',
+        onClose: () => {},
+        onRetry: () => {},
+      })
+    )
+  );
+
+  expect(html).toContain('Legacy');
+  expect(html).toContain('Recorded by an older CPA version. Not a measured arrival rate.');
 });
 
 test('event details distinguish strict latency, provider latency, and E2E latency', () => {

@@ -19,10 +19,14 @@ import { CopyButton, Fact, RawPayload, StatusPill } from './EventDetailParts';
 import {
   buildEventTiming,
   buildEventTimeline,
+  eventArrivalRate,
+  eventEffectiveOutputRate,
   eventFailureHop,
+  eventOutputWindow,
   formatPreciseTime,
   hasHopInstrumentation,
   normalizeRawUsage,
+  rateReasonKey,
   type EventHopId,
 } from './eventDiagnostics';
 import { EventTimeline } from './EventTimeline';
@@ -63,11 +67,118 @@ export function EventDetailSheet({
 
   const steps = useMemo(() => (event ? buildEventTimeline(event) : []), [event]);
   const timing = useMemo(() => (event ? buildEventTiming(event) : null), [event]);
+  const arrivalRate = useMemo(() => (event ? eventArrivalRate(event) : null), [event]);
+  const effectiveRate = useMemo(() => (event ? eventEffectiveOutputRate(event) : null), [event]);
+  const outputWindow = useMemo(() => (event ? eventOutputWindow(event) : null), [event]);
   const failureHop = useMemo(() => eventFailureHop(steps), [steps]);
   const rawUsage = useMemo(() => normalizeRawUsage(event?.upstream_usage_raw), [event]);
 
   const notRecorded = t('analytics.event_detail.not_recorded', { defaultValue: 'Not recorded' });
   const cost = event ? formatCostValue(event.known_cost_usd, locale) : { text: '' };
+  const formatRate = (value: number) =>
+    t('analytics.tokens_per_second', {
+      value: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value),
+      defaultValue: '{{value}} tokens/s',
+    });
+  const observedRate = arrivalRate?.status === 'observed' ? arrivalRate : null;
+  const legacyRate = arrivalRate?.status === 'legacy' ? arrivalRate : null;
+  const approximation = (
+    <span className={styles.rateApprox} aria-hidden="true">
+      ≈
+    </span>
+  );
+  const rateTitle = (estimated: boolean, extra?: string) =>
+    [
+      estimated
+        ? t('analytics.speed_estimate_hint', {
+            defaultValue: 'Approximate: CPA counted these tokens with its local tokenizer.',
+          })
+        : '',
+      extra ?? '',
+      t('analytics.rate_prediction_unavailable', {
+        defaultValue:
+          'Generation-speed prediction is unavailable until enough qualified arrival data is collected.',
+      }),
+    ]
+      .filter(Boolean)
+      .join(' ');
+  const basisHint =
+    event?.throughput?.basis === 'wire_deltas'
+      ? t('analytics.rate_basis_wire_hint', {
+          defaultValue:
+            'Counted from provider wire deltas; this can include reasoning the client did not see.',
+        })
+      : event?.throughput?.basis === 'visible_deltas'
+        ? t('analytics.rate_basis_visible_hint', {
+            defaultValue: 'Counted from response deltas visible to the client.',
+          })
+        : '';
+  const arrivalValue = (() => {
+    if (!arrivalRate || arrivalRate.status === 'unavailable') return null;
+    const value = formatRate(arrivalRate.tokensPerSecond);
+    if (arrivalRate.status === 'legacy') {
+      return t('analytics.legacy_speed_value', {
+        value,
+        defaultValue: '{{value}} (legacy)',
+      });
+    }
+    if (!arrivalRate.estimated) return value;
+    return (
+      <span
+        aria-label={t('analytics.arrival_rate_approx_aria', {
+          value,
+          defaultValue: 'Approximate arrival rate: {{value}}',
+        })}
+      >
+        {approximation}
+        {value}
+      </span>
+    );
+  })();
+  const arrivalUnavailable =
+    arrivalRate?.status === 'unavailable'
+      ? t(rateReasonKey(arrivalRate.reason), {
+          defaultValue: t('analytics.rate_reason_unknown', {
+            defaultValue: 'CPA could not measure token arrival for this event.',
+          }),
+        })
+      : '';
+  const effectiveTitle = [
+    t('analytics.effective_output_rate_hint', {
+      defaultValue:
+        'Whole-attempt output tokens divided by total attempt duration. Not an arrival rate.',
+    }),
+    event?.tokens.quality === 'estimated'
+      ? t('analytics.token_quality_estimated_hint', {
+          defaultValue: 'The token count is approximate; CPA used its local tokenizer.',
+        })
+      : event?.tokens.quality === 'missing'
+        ? t('analytics.token_quality_missing_hint', {
+            defaultValue: 'CPA did not record a usable output token count.',
+          })
+        : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const windowValue = outputWindow
+    ? [
+        outputWindow.arrivalCount === null
+          ? ''
+          : t('analytics.rate_arrival_batches', {
+              count: new Intl.NumberFormat(locale).format(outputWindow.arrivalCount),
+              defaultValue: '{{count}} arrival batches',
+            }),
+        outputWindow.windowTokens === null
+          ? ''
+          : t('analytics.rate_window_tokens', {
+              count: new Intl.NumberFormat(locale).format(outputWindow.windowTokens),
+              defaultValue: '{{count}} window tokens',
+            }),
+        formatDuration(outputWindow.spanMs, locale),
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : null;
 
   const sectionTitle = (hop: EventHopId) => {
     switch (hop) {
@@ -205,6 +316,81 @@ export function EventDetailSheet({
                 (step) => step.id === 'provider' && step.state === 'failed'
               )}
             />
+            <dl className={styles.factGrid}>
+              {arrivalRate?.status === 'unavailable' ? (
+                <Fact
+                  label={t('analytics.arrival_rate', { defaultValue: 'Arrival rate' })}
+                  value={t('analytics.unavailable_with_reason', {
+                    reason: arrivalUnavailable,
+                    defaultValue: 'Unavailable — {{reason}}',
+                  })}
+                  wide
+                  title={arrivalUnavailable}
+                />
+              ) : (
+                <Fact
+                  label={t('analytics.arrival_rate', { defaultValue: 'Arrival rate' })}
+                  value={arrivalValue}
+                  title={
+                    legacyRate
+                      ? t('analytics.legacy_speed_hint', {
+                          defaultValue:
+                            'Recorded by an older CPA version. Not a measured arrival rate.',
+                        })
+                      : observedRate
+                        ? rateTitle(observedRate.estimated, basisHint)
+                        : undefined
+                  }
+                />
+              )}
+              {observedRate?.basis ? (
+                <Fact
+                  label={t('analytics.rate_basis', { defaultValue: 'Token source' })}
+                  value={t(`analytics.rate_basis_${observedRate.basis}`, {
+                    defaultValue:
+                      observedRate.basis === 'wire_deltas' ? 'Wire deltas' : 'Visible deltas',
+                  })}
+                  title={basisHint}
+                />
+              ) : null}
+              {effectiveRate !== null ? (
+                <Fact
+                  label={t('analytics.effective_output_rate', {
+                    defaultValue: 'Effective output rate',
+                  })}
+                  value={
+                    event?.tokens.quality === 'estimated'
+                      ? t('analytics.approximate_value', {
+                          value: formatRate(effectiveRate),
+                          defaultValue: '≈ {{value}}',
+                        })
+                      : formatRate(effectiveRate)
+                  }
+                  title={effectiveTitle}
+                />
+              ) : (
+                <Fact
+                  label={t('analytics.effective_output_rate', {
+                    defaultValue: 'Effective output rate',
+                  })}
+                  value={t('analytics.unavailable', { defaultValue: 'Unavailable' })}
+                  title={t('analytics.effective_output_rate_unavailable_hint', {
+                    defaultValue:
+                      'CPA needs a positive output token count and attempt duration to calculate it.',
+                  })}
+                />
+              )}
+              {outputWindow ? (
+                <Fact
+                  label={t('analytics.output_window', { defaultValue: 'Arrival window' })}
+                  value={windowValue}
+                  title={t('analytics.output_window_hint', {
+                    defaultValue:
+                      'Measured from the first to the last substantive token arrival recorded by CPA.',
+                  })}
+                />
+              ) : null}
+            </dl>
           </section>
 
           {hopSection(

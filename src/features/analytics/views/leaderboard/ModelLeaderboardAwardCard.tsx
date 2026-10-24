@@ -137,9 +137,13 @@ export function ModelLeaderboardAwardCard({
           ? ''
           : t('analytics.leaderboard.failed', { failed: row.failed, attempts: row.attempts });
       case 'speed':
-        return row.samples === undefined
-          ? ''
-          : t('analytics.leaderboard.measured', { count: row.samples });
+        if (row.samples === undefined) return '';
+        return row.attempts === undefined
+          ? t('analytics.leaderboard.measured', { count: row.samples })
+          : t('analytics.leaderboard.speed_coverage', {
+              samples: row.samples,
+              attempts: row.attempts,
+            });
       case 'most_talkative':
         // A zero share usually means the provider never broke reasoning out, so it is not shown.
         return !row.reasoning_share

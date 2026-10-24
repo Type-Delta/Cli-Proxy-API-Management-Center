@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import antigravityLogo from '@/assets/icons/antigravity.svg';
 import { Button } from '@/components/ui/Button';
 import { AnalyticsCard as Card } from '@/features/analytics/components/AnalyticsCard';
@@ -67,10 +68,17 @@ import {
   loadEventDimensionRows,
   retentionCutoffFromError,
 } from './events/eventRequests';
-import { eventSpeed, eventSpeedIsEstimated } from './events/eventDiagnostics';
+import { eventArrivalRate, rateReasonKey } from './events/eventDiagnostics';
 import styles from './events/Events.module.scss';
 
 const eventSource = (event: AnalyticsEvent) => event.source?.trim() ?? '';
+
+const arrivalReasonLabel = (t: TFunction, reason: string | null) =>
+  t(rateReasonKey(reason), {
+    defaultValue: t('analytics.rate_reason_unknown', {
+      defaultValue: 'CPA could not measure token arrival for this event.',
+    }),
+  });
 
 const uniqueEvents = (pages: readonly AnalyticsEventPage[]) => {
   const seen = new Set<string>();
@@ -321,7 +329,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     ['result', t('analytics.result', { defaultValue: 'Result' })],
     ['request_type', t('analytics.request', { defaultValue: 'Request' })],
     ['latency', t('analytics.latency')],
-    ['speed', t('analytics.speed', { defaultValue: 'Speed' })],
+    ['speed', t('analytics.speed', { defaultValue: 'Arrival rate' })],
     ['total_tokens', t('analytics.total_tokens')],
     ['cache_read_rate', t('analytics.cache_read_rate', { defaultValue: 'Cache read rate' })],
     ['total_cost', t('analytics.known_cost')],
@@ -413,7 +421,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
   const renderCell = (column: EventColumnId, event: AnalyticsEvent): ReactNode => {
     const tokens = formatCompactTokens(event.tokens.total, i18n.resolvedLanguage);
     const cost = formatCostValue(event.known_cost_usd, i18n.resolvedLanguage);
-    const speed = eventSpeed(event);
+    const arrival = eventArrivalRate(event);
     switch (column) {
       case 'timestamp':
         return (
@@ -467,26 +475,53 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
           </span>
         );
       case 'speed':
-        if (speed === null) return t('analytics.unavailable', { defaultValue: 'Unavailable' });
+        if (arrival.status === 'unavailable') {
+          return (
+            <span title={arrivalReasonLabel(t, arrival.reason)}>
+              {t('analytics.unavailable', { defaultValue: 'Unavailable' })}
+            </span>
+          );
+        }
         {
           const speedText = t('analytics.tokens_per_second', {
             value: new Intl.NumberFormat(i18n.resolvedLanguage, {
               maximumFractionDigits: 1,
-            }).format(speed),
+            }).format(arrival.tokensPerSecond),
             defaultValue: '{{value}} tokens/s',
           });
-          const estimated = eventSpeedIsEstimated(event);
-          const estimateLabel = t('analytics.speed_estimate', { defaultValue: 'Estimated' });
+          const title =
+            arrival.status === 'legacy'
+              ? t('analytics.legacy_speed_hint', {
+                  defaultValue: 'Recorded by an older CPA version. Not a measured arrival rate.',
+                })
+              : arrival.estimated
+                ? t('analytics.speed_estimate_hint', {
+                    defaultValue: 'Approximate: CPA counted these tokens with its local tokenizer.',
+                  })
+                : undefined;
+          const approximate = arrival.estimated;
           return (
             <span
-              className={estimated ? styles.speedWithEstimate : undefined}
-              title={estimated ? estimateLabel : undefined}
-              aria-label={estimated ? `${speedText}, ${estimateLabel}` : undefined}
+              className={title ? styles.speedWithEstimate : undefined}
+              title={title}
+              aria-label={
+                approximate
+                  ? t('analytics.arrival_rate_approx_aria', {
+                      value: speedText,
+                      defaultValue: 'Approximate arrival rate: {{value}}',
+                    })
+                  : undefined
+              }
             >
-              {speedText}
-              {estimated ? (
+              {approximate ? (
                 <small className={styles.speedEstimateBadge} aria-hidden="true">
-                  {t('analytics.speed_estimate_badge', { defaultValue: 'EST' })}
+                  {t('analytics.speed_estimate_badge', { defaultValue: '≈' })}
+                </small>
+              ) : null}
+              {speedText}
+              {arrival.status === 'legacy' ? (
+                <small className={styles.speedEstimateBadge}>
+                  {t('analytics.legacy_badge', { defaultValue: 'Legacy' })}
                 </small>
               ) : null}
             </span>

@@ -163,7 +163,7 @@ export function TopModelsChart({
     tokens: t('analytics.analysis.top_models_metric_tokens', { defaultValue: 'Tokens' }),
     cost: t('analytics.analysis.top_models_metric_price', { defaultValue: 'Price' }),
     generation: t('analytics.analysis.top_models_metric_generation', {
-      defaultValue: 'Generation time',
+      defaultValue: 'Output window',
     }),
   };
   const formatMetricValue = (value: number | null) => {
@@ -218,7 +218,7 @@ export function TopModelsChart({
         metric === 'generation'
           ? t('analytics.analysis.top_models_generation_description', {
               defaultValue:
-                'Average observed generation time over time, synchronized with the ranking.',
+                'Average observed output-window time over time, synchronized with the ranking.',
             })
           : metric === 'cost'
             ? t('analytics.analysis.top_models_cost_description', {
@@ -243,7 +243,7 @@ export function TopModelsChart({
           : metric === 'generation'
             ? t('analytics.analysis.no_generation_timing', {
                 defaultValue:
-                  'Generation time will appear after requests with observed generation timing are recorded in this range.',
+                  'Output-window timing will appear after requests with a captured arrival window are recorded in this range.',
               })
             : t('analytics.analysis.no_models', {
                 defaultValue: 'Model usage will appear after requests are recorded in this range.',

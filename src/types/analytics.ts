@@ -155,6 +155,46 @@ export type AnalyticsDimensionPageResponse = Omit<AnalyticsDimensionPage, 'rows'
   rows: DimensionRow[] | null;
 };
 
+export type AnalyticsArrivalBasis = 'visible_deltas' | 'wire_deltas';
+
+/**
+ * Qualified output arrival rate. The server emits this object on every real read; an absent object
+ * means the reader predates CPA's arrival timing and only carries the legacy aliases below.
+ */
+export type AnalyticsThroughput = {
+  status: 'observed' | 'unavailable';
+  method: 'arrival_window_v1';
+  /** Present only when status is `observed`. */
+  tokens_per_second?: number;
+  basis?: AnalyticsArrivalBasis;
+  token_quality?: TokenQuality;
+  /** Frozen unavailability code, empty when observed. */
+  reason?: string;
+};
+
+/**
+ * Durable diagnostic evidence behind the arrival rate. Offsets are measured from dispatch on
+ * CPA's monotonic clock; the window spans the first through last substantive source-read batch.
+ */
+export type AnalyticsOutputTiming = {
+  version: 1;
+  protocol: string;
+  source: string;
+  status: 'observed' | 'unavailable';
+  reason?: string;
+  first_arrival_ns?: number;
+  last_arrival_ns?: number;
+  arrival_count?: number;
+  window_tokens?: number;
+  token_quality?: TokenQuality;
+  coverage?: AnalyticsArrivalBasis;
+  /** Optional bounded-collector evidence, kept for diagnostics and exports. */
+  first_batch_bytes?: number;
+  total_bytes?: number;
+  largest_batch_bytes?: number;
+  max_interarrival_ns?: number;
+};
+
 export type AnalyticsEvent = {
   schema_version: number;
   attempt_id: string;
@@ -185,12 +225,22 @@ export type AnalyticsEvent = {
   routing_time_ms?: number | null;
   time_to_first_token_ms: number | null;
   generation_time_ms?: number | null;
-  /** CPA-derived output throughput; absent when no observed or estimated rate is publishable. */
+  /** Qualified arrival-window throughput. Always present on CPA versions with arrival timing. */
+  throughput?: AnalyticsThroughput | null;
+  /** Whole-attempt output tokens divided by total duration; distinct from the arrival rate. */
+  effective_output_tokens_per_second?: number | null;
+  /** Raw measurement evidence; omitted for legacy rows and older CPA versions. */
+  output_timing?: AnalyticsOutputTiming | null;
+  /** Legacy alias of throughput.tokens_per_second, qualified arrival only. */
   tokens_per_second?: number | null;
-  /** True when the throughput came from CPA's compressed-generation estimate. */
+  /** Legacy flag: true when the matched window numerator used CPA's local tokenizer. */
   speed_estimated?: boolean | null;
   service_tier_requested: string | null;
   service_tier_used: string | null;
+  /** Provider stream or transport used for the attempt, when CPA recorded it. */
+  stream?: boolean | null;
+  /** Canonical request hint; the provider is not guaranteed to have applied it. */
+  reasoning_effort?: string | null;
   generated: boolean;
   tokens: TokenUsage;
   known_cost_usd?: string;
@@ -278,10 +328,7 @@ export type AnalyticsLeaderboardResponse = Omit<AnalyticsLeaderboard, 'rows'> & 
  * form the podium and 4-6 the runners-up. Fields beyond rank/model/value are metric-specific.
  */
 export type AnalyticsModelLeaderboardMetric =
-  | 'most_used'
-  | 'most_reliable'
-  | 'speed'
-  | 'most_talkative';
+  'most_used' | 'most_reliable' | 'speed' | 'most_talkative';
 
 export type AnalyticsModelLeaderboardRow = {
   rank: number;

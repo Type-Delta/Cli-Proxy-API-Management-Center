@@ -84,7 +84,7 @@ export function KeyModelHeatmap({
     () => ({
       tokens: t('analytics.total_tokens', { defaultValue: 'Total tokens' }),
       cost: t('analytics.known_cost', { defaultValue: 'Estimated API-equivalent cost' }),
-      generation: t('analytics.analysis.generation_time', { defaultValue: 'Generation time' }),
+      generation: t('analytics.analysis.generation_time', { defaultValue: 'Output window' }),
     }),
     [t]
   );
@@ -110,16 +110,14 @@ export function KeyModelHeatmap({
   const option = useMemo(() => {
     if (!matrix) return {};
     const cells = matrix.rows.flatMap((row, keyIndex) =>
-      visibleModels.map(
-        (model, modelIndex) => {
-          const cell = row.cells.find((entry) => entry.model === model)?.value;
-          return [modelIndex, keyIndex, heatmapCellMetricValue(cell, metric)] as [
-            number,
-            number,
-            number | null,
-          ];
-        }
-      )
+      visibleModels.map((model, modelIndex) => {
+        const cell = row.cells.find((entry) => entry.model === model)?.value;
+        return [modelIndex, keyIndex, heatmapCellMetricValue(cell, metric)] as [
+          number,
+          number,
+          number | null,
+        ];
+      })
     );
     const maxValue =
       metric === 'tokens'
@@ -213,7 +211,7 @@ export function KeyModelHeatmap({
     <AnalysisCard
       title={t('analytics.analysis.heatmap_title', { defaultValue: 'Key × Model Heatmap' })}
       description={t('analytics.analysis.heatmap_description', {
-        defaultValue: 'Compare token volume, estimated cost, or observed generation time.',
+        defaultValue: 'Compare token volume, estimated cost, or observed output-window time.',
       })}
       loading={loading}
       error={error}

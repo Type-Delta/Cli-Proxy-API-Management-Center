@@ -38,7 +38,7 @@ export function EventTimingGraph({
       return t('analytics.event_detail.row_waiting', { defaultValue: 'Waiting' });
     }
     if (id === 'generation') {
-      return t('analytics.event_detail.row_generation', { defaultValue: 'Generation' });
+      return t('analytics.event_detail.row_generation', { defaultValue: 'Output window' });
     }
     return providerLabel;
   };
@@ -65,20 +65,21 @@ export function EventTimingGraph({
             ? '{{provider}} acknowledgement from dispatch to HTTP headers or the first request-specific WebSocket frame.'
             : id === 'waiting'
               ? "Post-ACK wait until CPA's first substantive token. Queueing, encoder prefill, or cache activity may contribute and is not separately measured."
-              : "From CPA's first substantive token to the last substantive token.",
+              : "From CPA's first substantive token arrival to the last substantive token arrival. The bar uses CPA's recorded output window, not a provider-reported generation duration.",
     })}`;
   };
 
   const generationLabel = timing.throughput
-    ? t('analytics.event_detail.generation_label', {
+    ? (timing.throughput.estimated ? '≈ ' : '') +
+      t('analytics.event_detail.generation_label', {
         tokens: formatNumber(timing.throughput.tokens, locale),
         rate: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(
           timing.throughput.tokensPerSecond
         ),
         defaultValue: '{{tokens}} tokens \u00b7 {{rate}} tok/s',
       }) +
-      (timing.throughput.estimated
-        ? ` · ${t('analytics.speed_estimate', { defaultValue: 'Estimated' })}`
+      (timing.throughput.legacy
+        ? ` · ${t('analytics.legacy_badge', { defaultValue: 'Legacy' })}`
         : '')
     : null;
 
@@ -110,7 +111,12 @@ export function EventTimingGraph({
               .filter(Boolean)
               .join(' ')}
             tabIndex={0}
-            title={rowTooltip(row.id, row.durationMs)}
+            title={
+              rowTooltip(row.id, row.durationMs) +
+              (row.id === 'generation' && timing.throughput?.estimated
+                ? `\n${t('analytics.speed_estimate', { defaultValue: 'Approximate token count' })}`
+                : '')
+            }
           >
             <span
               className={[styles.timingLabel, measured ? '' : styles.timingLabelMuted]

@@ -154,9 +154,9 @@ const SORTABLE_COLUMNS: ReadonlyArray<CatalogColumn> = [
   {
     id: 'generation_time',
     labelKey: 'analytics.generation_time',
-    defaultValue: 'Generation time',
+    defaultValue: 'Output window',
     descriptionKey: 'analytics.keys_header_help.generation_time',
-    descriptionDefault: 'Accumulated observed generation time, when available.',
+    descriptionDefault: 'Accumulated observed output-window time, when available.',
     alignRight: true,
   },
   {
@@ -399,7 +399,7 @@ export function KeysView({ keys, range }: { keys: AnalyticsKey[]; range: Analyti
                       </dd>
                     </div>
                     <div>
-                      <dt>{t('analytics.generation_time', { defaultValue: 'Generation time' })}</dt>
+                      <dt>{t('analytics.generation_time', { defaultValue: 'Output window' })}</dt>
                       <dd
                         title={
                           row.generation_time_ms === null

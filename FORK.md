@@ -2,7 +2,7 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-10-19
+Last updated: 2026-10-24
 
 ## Repository relationship
 
@@ -1191,6 +1191,16 @@ Chrome CDP sessions against the dev server with the seeded preview confirmed des
 light and dark plus mobile (390px) renders with all eight mascots loading at the 96px and 80px
 medal frames, and a 404-intercepted claude.webp swapping to the lab-logo tile with a single
 request (no retry), no broken image, and no layout change. Mascot photos never take the dark-theme logo inversion, and the 14px name and runners-up glyphs always show the lab logo, because a photo is unreadable at that size. Served from CPA's embedded bundle over the tailnet, the six podium mascots loaded with 200 responses and no console errors. Frames drop their inner padding and use a 4px medal border so the photo fills the frame, and the GLM family uses the Z.ai light/dark logo pair (the auth-file list already uses it) instead of the Zhipu mark.
+
+### DL065: Qualified output arrival telemetry in Analytics
+
+Status: shipped
+
+Files: 'src/types/analytics.ts', 'src/features/analytics/views/Events.tsx', 'src/features/analytics/views/events/{eventDiagnostics.ts,EventTimingGraph.tsx,EventDetailSheet.tsx,EventDetail.module.scss}', 'src/features/analytics/views/leaderboard/ModelLeaderboardAwardCard.tsx', 'src/features/analytics/views/KeysView.tsx', 'src/features/analytics/views/analysis/{KeyModelHeatmap.tsx,LatencyDiagnostics.tsx,TimeSeriesCharts.tsx}', 'src/features/analytics/views/overview/OverviewKpis.tsx', 'src/i18n/locales/*', 'tests/analyticsEvents.test.ts', 'tests/analyticsEventDiagnostics.test.ts', 'tests/analyticsModelLeaderboard.test.ts'
+
+Analytics treats the additive Event `throughput` object as the only qualified arrival-rate source. The table column is labeled Arrival rate; locally tokenized windows show an approximate marker and the frozen unavailability reasons are explained in plain language. A flat alias from an older CPA server renders as Legacy and is never promoted to a qualified observation. Event details keep Arrival rate, Token source, the separate whole-attempt Effective output rate, and first-to-last Arrival window evidence; timing and analysis labels say Output window instead of implying a provider-reported generation duration. The speed award explains P70 qualified successful arrivals and shows qualified samples against successful attempts. No prediction or confidence UI is added; copy states that generation-speed prediction is unavailable until qualified data is collected. Types preserve nullable `stream` and `reasoning_effort` plus optional batching diagnostics for exports without adding noisy metrics. All six locales carry the new copy.
+
+Validation on 2026-10-24: `bun run verify` passed the full panel suite, ESLint, TypeScript, and the Vite single-file production build. Focused regressions cover qualified, estimated, unavailable, and legacy rate states; effective-rate separation; output-window parsing; detail copy; and leaderboard coverage semantics.
 
 ## Merge History
 

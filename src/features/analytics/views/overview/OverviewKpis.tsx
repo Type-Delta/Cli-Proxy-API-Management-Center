@@ -198,7 +198,7 @@ function ProcessingTimeCard({
   const rows = [
     {
       key: 'generation',
-      label: t('analytics.overview.generation_time', { defaultValue: 'Generation' }),
+      label: t('analytics.overview.generation_time', { defaultValue: 'Output window' }),
       value: processing?.generation_ms,
       samples: processing?.generation_sample_count ?? 0,
     },

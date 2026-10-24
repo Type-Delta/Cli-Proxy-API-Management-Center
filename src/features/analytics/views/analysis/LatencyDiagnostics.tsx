@@ -124,7 +124,7 @@ export function LatencyDiagnostics({
     defaultValue: 'Latency',
   });
   const generationLabel = t('analytics.analysis.generation_time', {
-    defaultValue: 'Generation time',
+    defaultValue: 'Output window',
   });
   const providerLatencyLabel = t('analytics.analysis.provider_latency', {
     defaultValue: 'Provider latency',
@@ -150,8 +150,7 @@ export function LatencyDiagnostics({
     },
     latency: {
       definition: t('analytics.analysis.metric_latency_definition', {
-        defaultValue:
-          'Time from dispatch until the first substantive token reaches CPA.',
+        defaultValue: 'Time from dispatch until the first substantive token reaches CPA.',
       }),
       calculation: t('analytics.analysis.metric_latency_calculation', {
         defaultValue:
@@ -169,11 +168,11 @@ export function LatencyDiagnostics({
     },
     generation: {
       definition: t('analytics.analysis.metric_generation_definition', {
-        defaultValue: 'Time from the first to the last substantive token received by CPA.',
+        defaultValue: 'Time from the first to the last substantive token arrival received by CPA.',
       }),
       calculation: t('analytics.analysis.metric_generation_calculation', {
         defaultValue:
-          'For requests with complete token timing, shows the selected 95th percentile, longest duration, or median.',
+          'For requests with a captured arrival window, shows the selected 95th percentile, longest duration, or median.',
       }),
     },
     provider_latency: {
@@ -313,7 +312,7 @@ export function LatencyDiagnostics({
       title={t('analytics.analysis.latency_title', { defaultValue: 'Latency Diagnostics' })}
       description={t('analytics.analysis.e2e_latency_description', {
         defaultValue:
-          'Compare E2E latency, time to first token, generation time, and provider timing.',
+          'Compare E2E latency, time to first token, output window, and provider timing.',
       })}
       loading={loading}
       error={error}
@@ -428,7 +427,7 @@ export function LatencyDiagnostics({
               <p className={styles.latencyCoverage}>
                 {t('analytics.analysis.timing_coverage', {
                   defaultValue:
-                    'Generation time runs from the first to the last substantive token received by CPA. Latency runs from dispatch to the first substantive token, without packet-only fallback. Provider latency runs from dispatch to HTTP headers or the first request-specific WebSocket response frame, including network and provider wait. Missing or legacy measurements remain unavailable; created_at timestamps are excluded because clock drift and timestamp quantization make subtraction unsafe.',
+                    'The output window runs from the first to the last substantive token arrival received by CPA. Latency runs from dispatch to the first substantive token, without packet-only fallback. Provider latency runs from dispatch to HTTP headers or the first request-specific WebSocket response frame, including network and provider wait. Missing or legacy measurements remain unavailable; created_at timestamps are excluded because clock drift and timestamp quantization make subtraction unsafe.',
                 })}
               </p>
               <dl className={styles.latencyMobileSummary} aria-label={chartLabel}>

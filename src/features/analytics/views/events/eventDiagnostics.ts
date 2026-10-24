@@ -1,7 +1,12 @@
 // Pure derivations behind the event detail sheet: where a request stopped, how long each hop took,
 // and how raw provider payloads are presented. Kept free of React and i18n so the rules stay
 // testable and the sheet only renders what CPA actually recorded.
-import type { AnalyticsEvent } from '@/types';
+import type {
+  AnalyticsArrivalBasis,
+  AnalyticsEvent,
+  AnalyticsOutputTiming,
+  TokenQuality,
+} from '@/types';
 
 export type EventStepId = 'client_request' | 'cpa_dispatch' | 'provider' | 'cpa_response';
 
@@ -49,7 +54,34 @@ export type EventTiming = {
   totalMs: number | null;
   /** Shared axis maximum for every bar; null when nothing at all was recorded. */
   scaleMs: number | null;
-  throughput: { tokens: number; tokensPerSecond: number; estimated: boolean } | null;
+  /** Arrival-window rate shown with the output bar. Legacy aliases stay explicitly marked. */
+  throughput: {
+    tokens: number;
+    tokensPerSecond: number;
+    estimated: boolean;
+    legacy: boolean;
+  } | null;
+};
+
+export type EventArrivalRate =
+  | {
+      status: 'observed' | 'legacy';
+      tokensPerSecond: number;
+      estimated: boolean;
+      basis: AnalyticsArrivalBasis | null;
+      tokenQuality: TokenQuality | null;
+    }
+  | { status: 'unavailable'; reason: string | null };
+
+/** First-to-last substantive arrival evidence recorded for the attempt. */
+export type EventOutputWindow = {
+  firstArrivalMs: number;
+  lastArrivalMs: number;
+  spanMs: number;
+  arrivalCount: number | null;
+  windowTokens: number | null;
+  tokenQuality: TokenQuality | null;
+  coverage: AnalyticsArrivalBasis | null;
 };
 
 export const EVENT_STEP_IDS: readonly EventStepId[] = [
@@ -67,15 +99,87 @@ const text = (value: string | null | undefined) => {
 const finite = (value: number | null | undefined) =>
   typeof value === 'number' && Number.isFinite(value) ? value : null;
 
-/**
- * Output throughput CPA derived for the attempt. CPA owns the derivation because the estimate
- * needs the credential's acknowledgement baseline; the sheet and the table only render what the
- * server published.
- */
-export const eventSpeed = (event: AnalyticsEvent) => finite(event.tokens_per_second ?? null);
+const positive = (value: number | null | undefined) => {
+  const number = finite(value);
+  return number !== null && number > 0 ? number : null;
+};
 
-export const eventSpeedIsEstimated = (event: AnalyticsEvent) =>
-  eventSpeed(event) !== null && event.speed_estimated === true;
+/**
+ * Qualified arrival rate CPA published for the attempt. The `throughput` object is the source of
+ * truth; the flat alias is only a pre-arrival-timing compatibility value and is never promoted to
+ * a qualified observation. Absence of `throughput` therefore exposes `legacy` rather than
+ * inventing a method or quality.
+ */
+export function eventArrivalRate(event: AnalyticsEvent): EventArrivalRate {
+  const throughput = event.throughput;
+  if (throughput && typeof throughput === 'object') {
+    const rate = positive(throughput.tokens_per_second);
+    if (throughput.status === 'observed' && rate !== null) {
+      const tokenQuality = throughput.token_quality ?? null;
+      return {
+        status: 'observed',
+        tokensPerSecond: rate,
+        estimated:
+          tokenQuality === 'estimated' || (tokenQuality === null && event.speed_estimated === true),
+        basis: throughput.basis ?? null,
+        tokenQuality,
+      };
+    }
+    return { status: 'unavailable', reason: text(throughput.reason) };
+  }
+
+  const legacy = positive(event.tokens_per_second);
+  if (legacy !== null) {
+    return {
+      status: 'legacy',
+      tokensPerSecond: legacy,
+      estimated: event.speed_estimated === true,
+      basis: null,
+      tokenQuality: null,
+    };
+  }
+  return { status: 'unavailable', reason: null };
+}
+
+const RATE_REASONS = [
+  'legacy_timing',
+  'insufficient_arrivals',
+  'insufficient_span',
+  'insufficient_tokens',
+  'backpressure',
+  'frame_limit',
+  'coverage_limit',
+  'malformed_stream',
+  'unsupported_protocol',
+] as const;
+
+/** Stable i18n key for an unavailability code; unknown codes fall back to a generic sentence. */
+export const rateReasonKey = (reason: string | null) =>
+  reason && (RATE_REASONS as readonly string[]).includes(reason)
+    ? `analytics.rate_reason_${reason}`
+    : 'analytics.rate_reason_unknown';
+
+/** Whole-attempt output rate; deliberately separate from the arrival window. */
+export const eventEffectiveOutputRate = (event: AnalyticsEvent) =>
+  positive(event.effective_output_tokens_per_second);
+
+/** Durable first-to-last arrival evidence, or null when the row has none recorded. */
+export function eventOutputWindow(event: AnalyticsEvent): EventOutputWindow | null {
+  const timing: AnalyticsOutputTiming | null | undefined = event.output_timing;
+  if (!timing || timing.version !== 1 || timing.status !== 'observed') return null;
+  const first = finite(timing.first_arrival_ns);
+  const last = finite(timing.last_arrival_ns);
+  if (first === null || last === null || first < 0 || last <= first) return null;
+  return {
+    firstArrivalMs: first / 1_000_000,
+    lastArrivalMs: last / 1_000_000,
+    spanMs: (last - first) / 1_000_000,
+    arrivalCount: finite(timing.arrival_count),
+    windowTokens: finite(timing.window_tokens),
+    tokenQuality: timing.token_quality ?? null,
+    coverage: timing.coverage ?? null,
+  };
+}
 
 const epochMs = (value: string | null | undefined) => {
   const raw = text(value);
@@ -301,11 +405,17 @@ export function buildEventTiming(event: AnalyticsEvent): EventTiming {
   const scale = Math.max(totalMs ?? 0, measuredEnd);
 
   const outputTokens = finite(event.tokens?.output ?? null) ?? 0;
-  const speed = eventSpeed(event);
+  const arrival = eventArrivalRate(event);
+  const window = eventOutputWindow(event);
   const throughput =
-    speed === null
+    arrival.status === 'unavailable'
       ? null
-      : { tokens: outputTokens, tokensPerSecond: speed, estimated: eventSpeedIsEstimated(event) };
+      : {
+          tokens: window?.windowTokens ?? outputTokens,
+          tokensPerSecond: arrival.tokensPerSecond,
+          estimated: arrival.estimated,
+          legacy: arrival.status === 'legacy',
+        };
 
   return { rows, totalMs, scaleMs: scale > 0 ? scale : null, throughput };
 }
