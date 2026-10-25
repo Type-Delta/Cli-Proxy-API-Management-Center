@@ -585,7 +585,7 @@
     "source_loaded_fallback": "CPA 未返回来源选项；该控件使用加载事件中的值。",
     "speed": "到达速率",
     "speed_estimate": "近似令牌数",
-    "speed_estimate_badge": "≈",
+    "speed_estimate_badge": "EST",
     "status_code": "状态码",
     "tokens_per_second": "{{value}} 个令牌/秒",
     "arrival_rate": "到达速率",

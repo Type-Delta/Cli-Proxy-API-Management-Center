@@ -479,7 +479,8 @@ test('event details keep the arrival rate and effective output rate separate', (
   expect(html).toContain('Arrival window');
   // A stale estimate must never replace, qualify, or sit beside the measured rate.
   expect(html).not.toContain('Estimated arrival rate');
-  expect(html).not.toContain('>EST<');
+  // The measured estimated-token rate carries the shared EST marker; the stale 999 estimate adds none.
+  expect(html.match(/>EST</g) ?? []).toHaveLength(1);
   expect(html).not.toContain('999 tokens/s');
 });
 

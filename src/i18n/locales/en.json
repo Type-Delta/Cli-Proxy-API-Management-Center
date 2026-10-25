@@ -433,7 +433,7 @@
     "source_loaded_fallback": "CPA did not return Source options; this control uses values from loaded events.",
     "speed": "Arrival rate",
     "speed_estimate": "Approximate token count",
-    "speed_estimate_badge": "≈",
+    "speed_estimate_badge": "EST",
     "status_code": "Status code",
     "tokens_per_second": "{{value}} tokens/s",
     "arrival_rate": "Arrival rate",

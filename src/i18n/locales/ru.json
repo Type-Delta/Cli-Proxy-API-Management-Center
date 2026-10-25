@@ -584,7 +584,7 @@
     "source_loaded_fallback": "CPA не вернул варианты источника; этот элемент управления использует значения из загруженных событий.",
     "speed": "Скорость поступления",
     "speed_estimate": "Приблизительное число токенов",
-    "speed_estimate_badge": "≈",
+    "speed_estimate_badge": "EST",
     "status_code": "Код состояния",
     "tokens_per_second": "{{value}} токенов/с",
     "arrival_rate": "Скорость поступления",

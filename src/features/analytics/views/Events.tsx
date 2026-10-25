@@ -540,12 +540,12 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                   : undefined
               }
             >
+              {speedText}
               {approximate ? (
                 <small className={styles.speedEstimateBadge} aria-hidden="true">
-                  {t('analytics.speed_estimate_badge', { defaultValue: '≈' })}
+                  {t('analytics.speed_estimate_badge', { defaultValue: 'EST' })}
                 </small>
               ) : null}
-              {speedText}
               {arrival.status === 'legacy' ? (
                 <small className={styles.speedEstimateBadge}>
                   {t('analytics.legacy_badge', { defaultValue: 'Legacy' })}

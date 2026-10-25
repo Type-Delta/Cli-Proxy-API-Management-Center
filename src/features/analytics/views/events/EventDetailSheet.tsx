@@ -86,11 +86,6 @@ export function EventDetailSheet({
     });
   const observedRate = arrivalRate?.status === 'observed' ? arrivalRate : null;
   const legacyRate = arrivalRate?.status === 'legacy' ? arrivalRate : null;
-  const approximation = (
-    <span className={styles.rateApprox} aria-hidden="true">
-      ≈
-    </span>
-  );
   const rateTitle = (estimated: boolean, extra?: string) =>
     [
       estimated
@@ -125,13 +120,16 @@ export function EventDetailSheet({
     if (!arrivalRate.estimated) return value;
     return (
       <span
+        className={styles.estimateValue}
         aria-label={t('analytics.arrival_rate_approx_aria', {
           value,
           defaultValue: 'Approximate arrival rate: {{value}}',
         })}
       >
-        {approximation}
         {value}
+        <small className={styles.estimateBadge} aria-hidden="true">
+          {t('analytics.speed_estimate_badge', { defaultValue: 'EST' })}
+        </small>
       </span>
     );
   })();
@@ -515,12 +513,14 @@ export function EventDetailSheet({
                     defaultValue: 'Effective output rate',
                   })}
                   value={
-                    event?.tokens.quality === 'estimated'
-                      ? t('analytics.approximate_value', {
-                          value: formatRate(effectiveRate),
-                          defaultValue: '≈ {{value}}',
-                        })
-                      : formatRate(effectiveRate)
+                    <span className={styles.estimateValue}>
+                      {formatRate(effectiveRate)}
+                      {event?.tokens.quality === 'estimated' ? (
+                        <small className={styles.estimateBadge}>
+                          {t('analytics.speed_estimate_badge', { defaultValue: 'EST' })}
+                        </small>
+                      ) : null}
+                    </span>
                   }
                   title={effectiveTitle}
                 />

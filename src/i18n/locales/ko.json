@@ -433,7 +433,7 @@
     "source_loaded_fallback": "CPA가 소스 옵션을 반환하지 않았습니다. 이 컨트롤은 로드된 이벤트의 값을 사용합니다.",
     "speed": "도착 속도",
     "speed_estimate": "대략적 토큰 수",
-    "speed_estimate_badge": "≈",
+    "speed_estimate_badge": "EST",
     "status_code": "상태 코드",
     "tokens_per_second": "초당 {{value}} 토큰",
     "arrival_rate": "도착 속도",

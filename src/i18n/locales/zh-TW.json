@@ -585,7 +585,7 @@
     "source_loaded_fallback": "CPA 未傳回來源選項；此控制項使用載入事件中的值。",
     "speed": "到達速率",
     "speed_estimate": "近似權杖數",
-    "speed_estimate_badge": "≈",
+    "speed_estimate_badge": "EST",
     "status_code": "狀態碼",
     "tokens_per_second": "{{value}} 個令牌/秒",
     "arrival_rate": "到達速率",

@@ -70,14 +70,16 @@ export function EventTimingGraph({
   };
 
   const generationLabel = timing.throughput
-    ? (timing.throughput.estimated ? '≈ ' : '') +
-      t('analytics.event_detail.generation_label', {
+    ? t('analytics.event_detail.generation_label', {
         tokens: formatNumber(timing.throughput.tokens, locale),
         rate: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(
           timing.throughput.tokensPerSecond
         ),
         defaultValue: '{{tokens}} tokens \u00b7 {{rate}} tok/s',
       }) +
+      (timing.throughput.estimated
+        ? ` · ${t('analytics.speed_estimate_badge', { defaultValue: 'EST' })}`
+        : '') +
       (timing.throughput.legacy
         ? ` · ${t('analytics.legacy_badge', { defaultValue: 'Legacy' })}`
         : '')
