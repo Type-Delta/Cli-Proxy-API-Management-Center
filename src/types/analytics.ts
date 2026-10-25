@@ -173,6 +173,33 @@ export type AnalyticsThroughput = {
 };
 
 /**
+ * Fallback arrival-rate estimate derived from earlier comparable requests. The server omits this
+ * object when the request itself has a measured arrival window, so it never competes with an
+ * observation. Quantiles describe historical measurements, not confidence or future outcomes.
+ */
+export type AnalyticsThroughputEstimate = {
+  status: 'estimated' | 'unavailable';
+  method: 'cohort_median_v1';
+  /** Present only when status is `estimated`. */
+  tokens_per_second?: number;
+  /** Empirical P10/P90 of comparable historical arrival rates, never a confidence interval. */
+  historical_p10?: number;
+  historical_p90?: number;
+  training_samples: number;
+  validation_samples: number;
+  /** Validation errors and coverage are fractions, not percentages. */
+  validation_median_ape?: number;
+  validation_p90_ape?: number;
+  validation_range_coverage?: number;
+  relative_spread?: number;
+  history_start?: string;
+  history_end?: string;
+  as_of: string;
+  /** Frozen unavailability code; empty when estimated. */
+  reason?: string;
+};
+
+/**
  * Durable diagnostic evidence behind the arrival rate. Offsets are measured from dispatch on
  * CPA's monotonic clock; the window spans the first through last substantive source-read batch.
  */
@@ -227,6 +254,8 @@ export type AnalyticsEvent = {
   generation_time_ms?: number | null;
   /** Qualified arrival-window throughput. Always present on CPA versions with arrival timing. */
   throughput?: AnalyticsThroughput | null;
+  /** Fallback estimate for unmeasured requests; absent when this request was measured. */
+  throughput_estimate?: AnalyticsThroughputEstimate | null;
   /** Whole-attempt output tokens divided by total duration; distinct from the arrival rate. */
   effective_output_tokens_per_second?: number | null;
   /** Raw measurement evidence; omitted for legacy rows and older CPA versions. */

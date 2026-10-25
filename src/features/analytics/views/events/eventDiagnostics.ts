@@ -159,6 +159,99 @@ export const rateReasonKey = (reason: string | null) =>
     ? `analytics.rate_reason_${reason}`
     : 'analytics.rate_reason_unknown';
 
+/** Normalized fallback estimate for an unmeasured request, or null when it does not apply. */
+export type EventArrivalEstimate =
+  | {
+      status: 'estimated';
+      tokensPerSecond: number;
+      historicalP10: number | null;
+      historicalP90: number | null;
+      trainingSamples: number;
+      validationSamples: number;
+      validationMedianApe: number | null;
+      validationP90Ape: number | null;
+      validationRangeCoverage: number | null;
+      relativeSpread: number | null;
+      historyStart: string | null;
+      historyEnd: string | null;
+      asOf: string | null;
+    }
+  | { status: 'unavailable'; reason: string | null };
+
+const fraction = (value: number | null | undefined) => {
+  const number = finite(value);
+  return number !== null && number >= 0 && number <= 1 ? number : null;
+};
+
+/** Non-negative ratio such as a spread relative to the median; not bounded at one. */
+const ratio = (value: number | null | undefined) => {
+  const number = finite(value);
+  return number !== null && number >= 0 ? number : null;
+};
+
+const count = (value: number | null | undefined) => {
+  const number = finite(value);
+  return number !== null && number >= 0 ? Math.floor(number) : 0;
+};
+
+/**
+ * Fallback arrival-rate estimate published for a request CPA could not measure. A measured window
+ * or an old-server alias always wins, so a stale estimate can never dress up as an observation.
+ * Estimates are also kept out of `buildEventTiming`; they describe a comparable cohort, not this
+ * request's output window.
+ */
+export function eventArrivalEstimate(event: AnalyticsEvent): EventArrivalEstimate | null {
+  const estimate = event.throughput_estimate;
+  if (!estimate || typeof estimate !== 'object') return null;
+  if (eventArrivalRate(event).status !== 'unavailable') return null;
+  if (estimate.status !== 'estimated') {
+    return { status: 'unavailable', reason: text(estimate.reason) };
+  }
+  const rate = positive(estimate.tokens_per_second);
+  if (rate === null) return { status: 'unavailable', reason: text(estimate.reason) };
+  return {
+    status: 'estimated',
+    tokensPerSecond: rate,
+    historicalP10: positive(estimate.historical_p10),
+    historicalP90: positive(estimate.historical_p90),
+    trainingSamples: count(estimate.training_samples),
+    validationSamples: count(estimate.validation_samples),
+    validationMedianApe: fraction(estimate.validation_median_ape),
+    validationP90Ape: fraction(estimate.validation_p90_ape),
+    validationRangeCoverage: fraction(estimate.validation_range_coverage),
+    relativeSpread: ratio(estimate.relative_spread),
+    historyStart: text(estimate.history_start),
+    historyEnd: text(estimate.history_end),
+    asOf: text(estimate.as_of),
+  };
+}
+
+const ESTIMATE_REASONS = [
+  'observed_available',
+  'failed_request',
+  'ineligible_metadata',
+  'insufficient_history',
+  'stale_history',
+  'validation_failed',
+  'history_unavailable',
+] as const;
+
+/** Stable i18n key for an estimate unavailability code, spelled out in plain language. */
+export const estimateReasonKey = (reason: string | null) =>
+  reason && (ESTIMATE_REASONS as readonly string[]).includes(reason)
+    ? `analytics.estimate_reason_${reason}`
+    : 'analytics.estimate_reason_unknown';
+
+/**
+ * Reasons worth their own detail row. Failed, ineligible, and already-observed requests repeat the
+ * measured-rate gap, while a cohort with too little, stale, or unstable history adds new evidence.
+ */
+export const estimateUnavailableExplainsMore = (reason: string | null) =>
+  reason === 'insufficient_history' ||
+  reason === 'stale_history' ||
+  reason === 'validation_failed' ||
+  reason === 'history_unavailable';
+
 /** Whole-attempt output rate; deliberately separate from the arrival window. */
 export const eventEffectiveOutputRate = (event: AnalyticsEvent) =>
   positive(event.effective_output_tokens_per_second);
@@ -405,6 +498,8 @@ export function buildEventTiming(event: AnalyticsEvent): EventTiming {
   const scale = Math.max(totalMs ?? 0, measuredEnd);
 
   const outputTokens = finite(event.tokens?.output ?? null) ?? 0;
+  // Only a measured arrival window may draw the output bar. Estimates and unmeasured rows stay
+  // out of the graph so the bar never implies timing evidence CPA did not record.
   const arrival = eventArrivalRate(event);
   const window = eventOutputWindow(event);
   const throughput =

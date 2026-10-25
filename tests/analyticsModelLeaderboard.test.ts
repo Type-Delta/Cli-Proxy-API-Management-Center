@@ -244,7 +244,7 @@ describe('model leaderboard award card rendering', () => {
     const markup = render('speed', [row(1, 'glm-5.3-flash', 1500, { samples: 15, attempts: 100 })]);
     expect(markup).toContain('P70 observed token arrival rate');
     expect(markup).toContain('at least 80 tok/s');
-    expect(markup).toContain('Generation-speed prediction is unavailable');
+    expect(markup).toContain('estimates never affect it');
     expect(markup).toContain('15 of 100 successful requests measured');
     expect(markup).not.toContain('failed');
   });

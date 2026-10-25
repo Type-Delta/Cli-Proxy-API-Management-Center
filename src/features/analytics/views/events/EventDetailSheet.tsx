@@ -19,10 +19,13 @@ import { CopyButton, Fact, RawPayload, StatusPill } from './EventDetailParts';
 import {
   buildEventTiming,
   buildEventTimeline,
+  eventArrivalEstimate,
   eventArrivalRate,
   eventEffectiveOutputRate,
   eventFailureHop,
   eventOutputWindow,
+  estimateReasonKey,
+  estimateUnavailableExplainsMore,
   formatPreciseTime,
   hasHopInstrumentation,
   normalizeRawUsage,
@@ -68,6 +71,7 @@ export function EventDetailSheet({
   const steps = useMemo(() => (event ? buildEventTimeline(event) : []), [event]);
   const timing = useMemo(() => (event ? buildEventTiming(event) : null), [event]);
   const arrivalRate = useMemo(() => (event ? eventArrivalRate(event) : null), [event]);
+  const arrivalEstimate = useMemo(() => (event ? eventArrivalEstimate(event) : null), [event]);
   const effectiveRate = useMemo(() => (event ? eventEffectiveOutputRate(event) : null), [event]);
   const outputWindow = useMemo(() => (event ? eventOutputWindow(event) : null), [event]);
   const failureHop = useMemo(() => eventFailureHop(steps), [steps]);
@@ -95,10 +99,6 @@ export function EventDetailSheet({
           })
         : '',
       extra ?? '',
-      t('analytics.rate_prediction_unavailable', {
-        defaultValue:
-          'Generation-speed prediction is unavailable until enough qualified arrival data is collected.',
-      }),
     ]
       .filter(Boolean)
       .join(' ');
@@ -143,6 +143,95 @@ export function EventDetailSheet({
           }),
         })
       : '';
+  const formatRateNumber = (value: number) =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
+  const formatFraction = (value: number) =>
+    new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 1 }).format(value);
+  const estimateUnavailable =
+    arrivalEstimate?.status === 'unavailable'
+      ? t(estimateReasonKey(arrivalEstimate.reason), {
+          defaultValue: t('analytics.estimate_reason_unknown', {
+            defaultValue: 'CPA could not estimate an arrival rate for this request.',
+          }),
+        })
+      : '';
+  const estimatedRate = arrivalEstimate?.status === 'estimated' ? arrivalEstimate : null;
+  const estimatedValue = estimatedRate ? (
+    <span className={styles.estimateValue}>
+      {formatRate(estimatedRate.tokensPerSecond)}
+      <small className={styles.estimateBadge}>
+        {t('analytics.estimate_badge', { defaultValue: 'EST' })}
+      </small>
+    </span>
+  ) : null;
+  const estimatedRange = estimatedRate
+    ? estimatedRate.historicalP10 !== null && estimatedRate.historicalP90 !== null
+      ? t('analytics.estimate_historical_range_value', {
+          p10: formatRateNumber(estimatedRate.historicalP10),
+          p90: formatRateNumber(estimatedRate.historicalP90),
+          defaultValue: '{{p10}}–{{p90}} tokens/s',
+        })
+      : null
+    : null;
+  const estimatedEvidence = estimatedRate
+    ? t('analytics.estimate_samples', {
+        training: new Intl.NumberFormat(locale).format(estimatedRate.trainingSamples),
+        validation: new Intl.NumberFormat(locale).format(estimatedRate.validationSamples),
+        defaultValue: '{{training}} training · {{validation}} validation',
+      })
+    : null;
+  const estimatedEvidenceTitle = estimatedRate
+    ? [
+        estimatedRate.validationMedianApe !== null &&
+        estimatedRate.validationP90Ape !== null &&
+        estimatedRate.validationRangeCoverage !== null
+          ? t('analytics.estimate_validation_hint', {
+              validation: new Intl.NumberFormat(locale).format(estimatedRate.validationSamples),
+              median: formatFraction(estimatedRate.validationMedianApe),
+              p90: formatFraction(estimatedRate.validationP90Ape),
+              coverage: formatFraction(estimatedRate.validationRangeCoverage),
+              defaultValue:
+                'Validated on the {{validation}} newest observations: median error {{median}}, P90 error {{p90}}, and {{coverage}} fell inside the historical range.',
+            })
+          : '',
+        estimatedRate.relativeSpread !== null
+          ? t('analytics.estimate_spread_hint', {
+              spread: formatFraction(estimatedRate.relativeSpread),
+              defaultValue: 'The historical P10–P90 range spans {{spread}} of the median rate.',
+            })
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+    : undefined;
+  const estimatedHistory =
+    estimatedRate && estimatedRate.historyStart && estimatedRate.historyEnd
+      ? t('analytics.estimate_history_value', {
+          start: formatDateTime(estimatedRate.historyStart, locale),
+          end: formatDateTime(estimatedRate.historyEnd, locale),
+          defaultValue: '{{start}} – {{end}}',
+        })
+      : null;
+  const estimatedHistoryTitle =
+    estimatedRate && estimatedRate.asOf
+      ? t('analytics.estimate_history_hint', {
+          asOf: formatDateTime(estimatedRate.asOf, locale),
+          defaultValue:
+            'Only comparable requests that completed before this one were used. History cutoff: {{asOf}}.',
+        })
+      : undefined;
+  // Native details keeps the long validation and history notes reachable by touch and keyboard;
+  // Fact values stay short and are never given block-level children.
+  const estimateExplanation = estimatedRate
+    ? [
+        estimatedEvidenceTitle,
+        t('analytics.estimate_historical_range_hint', {
+          defaultValue:
+            'P10–P90 of arrival rates measured on comparable earlier requests. This is an observed spread, not a confidence interval or a guaranteed future range.',
+        }),
+        estimatedHistoryTitle,
+      ].filter((line): line is string => Boolean(line))
+    : [];
   const effectiveTitle = [
     t('analytics.effective_output_rate_hint', {
       defaultValue:
@@ -343,6 +432,73 @@ export function EventDetailSheet({
                   }
                 />
               )}
+              {estimatedRate ? (
+                <Fact
+                  label={t('analytics.estimated_arrival_rate', {
+                    defaultValue: 'Estimated arrival rate',
+                  })}
+                  value={
+                    <span
+                      aria-label={t('analytics.estimated_arrival_rate_aria', {
+                        value: formatRate(estimatedRate.tokensPerSecond),
+                        defaultValue: 'Estimated arrival rate: {{value}}',
+                      })}
+                    >
+                      {estimatedValue}
+                    </span>
+                  }
+                  title={t('analytics.estimate_hint', {
+                    defaultValue:
+                      'Median arrival rate of earlier comparable requests. It is not a measured rate for this request and does not predict provider decode speed.',
+                  })}
+                />
+              ) : null}
+              {arrivalEstimate?.status === 'unavailable' &&
+              estimateUnavailableExplainsMore(arrivalEstimate.reason) ? (
+                <Fact
+                  label={t('analytics.estimated_arrival_rate', {
+                    defaultValue: 'Estimated arrival rate',
+                  })}
+                  value={t('analytics.unavailable_with_reason', {
+                    reason: estimateUnavailable,
+                    defaultValue: 'Unavailable — {{reason}}',
+                  })}
+                  wide
+                  title={t('analytics.estimate_unavailable_hint', {
+                    defaultValue: 'CPA has no qualified estimate for this request.',
+                  })}
+                />
+              ) : null}
+              {estimatedRate ? (
+                <Fact
+                  label={t('analytics.estimate_historical_range', {
+                    defaultValue: 'Historical range',
+                  })}
+                  value={estimatedRange}
+                  title={t('analytics.estimate_historical_range_hint', {
+                    defaultValue:
+                      'P10–P90 of arrival rates measured on comparable earlier requests. This is an observed spread, not a confidence interval or a guaranteed future range.',
+                  })}
+                />
+              ) : null}
+              {estimatedRate ? (
+                <Fact
+                  label={t('analytics.estimate_evidence', {
+                    defaultValue: 'Estimate evidence',
+                  })}
+                  value={estimatedEvidence}
+                  title={estimatedEvidenceTitle}
+                />
+              ) : null}
+              {estimatedHistory ? (
+                <Fact
+                  label={t('analytics.estimate_history', {
+                    defaultValue: 'History window',
+                  })}
+                  value={estimatedHistory}
+                  title={estimatedHistoryTitle}
+                />
+              ) : null}
               {observedRate?.basis ? (
                 <Fact
                   label={t('analytics.rate_basis', { defaultValue: 'Token source' })}
@@ -391,6 +547,16 @@ export function EventDetailSheet({
                 />
               ) : null}
             </dl>
+            {estimateExplanation.length ? (
+              <details className={styles.estimateDetails}>
+                <summary>
+                  {t('analytics.estimate_details', { defaultValue: 'Estimate details' })}
+                </summary>
+                {estimateExplanation.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </details>
+            ) : null}
           </section>
 
           {hopSection(

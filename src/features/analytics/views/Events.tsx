@@ -68,7 +68,7 @@ import {
   loadEventDimensionRows,
   retentionCutoffFromError,
 } from './events/eventRequests';
-import { eventArrivalRate, rateReasonKey } from './events/eventDiagnostics';
+import { eventArrivalEstimate, eventArrivalRate, rateReasonKey } from './events/eventDiagnostics';
 import styles from './events/Events.module.scss';
 
 const eventSource = (event: AnalyticsEvent) => event.source?.trim() ?? '';
@@ -476,9 +476,36 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
         );
       case 'speed':
         if (arrival.status === 'unavailable') {
+          const estimate = eventArrivalEstimate(event);
+          if (estimate?.status !== 'estimated') {
+            return (
+              <span title={arrivalReasonLabel(t, arrival.reason)}>
+                {t('analytics.unavailable', { defaultValue: 'Unavailable' })}
+              </span>
+            );
+          }
+          const estimatedText = t('analytics.tokens_per_second', {
+            value: new Intl.NumberFormat(i18n.resolvedLanguage, {
+              maximumFractionDigits: 1,
+            }).format(estimate.tokensPerSecond),
+            defaultValue: '{{value}} tokens/s',
+          });
           return (
-            <span title={arrivalReasonLabel(t, arrival.reason)}>
-              {t('analytics.unavailable', { defaultValue: 'Unavailable' })}
+            <span
+              className={styles.speedWithEstimate}
+              title={t('analytics.estimate_hint', {
+                defaultValue:
+                  'Median arrival rate of earlier comparable requests. It is not a measured rate for this request and does not predict provider decode speed.',
+              })}
+              aria-label={t('analytics.estimated_arrival_rate_aria', {
+                value: estimatedText,
+                defaultValue: 'Estimated arrival rate: {{value}}',
+              })}
+            >
+              {estimatedText}
+              <small className={styles.speedEstimateBadge}>
+                {t('analytics.estimate_badge', { defaultValue: 'EST' })}
+              </small>
             </span>
           );
         }

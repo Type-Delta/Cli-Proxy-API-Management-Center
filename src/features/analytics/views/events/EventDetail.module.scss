@@ -410,6 +410,47 @@
   color: var(--text-secondary);
 }
 
+.estimateValue {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.estimateBadge {
+  padding: 0 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 16px;
+}
+
+.estimateDetails {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+
+  summary {
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+
+    &:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+  }
+
+  p {
+    margin: 6px 0 0;
+  }
+}
+
 // Fact lists ---------------------------------------------------------------
 .factGrid {
   display: grid;

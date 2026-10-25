@@ -5,10 +5,12 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 import { EventDetailSheet } from '@/features/analytics/views/events/EventDetailSheet';
 import { EventTimingGraph } from '@/features/analytics/views/events/EventTimingGraph';
+import { formatDateTime } from '@/features/analytics/components/analyticsFormatting';
 import type { AnalyticsEvent } from '@/types';
 import {
   buildEventTimeline,
   buildEventTiming,
+  eventArrivalEstimate,
   eventFailureHop,
   formatUpstreamTarget,
   hasHopInstrumentation,
@@ -448,6 +450,16 @@ test('event details keep the arrival rate and effective output rate separate', (
             token_quality: 'estimated',
           },
           effective_output_tokens_per_second: 42.5,
+          throughput_estimate: {
+            status: 'estimated',
+            method: 'cohort_median_v1',
+            tokens_per_second: 999,
+            historical_p10: 900,
+            historical_p90: 1_000,
+            training_samples: 50,
+            validation_samples: 20,
+            as_of: '2026-09-09T10:00:00.500Z',
+          },
         }),
         loading: false,
         error: '',
@@ -465,7 +477,10 @@ test('event details keep the arrival rate and effective output rate separate', (
   expect(html).toContain('Effective output rate');
   expect(html).toContain('42.5 tokens/s');
   expect(html).toContain('Arrival window');
-  expect(html).toContain('Generation-speed prediction is unavailable');
+  // A stale estimate must never replace, qualify, or sit beside the measured rate.
+  expect(html).not.toContain('Estimated arrival rate');
+  expect(html).not.toContain('>EST<');
+  expect(html).not.toContain('999 tokens/s');
 });
 
 test('event details explain unavailable arrival evidence in plain language', () => {
@@ -622,4 +637,188 @@ test('event details show the unclassified token remainder, including zero', () =
     quality: 'exact',
   });
   expect(fullyClassified).toMatch(/Unclassified<\/dt><dd[^>]*><span[^>]*>0<\/span>/);
+});
+
+const estimatePayload = (overrides: Record<string, unknown> = {}) => ({
+  status: 'estimated' as const,
+  method: 'cohort_median_v1' as const,
+  tokens_per_second: 212.5,
+  historical_p10: 120,
+  historical_p90: 310,
+  training_samples: 50,
+  validation_samples: 20,
+  validation_median_ape: 0.123,
+  validation_p90_ape: 0.284,
+  validation_range_coverage: 0.9,
+  relative_spread: 0.8,
+  history_start: '2026-09-09T08:00:00.000Z',
+  history_end: '2026-09-09T09:58:00.000Z',
+  as_of: '2026-09-09T10:00:00.000Z',
+  ...overrides,
+});
+
+const renderDetail = (event: AnalyticsEvent) =>
+  renderToStaticMarkup(
+    createElement(
+      I18nextProvider,
+      { i18n },
+      createElement(EventDetailSheet, {
+        open: true,
+        event,
+        loading: false,
+        error: '',
+        keyIdentity: 'test-key',
+        onClose: () => {},
+        onRetry: () => {},
+      })
+    )
+  );
+
+test('event estimates ignore a stale measured alias and only fill unmeasured events', () => {
+  const measured = fullyInstrumented({
+    throughput: {
+      status: 'observed',
+      method: 'arrival_window_v1',
+      tokens_per_second: 640.5,
+      basis: 'visible_deltas',
+      token_quality: 'exact',
+    },
+    throughput_estimate: estimatePayload(),
+  });
+  expect(eventArrivalEstimate(measured)).toBeNull();
+
+  const legacy = fullyInstrumented({
+    throughput: undefined,
+    tokens_per_second: 250,
+    speed_estimated: true,
+    throughput_estimate: estimatePayload(),
+  });
+  expect(eventArrivalEstimate(legacy)).toBeNull();
+  const legacyHtml = renderDetail(legacy);
+  expect(legacyHtml).toContain('Legacy');
+  expect(legacyHtml).not.toContain('>EST<');
+});
+
+test('event details mark an estimated fallback rate separately from approximate tokens', () => {
+  const html = renderDetail(
+    fullyInstrumented({
+      throughput: {
+        status: 'unavailable',
+        method: 'arrival_window_v1',
+        reason: 'backpressure',
+      },
+      throughput_estimate: estimatePayload(),
+      tokens: { output: 150, quality: 'estimated' },
+    })
+  );
+
+  expect(html).toContain('Estimated arrival rate');
+  expect(html).toContain('212.5 tokens/s');
+  expect(html).toContain('>EST<');
+  // The EST pill identifies a modeled arrival rate; the approximate-token marker stays distinct.
+  expect(html).not.toContain('Approximate arrival rate: 212.5 tokens/s');
+  expect(html).toContain('Historical range');
+  expect(html).toContain('120–310 tokens/s');
+  expect(html).toContain('50 training · 20 validation');
+  // Validation errors and coverage arrive as fractions and read as percentages.
+  expect(html).toContain('median error 12.3%');
+  expect(html).toContain('P90 error 28.4%');
+  expect(html).toContain('90% fell inside the historical range');
+  expect(html).toContain('History window');
+  expect(html).toContain(
+    formatDateTime('2026-09-09T08:00:00.000Z') + ' – ' + formatDateTime('2026-09-09T09:58:00.000Z')
+  );
+  expect(html).toContain(`History cutoff: ${formatDateTime('2026-09-09T10:00:00.000Z')}`);
+  expect(html).not.toContain('Estimate made at');
+  expect(html).not.toContain('cohort_median_v1');
+  // Long validation and history notes live in a native disclosure, reachable by touch and keyboard.
+  expect(html).toMatch(/<details[^>]*><summary[^>]*>Estimate details<\/summary>/);
+  expect(html).toContain('P10–P90 of arrival rates measured on comparable earlier requests.');
+  expect(html).toContain('median error 12.3%');
+});
+
+const renderUnavailableEstimate = (reason: string) =>
+  renderDetail(
+    fullyInstrumented({
+      throughput: {
+        status: 'unavailable',
+        method: 'arrival_window_v1',
+        reason: 'insufficient_arrivals',
+      },
+      throughput_estimate: {
+        status: 'unavailable',
+        method: 'cohort_median_v1',
+        training_samples: 0,
+        validation_samples: 0,
+        as_of: '2026-09-09T10:00:00.000Z',
+        reason,
+      },
+    })
+  );
+
+test('event details keep meaningful estimate gaps and drop redundant ones', () => {
+  const meaningful: Array<[string, string]> = [
+    ['insufficient_history', 'There are not yet enough earlier comparable requests'],
+    ['stale_history', 'Earlier comparable requests are too old to describe this request.'],
+    [
+      'validation_failed',
+      'Earlier comparable requests varied too much to support a reliable estimate.',
+    ],
+    ['history_unavailable', 'CPA could not load earlier requests for this estimate.'],
+  ];
+  for (const [reason, copy] of meaningful) {
+    const html = renderUnavailableEstimate(reason);
+    expect(html).toContain('Estimated arrival rate');
+    expect(html).toContain('Unavailable — ' + copy);
+    expect(html).toContain('title="CPA has no qualified estimate for this request."');
+    expect(html).not.toContain('>EST<');
+  }
+
+  // Failed or permanently ineligible requests already explain the gap on Arrival rate; a second
+  // row there would read like a defect the user could act on.
+  for (const reason of ['failed_request', 'ineligible_metadata', 'observed_available']) {
+    const html = renderUnavailableEstimate(reason);
+    expect(html).toContain('Arrival rate');
+    expect(html).not.toContain('Estimated arrival rate');
+  }
+});
+
+test('estimates never fabricate a timing bar or output window', () => {
+  const event = fullyInstrumented({
+    throughput: {
+      status: 'unavailable',
+      method: 'arrival_window_v1',
+      reason: 'insufficient_arrivals',
+    },
+    throughput_estimate: estimatePayload(),
+    generation_time_ms: 1_500,
+  });
+  const timing = buildEventTiming(event);
+
+  expect(timing.throughput).toBeNull();
+  expect(timing.rows.find((row) => row.id === 'generation')).toMatchObject({
+    durationMs: 1_500,
+  });
+  const html = renderToStaticMarkup(
+    createElement(EventTimingGraph, {
+      timing,
+      providerLabel: 'OpenAI',
+      providerStatus: 200,
+      providerFailed: false,
+    })
+  );
+  expect(html).not.toContain('tokens/s');
+  expect(html).not.toContain('EST');
+});
+
+test('speed rankings describe measured windows only in every locale', async () => {
+  for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko']) {
+    const document = (await Bun.file(`src/i18n/locales/${locale}.json`).json()) as {
+      analytics?: { leaderboard?: { award_speed_description?: string } };
+    };
+    const copy = document.analytics?.leaderboard?.award_speed_description ?? '';
+    expect(copy).toContain('80');
+    expect(copy).not.toMatch(/prediction|predict|prévision|прогноз|預測|预测|예측|dự đoán/i);
+    expect(copy).not.toBe('');
+  }
 });
