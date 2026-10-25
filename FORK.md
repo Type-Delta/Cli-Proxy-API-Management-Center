@@ -1177,6 +1177,36 @@ Follow-up on 2026-10-23: Most Talkative hides the reasoning-share line when a mo
 
 Polish on 2026-10-23: first load shows a leaderboard-shaped skeleton (chip, four cards, 2-1-3 podium, runners-up) whose geometry matches the loaded cards exactly at desktop width, through a new optional 'skeleton' slot on the shared 'AsyncState'; reloads over existing data keep the cards and show the Usage-style 'Refreshing' pill in each card's corner, dimming content on a manual refresh. Podium values count up with the shared 'AnimatedMetric' once visible. Cards gain 24px padding, the chip-to-card gap is restored (the extra AsyncState wrapper had swallowed it), and 2nd/3rd frames grow to 80px. Layout-shift observation on remount and on Refresh All reports a cumulative score of 0.0002.
 
+Loading corrections on 2026-10-25: the four award cards and their real titles and descriptions
+render immediately, with skeletons only in the ranking regions. The date portion of the real
+range chip reserves localized text width while CPA resolves the window. Neutral skeletons replace
+the text, units, medal frames, podium steps, and runners-up heading and rows until rankings arrive.
+They preserve the loaded geometry without showing award decorations prematurely. Empty awards
+retain that space behind their message, and missing runners-up retain their rail space.
+Optional mascot images show the family lab logo until the image loads, then replace it without
+changing the frame. Existing remembered
+image failures still fall back to the logo. Speed Maniac now states the backend's P70 floor of
+at least 80 tok/s in all six locales. CPA already guarantees four awards, so no metadata endpoint
+or ranking-contract change is needed.
+
+Validation on 2026-10-25: `bun run verify` with Bun 1.3.14 passes 2,115 tests, lint, TypeScript,
+and the single-file production build. Isolated Chrome CDP checks through the normal login and
+Model Leaderboard route with intercepted API fixtures cover every award size from zero through
+six models at 1440px and 390px. Card positions and heights match before and after the ranking
+response, card DOM nodes persist, and no body overflow or runtime exceptions occur. The loading
+state has no medal frames, podium steps, medals, or runners-up labels. Delayed mascots show lab
+logos; successful loads and 404 fallbacks preserve the card geometry. Mobile
+runners-up still toggle, and Refresh All retains populated cards with their refreshing status.
+Additional dark-theme checks cover Russian at 1200px and Korean at 390px. The mechanical design
+scan reports no findings.
+
+The shared Skeleton now derives contrasting gradient colors from the theme palette and swaps
+their roles in Dark mode. Its former base and highlight both resolved to `--bg-tertiary` in
+White and Light themes, so the shimmer animated without a visible color change. Chrome CDP
+checks compare resolved gradient colors in all three themes and confirm that reduced-motion
+mode still disables the animation. A paused loading state and delayed ranking/image sequence
+were recorded from lossless PNG frames to verify the visible shimmer and stable card geometry.
+
 Mascots on 2026-10-23: podium avatars gain optional family mascot art — eight 192x192 WebPs under
 'public/management-assets/mascots/<family>.webp' (claude, deepseek, gemini, glm, gpt, grok, kimi,
 qwen) referenced by relative URL, so 'dist/index.html' stays a single file and Vite copies the

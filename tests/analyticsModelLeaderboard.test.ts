@@ -5,6 +5,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import claudeLogo from '@/assets/icons/claude.svg';
 import i18n from '@/i18n';
+import { ModelLeaderboard } from '@/features/analytics/views/ModelLeaderboard';
 import { ModelLeaderboardAwardCard } from '@/features/analytics/views/leaderboard/ModelLeaderboardAwardCard';
 import {
   awardsByMetric,
@@ -114,6 +115,19 @@ describe('model family resolution', () => {
 });
 
 describe('mascot failures fall back to the lab logo', () => {
+  test('shows the lab logo while the mascot is still loading', () => {
+    const markup = renderToStaticMarkup(
+      createElement(ModelLeaderboardAwardCard, {
+        metric: 'most_used',
+        rows: [row(1, 'claude-sonnet-5-5', 1284, { providers: 3 })],
+        runnersCollapsed: false,
+      })
+    );
+    expect(markup).toContain('data-avatar-loading="true"');
+    expect(markup).toContain('aria-label="Claude logo"');
+    expect(markup).toContain('management-assets/mascots/claude.webp');
+  });
+
   test('a remembered broken url resolves to the lab logo until reset', () => {
     const mascotUrl = MODEL_FAMILY_MASCOTS.claude?.src;
     expect(mascotUrl).toBeDefined();
@@ -229,6 +243,7 @@ describe('model leaderboard award card rendering', () => {
   test('shows qualified sample coverage against successful attempts', () => {
     const markup = render('speed', [row(1, 'glm-5.3-flash', 1500, { samples: 15, attempts: 100 })]);
     expect(markup).toContain('P70 observed token arrival rate');
+    expect(markup).toContain('at least 80 tok/s');
     expect(markup).toContain('Generation-speed prediction is unavailable');
     expect(markup).toContain('15 of 100 successful requests measured');
     expect(markup).not.toContain('failed');
@@ -289,6 +304,40 @@ describe('model leaderboard award card rendering', () => {
     expect(markup).toContain('<details');
     expect(markup).not.toContain('open=""');
     expect(markup).toContain('2,931 measured');
+  });
+});
+
+describe('model leaderboard first load', () => {
+  test('replaces ranking decorations and labels with neutral skeletons while loading', () => {
+    const markup = renderToStaticMarkup(
+      createElement(ModelLeaderboardAwardCard, {
+        metric: 'most_used',
+        rows: [],
+        runnersCollapsed: false,
+        loading: true,
+      })
+    );
+    expect(markup).toContain('Most Used');
+    expect(markup).toContain('Unique sessions the model appeared in');
+    expect(markup).toContain('aria-busy="true"');
+    expect(markup).not.toContain('1st');
+    expect(markup).not.toContain('2nd');
+    expect(markup).not.toContain('3rd');
+    expect(markup).not.toContain('Runners-up');
+    expect(markup).not.toContain('>sessions<');
+  });
+
+  test('renders the range chip and all four real card headers before rankings arrive', () => {
+    const markup = renderToStaticMarkup(createElement(ModelLeaderboard));
+    expect((markup.match(/<section /g) ?? []).length).toBe(4);
+    expect((markup.match(/aria-labelledby="leaderboard-award-/g) ?? []).length).toBe(4);
+    expect(markup).toContain('Most Used');
+    expect(markup).toContain('Most Reliable');
+    expect(markup).toContain('Speed Maniac');
+    expect(markup).toContain('Most Talkative');
+    expect(markup).toContain('Past 7 days');
+    expect(markup).toContain('at least 80 tok/s');
+    expect(markup).not.toContain('No model reached');
   });
 });
 

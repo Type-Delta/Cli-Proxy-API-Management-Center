@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { analyticsApi } from '@/services/api';
 import { AsyncState } from '../components/AnalyticsShared';
-import { ModelLeaderboardSkeleton } from './leaderboard/ModelLeaderboardSkeleton';
 import { useAnalyticsLoad as useLoad } from '../useAnalyticsLoad';
 import {
   awardsByMetric,
@@ -33,33 +32,51 @@ function useCompactRunners(): boolean {
 /**
  * Standalone Model Leaderboard: a fixed rolling week across every provider and credential, so
  * the global analytics filters do not apply and the resolved window comes from the response.
+ * Cards own their loading state; AsyncState handles request errors without replacing the cards.
  */
 export function ModelLeaderboard() {
   const { t, i18n } = useTranslation();
   const runnersCollapsed = useCompactRunners();
   const leaderboard = useLoad(() => analyticsApi.modelLeaderboard(), 'model-leaderboard');
   const data = leaderboard.data;
+  const [initialEnd] = useState(() => new Date());
   const awards = useMemo(() => (data ? awardsByMetric(data) : null), [data]);
-  const dates = data ? formatLeaderboardRange(data.start, data.end, i18n.resolvedLanguage) : '';
+  // Reserve localized date widths while CPA resolves the rolling window. Only confirmed dates show.
+  const dates = formatLeaderboardRange(
+    data?.start ?? new Date(initialEnd.getTime() - 7 * 86_400_000).toISOString(),
+    data?.end ?? initialEnd.toISOString(),
+    i18n.resolvedLanguage
+  );
 
   return (
     <div className={styles.leaderboard} data-analytics-model-leaderboard>
       <AsyncState
-        loading={leaderboard.loading && !data}
+        loading={false}
         error={leaderboard.error}
         errorStatus={leaderboard.errorStatus}
         retryAt={leaderboard.retryAt}
         onRetry={() => void leaderboard.refresh()}
-        skeleton={<ModelLeaderboardSkeleton />}
       >
-        {data && awards && (
+        {(leaderboard.loading || data) && (
           <div className={styles.content}>
             <p className={styles.toolbar}>
               <span className={styles.rangeChip}>
-                {t('analytics.leaderboard.range_label', {
-                  range: t('analytics.range.past_7_days', { defaultValue: 'Past 7 days' }),
-                  dates,
-                })}
+                <Trans
+                  i18nKey="analytics.leaderboard.range_label"
+                  values={{
+                    range: t('analytics.range.past_7_days', { defaultValue: 'Past 7 days' }),
+                    dates,
+                  }}
+                  components={{
+                    dates: (
+                      <span
+                        className={styles.rangeDates}
+                        data-loading={!data || undefined}
+                        aria-hidden={!data || undefined}
+                      />
+                    ),
+                  }}
+                />
               </span>
             </p>
             <div className={styles.awards}>
@@ -67,9 +84,10 @@ export function ModelLeaderboard() {
                 <ModelLeaderboardAwardCard
                   key={metric}
                   metric={metric}
-                  rows={awards[metric]}
+                  rows={awards?.[metric] ?? []}
                   runnersCollapsed={runnersCollapsed}
-                  refreshing={leaderboard.loading}
+                  loading={leaderboard.loading && !data}
+                  refreshing={leaderboard.loading && !!data}
                 />
               ))}
             </div>

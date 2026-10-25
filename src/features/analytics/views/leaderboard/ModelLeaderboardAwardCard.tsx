@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { AnimatedMetric } from '../../components/AnimatedMetric';
 import type { AnalyticsModelLeaderboardMetric, AnalyticsModelLeaderboardRow } from '@/types';
@@ -99,21 +100,77 @@ function avatarAlt(model: string, kind: 'mascot' | 'logo', t: TFunction) {
   );
 }
 
+/** Keeps the lab logo visible until this optional image has decoded, including on cache hits. */
+function MascotImage({
+  model,
+  src,
+  className = '',
+  onError,
+}: {
+  model: string;
+  src: string;
+  className?: string;
+  onError: (url: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <span className={styles.avatarArt + ' ' + className} data-avatar-loading={!loaded}>
+      {!loaded && (
+        <span className={styles.avatarFallback} role="img" aria-label={avatarAlt(model, 'logo', t)}>
+          <FamilyGlyph model={model} className={styles.avatarLogo} />
+        </span>
+      )}
+      <img
+        className={styles.avatarMascot}
+        src={src}
+        alt={avatarAlt(model, 'mascot', t)}
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        onError={() => onError(src)}
+      />
+    </span>
+  );
+}
+
+/** Neutral bars reserve each rank's text, avatar, and podium space until rankings arrive. */
+function PodSkeleton({ rank }: { rank: 1 | 2 | 3 }) {
+  return (
+    <li className={styles.pod + ' ' + MEDAL_CLASS[rank]} aria-hidden="true">
+      <div className={styles.name}>
+        <Skeleton width="80%" height={12} rounded={6} />
+      </div>
+      <div className={styles.value}>
+        <Skeleton width="3ch" height="1.2em" rounded={6} />
+        <Skeleton className={styles.unit} width="5ch" height="1.2em" rounded={4} />
+      </div>
+      <div className={styles.sub + ' ' + styles.skeletonLine}>
+        <Skeleton width="80%" height={11} rounded={6} />
+      </div>
+      <Skeleton className={rank === 1 ? styles.frameLg : styles.frameMd} rounded={16} />
+      <Skeleton className={styles.skeletonStep + ' ' + STEP_CLASS[rank]} />
+    </li>
+  );
+}
+
 /**
  * One award: header and runners-up in the right column, the 2nd-1st-3rd podium on the left.
- * Empty awards collapse to a calm message; partially filled podiums keep placeholder slots.
+ * Loading and empty awards retain the podium space; partial podiums keep placeholder slots.
  */
 export function ModelLeaderboardAwardCard({
   metric,
   rows,
   runnersCollapsed,
   refreshing = false,
+  loading = false,
 }: {
   metric: AnalyticsModelLeaderboardMetric;
   rows: AnalyticsModelLeaderboardRow[];
   runnersCollapsed: boolean;
   /** Reload over existing data: keep the card and show the Usage-style corner pill. */
   refreshing?: boolean;
+  /** First load keeps the real card header and reserves the ranking layout. */
+  loading?: boolean;
 }) {
   const onMascotError = useMascotOnError();
   const { t, i18n } = useTranslation();
@@ -165,35 +222,49 @@ export function ModelLeaderboardAwardCard({
         />
       );
     }
+    if (avatar.kind === 'mascot') {
+      return (
+        <>
+          <MascotImage
+            key={avatar.art.src}
+            model={model}
+            src={avatar.art.src}
+            className={styles.glyphLight + (avatar.art.darkSrc ? ' ' + styles.glyphHasDark : '')}
+            onError={onMascotError}
+          />
+          {avatar.art.darkSrc && (
+            <MascotImage
+              key={avatar.art.darkSrc}
+              model={model}
+              src={avatar.art.darkSrc}
+              className={styles.glyphDark}
+              onError={() => onMascotError(avatar.art.src)}
+            />
+          )}
+        </>
+      );
+    }
     return (
       <>
         <img
           className={
-            avatar.kind === 'mascot'
-              ? styles.avatarMascot
-              : styles.glyphLight +
-                ' ' +
-                (avatar.art.darkSrc ? styles.glyphHasDark : styles.glyphInvert) +
-                ' ' +
-                styles.avatarLogo
+            styles.glyphLight +
+            ' ' +
+            (avatar.art.darkSrc ? styles.glyphHasDark : styles.glyphInvert) +
+            ' ' +
+            styles.avatarLogo
           }
           src={avatar.art.src}
           alt={avatarAlt(model, avatar.kind, t)}
           loading="lazy"
-          onError={avatar.kind === 'mascot' ? () => onMascotError(avatar.art.src) : undefined}
         />
         {avatar.art.darkSrc && (
           <img
-            className={
-              styles.glyphDark +
-              ' ' +
-              (avatar.kind === 'mascot' ? styles.avatarMascot : styles.avatarLogo)
-            }
+            className={styles.glyphDark + ' ' + styles.avatarLogo}
             src={avatar.art.darkSrc}
             alt=""
             aria-hidden="true"
             loading="lazy"
-            onError={avatar.kind === 'mascot' ? () => onMascotError(avatar.art.src) : undefined}
           />
         )}
       </>
@@ -204,7 +275,7 @@ export function ModelLeaderboardAwardCard({
     <section
       className={'card ' + styles.award}
       aria-labelledby={headingId}
-      aria-busy={refreshing || undefined}
+      aria-busy={loading || refreshing || undefined}
     >
       {refreshing && (
         <div className={styles.refreshing} role="status">
@@ -220,14 +291,20 @@ export function ModelLeaderboardAwardCard({
           {t('analytics.leaderboard.award_' + metric + '_description')}
         </p>
       </header>
-      {rows.length === 0 ? (
+      {loading && (
+        <span className={styles.srOnly} role="status">
+          {t('common.loading')}
+        </span>
+      )}
+      {!loading && rows.length === 0 && (
         <div className={styles.awardEmpty}>
           <EmptyState title={t('analytics.leaderboard.empty_' + metric)} />
         </div>
-      ) : (
-        <>
-          <ol className={styles.podium}>
-            {podium.map((slot) =>
+      )}
+      <ol className={styles.podium} aria-hidden={(!loading && rows.length === 0) || undefined}>
+        {loading || rows.length === 0
+          ? ([2, 1, 3] as const).map((rank) => <PodSkeleton key={rank} rank={rank} />)
+          : podium.map((slot) =>
               slot.kind === 'placeholder' ? (
                 <li
                   key={'placeholder-' + slot.rank}
@@ -248,7 +325,9 @@ export function ModelLeaderboardAwardCard({
                 >
                   <span className={styles.name}>
                     <FamilyGlyph model={slot.row.model} className={styles.nameGlyph} />
-                    {slot.row.model}
+                    <span className={styles.nameText} title={slot.row.model}>
+                      {slot.row.model}
+                    </span>
                   </span>
                   <span className={styles.value}>
                     {/* Same count-up as the Usage cards; the scale keeps the shown decimals. */}
@@ -261,7 +340,9 @@ export function ModelLeaderboardAwardCard({
                       {t('analytics.leaderboard.' + UNIT_KEYS[metric])}
                     </span>
                   </span>
-                  <span className={styles.sub}>{subline(slot.row)}</span>
+                  <span className={styles.sub} title={subline(slot.row)}>
+                    {subline(slot.row)}
+                  </span>
                   <span
                     className={
                       styles.frame +
@@ -284,37 +365,46 @@ export function ModelLeaderboardAwardCard({
                 </li>
               )
             )}
-          </ol>
-          {runners.length > 0 && (
-            <details
-              className={styles.runners}
-              open={runnersCollapsed ? runnersOpen : true}
-              onToggle={(event) => {
-                if (runnersCollapsed) setRunnersOpen(event.currentTarget.open);
-              }}
-            >
-              <summary
-                className={styles.runnersSummary}
-                onClick={(event) => {
-                  if (!runnersCollapsed) event.preventDefault();
-                }}
-              >
-                {t('analytics.leaderboard.runners_up')}
-              </summary>
-              <ol className={styles.runnerList}>
-                {runners.map((row) => (
-                  <li key={row.rank} className={styles.runner}>
-                    <span className={styles.runnerRank}>{row.rank}</span>
-                    <FamilyGlyph model={row.model} className={styles.runnerGlyph} />
-                    <span className={styles.runnerModel}>{row.model}</span>
-                    <b className={styles.runnerValue}>{valueOf(row)}</b>
-                  </li>
-                ))}
-              </ol>
-            </details>
+      </ol>
+      <details
+        className={styles.runners + (loading ? ' ' + styles.runnersLoading : '')}
+        data-empty={(!loading && runners.length === 0) || undefined}
+        aria-hidden={loading || runners.length === 0 || undefined}
+        open={runnersCollapsed ? runnersOpen : true}
+        onToggle={(event) => {
+          if (runnersCollapsed) setRunnersOpen(event.currentTarget.open);
+        }}
+      >
+        <summary
+          className={styles.runnersSummary}
+          tabIndex={loading ? -1 : undefined}
+          onClick={(event) => {
+            if (loading || !runnersCollapsed) event.preventDefault();
+          }}
+        >
+          {loading ? (
+            <Skeleton width={80} height={12} rounded={6} />
+          ) : (
+            runners.length > 0 && t('analytics.leaderboard.runners_up')
           )}
-        </>
-      )}
+        </summary>
+        <ol className={styles.runnerList}>
+          {loading || runners.length === 0
+            ? [4, 5, 6].map((rank) => (
+                <li key={rank} className={styles.runner}>
+                  <Skeleton width="100%" height={14} rounded={6} />
+                </li>
+              ))
+            : runners.map((row) => (
+                <li key={row.rank} className={styles.runner}>
+                  <span className={styles.runnerRank}>{row.rank}</span>
+                  <FamilyGlyph model={row.model} className={styles.runnerGlyph} />
+                  <span className={styles.runnerModel}>{row.model}</span>
+                  <b className={styles.runnerValue}>{valueOf(row)}</b>
+                </li>
+              ))}
+        </ol>
+      </details>
     </section>
   );
 }

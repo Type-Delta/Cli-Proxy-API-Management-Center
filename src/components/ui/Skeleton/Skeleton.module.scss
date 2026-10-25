@@ -2,16 +2,25 @@
 @use '../../../styles/variables' as *;
 
 .skeleton {
+  --skeleton-tone: color-mix(in srgb, var(--bg-tertiary) 85%, var(--text-primary));
+  --skeleton-base: var(--skeleton-tone);
+  --skeleton-shine: var(--bg-tertiary);
+
   background: linear-gradient(
     90deg,
-    var(--bg-tertiary) 0%,
-    var(--bg-hover) 50%,
-    var(--bg-tertiary) 100%
+    var(--skeleton-base) 0%,
+    var(--skeleton-shine) 50%,
+    var(--skeleton-base) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: var(--radius-md);
   display: block;
+}
+
+[data-theme='dark'] .skeleton {
+  --skeleton-base: var(--bg-tertiary);
+  --skeleton-shine: var(--skeleton-tone);
 }
 
 @keyframes shimmer {
