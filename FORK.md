@@ -589,8 +589,8 @@ partial-radar numeric labels retain the original duration values.
 
 Fable supplied replacement TPM comparisons for tweets, days of talking, and English Wikipedias
 per day, plus a cache déjà vu comparison. Formula tooltips and all four locales match the new
-references. A private-jet cost band splits the old Super Bowl range at 25 million USD, leaving
-the cars range unchanged. Usage Distribution and Key × Model Heatmap use underlined tab controls
+references. The Super Bowl cost band starts at 25 million USD. Usage Distribution and
+Key × Model Heatmap use underlined tab controls
 with keyboard navigation and labelled panels; other segmented controls retain their appearance.
 Validation: 673 tests, lint, TypeScript, and production build pass. Isolated browser checks at
 1440 and 390 pixels confirm both tablists switch with arrow keys, focus the selected tab,
@@ -613,6 +613,79 @@ Browser frame sampling confirms a continuous transition and the same ECharts ins
 
 The near-total cache comparison and tooltip use the EUV lithography analogy in all four locales,
 matching the comparison model fallback.
+
+Usage replaces the generic car comparison with three bands: Ford Mustang GT from 48,000 to
+250,000 USD, Porsche 911 GT3 RS from 250,000 to 520,000 USD, and Lamborghini Aventador SVJ
+from 520,000 to 1 million USD, with exclusive upper bounds. Their comparison prices are
+48,000, 250,000, and 520,000 USD. Explanations in all six locales disclose the model year and
+US MSRP basis: the [2025 Mustang GT starts at 46,560 USD](https://www.ford.com/build-price/mustang/2025/choose-model),
+the [2025 GT3 RS at 241,300 USD](https://newsroom.porsche.com/en_US/2024/products/porsche-new-911-world-premiere-hybrid-36337.html),
+and the [2019 Aventador SVJ launched at 517,770 USD](https://preview.thenewsmarket.com/Previews/lamb/DocumentAssets/518301.pdf).
+The Aventador comparison uses its historical launch price.
+
+Below the car bands, the generic laptop comparison is replaced by five named purchases:
+iPhone 17 Pro 256GB from 1,000 to 4,000 USD, Apple Vision Pro from 4,000 to 10,000 USD,
+Rolex Submariner from 10,000 to 17,000 USD, NVIDIA RTX PRO 6000 Blackwell from 17,000 to
+37,000 USD, and Tesla Model 3 RWD from 37,000 to 48,000 USD, with exclusive upper bounds.
+The divisors match the bands' lower bounds. All six locales disclose the dated source prices
+behind these illustrative benchmarks: the [iPhone's 2025 US launch price of 1,099 USD](https://www.apple.com/newsroom/2025/09/apple-unveils-iphone-17-pro-and-iphone-17-pro-max/),
+the [256GB M5 Vision Pro's 2025 US launch price of 3,499 USD](https://www.apple.com/newsroom/2025/10/apple-vision-pro-upgraded-with-the-m5-chip-and-dual-knit-band/),
+the [steel Submariner reference 124060 at 10,050 USD](https://www.rolex.com/en-us/watches/submariner/m124060-0001),
+the [RTX PRO 6000 Blackwell Workstation Edition at 16,000 USD](https://marketplace.nvidia.com/en-us/enterprise/laptops-workstations/nvidia-rtx-pro-6000-blackwell-workstation-edition/),
+and the [Model 3 RWD vehicle price of 36,990 USD before destination and order fees](https://www.tesla.com/en_US/model3/design).
+The last three prices were checked in October 2026. The Mustang band's 48,000 USD boundary
+is preserved.
+
+The preceding 200 USD to 1,000 USD band compares LEGO DeLorean sets instead of AI subscription
+months. It uses the [LEGO Back to the Future Time Machine set 10300 at 199.99 USD](https://www.lego.com/en-us/product/back-to-the-future-time-machine-10300),
+checked in October 2026, rounded to 200 USD per set. All six locales include the set and price
+explanation; the formula remains `d / 200 USD` with a count of sets.
+
+The generic private-jet comparison is replaced by Gravity Jet Suits from 1 million to
+2.5 million USD, Princess F55 yachts from 2.5 million to 15 million USD, and estimated F1-car
+builds from 15 million to 25 million USD, with exclusive upper bounds. Their divisors are
+500,000 USD, 2.5 million USD, and 15 million USD. The jet-suit benchmark rounds the
+[historical 2018 price of about 440,000 USD](https://time.com/collections/best-inventions-2018/5454241/gravity-jet-suit/).
+The yacht benchmark rounds [HMY's asking price of 2,499,000 USD for a 2022 Princess F55](https://www.hmy.com/yachts-for-sale/50-to-59-feet?hmy_page=2&page=3),
+checked in October 2026; it is a pre-owned listing, not a new-yacht MSRP.
+
+The F1 tooltip shows a partial breakdown of [published 2024 estimates](https://www.themanual.com/auto/how-much-does-a-formula-1-car-cost/):
+hybrid power unit 10.3 to 10.6 million USD, chassis 600,000 to 650,000 USD, gearbox
+350,000 USD, front and rear wings 250,000 USD, and steering wheel 50,000 USD. The 15 million
+USD total is an illustrative benchmark; the selected parts are not a complete bill, and
+research, development, and season operations are excluded. All six locales disclose this
+scope, and tooltip explanations preserve line breaks for the breakdown.
+
+Super Bowl airtime covers only 25 million to 30 million USD. Three military-aircraft bands
+follow: AH-64E Apache from 30 million to 40 million USD, MQ-9A Reaper from 40 million to
+60 million USD, and F/A-18E/F Super Hornet from 60 million to 70 million USD, with exclusive
+upper bounds. Their divisors are 35 million, 50 million, and 67 million USD respectively.
+All six locales disclose the price basis: the [DoD FY2022 Apache unit estimate of 35.69 million USD](https://prhome.defense.gov/Portals/52/Documents/MRA_Docs/RI/FY23%20National%20Guard%20and%20Reserve%20Equipment%20Report%20with%20cover.pdf),
+the [2026 CRS report quoting up to 50 million USD for a Reaper depending on its sensors](https://www.everycrsreport.com/reports/IF13318.html),
+and the [Navy Super Hornet unit cost of 67.4 million USD in FY2021 dollars](https://www.navair.navy.mil/product/FA-18EF-Super-Hornet).
+The Reaper comparison explicitly uses an upper-end, sensor-heavy example. The Falcon 9 band
+still begins at 70 million USD.
+
+Processing-time comparisons shorten the work-week band to 14 through 88 Earth days. Mercury
+years cover 88 through 210 Earth days, followed by one-way Mars trips from 210 Earth days
+through one Julian Earth year, with exclusive upper bounds. A Mercury year uses 88 Earth days
+or 7,603,200 seconds, following [NASA's orbital-period description](https://science.nasa.gov/Mercury/).
+A Mars trip uses 210 Earth days or 18,144,000 seconds, a rounded seven-month benchmark based
+on the [NASA Perseverance cruise](https://science.nasa.gov/resource/nasas-perseverance-rover-lands-successfully-on-mars/).
+All six locales explain the favorable launch window and trajectory dependence; the benchmark
+uses a representative cruise duration. Earth-year and career comparisons retain their scales.
+
+Comparison explanations choose the space above or below their trigger and scroll when needed
+to stay within the viewport. Pointer, focus, and touch state control visibility, so Escape
+dismisses a panel while its trigger remains focused. F1 explanations preserve line breaks.
+
+Validation: `bun run verify` with Bun 1.3.14 passes all 2,126 tests, ESLint, TypeScript, and
+the production build. Regressions cover the cost and processing boundaries, formulas, all
+six locales, F1 breakdown, and Reaper price qualification. Chrome CDP verifies 48 production
+UI cases with sample API responses at 1440 and 390 pixels, including the F1 breakdown in all
+six languages, with no clipped copy, viewport overflow, or browser errors. Focus, Escape
+dismissal after the fade transition, and touch explanations pass. A pre-existing Claude
+usage-rendering test now pins its fixture clock so its reset label stays deterministic.
 
 ### DL037: Per-hop event detail sheet with request-path timeline and timing graph
 

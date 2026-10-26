@@ -256,8 +256,8 @@ describe('analytics overview model', () => {
       rpm: 9,
       tpm: 9,
       cache_rate: 10,
-      cost: 10,
-      processing: 8,
+      cost: 21,
+      processing: 10,
     });
     expect(comparisonBand('tokens', 1_000_000)?.id).toBe('war_and_peace');
     expect(comparisonBand('tokens', 1_000_000_000_000)?.id).toBe('karman_line');
@@ -272,11 +272,116 @@ describe('analytics overview model', () => {
     expect(comparisonBand('tpm', 33_409_875)?.id).toBe('wikipedias_per_day');
     expect(comparisonBand('cache_rate', 0.1)?.id).toBe('deja_vu');
     expect(comparisonBand('cache_rate', 15)?.id).toBe('batting');
-    expect(comparisonBand('cost', 999_999)?.id).toBe('cars');
-    expect(comparisonBand('cost', 1_000_000)?.id).toBe('private_jet');
-    expect(comparisonBand('cost', 24_999_999)?.id).toBe('private_jet');
+    expect(comparisonBand('cost', 999_999)?.id).toBe('aventador_svj');
+    expect(comparisonBand('cost', 1_000_000)?.id).toBe('gravity_jet_suit');
+    expect(comparisonBand('cost', 24_999_999)?.id).toBe('f1_car_build');
     expect(comparisonBand('cost', 25_000_000)?.id).toBe('super_bowl');
     expect(comparisonBand('cost', 70_000_000)?.id).toBe('falcon_launches');
+  });
+
+  test('switches purchase comparisons at the price boundaries and preserves adjacent bands', () => {
+    for (const [value, expected] of [
+      [199.99, 'streaming'],
+      [200, 'lego_delorean'],
+      [999.99, 'lego_delorean'],
+      [1_000, 'iphone_17_pro'],
+      [3_999.99, 'iphone_17_pro'],
+      [4_000, 'vision_pro'],
+      [9_999.99, 'vision_pro'],
+      [10_000, 'rolex_submariner'],
+      [16_999.99, 'rolex_submariner'],
+      [17_000, 'rtx_pro_6000'],
+      [36_999.99, 'rtx_pro_6000'],
+      [37_000, 'tesla_model_3'],
+      [47_999.99, 'tesla_model_3'],
+      [48_000, 'mustang_gt'],
+      [249_999.99, 'mustang_gt'],
+      [250_000, 'porsche_gt3_rs'],
+      [519_999.99, 'porsche_gt3_rs'],
+      [520_000, 'aventador_svj'],
+      [999_999.99, 'aventador_svj'],
+      [1_000_000, 'gravity_jet_suit'],
+      [2_499_999.99, 'gravity_jet_suit'],
+      [2_500_000, 'princess_f55'],
+      [14_999_999.99, 'princess_f55'],
+      [15_000_000, 'f1_car_build'],
+      [24_999_999.99, 'f1_car_build'],
+      [25_000_000, 'super_bowl'],
+      [29_999_999.99, 'super_bowl'],
+      [30_000_000, 'ah64e_apache'],
+      [39_999_999.99, 'ah64e_apache'],
+      [40_000_000, 'mq9a_reaper'],
+      [59_999_999.99, 'mq9a_reaper'],
+      [60_000_000, 'super_hornet'],
+      [69_999_999.99, 'super_hornet'],
+      [70_000_000, 'falcon_launches'],
+    ] as const) {
+      expect(comparisonBand('cost', value)?.id).toBe(expected);
+    }
+  });
+
+  test('calculates named purchases from their disclosed price benchmarks in all locales', () => {
+    for (const [value, name, formula, figure, year, price] of [
+      [600, 'LEGO DeLorean', 'd / 200 USD', '3.0', '2026', '199.99'],
+      [2_000, 'iPhone 17 Pro 256GB', 'd / 1,000 USD', '2.0', '2025', '1,099'],
+      [8_000, 'Apple Vision Pro', 'd / 4,000 USD', '2.0', '2025', '3,499'],
+      [15_000, 'Rolex Submariner', 'd / 10,000 USD', '1.5', '2026', '10,050'],
+      [34_000, 'NVIDIA RTX PRO 6000 Blackwell', 'd / 17,000 USD', '2.0', '2026', '16,000'],
+      [44_400, 'Tesla Model 3 RWD', 'd / 37,000 USD', '1.2', '2026', '36,990'],
+      [96_000, 'Ford Mustang GT', 'd / 48,000 USD', '2.0', '2025', '46,560'],
+      [500_000, 'Porsche 911 GT3 RS', 'd / 250,000 USD', '2.0', '2025', '241,300'],
+      [780_000, 'Lamborghini Aventador SVJ', 'd / 520,000 USD', '1.5', '2019', '517,770'],
+      [1_500_000, 'Gravity Jet Suit', 'd / 500,000 USD', '3.0', '2018', '440,000'],
+      [5_000_000, 'Princess F55', 'd / 2,500,000 USD', '2.0', '2022', '2,499,000'],
+      [18_000_000, 'F1', 'd / 15,000,000 USD', '1.2', '2024', '15M'],
+      [35_000_000, 'AH-64E Apache', 'd / 35,000,000 USD', '1.0', '2022', '35,690,000'],
+      [50_000_000, 'MQ-9A Reaper', 'd / 50,000,000 USD', '1.0', '2026', '50,000,000'],
+      [67_000_000, 'F/A-18E/F Super Hornet', 'd / 67,000,000 USD', '1.0', '2021', '67,400,000'],
+    ] as const) {
+      const comparison = buildComparison('cost', value, 'en-US');
+      expect(comparison.formula).toBe(formula);
+      expect(comparison.figure).toBe(figure);
+      expect(comparison.tooltipDefault).toContain(year);
+      expect(comparison.tooltipDefault).toContain(price);
+
+      for (const lng of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko']) {
+        expect(i18n.exists(comparison.phraseKey, { lng, fallbackLng: false })).toBe(true);
+        expect(i18n.exists(comparison.tooltipKey, { lng, fallbackLng: false })).toBe(true);
+        expect(i18n.t(comparison.phraseKey, { lng, value: figure })).toContain(name);
+        expect(i18n.t(comparison.tooltipKey, { lng })).toContain(year);
+      }
+
+      const markup = renderToStaticMarkup(
+        createElement(
+          I18nextProvider,
+          { i18n },
+          createElement(ComparisonNote, { metric: 'cost', value })
+        )
+      );
+      expect(markup).toContain(name);
+      expect(markup).toContain(`Calculation: ${comparison.calculation}`);
+      expect(markup).toContain(comparison.tooltipDefault);
+    }
+  });
+
+  test('explains the F1 benchmark with a partial historical component breakdown', () => {
+    const comparison = buildComparison('cost', 18_000_000);
+    const explanation = i18n.t(comparison.tooltipKey, { lng: 'en' });
+    expect(explanation).toContain('2024 public estimates');
+    expect(explanation).toContain('\nHybrid power unit: 10.3 to 10.6M\n');
+    expect(explanation).toContain('\nChassis: 600 to 650k\n');
+    expect(explanation).toContain('\nGearbox: 350k\n');
+    expect(explanation).toContain('\nFront and rear wings: 250k\n');
+    expect(explanation).toContain('\nSteering wheel: 50k\n');
+    expect(explanation).toContain('Partial breakdown; estimates vary.');
+    expect(explanation).toContain('Excludes research, development, and season operations.');
+  });
+
+  test('qualifies the Reaper price as an upper-end sensor configuration', () => {
+    const comparison = buildComparison('cost', 50_000_000);
+    const explanation = i18n.t(comparison.tooltipKey, { lng: 'en' });
+    expect(explanation).toContain('up to 50,000,000 USD per MQ-9A Reaper');
+    expect(explanation).toContain('upper-end estimate for a sensor-heavy configuration');
   });
 
   test('uses computed heartbeat constants and numeric localized substitutions', () => {
@@ -289,6 +394,54 @@ describe('analytics overview model', () => {
     expect(paperback.figure).toBe('1.0');
     expect(paperback.calculation).toBe('120,000 / 120,000 tokens per novel = 1.0');
     expect(buildComparison('tokens', 120_000, 'zh-CN').figure).not.toContain('about one');
+  });
+
+  test('switches processing comparisons at the Mercury and Mars boundaries', () => {
+    for (const [value, expected] of [
+      [14 * 86_400 - 0.01, 'iss_orbits'],
+      [14 * 86_400, 'work_weeks'],
+      [88 * 86_400 - 0.01, 'work_weeks'],
+      [88 * 86_400, 'mercury_years'],
+      [210 * 86_400 - 0.01, 'mercury_years'],
+      [210 * 86_400, 'mars_trips'],
+      [31_557_600 - 0.01, 'mars_trips'],
+      [31_557_600, 'years'],
+    ] as const) {
+      expect(comparisonBand('processing', value)?.id).toBe(expected);
+    }
+  });
+
+  test('calculates planetary processing comparisons and explains their scales in all locales', () => {
+    for (const [value, id, formula, figure, days] of [
+      [176 * 86_400, 'mercury_years', 's / 7,603,200 seconds per Mercury year', '2.0', '88'],
+      [315 * 86_400, 'mars_trips', 's / 18,144,000 seconds per Mars trip', '1.5', '210'],
+    ] as const) {
+      const comparison = buildComparison('processing', value, 'en-US');
+      expect(comparison.bandId).toBe(id);
+      expect(comparison.formula).toBe(formula);
+      expect(comparison.figure).toBe(figure);
+
+      for (const lng of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko']) {
+        expect(i18n.exists(comparison.phraseKey, { lng, fallbackLng: false })).toBe(true);
+        expect(i18n.exists(comparison.tooltipKey, { lng, fallbackLng: false })).toBe(true);
+        expect(i18n.t(comparison.tooltipKey, { lng })).toContain(days);
+        expect(i18n.t(comparison.phraseKey, { lng, value: figure })).toContain(figure);
+      }
+
+      const markup = renderToStaticMarkup(
+        createElement(
+          I18nextProvider,
+          { i18n },
+          createElement(ComparisonNote, { metric: 'processing', value })
+        )
+      );
+      expect(markup).toContain(comparison.tooltipDefault);
+      expect(markup).toContain(`Calculation: ${comparison.calculation}`);
+    }
+
+    expect(buildComparison('processing', 210 * 86_400).tooltipDefault).toContain(
+      'during a favorable launch window'
+    );
   });
 
   test('formats accumulated timing in human-sized units and explains coverage', () => {

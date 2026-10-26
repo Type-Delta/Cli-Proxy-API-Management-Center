@@ -504,7 +504,7 @@ export const COMPARISON_BANDS: Record<ComparisonMetric, readonly ComparisonBand[
       'near_total',
       99,
       100,
-      'EUV\'s level precision; It never misses a droplet.',
+      "EUV's level precision; It never misses a droplet.",
       'Extreme ultraviolet lithography (EUV) is a semiconductor manufacturing technique that uses laser to zap tiny droplets of molten tin—twice, turning it into superheated plasma to create intricate patterns on semiconductor substrates.',
       'c',
       (value) => value
@@ -563,53 +563,163 @@ export const COMPARISON_BANDS: Record<ComparisonMetric, readonly ComparisonBand[
     ),
     band(
       'cost',
-      'ai_plan',
+      'lego_delorean',
       200,
       1_000,
-      'About {{value}} months on a top-tier AI plan.',
-      'A consumer AI plan is rounded to 200 USD per month.',
+      'About {{value}} LEGO DeLorean sets.',
+      'The LEGO Back to the Future Time Machine set 10300 was listed at 199.99 USD in the US in October 2026; this comparison uses about 200 USD before taxes.',
       'd / 200 USD',
       (value) => value / 200
     ),
     band(
       'cost',
-      'laptops',
+      'iphone_17_pro',
       1_000,
-      48_000,
-      'About {{value}} base-model laptops.',
-      'A base-model 13-inch laptop is rounded to 999 USD.',
-      'd / 999 USD',
-      (value) => value / 999
+      4_000,
+      'About {{value}} iPhone 17 Pro 256GB models.',
+      'The iPhone 17 Pro 256GB launched in the US in 2025 at 1,099 USD; this comparison uses about 1,000 USD before taxes.',
+      'd / 1,000 USD',
+      (value) => value / 1_000
     ),
     band(
       'cost',
-      'cars',
+      'vision_pro',
+      4_000,
+      10_000,
+      'About {{value}} Apple Vision Pro headsets.',
+      'The 256GB Apple Vision Pro with M5 launched in the US in 2025 at 3,499 USD; this comparison uses about 4,000 USD before taxes.',
+      'd / 4,000 USD',
+      (value) => value / 4_000
+    ),
+    band(
+      'cost',
+      'rolex_submariner',
+      10_000,
+      17_000,
+      'About {{value}} Rolex Submariners.',
+      'The steel Rolex Submariner reference 124060 was listed at 10,050 USD in the US in October 2026; this comparison uses about 10,000 USD before taxes.',
+      'd / 10,000 USD',
+      (value) => value / 10_000
+    ),
+    band(
+      'cost',
+      'rtx_pro_6000',
+      17_000,
+      37_000,
+      'About {{value}} NVIDIA RTX PRO 6000 Blackwell GPUs.',
+      'NVIDIA listed the RTX PRO 6000 Blackwell Workstation Edition at 16,000 USD in the US in October 2026; this comparison uses about 17,000 USD before taxes.',
+      'd / 17,000 USD',
+      (value) => value / 17_000
+    ),
+    band(
+      'cost',
+      'tesla_model_3',
+      37_000,
       48_000,
-      1_000_000,
-      'About {{value}} brand-new cars.',
-      'A new vehicle transaction is rounded to 48,000 USD.',
+      'About {{value}} Tesla Model 3 RWD cars.',
+      'The Tesla Model 3 RWD US vehicle price was 36,990 USD in October 2026; this comparison uses about 37,000 USD before destination and order fees, taxes, or incentives.',
+      'd / 37,000 USD',
+      (value) => value / 37_000
+    ),
+    band(
+      'cost',
+      'mustang_gt',
+      48_000,
+      250_000,
+      'About {{value}} Ford Mustang GTs.',
+      'The 2025 Ford Mustang GT US starting MSRP was 46,560 USD; this comparison uses about 48,000 USD before options, taxes, and fees.',
       'd / 48,000 USD',
       (value) => value / 48_000
     ),
     band(
       'cost',
-      'private_jet',
+      'porsche_gt3_rs',
+      250_000,
+      520_000,
+      'About {{value}} Porsche 911 GT3 RS models.',
+      'The 2025 Porsche 911 GT3 RS US starting MSRP was 241,300 USD; this comparison uses about 250,000 USD before options, taxes, and fees.',
+      'd / 250,000 USD',
+      (value) => value / 250_000
+    ),
+    band(
+      'cost',
+      'aventador_svj',
+      520_000,
       1_000_000,
+      'About {{value}} Lamborghini Aventador SVJs.',
+      'The 2019 Lamborghini Aventador SVJ US launch MSRP was 517,770 USD, rounded to 520,000 USD.',
+      'd / 520,000 USD',
+      (value) => value / 520_000
+    ),
+    band(
+      'cost',
+      'gravity_jet_suit',
+      1_000_000,
+      2_500_000,
+      'About {{value}} Gravity Jet Suits.',
+      'The Gravity Jet Suit was reported at about 440,000 USD in 2018; this comparison uses about 500,000 USD as a historical price benchmark.',
+      'd / 500,000 USD',
+      (value) => value / 500_000
+    ),
+    band(
+      'cost',
+      'princess_f55',
+      2_500_000,
+      15_000_000,
+      'About {{value}} Princess F55 yachts.',
+      'A 2022 Princess F55 was listed at 2,499,000 USD in October 2026; this comparison uses about 2,500,000 USD based on that pre-owned asking price.',
+      'd / 2,500,000 USD',
+      (value) => value / 2_500_000
+    ),
+    band(
+      'cost',
+      'f1_car_build',
+      15_000_000,
       25_000_000,
-      "That's {{value}} private jets",
-      'Rounded illustrative budget of about $5M per light private jet.',
-      'd / 5,000,000 USD per light private jet',
-      (value) => value / 5_000_000
+      'Enough to build about {{value}} F1 cars.',
+      'Illustrative 15M USD per F1 car, based on 2024 public estimates.\nRough selected parts, in USD:\nHybrid power unit: 10.3 to 10.6M\nChassis: 600 to 650k\nGearbox: 350k\nFront and rear wings: 250k\nSteering wheel: 50k\nPartial breakdown; estimates vary. Excludes research, development, and season operations.',
+      'd / 15,000,000 USD',
+      (value) => value / 15_000_000
     ),
     band(
       'cost',
       'super_bowl',
       25_000_000,
-      70_000_000,
+      30_000_000,
       'About {{value}} seconds of Super Bowl airtime.',
       'A 30-second Super Bowl spot is rounded to 8 million USD.',
       'd / 266,667 USD per second',
       (value) => value / 266_667
+    ),
+    band(
+      'cost',
+      'ah64e_apache',
+      30_000_000,
+      40_000_000,
+      'About {{value}} AH-64E Apache helicopters.',
+      'The U.S. Department of Defense gave an FY2022 AH-64E Apache unit-cost estimate of 35,690,000 USD; this comparison uses about 35,000,000 USD per helicopter.',
+      'd / 35,000,000 USD',
+      (value) => value / 35_000_000
+    ),
+    band(
+      'cost',
+      'mq9a_reaper',
+      40_000_000,
+      60_000_000,
+      'About {{value}} MQ-9A Reaper drones.',
+      'A 2026 Congressional Research Service report quotes up to 50,000,000 USD per MQ-9A Reaper depending on its sensors; this comparison uses that upper-end estimate for a sensor-heavy configuration.',
+      'd / 50,000,000 USD',
+      (value) => value / 50_000_000
+    ),
+    band(
+      'cost',
+      'super_hornet',
+      60_000_000,
+      70_000_000,
+      'About {{value}} F/A-18E/F Super Hornets.',
+      'The U.S. Navy lists an F/A-18E/F Super Hornet unit cost of 67,400,000 USD in FY2021 dollars; this comparison uses about 67,000,000 USD per aircraft.',
+      'd / 67,000,000 USD',
+      (value) => value / 67_000_000
     ),
     band(
       'cost',
@@ -677,11 +787,31 @@ export const COMPARISON_BANDS: Record<ComparisonMetric, readonly ComparisonBand[
       'processing',
       'work_weeks',
       1_209_600,
-      31_557_600,
+      7_603_200,
       'About {{value}} full-time work weeks.',
       'A 40-hour work week is rounded to 144,000 seconds.',
       's / 144,000 seconds',
       (value) => value / 144_000
+    ),
+    band(
+      'processing',
+      'mercury_years',
+      7_603_200,
+      18_144_000,
+      'About {{value}} years on Mercury.',
+      'Mercury orbits the Sun once in about 88 Earth days, rounded to 7,603,200 seconds per Mercury year.',
+      's / 7,603,200 seconds per Mercury year',
+      (value) => value / 7_603_200
+    ),
+    band(
+      'processing',
+      'mars_trips',
+      18_144_000,
+      31_557_600,
+      'About {{value}} one-way trips to Mars.',
+      'The NASA Perseverance mission took about seven months to reach Mars. This comparison uses 210 Earth days, or 18,144,000 seconds, per one-way trip during a favorable launch window. Actual travel time depends on the trajectory.',
+      's / 18,144,000 seconds per Mars trip',
+      (value) => value / 18_144_000
     ),
     band(
       'processing',

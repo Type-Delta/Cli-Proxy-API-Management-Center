@@ -171,6 +171,7 @@
   width: max-content;
   max-width: min(320px, calc(100vw - 32px));
   box-sizing: border-box;
+  overflow-y: auto;
   flex-direction: column;
   gap: 6px;
   padding: 10px 12px;
@@ -191,13 +192,16 @@
     visibility 150ms ease;
   visibility: hidden;
 
+  > span {
+    white-space: pre-line;
+  }
+
   small {
     color: var(--viz-tooltip-text-dim);
     font-size: 11px;
   }
 }
 
-.comparisonHelp:focus-within .comparisonTooltip,
 .comparisonTooltip[data-open='true'] {
   opacity: 1;
   pointer-events: auto;
@@ -205,13 +209,9 @@
   visibility: visible;
 }
 
-@media (hover: hover) {
-  .comparisonHelp:hover .comparisonTooltip {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0);
-    visibility: visible;
-  }
+.comparisonTooltip[data-placement='above'] {
+  top: auto;
+  bottom: calc(100% + 8px);
 }
 
 .metricDetail {

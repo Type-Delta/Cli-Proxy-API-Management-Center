@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconInfo } from '@/components/ui/icons';
 import { buildComparison, type ComparisonMetric } from './comparisonModel';
@@ -17,8 +17,10 @@ export function ComparisonNote({
   const comparison = buildComparison(metric, value, i18n.resolvedLanguage);
   const tooltipId = useId();
   const wrapperRef = useRef<HTMLSpanElement>(null);
+  const tooltipRef = useRef<HTMLSpanElement>(null);
   const touchRef = useRef(false);
   const [open, setOpen] = useState(false);
+  const [placement, setPlacement] = useState<{ above: boolean; maxHeight: number } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -83,6 +85,28 @@ export function ComparisonNote({
     defaultValue: 'Explain this comparison',
   });
 
+  useLayoutEffect(() => {
+    if (!open) return;
+    const positionTooltip = () => {
+      if (!wrapperRef.current || !tooltipRef.current) return;
+      const anchor = wrapperRef.current.getBoundingClientRect();
+      const aboveSpace = Math.max(0, anchor.top - 20);
+      const belowSpace = Math.max(0, window.innerHeight - anchor.bottom - 20);
+      const above = tooltipRef.current.scrollHeight + 2 > belowSpace && aboveSpace > belowSpace;
+      const maxHeight = above ? aboveSpace : belowSpace;
+      setPlacement((current) =>
+        current?.above === above && current.maxHeight === maxHeight ? current : { above, maxHeight }
+      );
+    };
+    positionTooltip();
+    window.addEventListener('resize', positionTooltip);
+    window.addEventListener('scroll', positionTooltip, true);
+    return () => {
+      window.removeEventListener('resize', positionTooltip);
+      window.removeEventListener('scroll', positionTooltip, true);
+    };
+  }, [open, explanation, scaleNote, formula, calculation, concurrencyNote, additionalNote]);
+
   return (
     <div className={styles.comparisonNote}>
       <span
@@ -125,10 +149,13 @@ export function ComparisonNote({
           <IconInfo size={14} />
         </button>
         <span
+          ref={tooltipRef}
           id={tooltipId}
           role="tooltip"
           className={styles.comparisonTooltip}
           data-open={open}
+          data-placement={placement?.above ? 'above' : 'below'}
+          style={{ maxHeight: placement?.maxHeight }}
           aria-hidden={!open}
         >
           <span>{explanation}</span>
