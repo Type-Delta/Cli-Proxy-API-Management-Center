@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { I18nextProvider } from 'react-i18next';
+import * as clock from '@/hooks/useNow';
 import i18n from '@/i18n';
 import { normalizeClaudeUsageSnapshot } from '@/services/api/claudeUsage';
 import { apiCallApi, getApiCallErrorMessage, type ApiCallResult } from '@/services/api/apiCall';
@@ -422,20 +423,25 @@ describe('Claude usage snapshot rendering and retention', () => {
   });
 
   test('renders enabled extra usage in minor units and each balance in dollars', () => {
-    const markup = render(quota);
-    expect(markup).toContain('Extra Usage');
-    expect(markup).toContain('Enabled');
-    expect(markup).toContain('Spent $12.50 / Limit $50.00');
-    expect(markup).toContain('25% used');
-    expect(markup).toContain('iguana_necktie');
-    expect(markup).toContain('$94.96 remaining');
-    expect(markup).toContain('Spent $5.04 / Limit $100.00');
-    expect(markup).toContain(formatQuotaResetTime(fixture.iguana_necktie.resets_at));
-    expect(markup).toContain('additional_credit_balance');
-    expect(markup).toContain('$20.00 remaining');
-    expect(markup).toContain('Spent $0.00 / Limit $20.00');
-    expect(markup).toContain('Not provided');
-    expect(markup).not.toContain('No quota data available');
+    const now = spyOn(clock, 'useNow').mockReturnValue(Date.parse(observedAt));
+    try {
+      const markup = render(quota);
+      expect(markup).toContain('Extra Usage');
+      expect(markup).toContain('Enabled');
+      expect(markup).toContain('Spent $12.50 / Limit $50.00');
+      expect(markup).toContain('25% used');
+      expect(markup).toContain('iguana_necktie');
+      expect(markup).toContain('$94.96 remaining');
+      expect(markup).toContain('Spent $5.04 / Limit $100.00');
+      expect(markup).toContain(formatQuotaResetTime(fixture.iguana_necktie.resets_at));
+      expect(markup).toContain('additional_credit_balance');
+      expect(markup).toContain('$20.00 remaining');
+      expect(markup).toContain('Spent $0.00 / Limit $20.00');
+      expect(markup).toContain('Not provided');
+      expect(markup).not.toContain('No quota data available');
+    } finally {
+      now.mockRestore();
+    }
   });
 
   test('renders disabled extra usage, reasons, and zero amounts', () => {
