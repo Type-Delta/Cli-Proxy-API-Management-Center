@@ -1268,6 +1268,13 @@ image failures still fall back to the logo. Speed Maniac now states the backend'
 at least 80 tok/s in all six locales. CPA already guarantees four awards, so no metadata endpoint
 or ranking-contract change is needed.
 
+Mascot containment correction on 2026-10-26: mascot images use block layout inside their loading
+wrapper. Inline image baseline space had enlarged the wrapper's grid row after decoding, making
+72px and 88px images grow to 78px and 94px and extend below their medal frames. The image now
+fills only the frame's inner area; pending and failed-image lab logos keep their existing layout,
+and medals retain their intentional overflow. Browser regression checks measure image bounds
+against the inner frame, excluding its 4px border, because card geometry alone misses this bug.
+
 Validation on 2026-10-25: `bun run verify` with Bun 1.3.14 passes 2,115 tests, lint, TypeScript,
 and the single-file production build. Isolated Chrome CDP checks through the normal login and
 Model Leaderboard route with intercepted API fixtures cover every award size from zero through

@@ -219,6 +219,7 @@
 // SVG icons declare 1em intrinsic sizes, so every avatar needs explicit geometry.
 // Mascots fill the frame; lab logos sit on a quiet tile like the approved mock.
 .avatarMascot {
+  display: block;
   width: 100%;
   height: 100%;
   // Square mascot photos fill the frame edge to edge. The image rounds itself to the frame's inner
