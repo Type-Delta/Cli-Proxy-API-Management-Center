@@ -176,18 +176,18 @@ const SORTABLE_COLUMNS: ReadonlyArray<CatalogColumn> = [
     alignRight: true,
   },
   {
-    id: 'first_activity',
-    labelKey: 'analytics.first_activity',
-    defaultValue: 'First activity',
-    descriptionKey: 'analytics.keys_header_help.first_activity',
-    descriptionDefault: 'Lifetime first activity, shown in your browser timezone.',
-  },
-  {
     id: 'last_activity',
     labelKey: 'analytics.last_activity',
     defaultValue: 'Last activity',
     descriptionKey: 'analytics.keys_header_help.last_activity',
     descriptionDefault: 'Lifetime last activity, shown in your browser timezone.',
+  },
+  {
+    id: 'first_activity',
+    labelKey: 'analytics.first_activity',
+    defaultValue: 'First activity',
+    descriptionKey: 'analytics.keys_header_help.first_activity',
+    descriptionDefault: 'Lifetime first activity, shown in your browser timezone.',
   },
 ];
 
@@ -437,15 +437,15 @@ export function KeysView({ keys, range }: { keys: AnalyticsKey[]; range: Analyti
                       </dd>
                     </div>
                     <div>
-                      <dt>{t('analytics.first_activity', { defaultValue: 'First activity' })}</dt>
-                      <dd>
-                        <ActivityValue lifetimeValue={row.lifetime_first_activity_at} />
-                      </dd>
-                    </div>
-                    <div>
                       <dt>{t('analytics.last_activity', { defaultValue: 'Last activity' })}</dt>
                       <dd>
                         <ActivityValue lifetimeValue={row.lifetime_last_activity_at} />
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{t('analytics.first_activity', { defaultValue: 'First activity' })}</dt>
+                      <dd>
+                        <ActivityValue lifetimeValue={row.lifetime_first_activity_at} />
                       </dd>
                     </div>
                   </dl>
@@ -537,10 +537,10 @@ export function KeysView({ keys, range }: { keys: AnalyticsKey[]; range: Analyti
                         : '—'}
                     </TableCell>
                     <TableCell>
-                      <ActivityValue lifetimeValue={row.lifetime_first_activity_at} />
+                      <ActivityValue lifetimeValue={row.lifetime_last_activity_at} />
                     </TableCell>
                     <TableCell>
-                      <ActivityValue lifetimeValue={row.lifetime_last_activity_at} />
+                      <ActivityValue lifetimeValue={row.lifetime_first_activity_at} />
                     </TableCell>
                   </TableRow>
                 );

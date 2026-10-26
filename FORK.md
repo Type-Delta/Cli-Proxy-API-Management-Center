@@ -605,6 +605,12 @@ Key usage catalog cells align vertically at their centers. Active key badges use
 color and deleted keys use the error color. Every key status has a localized explanatory
 custom tooltip, and the Status column tooltip describes configuration, recent use, and history.
 
+Keys places Last activity before First activity in the desktop table and mobile cards.
+Each header, sort action, and lifetime timestamp remains associated with its activity field.
+Validation: all 2,126 tests, ESLint, TypeScript, and the production build pass. Desktop and
+mobile Chrome CDP checks confirm the order, matching timestamp values, working sorts in both
+directions, and no page overflow or browser errors.
+
 Usage Distribution now retains all dimension series and switches their visibility through a
 hidden legend using merged ECharts updates. Stable category labels prevent unrelated renders
 from replacing options. The chart reserves the largest dimension's height so resize does not
