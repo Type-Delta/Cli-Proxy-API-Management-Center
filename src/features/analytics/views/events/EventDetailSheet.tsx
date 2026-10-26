@@ -127,9 +127,6 @@ export function EventDetailSheet({
         })}
       >
         {value}
-        <small className={styles.estimateBadge} aria-hidden="true">
-          {t('analytics.speed_estimate_badge', { defaultValue: 'EST' })}
-        </small>
       </span>
     );
   })();
@@ -430,6 +427,15 @@ export function EventDetailSheet({
                   }
                 />
               )}
+              {observedRate?.estimated ? (
+                <Fact
+                  label={t('analytics.rate_token_count', { defaultValue: 'Token count' })}
+                  value={t('analytics.rate_token_count_local', {
+                    defaultValue: 'Calculated locally',
+                  })}
+                  title={rateTitle(true)}
+                />
+              ) : null}
               {estimatedRate ? (
                 <Fact
                   label={t('analytics.estimated_arrival_rate', {
@@ -512,16 +518,7 @@ export function EventDetailSheet({
                   label={t('analytics.effective_output_rate', {
                     defaultValue: 'Effective output rate',
                   })}
-                  value={
-                    <span className={styles.estimateValue}>
-                      {formatRate(effectiveRate)}
-                      {event?.tokens.quality === 'estimated' ? (
-                        <small className={styles.estimateBadge}>
-                          {t('analytics.speed_estimate_badge', { defaultValue: 'EST' })}
-                        </small>
-                      ) : null}
-                    </span>
-                  }
+                  value={formatRate(effectiveRate)}
                   title={effectiveTitle}
                 />
               ) : (

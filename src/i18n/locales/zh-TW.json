@@ -595,6 +595,8 @@
     "effective_output_rate_hint": "整次嘗試的輸出權杖數除以總耗時。不是到達速率。",
     "effective_output_rate_unavailable_hint": "需要正數的輸出權杖數和嘗試耗時才能計算。",
     "unavailable_with_reason": "無法使用 — {{reason}}",
+    "rate_token_count": "Token 計數",
+    "rate_token_count_local": "本機計算",
     "rate_basis": "權杖來源",
     "rate_basis_visible_deltas": "可見增量",
     "rate_basis_wire_deltas": "線路增量",

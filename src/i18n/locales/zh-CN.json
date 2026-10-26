@@ -595,6 +595,8 @@
     "effective_output_rate_hint": "整次尝试的输出令牌数除以总耗时。不是到达速率。",
     "effective_output_rate_unavailable_hint": "需要正数的输出令牌数和尝试耗时才能计算。",
     "unavailable_with_reason": "不可用 — {{reason}}",
+    "rate_token_count": "令牌计数",
+    "rate_token_count_local": "本地计算",
     "rate_basis": "令牌来源",
     "rate_basis_visible_deltas": "可见增量",
     "rate_basis_wire_deltas": "线路增量",

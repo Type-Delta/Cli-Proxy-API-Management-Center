@@ -443,6 +443,8 @@
     "effective_output_rate_hint": "Token đầu ra của toàn bộ lần thử chia cho tổng thời gian. Đây không phải tốc độ đến.",
     "effective_output_rate_unavailable_hint": "CPA cần số token đầu ra và thời gian thử dương để tính.",
     "unavailable_with_reason": "Không khả dụng — {{reason}}",
+    "rate_token_count": "Số token",
+    "rate_token_count_local": "Tính toán cục bộ",
     "rate_basis": "Nguồn token",
     "rate_basis_visible_deltas": "Delta hiển thị",
     "rate_basis_wire_deltas": "Delta đường truyền",

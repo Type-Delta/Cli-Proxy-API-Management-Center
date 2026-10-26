@@ -77,9 +77,6 @@ export function EventTimingGraph({
         ),
         defaultValue: '{{tokens}} tokens \u00b7 {{rate}} tok/s',
       }) +
-      (timing.throughput.estimated
-        ? ` · ${t('analytics.speed_estimate_badge', { defaultValue: 'EST' })}`
-        : '') +
       (timing.throughput.legacy
         ? ` · ${t('analytics.legacy_badge', { defaultValue: 'Legacy' })}`
         : '')

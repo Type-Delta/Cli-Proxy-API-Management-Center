@@ -594,6 +594,8 @@
     "effective_output_rate_hint": "Выходные токены за всю попытку, делённые на её общую длительность. Это не скорость поступления.",
     "effective_output_rate_unavailable_hint": "Для расчёта нужны положительное число выходных токенов и длительность попытки.",
     "unavailable_with_reason": "Недоступно — {{reason}}",
+    "rate_token_count": "Подсчёт токенов",
+    "rate_token_count_local": "Вычислено локально",
     "rate_basis": "Источник токенов",
     "rate_basis_visible_deltas": "Видимые дельты",
     "rate_basis_wire_deltas": "Сетевые дельты",

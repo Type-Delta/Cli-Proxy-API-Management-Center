@@ -443,6 +443,8 @@
     "effective_output_rate_hint": "Whole-attempt output tokens divided by total attempt duration. Not an arrival rate.",
     "effective_output_rate_unavailable_hint": "CPA needs a positive output token count and attempt duration to calculate it.",
     "unavailable_with_reason": "Unavailable — {{reason}}",
+    "rate_token_count": "Token count",
+    "rate_token_count_local": "Calculated locally",
     "rate_basis": "Token source",
     "rate_basis_visible_deltas": "Visible deltas",
     "rate_basis_wire_deltas": "Wire deltas",

@@ -222,7 +222,7 @@ describe('buildEventTiming', () => {
     expect(timing.throughput).toBeNull();
   });
 
-  test('renders the throughput CPA published as an estimate', () => {
+  test('renders locally counted observed throughput without an EST suffix', () => {
     const timing = buildEventTiming(
       makeEvent({
         generation_time_ms: 10,
@@ -252,6 +252,7 @@ describe('buildEventTiming', () => {
     );
 
     expect(html).toContain('Approximate token count');
+    expect(html).not.toContain('EST');
   });
 
   test('keeps throughput unavailable when CPA publishes no rate', () => {
@@ -450,6 +451,7 @@ test('event details keep the arrival rate and effective output rate separate', (
             token_quality: 'estimated',
           },
           effective_output_tokens_per_second: 42.5,
+          tokens: { output: 150, quality: 'estimated' },
           throughput_estimate: {
             status: 'estimated',
             method: 'cohort_median_v1',
@@ -479,8 +481,11 @@ test('event details keep the arrival rate and effective output rate separate', (
   expect(html).toContain('Arrival window');
   // A stale estimate must never replace, qualify, or sit beside the measured rate.
   expect(html).not.toContain('Estimated arrival rate');
-  // The measured estimated-token rate carries the shared EST marker; the stale 999 estimate adds none.
-  expect(html.match(/>EST</g) ?? []).toHaveLength(1);
+  expect(html).not.toContain('>EST<');
+  expect(html).toContain('Token count');
+  expect(html).toMatch(/>Calculated locally<\/span>/);
+  expect(html).toContain('Approximate: CPA counted these tokens with its local tokenizer.');
+  expect(html).toContain('The token count is approximate; CPA used its local tokenizer.');
   expect(html).not.toContain('999 tokens/s');
 });
 
@@ -698,6 +703,8 @@ test('event estimates ignore a stale measured alias and only fill unmeasured eve
   const legacyHtml = renderDetail(legacy);
   expect(legacyHtml).toContain('Legacy');
   expect(legacyHtml).not.toContain('>EST<');
+  expect(legacyHtml).not.toContain('>Calculated locally<');
+  expect(renderDetail(measured)).not.toContain('>Calculated locally<');
 });
 
 test('event details mark an estimated fallback rate separately from approximate tokens', () => {
@@ -715,8 +722,9 @@ test('event details mark an estimated fallback rate separately from approximate 
 
   expect(html).toContain('Estimated arrival rate');
   expect(html).toContain('212.5 tokens/s');
-  expect(html).toContain('>EST<');
-  // The EST pill identifies a modeled arrival rate; the approximate-token marker stays distinct.
+  // Only the historical prediction carries EST, even when billed tokens are approximate.
+  expect(html.match(/>EST</g) ?? []).toHaveLength(1);
+  expect(html).not.toContain('>Calculated locally<');
   expect(html).not.toContain('Approximate arrival rate: 212.5 tokens/s');
   expect(html).toContain('Historical range');
   expect(html).toContain('120–310 tokens/s');
