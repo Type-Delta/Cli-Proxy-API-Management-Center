@@ -2,7 +2,7 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-10-24
+Last updated: 2026-10-27
 
 ## Repository relationship
 
@@ -34,7 +34,7 @@ Files: `src/features/analytics/**`, `src/services/api/analytics.ts`, `src/types/
 
 Analytics supports the Kiro USD-per-credit setting, displays reported credits and the applied rate on events, and includes credit-based cost in analysis totals while hiding its category from the breakdown and model table. Incomplete token breakdowns use the generic partial-data presentation. Manual pricing overrides retain precedence. The credit editor appears only when the server exposes the setting; token-rule updates remain compatible with older servers. Events without credit fields remain supported.
 
-Validation: `bun run verify` passes 2,136 tests, lint, TypeScript and production
+Validation: `bun run verify` passes 2,138 tests, lint, TypeScript and production
 build. Desktop and mobile CDP checks against the Docker app verify four visible
 token categories, hidden costs in totals and percentage denominators, and retained
 rate-editor and event-credit details. Mixed token/credit fixtures preserve full
@@ -912,22 +912,24 @@ the pre-existing `Select.tsx` warning. Focused tests cover provider-form gating 
 usage-probe normalization, quota parsing, exhausted-window gating, reset scheduling, and all four
 locales.
 
-### DL045: Top Models generation time uses bars
+### DL045: Top Models share areas and output-window lines
 
-The Analysis page Top Models card draws every metric with bars. Generation time previously used a
-line series because its per-bucket value is an average of the observations in that bucket, which
-cannot be stacked. It now draws grouped bars: each model keeps its own column inside the bucket,
-one value per model, so the card reads the same as the token and price modes without adding
-average durations into a meaningless total. The tooltip keeps listing per-model values without
-a total row, and a bucket where a model has no observed timing leaves that model's bar empty
-instead of drawing a zero.
+The Usage page's Analysis tab draws Top Models token and price modes as 100% stacked areas.
+Each bucket shows the models' relative contributions, including the folded Other models band.
+All three modes explicitly disable smoothing and connect observations with straight segments.
+Tooltips retain actual token or USD amounts and their total; empty buckets remain zero. Stable
+model colors, ranking order, and ranking hover/focus highlighting apply to both fills and outlines.
 
-Validation: focused analysis option tests assert that token and price series stay stacked bars while
-generation series are unstacked bars. TypeScript, lint (the pre-existing `Select.tsx` warning only),
-and the production build pass. An isolated Chrome CDP run against a fresh local CPA with a real
-streamed mock upstream rendered the card at 1440x1050 and 390x844: token and price modes stayed
-stacked, generation mode drew grouped bars for 1.6 s / 600 ms / 100 ms with no tooltip total, and
-neither viewport had console errors or horizontal overflow.
+Output window uses overlapping, unstacked lines on one duration axis. Values remain observed
+per-bucket averages, missing observations leave gaps, and the tooltip omits a total. The mobile
+layout allows the chart and ranking to shrink when switching from a desktop viewport.
+
+Validation on 2026-10-27: the full frontend verification passes 2,138 tests, lint, TypeScript, and
+the single-file production build. Regression coverage checks per-bucket normalization, zero
+buckets, raw tooltip amounts, Other models, highlight opacity, and unstacked timing gaps.
+Browser checks using synthetic analytics responses cover all three modes at 1440x1000 and
+390x844, actual amount tooltips, keyboard highlighting, and desktop-to-mobile resizing with no
+clipped chart or ranking, page overflow, or runtime errors.
 
 ### DL046: Log10 latency radar test coverage
 

@@ -4,6 +4,7 @@ import {
   axisTooltipFormatter,
   snapAxisPointer,
   type AnalyticsPalette,
+  type AxisTooltipParam,
 } from '../../components/chartTheme';
 import type {
   ActivityBucket,
@@ -917,35 +918,67 @@ export function topModelsOption({
   formatValue,
 }: TopModelsOptionInput): EChartsCoreOption {
   const generation = metric === 'generation';
+  const totals = buckets.map((_, index) =>
+    ranked.reduce((sum, model) => sum + (model.values[index] ?? 0), 0)
+  );
+  const formatTooltip = axisTooltipFormatter({
+    format: formatValue,
+    stacked: !generation,
+    totalLabel,
+    header: bucketHeader(formatBucket),
+  });
   return {
     grid: { ...ANALYSIS_GRID, right: 18, top: 12, containLabel: false },
     tooltip: {
       trigger: 'axis',
       axisPointer: snapAxisPointer,
-      formatter: axisTooltipFormatter({
-        format: formatValue,
-        stacked: !generation,
-        totalLabel,
-        header: bucketHeader(formatBucket),
-      }),
+      formatter: generation
+        ? formatTooltip
+        : (params: Array<AxisTooltipParam & { data?: unknown }>) =>
+            formatTooltip(
+              params.map((param) => ({
+                ...param,
+                value:
+                  typeof param.data === 'object' && param.data !== null && 'rawValue' in param.data
+                    ? param.data.rawValue
+                    : param.value,
+              }))
+            ),
     },
-    xAxis: categoryAxis(buckets, formatBucket, palette.border),
-    yAxis: { type: 'value', axisLabel: { formatter: formatValue }, splitNumber: 4 },
-    series: ranked.map((model) => ({
-      name: model.other ? otherLabel : model.model,
-      // Generation time is an average, so its bars stay grouped: stacking per-bucket averages
-      // would produce a meaningless total.
-      ...(generation
-        ? { type: 'bar' as const, barMaxWidth: 14 }
-        : { type: 'bar' as const, stack: 'models', barMaxWidth: 34 }),
-      itemStyle: {
-        color: topModelColor(palette, model.colorIndex, model.other),
-        borderColor: palette.card,
-        borderWidth: 1,
-        opacity: !highlighted || highlighted === model.model ? 1 : 0.18,
-      },
-      data: model.values,
-    })),
+    xAxis: {
+      ...categoryAxis(buckets, formatBucket, palette.border),
+      boundaryGap: buckets.length === 1,
+    },
+    yAxis: {
+      type: 'value',
+      min: 0,
+      ...(!generation ? { max: 100, interval: 25 } : {}),
+      axisLabel: { formatter: generation ? formatValue : (value: number) => `${value}%` },
+      splitNumber: 4,
+    },
+    series: ranked.map((model) => {
+      const color = topModelColor(palette, model.colorIndex, model.other);
+      const opacity = !highlighted || highlighted === model.model ? 1 : 0.18;
+      return {
+        name: model.other ? otherLabel : model.model,
+        type: 'line' as const,
+        smooth: false,
+        // Output windows are per-bucket averages and must never be added together.
+        ...(!generation ? { stack: 'models', areaStyle: { color, opacity } } : {}),
+        showSymbol: generation || buckets.length === 1,
+        symbolSize: 4,
+        connectNulls: false,
+        lineStyle: { color, width: generation ? 2 : 1, opacity },
+        itemStyle: { color, opacity },
+        // Areas show each bucket's composition; tooltips retain the actual tokens or cost.
+        data: generation
+          ? model.values
+          : model.values.map((rawValue, index) => ({
+              value: totals[index] > 0 ? ((rawValue ?? 0) / totals[index]) * 100 : 0,
+              rawValue,
+            })),
+      };
+    }),
   };
 }
 
