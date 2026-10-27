@@ -742,7 +742,9 @@ type Series = {
   stack?: string;
   yAxisIndex?: number;
   itemStyle?: { color?: string; opacity?: number; borderColor?: string; borderWidth?: number };
-  lineStyle?: { color?: string; type?: unknown };
+  lineStyle?: { color?: string; type?: unknown; opacity?: number };
+  areaStyle?: { color?: string; opacity?: number };
+  connectNulls?: boolean;
   data: unknown[];
   markLine?: { data: Array<{ name: string; xAxis?: number; yAxis?: number }> };
   label?: { show?: boolean };
@@ -944,10 +946,10 @@ describe('analysis ECharts options', () => {
     // Six ranks plus the folded "Other" band, which takes the achromatic slot.
     expect(option.series).toHaveLength(7);
     expect(
-      option.series.every((series) => series.type === 'bar' && series.stack === 'models')
+      option.series.every((series) => series.type === 'line' && series.stack === 'models')
     ).toBe(true);
     for (const series of option.series) {
-      expect(series.itemStyle).toMatchObject({ borderColor: PALETTE.card, borderWidth: 1 });
+      expect(series.areaStyle?.color).toBe(series.itemStyle?.color);
     }
     expect(option.series[0].itemStyle?.color).toBe(PALETTE.categorical[5]);
     expect(option.series.at(-1)?.name).toBe('Other models');
@@ -956,7 +958,76 @@ describe('analysis ECharts options', () => {
     // The ranking's hover dims every other band rather than hiding it.
     expect(option.series[0].itemStyle?.opacity).toBe(1);
     expect(option.series[1].itemStyle?.opacity).toBe(0.18);
+    expect(option.series[0].areaStyle?.opacity).toBe(1);
+    expect(option.series[1].areaStyle?.opacity).toBe(0.18);
+    expect(option.series[1].lineStyle?.opacity).toBe(0.18);
   });
+
+  test.each(['tokens', 'cost'] as const)(
+    'normalizes Top Models %s areas per bucket and preserves tooltip amounts',
+    (metric) => {
+      const ranked = ['model-a', 'model-b', 'other'].map((model, index) => ({
+        model,
+        totalTokens: 0,
+        totalCost: 0,
+        generationTimeMS: 0,
+        generationSampleCount: 0,
+        metricValue: 0,
+        share: 0,
+        colorIndex: index,
+        other: index === 2,
+        values: [
+          [60, 2, 0],
+          [30, 6, 0],
+          [10, 2, 0],
+        ][index],
+      }));
+      const option = topModelsOption({
+        ranked,
+        buckets: ['first', 'second', 'empty'],
+        metric,
+        palette: PALETTE,
+        otherLabel: 'Other models',
+        totalLabel: 'Total',
+        formatBucket: identity,
+        formatValue: (value) => `${value} ${metric}`,
+      }) as unknown as Option;
+
+      expect(option.yAxis).toMatchObject({ min: 0, max: 100, interval: 25 });
+      expect(option.xAxis).toMatchObject({ boundaryGap: false });
+      expect(option.series.map((series) => series.data)).toEqual([
+        [
+          { value: 60, rawValue: 60 },
+          { value: 20, rawValue: 2 },
+          { value: 0, rawValue: 0 },
+        ],
+        [
+          { value: 30, rawValue: 30 },
+          { value: 60, rawValue: 6 },
+          { value: 0, rawValue: 0 },
+        ],
+        [
+          { value: 10, rawValue: 10 },
+          { value: 20, rawValue: 2 },
+          { value: 0, rawValue: 0 },
+        ],
+      ]);
+      const html = option.tooltip.formatter(
+        option.series.map((series) => ({
+          seriesName: series.name,
+          axisValue: 'second',
+          value: 0,
+          data: series.data[1],
+        }))
+      );
+      expect(html).toContain(`>2 ${metric}<`);
+      expect(html).toContain(`>6 ${metric}<`);
+      expect(html).toContain('Other models');
+      expect(html).toContain('data-tt-total="true"');
+      expect(html).toContain(`>10 ${metric}<`);
+      expect(html).not.toContain(`>100 ${metric}<`);
+    }
+  );
 
   test('switches Top Models between cost and observed generation time', () => {
     const model = {
@@ -1055,8 +1126,8 @@ describe('analysis ECharts options', () => {
       },
     ]);
     const option = topModelsOption({
-      ranked,
-      buckets: ['2026-09-01T00:00:00Z', '2026-09-01T01:00:00Z'],
+      ranked: ranked.map((model) => ({ ...model, values: [...model.values, null] })),
+      buckets: ['2026-09-01T00:00:00Z', '2026-09-01T01:00:00Z', '2026-09-01T02:00:00Z'],
       metric: 'generation',
       palette: PALETTE,
       otherLabel: 'Other models',
@@ -1064,9 +1135,21 @@ describe('analysis ECharts options', () => {
       formatBucket: identity,
       formatValue: identity,
     }) as unknown as Option;
-    // Generation is an average per bucket, so it draws grouped bars instead of a line or a stack.
-    expect(option.series.every((series) => series.type === 'bar')).toBe(true);
+    // Output windows share one duration axis without summing per-bucket averages.
+    expect(option.series.every((series) => series.type === 'line')).toBe(true);
     expect(option.series.every((series) => series.stack === undefined)).toBe(true);
+    expect(option.series.every((series) => series.areaStyle === undefined)).toBe(true);
+    expect(option.series.map((series) => series.data)).toEqual([
+      [900, 1_050, null],
+      [400, 600, null],
+    ]);
+    expect(option.series.every((series) => series.connectNulls === false)).toBe(true);
+    expect(
+      option.tooltip.formatter([
+        { seriesName: 'model-b', value: 900 },
+        { seriesName: 'model-a', value: null },
+      ])
+    ).not.toContain('data-tt-total');
   });
 
   test('puts latency on decade log axes with labelled p95 markLines', () => {
