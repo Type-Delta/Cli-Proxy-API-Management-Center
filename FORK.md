@@ -1108,6 +1108,22 @@ details join the meta column; Claude dollar balances, xAI product-usage breakdow
 groups render as quota-area rows with credential tooltips and soonest-reset ranking. Meta windows use
 hour labels when the duration is a whole number of hours.
 
+Claude plan and credit-label follow-up: personal Max subscriptions use the
+profile's `rate_limit_tier` to distinguish Max 5x, displayed as Max, from Max 20x,
+displayed as Pro Max. Cards and summary use the same localized plan labels. Usage
+capacity is weighted by the 5x and 20x allowances rather than subscription price;
+one account of each tier totals 125% of Pro Max. Known dollar-credit pool
+`iguana_necktie` uses the existing Cloud session credits translation in the row
+and tooltip, while its raw key remains unchanged in normalized quota data.
+
+Validation: 76 focused tests cover reported plan tiers, Team precedence,
+card/summary consistency, allowance-weighted remaining quota, and all six credit
+label translations. Lint, TypeScript, production build, and canonical Docker
+bundle build pass. A browser using production account data confirms Max and
+Pro Max card labels, 125% Pro Max total capacity, 25:100 segment weights, and
+localized credit row/tooltip text at desktop and mobile widths. The full suite
+records 2,113 passes and the existing analytics SCSS import failure.
+
 Claude refresh protection: routine reset-grant card reads allow CPA's shared quota
 cache and credential cooldown. Grant-spending preflights explicitly request fresh
 grant and organization data while respecting upstream backoff. The stale-snapshot

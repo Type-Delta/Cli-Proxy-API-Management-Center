@@ -4,6 +4,23 @@ import type { ClaudeProfileResponse } from '@/types';
 
 describe('Claude plan type', () => {
   test.each([
+    ['default_claude_max_5x', 'plan_max5'],
+    ['default_claude_max_20x', 'plan_max20'],
+    ['  DEFAULT_CLAUDE_MAX_20X  ', 'plan_max20'],
+  ])('distinguishes the reported Max tier %s', (rateLimitTier, expected) => {
+    expect(
+      resolveClaudePlanType({
+        account: { has_claude_max: true, has_claude_pro: false },
+        organization: {
+          organization_type: 'claude_max',
+          subscription_status: 'active',
+          rate_limit_tier: rateLimitTier,
+        },
+      })
+    ).toBe(expected);
+  });
+
+  test.each([
     { has_claude_max: false, has_claude_pro: true },
     { has_claude_max: true, has_claude_pro: false },
     { has_claude_max: true, has_claude_pro: true },
@@ -13,7 +30,11 @@ describe('Claude plan type', () => {
     expect(
       resolveClaudePlanType({
         account,
-        organization: { organization_type: 'claude_team', subscription_status: 'active' },
+        organization: {
+          organization_type: 'claude_team',
+          subscription_status: 'active',
+          rate_limit_tier: 'default_claude_max_20x',
+        },
       })
     ).toBe('plan_team');
   });

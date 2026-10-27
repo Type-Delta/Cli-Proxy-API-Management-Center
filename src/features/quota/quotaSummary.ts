@@ -67,7 +67,8 @@ export const LONGEST_RECOVERY_WINDOW_MAP: Readonly<
  * within one provider matter: a credential's share is its value over the largest one present.
  */
 const PLAN_VALUE: Partial<Record<QuotaProviderType, Record<string, number>>> = {
-  claude: { pro: 20, max: 100, max5: 100, max20: 200, team: 100, free: 0 },
+  // Usage allowance relative to Pro, not subscription price.
+  claude: { pro: 1, max: 5, max5: 5, max20: 20, team: 5, free: 0 },
   // × Plus. Business matches Plus (learn.chatgpt.com/docs/pricing); Pro 200 is 10×, Pro 100
   // and Pro 500 scale with price. OpenAI publishes no Pro multipliers.
   codex: { plus: 1, team: 1, prolite: 5, pro: 10, promax: 25 },
@@ -567,13 +568,9 @@ export function aggregateQuotaSummaries(
     const tierCapacityPercent =
       largest > 0 ? percentageOfLargestTier(capacityUnits, largest) : null;
     const tierLabel =
-      largest >= 200
-        ? 'quota_management.tier_pro_max_20x'
-        : largest >= 100
-          ? 'quota_management.tier_pro_max'
-          : largest >= 20
-            ? 'quota_management.tier_pro'
-            : null;
+      largest > 0
+        ? getQuotaPlanLabel(type, asRecord(records[planValuesByCredential.indexOf(largest)].quota))
+        : null;
     const lines = primaryId ? linesFor(primaryId, largest) : [];
     const secondaryLines = secondaryId ? linesFor(secondaryId, largest) : [];
     const secondaryUnits = remainingTotalFor(

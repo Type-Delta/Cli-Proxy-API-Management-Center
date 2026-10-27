@@ -127,6 +127,10 @@ export function ClaudeQuotaBody({
       )}
       <div className={classes.quotaArea}>
         {(quota.dollarWindows ?? []).map((balance) => {
+          const balanceLabel =
+            balance.key === 'iguana_necktie'
+              ? t('claude_quota.cloud_session_credits')
+              : balance.key;
           const resetDisplay = buildResetDisplay(
             formatQuotaResetTime(balance.resetsAt ?? undefined),
             resolveResetMs([balance.resetsAt]),
@@ -136,8 +140,8 @@ export function ClaudeQuotaBody({
           return (
             <div key={balance.key} className={classes.quotaRow}>
               <div className={classes.quotaRowHeader}>
-                <span className={classes.quotaModel} title={balance.key}>
-                  {balance.key}
+                <span className={classes.quotaModel} title={balanceLabel}>
+                  {balanceLabel}
                 </span>
                 <div className={classes.quotaMeta}>
                   <span className={classes.quotaPercent}>

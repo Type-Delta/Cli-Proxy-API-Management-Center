@@ -11,6 +11,7 @@ import { apiClient } from '@/services/api/client';
 import { CLAUDE_CONFIG, hasClaudeUsageData } from '@/features/quota/providers/claude/data';
 import { ClaudeQuotaBody } from '@/features/quota/providers/claude/ClaudeQuotaBody';
 import { buildTimelineLane } from '@/features/quota/quotaTimelineModel';
+import { aggregateQuotaSummaries } from '@/features/quota/quotaSummary';
 import { nextRecoveryMs } from '@/features/quota/resetSchedule';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses } from '@/features/quota/types';
 import {
@@ -183,6 +184,39 @@ describe('Claude quota usage reads', () => {
   const originalRequest = apiCallApi.request;
   afterEach(() => {
     apiCallApi.request = originalRequest;
+  });
+
+  test('keeps reported Max tiers consistent from API reads through cards and summary', async () => {
+    const files = [
+      { name: 'max100.json', type: 'claude' as const, authIndex: 'max100' },
+      { name: 'max200.json', type: 'claude' as const, authIndex: 'max200' },
+    ];
+    apiCallApi.request = async (request) =>
+      request.url === CLAUDE_USAGE_URL
+        ? result(200, fixture)
+        : result(200, {
+            account: { has_claude_max: true, has_claude_pro: false },
+            organization: {
+              organization_type: 'claude_max',
+              subscription_status: 'active',
+              rate_limit_tier:
+                request.authIndex === 'max100' ? 'default_claude_max_5x' : 'default_claude_max_20x',
+            },
+          });
+    const states = await Promise.all(
+      files.map(async (file) =>
+        CLAUDE_CONFIG.buildSuccessState(await CLAUDE_CONFIG.fetchQuota(file, translations.t))
+      )
+    );
+    expect(states.map((state) => state.planType)).toEqual(['plan_max5', 'plan_max20']);
+    expect(render(states[0])).toContain('<span class="planMetaValue">Max</span>');
+    expect(render(states[1])).toContain('<span class="planMetaValue">Pro Max</span>');
+    const [summary] = aggregateQuotaSummaries(
+      files.map((file) => ({ file, type: 'claude' as const })),
+      (entry) => states[files.findIndex((file) => file.name === entry.file.name)]
+    );
+    expect(summary.tierCapacityPercent).toBe(125);
+    expect(translations.t(summary.tierLabel!)).toBe('Pro Max');
   });
 
   test('uses existing quota reads and separates dollar balances from plan windows', async () => {
@@ -395,6 +429,23 @@ describe('Claude quota usage reads', () => {
 });
 
 describe('Claude usage snapshot rendering and retention', () => {
+  test.each(['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko'])(
+    'localizes cloud session credits in %s without leaking the upstream key',
+    (language) => {
+      const localized = translations.cloneInstance({ lng: language });
+      const markup = renderToStaticMarkup(
+        createElement(
+          I18nextProvider,
+          { i18n: localized },
+          createElement(ClaudeQuotaBody, { quota, classes })
+        )
+      );
+      expect(markup).toContain(localized.t('claude_quota.cloud_session_credits'));
+      expect(markup).not.toContain('iguana_necktie');
+      expect(localized.t('claude_quota.plan_max5')).toBe('Max');
+      expect(localized.t('claude_quota.plan_max20')).toBe('Pro Max');
+    }
+  );
   beforeEach(() => {
     useQuotaStore.getState().clearQuotaCache();
   });
@@ -430,7 +481,8 @@ describe('Claude usage snapshot rendering and retention', () => {
       expect(markup).toContain('Enabled');
       expect(markup).toContain('Spent $12.50 / Limit $50.00');
       expect(markup).toContain('25% used');
-      expect(markup).toContain('iguana_necktie');
+      expect(markup).toContain('Cloud session credits');
+      expect(markup).not.toContain('iguana_necktie');
       expect(markup).toContain('$94.96 remaining');
       expect(markup).toContain('Spent $5.04 / Limit $100.00');
       expect(markup).toContain(formatQuotaResetTime(fixture.iguana_necktie.resets_at));

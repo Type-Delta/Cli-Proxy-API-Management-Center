@@ -114,7 +114,7 @@ describe('quota summary selection', () => {
       primaryRemainingPercent: 20,
       secondaryRemainingPercent: 60,
       tierCapacityPercent: 120,
-      tierLabel: 'quota_management.tier_pro_max',
+      tierLabel: 'claude_quota.plan_max',
     });
     expect(summary.lines).toEqual([
       expect.objectContaining({
@@ -139,20 +139,39 @@ describe('quota summary selection', () => {
     });
   });
 
-  test('uses the reported $200 capacity for Max 20', () => {
+  test('weights Max 20x at four times Max 5x and uses the card plan label', () => {
     const entries = [entry('max20.json', 'claude'), entry('max.json', 'claude')];
     const quotas = new Map([
       [entries[0].file.name, claudeQuota('plan_max20', 100, 100)],
-      [entries[1].file.name, claudeQuota('plan_max', 100, 100)],
+      [entries[1].file.name, claudeQuota('plan_max5', 100, 100)],
     ]);
 
     const [summary] = aggregateQuotaSummaries(entries, (candidate) =>
       quotas.get(candidate.file.name)
     );
 
-    expect(summary.tierCapacityPercent).toBe(150);
-    expect(summary.tierLabel).toBe('quota_management.tier_pro_max_20x');
-    expect(summary.lines.map((line) => line.capacityPercent)).toEqual([100, 50]);
+    expect(summary.tierCapacityPercent).toBe(125);
+    expect(summary.primaryRemainingPercent).toBe(125);
+    expect(summary.tierLabel).toBe('claude_quota.plan_max20');
+    expect(summary.lines.map((line) => line.capacityPercent)).toEqual([100, 25]);
+    expect(summary.lines.map((line) => line.plan)).toEqual([
+      'claude_quota.plan_max20',
+      'claude_quota.plan_max5',
+    ]);
+  });
+
+  test('weights remaining Max 5x quota against Pro Max rather than subscription price', () => {
+    const entries = [entry('max5.json', 'claude'), entry('max20.json', 'claude')];
+    const quotas = new Map([
+      [entries[0].file.name, claudeQuota('plan_max5', 92, 100)],
+      [entries[1].file.name, claudeQuota('plan_max20', 100, 100)],
+    ]);
+    const [summary] = aggregateQuotaSummaries(entries, (candidate) =>
+      quotas.get(candidate.file.name)
+    );
+    expect(summary.primaryRemainingPercent).toBe(123);
+    expect(summary.tierCapacityPercent).toBe(125);
+    expect(summary.secondaryRemainingPercent).toBe(125);
   });
 
   test('leaves unknown Claude quota values unknown', () => {
