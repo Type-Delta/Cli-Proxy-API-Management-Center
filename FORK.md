@@ -900,6 +900,7 @@ locales.
 
 The Usage page's Analysis tab draws Top Models token and price modes as 100% stacked areas.
 Each bucket shows the models' relative contributions, including the folded Other models band.
+All three modes explicitly disable smoothing and connect observations with straight segments.
 Tooltips retain actual token or USD amounts and their total; empty buckets remain zero. Stable
 model colors, ranking order, and ranking hover/focus highlighting apply to both fills and outlines.
 

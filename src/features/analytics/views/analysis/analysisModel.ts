@@ -962,6 +962,7 @@ export function topModelsOption({
       return {
         name: model.other ? otherLabel : model.model,
         type: 'line' as const,
+        smooth: false,
         // Output windows are per-bucket averages and must never be added together.
         ...(!generation ? { stack: 'models', areaStyle: { color, opacity } } : {}),
         showSymbol: generation || buckets.length === 1,

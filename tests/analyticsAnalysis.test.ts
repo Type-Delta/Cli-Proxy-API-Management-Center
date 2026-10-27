@@ -745,6 +745,7 @@ type Series = {
   lineStyle?: { color?: string; type?: unknown; opacity?: number };
   areaStyle?: { color?: string; opacity?: number };
   connectNulls?: boolean;
+  smooth?: boolean;
   data: unknown[];
   markLine?: { data: Array<{ name: string; xAxis?: number; yAxis?: number }> };
   label?: { show?: boolean };
@@ -995,6 +996,7 @@ describe('analysis ECharts options', () => {
 
       expect(option.yAxis).toMatchObject({ min: 0, max: 100, interval: 25 });
       expect(option.xAxis).toMatchObject({ boundaryGap: false });
+      expect(option.series.every((series) => series.smooth === false)).toBe(true);
       expect(option.series.map((series) => series.data)).toEqual([
         [
           { value: 60, rawValue: 60 },
@@ -1137,6 +1139,7 @@ describe('analysis ECharts options', () => {
     }) as unknown as Option;
     // Output windows share one duration axis without summing per-bucket averages.
     expect(option.series.every((series) => series.type === 'line')).toBe(true);
+    expect(option.series.every((series) => series.smooth === false)).toBe(true);
     expect(option.series.every((series) => series.stack === undefined)).toBe(true);
     expect(option.series.every((series) => series.areaStyle === undefined)).toBe(true);
     expect(option.series.map((series) => series.data)).toEqual([
