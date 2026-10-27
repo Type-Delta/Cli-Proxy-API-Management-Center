@@ -3,6 +3,7 @@ import type { ConfigSectionProps } from '../../types';
 import { getValidationMessage } from '../blocks/shared';
 import { StringListEditor } from '../blocks/StringListEditor';
 import { BlockSetting, SettingList, TextSetting, ToggleSetting } from '../fields/FieldPrimitives';
+import { StorageUsage } from '../StorageUsage';
 
 const A = (key: string) => `config_management.visual.sections.analytics.${key}`;
 
@@ -39,6 +40,7 @@ export function AnalyticsSettingsFields({
       </SettingList>
 
       <SettingList title={t(A('collection_title'))} description={t(A('collection_desc'))}>
+        <StorageUsage wide />
         <TextSetting
           fieldId="analyticsPath"
           wide

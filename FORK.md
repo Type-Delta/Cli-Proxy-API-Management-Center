@@ -1328,6 +1328,36 @@ When CPA publishes the additive Event `throughput_estimate`, the panel renders i
 
 Validation on 2026-10-25: `bunx bun@1.3.14 run verify` passed 2,120 tests with no failures, ESLint, TypeScript, and the Vite single-file production build. Focused regressions cover observed-over-estimate precedence, EST fallback marking, meaningful versus redundant unavailable estimates, percentage formatting, absence of a fabricated timing bar, keyboard-reachable estimate details, legacy aliases, and measured-only leaderboard copy.
 
+### DL067: Config Panel storage usage
+
+Status: shipped
+
+Files: `src/services/api/storage.ts`, `src/features/config/storageUsage.ts`,
+`src/features/config/components/StorageUsage.{tsx,module.scss}`,
+`src/features/config/components/sections/AnalyticsSettingsFields.tsx`,
+`src/i18n/locales/*`, `tests/storageUsage.test.ts`
+
+Collection and storage displays live filesystem usage from CPA's authenticated v8 storage
+endpoint. The stacked bar and legend separate CPA logs, CPA data, other files, and available
+space, with usable capacity and a measurement timestamp. Each filesystem gets its own bar.
+The display reuses CPAMC's theme palettes, wraps the legend into aligned rows on narrow
+screens, and keeps exact sizes visible for categories smaller than 0.01% of capacity.
+Measured locations and the accounting scope are available in a native disclosure.
+
+Readings refresh every minute while the page is visible and through a manual refresh action.
+Connection changes discard the previous host's readings and cancel in-flight requests.
+Failures preserve the last successful measurement with a warning; unsupported backends and
+partial scans have explicit states. All six locales carry the added copy. The API adapter
+validates the response and normalizes backend field names before rendering.
+
+Validation on 2026-10-27: `bunx bun@1.3.14 run verify` passes 2,130 tests, ESLint,
+TypeScript, and the single-file production build. Contract tests cover multiple filesystems,
+partial results, invalid counts and inconsistent partitions, zero capacity, and localized
+sizes through TiB. Live Chrome CDP checks exercise the Config Panel against the built CPA
+server at desktop and mobile widths in light, dark, and white themes. Refresh, measured-location
+disclosure, and preservation of readings after a failed refresh pass; no runtime errors or
+horizontal overflow were observed. The CPA Docker image also builds and serves the bundled panel.
+
 ## Merge History
 
 This is an append-only historical decision record. It provides context for integrations but never, by itself, establishes an ongoing fork divergence; use the current Divergence Log for that determination.
