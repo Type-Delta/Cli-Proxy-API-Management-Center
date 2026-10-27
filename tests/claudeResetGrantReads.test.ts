@@ -1,10 +1,32 @@
-import { expect, test } from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
 import {
   createResetGrantReader,
   scheduleResetGrantRead,
   RESET_GRANT_READ_DELAY_MS,
 } from '../src/features/quota/providers/claude/resetGrantReads';
 import type { AnthropicResetGrantStatus } from '../src/services/api/claudeResetGrants';
+import { apiCallApi, type ApiCallRequest } from '../src/services/api/apiCall';
+
+const originalRequest = apiCallApi.request;
+afterEach(() => {
+  apiCallApi.request = originalRequest;
+});
+
+test('routine card reads allow the backend quota cache', async () => {
+  const calls: ApiCallRequest[] = [];
+  apiCallApi.request = async (request) => {
+    calls.push(request);
+    return {
+      statusCode: 200,
+      body: { cedar_ember: { eligible: false, grants: [] } },
+      bodyText: '',
+      header: {},
+    };
+  };
+  await createResetGrantReader()('credential');
+  expect(calls).toHaveLength(1);
+  expect(calls[0].force_refresh).toBe(false);
+});
 
 const status: AnthropicResetGrantStatus = {
   eligible: false,

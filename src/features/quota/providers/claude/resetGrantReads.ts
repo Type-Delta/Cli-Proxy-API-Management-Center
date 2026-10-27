@@ -11,11 +11,11 @@ export function scheduleResetGrantRead(start: () => void, current: () => boolean
   return () => clearTimeout(timeout);
 }
 
-/** Only card reads are shared. Spending still performs its own fresh preflight reads. */
+/** Card reads share the backend cache. Spending performs fresh preflight reads. */
 export function createResetGrantReader(
   deps = {
     revision: () => apiClient.getConnectionRevision(),
-    read: readClaudeResetGrants,
+    read: (authIndex: string) => readClaudeResetGrants(authIndex, { forceRefresh: false }),
   }
 ) {
   let session = deps.revision();

@@ -86,6 +86,8 @@ test('exact proxied GET/profile/claim contract, no provider token in frontend', 
   expect(await claimClaudeResetGrant('index', organization, grant.id, 'request-1')).toBe('reset');
   expect(calls[0].url).toBe('https://api.anthropic.com/api/oauth/usage?cedar_ember=1&skip_spend=1');
   expect(calls[1].url).toBe('https://api.anthropic.com/api/oauth/profile');
+  expect(calls[0].force_refresh).toBe(true);
+  expect(calls[1].force_refresh).toBe(true);
   expect(calls[2].url).toBe(
     `https://api.anthropic.com/api/organizations/${organization}/reset_rate_limits`
   );

@@ -1643,7 +1643,7 @@
     "dollar_balance_remaining": "Còn lại {{amount}}",
     "balance_reset": "Đặt lại",
     "balance_reset_unknown": "Không được cung cấp",
-    "stale_snapshot": "Làm mới thất bại. Hiển thị lần kiểm tra thành công gần nhất: {{time}}",
+    "stale_snapshot": "Hiển thị lần kiểm tra thành công gần nhất: {{time}}",
     "plan_label": "Gói",
     "plan_unknown": "Không rõ",
     "plan_free": "Miễn phí",

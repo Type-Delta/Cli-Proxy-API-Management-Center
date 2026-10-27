@@ -1643,7 +1643,7 @@
     "dollar_balance_remaining": "{{amount}} remaining",
     "balance_reset": "Resets",
     "balance_reset_unknown": "Not provided",
-    "stale_snapshot": "Refresh failed. Showing last successful check: {{time}}",
+    "stale_snapshot": "Showing last successful check: {{time}}",
     "plan_label": "Plan",
     "plan_unknown": "Unknown",
     "plan_free": "Free",

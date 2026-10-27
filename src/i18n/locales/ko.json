@@ -1643,7 +1643,7 @@
     "dollar_balance_remaining": "{{amount}} 남음",
     "balance_reset": "초기화",
     "balance_reset_unknown": "제공되지 않음",
-    "stale_snapshot": "새로 고침에 실패했습니다. 마지막 성공 확인: {{time}}",
+    "stale_snapshot": "마지막 성공 확인: {{time}}",
     "plan_label": "플랜",
     "plan_unknown": "알 수 없음",
     "plan_free": "Free",

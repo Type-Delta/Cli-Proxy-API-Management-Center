@@ -469,6 +469,7 @@ describe('Claude usage snapshot rendering and retention', () => {
     const markup = render({ ...quota, status: 'error', stale: true });
     expect(markup).toContain('role="status"');
     expect(markup).toContain('Showing last successful check:');
+    expect(markup).not.toContain('Refresh failed');
     expect(markup).toContain(new Date(observedAt).toLocaleString('en'));
     expect(markup).toContain('$94.96 remaining');
   });
@@ -487,6 +488,13 @@ describe('Claude usage snapshot rendering and retention', () => {
     expect(retained.stale).toBe(true);
     expect(retained.observedAt).toBe(observedAt);
     expect(retained.dollarWindows).toEqual(quota.dollarWindows);
+    store.setClaudeQuota({ [file.name]: CLAUDE_CONFIG.buildLoadingState() });
+    retained = useQuotaStore.getState().claudeQuota[file.name];
+    expect(retained.status).toBe('loading');
+    expect(retained.stale).toBe(true);
+    expect(retained.error).toBeUndefined();
+    expect(render(retained)).toContain('Showing last successful check:');
+    expect(render(retained)).not.toContain('Refresh failed');
     const recovered = { ...quota, observedAt: '2026-10-10T01:00:00Z', stale: false };
     store.setClaudeQuota({ [file.name]: recovered });
     expect(useQuotaStore.getState().claudeQuota[file.name]).toEqual(recovered);

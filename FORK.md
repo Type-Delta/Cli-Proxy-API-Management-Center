@@ -1108,6 +1108,21 @@ details join the meta column; Claude dollar balances, xAI product-usage breakdow
 groups render as quota-area rows with credential tooltips and soonest-reset ranking. Meta windows use
 hour labels when the duration is a whole number of hours.
 
+Claude refresh protection: routine reset-grant card reads allow CPA's shared quota
+cache and credential cooldown. Grant-spending preflights explicitly request fresh
+grant and organization data while respecting upstream backoff. The stale-snapshot
+notice in all six locales now states only the last successful check time; the
+separate error strip explains refresh failures, and the loading label describes
+an in-progress refresh. This avoids presenting a retained snapshot as a new error
+on navigation or while retrying.
+
+Validation: focused Claude quota and reset-grant tests, lint, TypeScript, and the
+production build pass. The full frontend suite records 2,102 passes and an
+unrelated SCSS import failure in `tests/analyticsAnalysis.test.ts`; the same error
+reproduces on the unchanged parent commit. Browser checks with the updated CPA
+backend and live Claude quota verify shared usage/profile/grant responses;
+simulated error, loading, and recovery checks cover desktop and mobile.
+
 ### DL059: Dense short-range analytics buckets
 
 Analytics requests for the rolling one-hour and six-hour presets now use 15-minute and 30-minute
