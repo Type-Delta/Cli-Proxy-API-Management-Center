@@ -276,6 +276,8 @@ export type AnalyticsEvent = {
   unpriced_tokens?: number;
   price_rule_id?: string;
   price_source?: string;
+  provider_credits?: string | null;
+  price_usd_per_credit?: string | null;
   import_batch_id?: string;
   source?: string;
   // Hop instrumentation added by CPA schema v1 (additive, all nullable). Events recorded before
@@ -494,6 +496,7 @@ export type AnalysisModelCost = {
   cache_read_usd: string;
   cache_creation_usd: string;
   output_usd: string;
+  credit_based_usd?: string;
   total_usd: string;
 };
 
@@ -503,6 +506,7 @@ export type AnalysisCostComponents = {
   cache_read_usd: string;
   cache_creation_usd: string;
   output_usd: string;
+  credit_based_usd?: string;
   blended_usd_per_million: string;
   models?: AnalysisModelCost[] | null;
 };
@@ -654,6 +658,7 @@ export type PricingCatalogProvidersResponse = {
 export type PricingSnapshot = {
   currency_unit: string;
   rounding: string;
+  kiro_usd_per_credit?: string;
   rules: PricingRule[];
   /** Effective rules returned for display. Newer CPA versions also expose the inputs separately. */
   overrides?: PricingRule[] | null;
@@ -673,6 +678,7 @@ export type PricingSnapshotResponse = Omit<PricingSnapshot, 'rules' | 'missing'>
 export type PricingUpdateRequest = {
   currency_unit: string;
   rounding: string;
+  kiro_usd_per_credit?: string;
   rules: PricingRule[];
 };
 

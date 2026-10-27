@@ -73,9 +73,11 @@ export function CostBreakdown({
       value: Number(section?.cache_creation_usd ?? 0),
     },
   ];
+  const creditCost = Number(section?.credit_based_usd ?? 0);
+  const hiddenCost = Number.isFinite(creditCost) ? Math.max(0, creditCost) : 0;
   const total = amounts.reduce(
     (sum, amount) => sum + (Number.isFinite(amount.value) ? Math.max(0, amount.value) : 0),
-    0
+    hiddenCost
   );
   const segments = amounts.map((amount, index) => ({
     ...amount,
@@ -92,14 +94,14 @@ export function CostBreakdown({
       className={styles.costBreakdownCard}
       title={t('analytics.analysis.cost_breakdown_title', { defaultValue: 'Cost Breakdown' })}
       description={t('analytics.analysis.cost_breakdown_description', {
-        defaultValue: 'Known spend by billed token category.',
+        defaultValue: 'Known estimated cost by pricing basis.',
       })}
       loading={loading}
       error={error}
       errorStatus={errorStatus}
       retryAt={retryAt}
       hasData={Boolean(section)}
-      partial={section?.meta.partial}
+      partial={section?.meta.partial || hiddenCost > 0}
       emptyDescription={
         section === null
           ? t('analytics.analysis.section_unavailable_description', {
@@ -121,7 +123,7 @@ export function CostBreakdown({
               defaultValue: 'Cost Breakdown',
             })}
             ariaLabel={t('analytics.analysis.cost_chart_summary', {
-              defaultValue: '{{count}} billed token categories by known spend',
+              defaultValue: '{{count}} pricing categories by estimated cost',
               count: segments.length,
             })}
           />
@@ -163,7 +165,9 @@ export function CostBreakdown({
           ))}
         </dl>
         <div className={styles.blendedRate}>
-          <span>{t('analytics.analysis.blended_rate', { defaultValue: 'Blended rate' })}</span>
+          <span>
+            {t('analytics.analysis.blended_rate', { defaultValue: 'Cost per token volume' })}
+          </span>
           <strong title={formatCostValue(section?.blended_usd_per_million, locale).title}>
             <AnimatedMetric
               value={
@@ -178,6 +182,7 @@ export function CostBreakdown({
               {t('analytics.analysis.per_million_tokens', { defaultValue: 'per 1M tokens' })}
             </small>
           </strong>
+          <small>{t('analytics.analysis.model_efficiency_description')}</small>
         </div>
       </div>
     </AnalysisCard>
@@ -259,14 +264,19 @@ export function ModelEfficiency({
         defaultValue: 'Model Cost Efficiency',
       })}
       description={t('analytics.analysis.model_efficiency_description', {
-        defaultValue: 'Estimated API-equivalent cost per 1 million total tokens.',
+        defaultValue:
+          'Estimated cost divided by total tokens, per 1 million tokens. This is not a token price.',
       })}
       loading={loading}
       error={error}
       errorStatus={errorStatus}
       retryAt={retryAt}
       hasData={filteredModels.length > 0}
-      partial={section?.meta.partial || costPartial}
+      partial={
+        section?.meta.partial ||
+        costPartial ||
+        models.some((model) => Number(model.costComponents?.credit_based_usd ?? 0) > 0)
+      }
       emptyDescription={
         section === null
           ? t('analytics.analysis.section_unavailable_description', {
@@ -331,7 +341,7 @@ export function ModelEfficiency({
                 {column('cache_write', 'analytics.analysis.cost_cache_write', 'Cache write')}
                 {column('total_cost', 'analytics.analysis.total_cost', 'Total cost')}
                 {column('tokens', 'analytics.analysis.volume_tokens', 'Volume (tokens)')}
-                {column('cost', 'analytics.analysis.price_per_million', 'Price per million')}
+                {column('cost', 'analytics.analysis.price_per_million', 'Cost per 1M tokens')}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -347,8 +357,21 @@ export function ModelEfficiency({
                     : formatCostValue(model.costPerMillion, resolvedLocale);
                 const component = model.costComponents;
                 const totalCost = component ? Number(component.total_usd) : null;
+                const tokenComponentsUnavailable =
+                  Number(component?.credit_based_usd ?? 0) > 0 &&
+                  [
+                    component?.uncached_input_usd,
+                    component?.output_usd,
+                    component?.cache_read_usd,
+                    component?.cache_creation_usd,
+                  ].every((value) => Number(value ?? 0) === 0);
                 const componentCell = (value: string | undefined) => {
-                  if (value == null || !Number.isFinite(Number(value))) return '—';
+                  if (
+                    tokenComponentsUnavailable ||
+                    value == null ||
+                    !Number.isFinite(Number(value))
+                  )
+                    return '—';
                   const amount = Number(value);
                   const share = totalCost && totalCost > 0 ? (amount / totalCost) * 100 : 0;
                   return (

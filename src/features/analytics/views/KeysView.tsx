@@ -122,9 +122,9 @@ const SORTABLE_COLUMNS: ReadonlyArray<CatalogColumn> = [
   {
     id: 'cost',
     labelKey: 'analytics.known_cost',
-    defaultValue: 'Estimated API-equivalent cost',
+    defaultValue: 'Estimated cost',
     descriptionKey: 'analytics.keys_header_help.cost',
-    descriptionDefault: 'Known API-equivalent cost for priced usage only.',
+    descriptionDefault: 'Estimated cost for priced usage only.',
     alignRight: true,
   },
   {
@@ -421,7 +421,7 @@ export function KeysView({ keys, range }: { keys: AnalyticsKey[]; range: Analyti
                     <div>
                       <dt>
                         {t('analytics.known_cost', {
-                          defaultValue: 'Estimated API-equivalent cost',
+                          defaultValue: 'Estimated cost',
                         })}
                       </dt>
                       <dd title={cost.title}>{cost.text}</dd>

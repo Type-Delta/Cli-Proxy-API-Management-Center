@@ -250,9 +250,7 @@ describe('analytics client contracts', () => {
     expect(analyticsPageRedirectTarget('model-leaderboard')).toBe('/analytics/model-leaderboard');
     expect(analyticsPageRedirectTarget('management')).toBe('/analytics/pricing');
     expect(analyticsPageKindFromPathname('/analytics/events')).toBe('events');
-    expect(analyticsPageKindFromPathname('/analytics/model-leaderboard')).toBe(
-      'model-leaderboard'
-    );
+    expect(analyticsPageKindFromPathname('/analytics/model-leaderboard')).toBe('model-leaderboard');
     // The legacy /analytics/leaderboard redirect target still resolves like a Usage path.
     expect(analyticsPageKindFromPathname('/analytics/leaderboard')).toBe('overview');
     expect(analyticsPageFromPathname('/analytics')).toBe('usage');
@@ -430,6 +428,27 @@ describe('analytics client contracts', () => {
     );
     expect(replacements).toEqual(['#/viewer']);
     expect(replacements.join('')).not.toContain(credential);
+  });
+
+  test('localizes Kiro credit pricing and estimated key cost in every locale', async () => {
+    const labels: Record<string, string> = {
+      en: 'Kiro credits',
+      ko: 'Kiro 크레딧',
+      ru: 'Кредиты Kiro',
+      vi: 'Tín dụng Kiro',
+      'zh-CN': 'Kiro 积分',
+      'zh-TW': 'Kiro 點數',
+    };
+    for (const [locale, label] of Object.entries(labels)) {
+      const document = (await Bun.file(`src/i18n/locales/${locale}.json`).json()) as {
+        analytics: {
+          enums: { source: Record<string, string> };
+          keys_header_help: { cost: string };
+        };
+      };
+      expect(document.analytics.enums.source['kiro-credits']).toBe(label);
+      expect(document.analytics.keys_header_help.cost).not.toMatch(/API/i);
+    }
   });
 
   test('ships the analytics page copy and enum copy in every locale without dead labels', async () => {

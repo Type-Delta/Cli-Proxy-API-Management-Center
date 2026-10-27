@@ -144,9 +144,100 @@ describe('analytics v2 API adapter', () => {
       const pricing = await analyticsApi.pricing();
       expect(pricing.rules).toEqual([]);
       expect(pricing.missing).toEqual([]);
+      expect(pricing.kiro_usd_per_credit).toBeUndefined();
     } finally {
       apiClient.getRaw = originalGetRaw;
       apiClient.get = originalGet;
+    }
+  });
+
+  test('saves token overrides against an older server without adding a credit rate', async () => {
+    const originalGet = apiClient.get;
+    const originalPut = apiClient.put;
+    apiClient.get = mock(async () => ({
+      currency_unit: 'nano_usd',
+      rounding: 'once',
+      rules: [],
+      missing: [],
+    })) as typeof apiClient.get;
+    const put = mock(async (_path: string, body: unknown) => {
+      if (typeof body === 'object' && body !== null && 'kiro_usd_per_credit' in body) {
+        throw new Error('unknown field');
+      }
+      return {};
+    });
+    apiClient.put = put as typeof apiClient.put;
+    try {
+      const snapshot = await analyticsApi.pricing();
+      expect(snapshot.kiro_usd_per_credit).toBeUndefined();
+      await analyticsApi.updatePricing({
+        currency_unit: snapshot.currency_unit,
+        rounding: snapshot.rounding,
+        rules: snapshot.rules,
+      });
+      expect(put.mock.calls[0]?.[1]).not.toHaveProperty('kiro_usd_per_credit');
+    } finally {
+      apiClient.get = originalGet;
+      apiClient.put = originalPut;
+    }
+  });
+
+  test('normalizes missing credit cost and preserves explicit credit costs and rate', async () => {
+    const originalGetRaw = apiClient.getRaw;
+    const originalGet = apiClient.get;
+    const originalPut = apiClient.put;
+    apiClient.getRaw = mock(async () =>
+      okResponse({
+        cost_components: {
+          meta: {},
+          uncached_input_usd: '1',
+          output_usd: '2',
+          cache_read_usd: '0',
+          cache_creation_usd: '0',
+          blended_usd_per_million: '3',
+          models: [
+            { model: 'old', total_usd: '3' },
+            { model: 'kiro', credit_based_usd: '0.25', total_usd: '0.25' },
+          ],
+        },
+      })
+    ) as unknown as typeof apiClient.getRaw;
+    apiClient.get = mock(async () => ({
+      rules: [],
+      missing: [],
+      kiro_usd_per_credit: '0',
+    })) as typeof apiClient.get;
+    const put = mock(async () => ({}));
+    apiClient.put = put as typeof apiClient.put;
+    try {
+      const analysis = await analyticsApi.analysis({
+        schema_version: 2,
+        operation: 'analysis',
+        range: { preset: 'today', time_zone: 'UTC' },
+      });
+      expect(analysis.cost_components?.credit_based_usd).toBe('0');
+      expect(analysis.cost_components?.models?.map((model) => model.credit_based_usd)).toEqual([
+        '0',
+        '0.25',
+      ]);
+      expect((await analyticsApi.pricing()).kiro_usd_per_credit).toBe('0');
+      await analyticsApi.updatePricing({
+        currency_unit: 'nano_usd',
+        rounding: 'half_away_from_zero_once_per_event',
+        rules: [],
+      });
+      expect(put.mock.calls[0]?.[1]).not.toHaveProperty('kiro_usd_per_credit');
+      await analyticsApi.updatePricing({
+        currency_unit: 'nano_usd',
+        rounding: 'half_away_from_zero_once_per_event',
+        rules: [],
+        kiro_usd_per_credit: '0',
+      });
+      expect(put.mock.calls[1]?.[1]).toHaveProperty('kiro_usd_per_credit', '0');
+    } finally {
+      apiClient.getRaw = originalGetRaw;
+      apiClient.get = originalGet;
+      apiClient.put = originalPut;
     }
   });
 

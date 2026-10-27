@@ -26,6 +26,22 @@ entries are removed. If duplicate IDs are found, remove the duplicate when the c
 when the content is different, assign the distinct entry the next unused ID. Remove or rewrite an
 entry when upstream absorbs its difference rather than preserving chronology.
 
+### DL068: Kiro credit pricing in analytics
+
+Status: shipped
+
+Files: `src/features/analytics/**`, `src/services/api/analytics.ts`, `src/types/analytics.ts`, `src/i18n/locales/**`
+
+Analytics supports the Kiro USD-per-credit setting, displays reported credits and the applied rate on events, and includes credit-based cost in analysis totals while hiding its category from the breakdown and model table. Incomplete token breakdowns use the generic partial-data presentation. Manual pricing overrides retain precedence. The credit editor appears only when the server exposes the setting; token-rule updates remain compatible with older servers. Events without credit fields remain supported.
+
+Validation: `bun run verify` passes 2,136 tests, lint, TypeScript and production
+build. Desktop and mobile CDP checks against the Docker app verify four visible
+token categories, hidden costs in totals and percentage denominators, and retained
+rate-editor and event-credit details. Mixed token/credit fixtures preserve full
+monetary totals without page overflow. Earlier live Kiro checks cover metering,
+rate editing, restart and repricing. The canonical panel bundle and repository
+Docker image build successfully.
+
 ### DL001: Fork maintenance convention
 
 Status: shipped

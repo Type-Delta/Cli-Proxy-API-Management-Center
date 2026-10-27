@@ -57,7 +57,7 @@ export function TokenUsageChart({
     unclassified: t('analytics.analysis.unclassified', { defaultValue: 'Unclassified' }),
   };
   const requestsLabel = t('analytics.proxy_requests', { defaultValue: 'Proxy requests' });
-  const costLabel = t('analytics.known_cost', { defaultValue: 'Estimated API-equivalent cost' });
+  const costLabel = t('analytics.known_cost', { defaultValue: 'Estimated cost' });
   const option = useMemo(
     () =>
       tokenUsageOption({
@@ -223,7 +223,7 @@ export function TopModelsChart({
           : metric === 'cost'
             ? t('analytics.analysis.top_models_cost_description', {
                 defaultValue:
-                  'Estimated API-equivalent cost over time, synchronized with the ranking.',
+                  'Estimated cost over time, synchronized with the ranking.',
               })
             : t('analytics.analysis.top_models_description', {
                 defaultValue: 'Model metric over time, synchronized with the ranking.',

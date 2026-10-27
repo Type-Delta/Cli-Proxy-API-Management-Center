@@ -834,6 +834,22 @@ export function EventDetailSheet({
                 label={t('analytics.unpriced_tokens')}
                 value={formatCompactTokens(event.unpriced_tokens ?? 0, locale).text}
               />
+              {event.provider.toLowerCase() === 'kiro' && (
+                <>
+                  <Fact
+                    label={t('analytics.provider_credits')}
+                    value={event.provider_credits ?? t('analytics.credits_not_reported')}
+                  />
+                  <Fact
+                    label={t('analytics.applied_credit_rate')}
+                    value={
+                      event.price_usd_per_credit != null
+                        ? `$${event.price_usd_per_credit}`
+                        : t('analytics.credit_rate_not_applied')
+                    }
+                  />
+                </>
+              )}
               <Fact
                 label={t('analytics.price_source', { defaultValue: 'Price source' })}
                 value={formatAnalyticsEnum(t, 'source', event.price_source)}

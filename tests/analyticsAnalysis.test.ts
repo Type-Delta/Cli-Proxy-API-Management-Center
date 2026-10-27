@@ -604,6 +604,92 @@ describe('analytics Analysis models', () => {
     expect(markup).not.toContain('<rect');
   });
 
+  test('includes credit cost in the mixed cost breakdown', () => {
+    const markup = renderToStaticMarkup(
+      createElement(CostBreakdown, {
+        section: {
+          meta: { partial: false },
+          uncached_input_usd: '1',
+          output_usd: '2',
+          cache_read_usd: '3',
+          cache_creation_usd: '4',
+          credit_based_usd: '5',
+          blended_usd_per_million: '0',
+        },
+        loading: false,
+        error: '',
+        onRetry: () => {},
+        locale: 'en',
+      })
+    );
+    expect(markup).not.toContain('Credit-based');
+    expect(markup).toContain('15 USD');
+    expect(markup).toContain('4 pricing categories');
+    expect(markup).toContain('Partial data');
+    expect(markup).toContain('6.7%');
+    expect(markup).toContain('26.7%');
+  });
+
+  test('renders honest model cost components for mixed, credit-only, and token-only costs', () => {
+    const names = ['mixed', 'credit-only', 'token-only'];
+    const models = names.map((model) => ({
+      model,
+      requests: 1,
+      input_tokens: 1_000_000,
+      output_tokens: 0,
+      cached_tokens: 0,
+      cache_read_tokens: 0,
+      cache_creation_tokens: 0,
+      reasoning_tokens: 0,
+      total_tokens: 1_000_000,
+      known_cost_usd: model === 'mixed' ? '10' : '5',
+      unpriced_tokens: 0,
+    }));
+    const costs = names.map((model) => ({
+      model,
+      uncached_input_usd: model === 'credit-only' ? '0' : '5',
+      output_usd: '0',
+      cache_read_usd: '0',
+      cache_creation_usd: '0',
+      credit_based_usd: model === 'token-only' ? '0' : '5',
+      total_usd: model === 'mixed' ? '10' : '5',
+    }));
+    const markup = renderToStaticMarkup(
+      createElement(ModelEfficiency, {
+        section: { meta: { partial: false }, buckets: [], models },
+        costs,
+        loading: false,
+        error: '',
+        onRetry: () => {},
+        locale: 'en',
+      })
+    );
+    const rows = markup.match(/<tr[^>]*>[\s\S]*?<\/tr>/g) ?? [];
+    const row = (name: string) => rows.find((item) => item.includes(`title="${name}"`)) ?? '';
+    expect(markup).not.toContain('Credit-based');
+    expect(markup).toContain('Partial data');
+    expect(row('mixed')).toContain('50.0%');
+    expect(row('mixed')).toContain('$10.00');
+    expect(row('credit-only').match(/—/g)).toHaveLength(4);
+    expect(row('credit-only')).toContain('$5.00');
+    expect(row('token-only')).toContain('100.0%');
+    expect(
+      buildModelEfficiency(models, costs).find((item) => item.model === 'mixed')?.costPerMillion
+    ).toBe(10);
+
+    const tokenOnly = renderToStaticMarkup(
+      createElement(ModelEfficiency, {
+        section: { meta: { partial: false }, buckets: [], models: [models[2]] },
+        costs: [costs[2]],
+        loading: false,
+        error: '',
+        onRetry: () => {},
+        locale: 'en',
+      })
+    );
+    expect(tokenOnly).not.toContain('Partial data');
+  });
+
   test('round-trips the distribution dimension through the hash query', () => {
     const state = parseAnalyticsUrlState('?range=last_n_days&n=7&time_zone=UTC&distribution=model');
     expect(state.distribution).toBe('model');

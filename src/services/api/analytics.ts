@@ -243,7 +243,9 @@ const analyticsQueryAbandoned = 'analytics query was discarded because the conne
 const connectionChanged = (revision: number): boolean =>
   apiClient.getConnectionRevision() !== revision;
 
-async function requestAnalyticsQuery<T extends QueryResult>(request: AnalyticsReadQuery): Promise<T> {
+async function requestAnalyticsQuery<T extends QueryResult>(
+  request: AnalyticsReadQuery
+): Promise<T> {
   const revision = apiClient.getConnectionRevision();
   const requestKey = analyticsQueryRequestKey(request);
   const encoded = encodeAnalyticsQuery(request);
@@ -324,6 +326,14 @@ function normalizeAnalysis(data: AnalyticsAnalysis): AnalyticsAnalysis {
       buckets: analyticsCollection(data.model_by_time.buckets).map((bucket) => ({
         ...bucket,
         models: analyticsCollection(bucket.models),
+      })),
+    },
+    cost_components: data.cost_components && {
+      ...data.cost_components,
+      credit_based_usd: data.cost_components.credit_based_usd ?? '0',
+      models: analyticsCollection(data.cost_components.models).map((model) => ({
+        ...model,
+        credit_based_usd: model.credit_based_usd ?? '0',
       })),
     },
     latency: data.latency && {

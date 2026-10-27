@@ -451,7 +451,7 @@ export function OverviewKpis({
       value: costValue(metrics.costLabel),
       ariaLabel: `${t('analytics.overview.cost', { defaultValue: 'Cost' })}: ${formatCostValue(metrics.costLabel, locale).text}. ${
         metrics.priceCoverageComplete
-          ? t('analytics.overview.known_cost', { defaultValue: 'Estimated API-equivalent cost' })
+          ? t('analytics.overview.known_cost', { defaultValue: 'Estimated cost' })
           : t('analytics.overview.unpriced_tokens', {
               defaultValue: '{{count}} unpriced tokens',
               count: formatNumber(metrics.unpricedTokens, locale),
@@ -466,7 +466,7 @@ export function OverviewKpis({
           <span>
             {metrics.priceCoverageComplete
               ? t('analytics.overview.known_cost', {
-                  defaultValue: 'Estimated API-equivalent cost',
+                  defaultValue: 'Estimated cost',
                 })
               : t('analytics.overview.unpriced_tokens', {
                   defaultValue: '{{count}} unpriced tokens',

@@ -78,6 +78,7 @@ export function Pricing() {
   const [editor, setEditor] = useState<PricingRuleDraft | null>(null);
   const [editingId, setEditingId] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
+  const [creditRate, setCreditRate] = useState<string | null>(null);
   const [rulesPageState, setRulesPage] = useState(1);
   const [missingPageState, setMissingPage] = useState(1);
   const catalogRefreshAttempts = useRef(0);
@@ -112,10 +113,7 @@ export function Pricing() {
   );
 
   useEffect(() => {
-    const totalPages = Math.max(
-      1,
-      Math.ceil(displayRules.length / ANALYTICS_TABLE_PAGE_SIZE)
-    );
+    const totalPages = Math.max(1, Math.ceil(displayRules.length / ANALYTICS_TABLE_PAGE_SIZE));
     setRulesPage((page) => Math.min(page, totalPages));
   }, [displayRules.length]);
 
@@ -185,6 +183,31 @@ export function Pricing() {
           : t('common.error', text('common.error', 'Request failed')),
         'error'
       );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveCreditRate = async () => {
+    if (result.data?.kiro_usd_per_credit == null) return;
+    const rate = (creditRate ?? result.data.kiro_usd_per_credit).trim();
+    if (!/^\d+(?:\.\d{1,9})?$/.test(rate)) {
+      notify(t('analytics.kiro_rate_invalid'), 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      await analyticsApi.updatePricing({
+        currency_unit: result.data.currency_unit,
+        rounding: result.data.rounding,
+        rules: pricingOverridesForWrite(result.data),
+        kiro_usd_per_credit: rate,
+      });
+      setCreditRate(null);
+      notify(t('analytics.pricing_saved'), 'success');
+      await result.refresh();
+    } catch (error) {
+      notify(error instanceof Error ? error.message : t('common.error'), 'error');
     } finally {
       setSaving(false);
     }
@@ -290,7 +313,7 @@ export function Pricing() {
                 'analytics.pricing_estimate_note',
                 text(
                   'analytics.pricing_estimate_note',
-                  'Displayed costs are API-equivalent estimates based on token usage and catalog rates; they do not represent subscription billing.'
+                  'Estimated costs use available pricing rules or provider credits and are not subscription bills.'
                 )
               )}
             </p>
@@ -307,10 +330,7 @@ export function Pricing() {
                 ? ` ${t(
                     'analytics.pricing_catalog_updated',
                     text('analytics.pricing_catalog_updated', 'Last catalog update: {{time}}.', {
-                      time: formatDateTime(
-                        catalogUpdatedAt,
-                        i18n.resolvedLanguage
-                      ),
+                      time: formatDateTime(catalogUpdatedAt, i18n.resolvedLanguage),
                     })
                   )}`
                 : ''}
@@ -502,6 +522,21 @@ export function Pricing() {
               </>
             )}
           </Card>
+          {result.data.kiro_usd_per_credit != null && (
+            <Card title={t('analytics.kiro_rate_title')}>
+              <p>{t('analytics.kiro_rate_explanation')}</p>
+              <p>{t('analytics.kiro_rate_reprice')}</p>
+              <Input
+                label={t('analytics.kiro_rate_label')}
+                inputMode="decimal"
+                value={creditRate ?? result.data.kiro_usd_per_credit ?? '0.02'}
+                onChange={(event) => setCreditRate(event.target.value)}
+              />
+              <Button onClick={() => void saveCreditRate()} loading={saving}>
+                {t('common.save')}
+              </Button>
+            </Card>
+          )}
           <Card
             title={t(
               'analytics.pricing_missing_title',

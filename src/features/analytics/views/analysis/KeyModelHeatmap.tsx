@@ -83,7 +83,7 @@ export function KeyModelHeatmap({
   const metricLabels = useMemo<Record<HeatmapMetric, string>>(
     () => ({
       tokens: t('analytics.total_tokens', { defaultValue: 'Total tokens' }),
-      cost: t('analytics.known_cost', { defaultValue: 'Estimated API-equivalent cost' }),
+      cost: t('analytics.known_cost', { defaultValue: 'Estimated cost' }),
       generation: t('analytics.analysis.generation_time', { defaultValue: 'Output window' }),
     }),
     [t]
@@ -165,7 +165,7 @@ export function KeyModelHeatmap({
             },
             { name: requestsLabel, text: formatNumber(value?.requests ?? 0, locale) },
             {
-              name: t('analytics.known_cost', { defaultValue: 'Estimated API-equivalent cost' }),
+              name: t('analytics.known_cost', { defaultValue: 'Estimated cost' }),
               text: formatCostValue(value?.known_cost_usd ?? 0, locale).text,
             },
           ],

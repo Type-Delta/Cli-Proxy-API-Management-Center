@@ -831,3 +831,34 @@ test('speed rankings describe measured windows only in every locale', async () =
     expect(copy).not.toBe('');
   }
 });
+
+test('Kiro details distinguish reported zero credits from absent metering and show applied rate', () => {
+  const render = (overrides: Partial<AnalyticsEvent>) =>
+    renderToStaticMarkup(
+      createElement(
+        I18nextProvider,
+        { i18n },
+        createElement(EventDetailSheet, {
+          open: true,
+          event: fullyInstrumented({ provider: 'kiro', ...overrides }),
+          loading: false,
+          error: '',
+          keyIdentity: 'test-key',
+          onClose: () => {},
+          onRetry: () => {},
+        })
+      )
+    );
+  const zero = render({
+    provider_credits: '0',
+    price_usd_per_credit: '0.02',
+    price_source: 'kiro-credits',
+  });
+  expect(zero).toContain('Reported credits');
+  expect(zero).toContain('$0.02');
+  expect(zero).toContain('Kiro credits');
+  expect(zero).not.toContain('Not reported');
+  const missing = render({ price_source: 'models.dev' });
+  expect(missing).toContain('Not reported');
+  expect(missing).toContain('Not applied');
+});
