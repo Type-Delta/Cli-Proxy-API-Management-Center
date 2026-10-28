@@ -278,7 +278,7 @@
       "job_kind": {
         "backup": "備份",
         "integrity_check": "完整性檢查",
-        "checkpoint": "WAL 檢查點",
+        "checkpoint": "檢查點",
         "reindex": "重建索引",
         "restore": "還原",
         "purge_key": "清除金鑰",
@@ -432,7 +432,6 @@
       "tier_multiplier_input": "輸入 ×{{multiplier}}",
       "tier_multiplier_output": "輸出 ×{{multiplier}}",
       "disconnect_reason": "中斷原因",
-
       "session_not_sent": "用戶端未傳送",
       "pricing": "計費",
       "component": "項目",
@@ -442,7 +441,6 @@
       "component_output": "輸出",
       "component_cache_read": "快取讀取",
       "component_cache_write": "快取寫入",
-
       "client_disconnected": "用戶端已中斷連線",
       "state_canceled": "完成前已取消",
       "session_id_exact": "精確比對工作階段 ID",
@@ -462,7 +460,6 @@
       "pricing_details": "計費詳情",
       "cost_total": "總費用",
       "applied_rate": "{{tokens}} 個權杖，費率 ${{rate}} / 百萬",
-
       "timeline": "請求路徑",
       "timing": "耗時",
       "total": "總計：{{value}}",
@@ -1094,7 +1091,7 @@
     },
     "maintenance": {
       "abandoned": "已放棄事件",
-      "backup_copy": "在執行破壞性操作之前先建立備份。",
+      "backup_copy": "刪除或變更資料前，請將分析表匯出為邏輯備份。",
       "backup_id": "備份 ID",
       "backup_title": "備份與還原",
       "category": "類別",
@@ -1133,7 +1130,28 @@
       "rollback_hint": "回滾會移除已匯入的批次。在此工作成功完成之前請保留備份。",
       "truncated": "已截斷欄位",
       "unknown": "未知",
-      "verified_backup": "已驗證的備份路徑"
+      "verified_backup": "已驗證的備份路徑",
+      "integrity_check_copy": "對分析表執行 CHECK TABLE。",
+      "checkpoint_copy": "檢查 ClickHouse 連線。",
+      "reindex_copy": "對分析表執行 OPTIMIZE FINAL。",
+      "legacy_import": "舊分析資料匯入",
+      "legacy_import_states": {
+        "pending": "等待中",
+        "running": "進行中",
+        "done": "已完成",
+        "failed": "失敗",
+        "abandoned": "已放棄"
+      },
+      "legacy_import_counts": {
+        "events": "事件",
+        "rollups": "彙總",
+        "request_rollups": "請求彙總",
+        "files_seen": "已檢查檔案",
+        "imported": "已匯入檔案",
+        "skipped_unparseable": "無法解析的檔案",
+        "records": "記錄"
+      },
+      "legacy_request_log_import": "舊請求日誌匯入"
     },
     "job_result": {
       "action": "操作",
@@ -2556,7 +2574,7 @@
         },
         "analytics": {
           "title": "持久化分析",
-          "description": "在 CPA 的隔離分析資料庫中收集每個金鑰的用量",
+          "description": "將各金鑰的用量存入 ClickHouse。分析需要設定 ClickHouse DSN。",
           "enabled": "啟用持久化分析",
           "enabled_desc": "為分析頁面收集新的代理用量。即使分析故障，代理與金鑰限制仍會繼續運作。",
           "storage_usage": {
@@ -2574,17 +2592,31 @@
             "partial": "部分位置無法完整測量，CPA 用量可能偏低。請重新整理以重試。",
             "unavailable": "無法重新整理儲存空間用量，請再試一次。目前顯示的數值來自上一次成功測量。",
             "unsupported": "此 CPA 版本不提供儲存空間用量。請更新 CPA 以查看磁碟使用情況。",
-            "empty": "無法取得 CPA 設定位置的檔案系統讀數。"
+            "empty": "無法取得 CPA 設定位置的檔案系統讀數。",
+            "clickhouse_drive": "ClickHouse 磁碟",
+            "analytics": "分析資料",
+            "request_logs": "請求日誌與會話記錄",
+            "cpa_other": "其他 CPA 資料",
+            "clickhouse_other": "其他 ClickHouse 資料",
+            "clickhouse_unreachable": "無法連線 ClickHouse 資料庫 {{database}}。本機讀數仍會顯示。{{reason}}",
+            "clickhouse_unreachable_generic": "伺服器沒有說明原因。",
+            "clickhouse_partial": "部分 ClickHouse 讀數可能不完整。請重新整理以重試。",
+            "clickhouse_empty": "ClickHouse 沒有回報儲存裝置。",
+            "clickhouse_details": "已測量的 ClickHouse 資料",
+            "clickhouse_scope": "ClickHouse 按表彙總作用中的 part。其他 ClickHouse 資料包含系統表和其他資料庫的作用中 part。其他檔案包含磁碟上的其餘內容。",
+            "clickhouse_database": "CPA 資料庫",
+            "clickhouse_path": "磁碟路徑",
+            "clickhouse_keep_free": "保留可用空間"
           },
           "collection_title": "收集與儲存",
-          "collection_desc": "預設值適合大多數單一執行個體部署。變更佇列或資料庫位置後需要重新啟動 CPA。",
-          "path": "資料庫路徑 (analytics.path)",
+          "collection_desc": "變更佇列或資料庫連線後，請重新啟動 CPA。",
+          "path": "舊 SQLite 路徑（analytics.path）",
           "path_placeholder": "預設: auth-dir/state/analytics/analytics.db",
-          "path_hint": "留空會將分析資料儲存在 auth-dir 下。自訂路徑還會把 identity.key 和 viewers.json 放在資料庫旁邊，因此請一起移動或備份這三個檔案。變更後需要重新啟動 CPA。",
+          "path_hint": "CPA 首次建立 ClickHouse 資料庫時，會一次性匯入此 SQLite 資料庫。同一目錄也存放 identity.key 和 viewers.json。請一起移動或備份這三個檔案。變更路徑後請重新啟動 CPA。",
           "queue_capacity": "佇列容量",
-          "queue_capacity_hint": "等待寫入 SQLite 的已清理事件上限，範圍 1 到 8192。變更後需要重新啟動 CPA。",
+          "queue_capacity_hint": "等待寫入 ClickHouse 的已清理事件上限，範圍 1 到 8192。變更後請重新啟動 CPA。",
           "batch_size": "寫入批次大小",
-          "batch_size_hint": "每個 SQLite 批次提交的事件數，不能超過佇列容量。",
+          "batch_size_hint": "每個 ClickHouse 批次寫入的事件數，不能超過佇列容量。",
           "flush_interval": "排清間隔",
           "flush_interval_hint": "寫入未滿批次前的最長等待時間，範圍 1ms 到 1m。",
           "hot_retention_days": "原始事件保留天數",
@@ -2592,9 +2624,9 @@
           "circuit_failure_threshold": "失敗閾值",
           "circuit_failure_threshold_hint": "連續寫入失敗達到此數值後，分析會開啟熔斷並捨棄新事件。",
           "max_storage_bytes": "最大儲存空間 (位元組)",
-          "max_storage_bytes_hint": "資料庫、WAL、共享記憶體及分析暫存檔的硬上限。僅當保留空間非零時才可設為 0。",
+          "max_storage_bytes_hint": "ClickHouse 中分析資料的最大空間。僅當保留可用空間非零時才可設為 0。",
           "min_free_bytes": "保留可用空間 (位元組)",
-          "min_free_bytes_hint": "檔案系統低於此保留空間前，分析會停止寫入。僅當最大儲存空間非零時才可設為 0。",
+          "min_free_bytes_hint": "ClickHouse 磁碟的可用空間低於此值時，分析會暫停寫入。僅當最大儲存空間非零時才可設為 0。",
           "privacy_title": "憑據隱私",
           "privacy_desc": "分析不會儲存原始憑據。此開關控制是否保留使用金鑰雜湊的匿名憑據身分。",
           "store_credential_id": "儲存憑據身分",
@@ -2608,7 +2640,21 @@
           "allow_loopback_http_desc": "僅供開發。允許直接回環連線透過明文 HTTP 交換檢視憑據。變更後需要重新啟動 CPA。",
           "storage_time_zone": "儲存時區（analytics.storage-time-zone）",
           "storage_time_zone_hint": "用於已保留彙總的 IANA 時區。在保留原則執行後變更此項需要重設分析資料。",
-          "storage_time_zone_placeholder": "UTC"
+          "storage_time_zone_placeholder": "UTC",
+          "clickhouse_dsn": "ClickHouse DSN",
+          "clickhouse_dsn_hint": "把 CPA 連接到 ClickHouse。更改後需要重新啟動 CPA。CPA 會隱藏這個值。",
+          "clickhouse_database": "ClickHouse 資料庫",
+          "clickhouse_database_hint": "資料庫名稱。以字母或底線開頭，只使用字母、數字和底線。更改後需要重新啟動 CPA。",
+          "clickhouse_retention_days": "遙測保留期（天）",
+          "clickhouse_retention_days_hint": "刪除超過此天數的請求和嘗試。會話內容會在沒有保留的請求使用時稍後清理。",
+          "clickhouse_agent_enabled": "Agent SQL 查詢",
+          "clickhouse_agent_enabled_hint": "允許管理 agent 對這個資料庫執行唯讀 SQL。",
+          "clickhouse_agent_time": "Agent SQL 最長執行時間",
+          "clickhouse_agent_time_hint": "例如 30s。超過後停止這條 agent SQL 查詢。",
+          "clickhouse_agent_rows": "Agent SQL 最多傳回列數",
+          "clickhouse_agent_rows_hint": "一條 agent SQL 查詢最多傳回這麼多列。",
+          "clickhouse_agent_memory": "Agent SQL 記憶體上限（位元組）",
+          "clickhouse_agent_memory_hint": "一條 agent SQL 查詢最多使用的記憶體。"
         },
         "advanced": {
           "antigravity_credits": "使用Antigravity Credits",
@@ -2915,7 +2961,8 @@
         "payload_invalid_number": "請輸入有效數字",
         "payload_invalid_boolean": "請選擇 true 或 false",
         "payload_invalid_json": "請輸入有效的 JSON",
-        "analytics_storage_time_zone_invalid": "請輸入有效的 IANA 時區名稱，例如 UTC 或 Asia/Kolkata"
+        "analytics_storage_time_zone_invalid": "請輸入有效的 IANA 時區名稱，例如 UTC 或 Asia/Kolkata",
+        "invalid_clickhouse_database": "資料庫名稱以字母或底線開頭，只使用字母、數字或底線。"
       },
       "common": {
         "edit": "編輯",

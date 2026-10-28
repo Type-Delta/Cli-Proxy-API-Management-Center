@@ -32,22 +32,28 @@ describe('server visual codec', () => {
   for (const { key, path, kind } of SERVER_FIELDS) {
     test(`${key}: exact read/write path, explicit values, source roundtrip`, () => {
       const doc = parseDocument(yaml);
-      const before = kind === 'list' ? ['one', 'one'] : kind === 'boolean' ? true : 'original';
+      const before =
+        kind === 'list' ? ['one', 'one'] : kind === 'boolean' ? true : kind === 'number' ? 30 : 'original';
       doc.setIn(path, before);
       const source = doc.toString();
       const loaded = runVisualConfig(source);
-      expect(loaded.visualValues[key]).toEqual(before);
+      const expectedLoaded = kind === 'number' ? String(before) : before;
+      expect(loaded.visualValues[key]).toEqual(expectedLoaded);
       const desired =
-        kind === 'list' ? [' two ', '', 'two'] : kind === 'boolean' ? false : 'changed';
+        kind === 'list'
+          ? [' two ', '', 'two']
+          : kind === 'boolean'
+            ? false
+            : kind === 'number'
+              ? '45'
+              : 'changed';
+      const expectedDesired =
+        kind === 'list' ? ['two', 'two'] : kind === 'number' ? Number(desired) : desired;
       const config = runVisualConfig(source, [{ [key]: desired }]);
       expect([...config.visualDirtyFields]).toEqual([key]);
       const output = config.applyVisualChangesToYaml(source);
-      expect(parseDocument(output).getIn(path, true)?.toJSON()).toEqual(
-        kind === 'list' ? ['two', 'two'] : desired
-      );
-      expect(runVisualConfig(output).visualValues[key]).toEqual(
-        kind === 'list' ? ['two', 'two'] : desired
-      );
+      expect(parseDocument(output).getIn(path, true)?.toJSON()).toEqual(expectedDesired);
+      expect(runVisualConfig(output).visualValues[key]).toEqual(kind === 'number' ? String(expectedDesired) : expectedDesired);
       expect(output).toContain('# root');
       expect(output).toContain('# interface');
       expect(parseDocument(output).toJS()['api-keys']).toEqual(doc.toJS()['api-keys']);

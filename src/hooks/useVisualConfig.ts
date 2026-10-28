@@ -328,6 +328,15 @@ function getAnalyticsDurationError(value: string): 'analytics_duration_range' | 
     : 'analytics_duration_range';
 }
 
+function getPositiveClickHouseDurationError(value: string): 'positive_duration' | undefined {
+  const milliseconds = parseAnalyticsDurationMilliseconds(value);
+  return milliseconds !== undefined && milliseconds > 0 ? undefined : 'positive_duration';
+}
+
+function getClickHouseDatabaseError(value: string): 'invalid_clickhouse_database' | undefined {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(value.trim()) ? undefined : 'invalid_clickhouse_database';
+}
+
 function getAnalyticsStorageBytesError(value: string): 'analytics_storage_bytes_range' | undefined {
   const trimmed = value.trim();
   if (!/^\d+$/.test(trimmed)) return 'analytics_storage_bytes_range';
@@ -464,6 +473,24 @@ export function getVisualConfigValidationErrors(
     analyticsStorageTimeZone: getAnalyticsTimeZoneError(values.analyticsStorageTimeZone),
     analyticsViewerTrustedProxyCidrs: getAnalyticsProxyCIDRError(
       values.analyticsViewerTrustedProxyCidrs
+    ),
+    clickhouseDsn: undefined,
+    clickhouseDatabase:
+      values.clickhouseDsn.trim() || values.clickhouseDatabase !== DEFAULT_VISUAL_VALUES.clickhouseDatabase
+        ? getClickHouseDatabaseError(values.clickhouseDatabase)
+        : undefined,
+    clickhouseTelemetryRetentionDays: getPositiveIntegerError(
+      values.clickhouseTelemetryRetentionDays
+    ),
+    clickhouseAgentQueryEnabled: undefined,
+    clickhouseAgentQueryMaxExecutionTime: getPositiveClickHouseDurationError(
+      values.clickhouseAgentQueryMaxExecutionTime
+    ),
+    clickhouseAgentQueryMaxResultRows: getPositiveIntegerError(
+      values.clickhouseAgentQueryMaxResultRows
+    ),
+    clickhouseAgentQueryMaxMemoryBytes: getPositiveIntegerError(
+      values.clickhouseAgentQueryMaxMemoryBytes
     ),
     errorLogsMaxFiles: getNonNegativeIntegerError(values.errorLogsMaxFiles),
     logsMaxTotalSizeMb: getNonNegativeIntegerError(values.logsMaxTotalSizeMb),

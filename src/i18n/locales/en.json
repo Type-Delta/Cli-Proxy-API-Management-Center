@@ -279,7 +279,6 @@
       "tier_multiplier_input": "×{{multiplier}} input",
       "tier_multiplier_output": "×{{multiplier}} output",
       "disconnect_reason": "Disconnect reason",
-
       "session_not_sent": "Not sent by client",
       "pricing": "Pricing",
       "component": "Component",
@@ -289,7 +288,6 @@
       "component_output": "Output",
       "component_cache_read": "Cache read",
       "component_cache_write": "Cache write",
-
       "client_disconnected": "Client disconnected",
       "state_canceled": "Canceled before completion",
       "session_id_exact": "Exact session ID",
@@ -309,7 +307,6 @@
       "pricing_details": "Pricing details",
       "cost_total": "Total cost",
       "applied_rate": "{{tokens}} tokens at ${{rate}} / 1M",
-
       "timeline": "Request path",
       "timing": "Timing",
       "total": "Total: {{value}}",
@@ -941,7 +938,7 @@
     },
     "maintenance": {
       "abandoned": "Abandoned events",
-      "backup_copy": "Create a backup before destructive work.",
+      "backup_copy": "Back up the analytics tables as a logical export before destructive work.",
       "backup_id": "Backup ID",
       "backup_title": "Backup and restore",
       "category": "Category",
@@ -980,7 +977,28 @@
       "rollback_hint": "Rollback removes the imported batch. Keep the backup until this job succeeds.",
       "truncated": "Truncated fields",
       "unknown": "Unknown",
-      "verified_backup": "Verified backup path"
+      "verified_backup": "Verified backup path",
+      "integrity_check_copy": "Run CHECK TABLE on the analytics tables.",
+      "checkpoint_copy": "Check the ClickHouse connection.",
+      "reindex_copy": "Run OPTIMIZE FINAL on the analytics tables.",
+      "legacy_import": "Legacy analytics import",
+      "legacy_import_states": {
+        "pending": "Pending",
+        "running": "Running",
+        "done": "Done",
+        "failed": "Failed",
+        "abandoned": "Abandoned"
+      },
+      "legacy_import_counts": {
+        "events": "Events",
+        "rollups": "Rollups",
+        "request_rollups": "Request rollups",
+        "files_seen": "Files seen",
+        "imported": "Imported files",
+        "skipped_unparseable": "Unparseable files",
+        "records": "Records"
+      },
+      "legacy_request_log_import": "Legacy request-log import"
     },
     "load_failed": "Analytics could not load",
     "no_data_title": "No analytics data",
@@ -1037,7 +1055,7 @@
       "job_kind": {
         "backup": "Backup",
         "integrity_check": "Integrity check",
-        "checkpoint": "WAL checkpoint",
+        "checkpoint": "Checkpoint",
         "reindex": "Reindex",
         "restore": "Restore",
         "purge_key": "Purge key",
@@ -2531,7 +2549,7 @@
         },
         "analytics": {
           "title": "Durable Analytics",
-          "description": "Collect per-key usage in CPA's isolated analytics database",
+          "description": "Store per-key usage in ClickHouse. Analytics requires a ClickHouse DSN.",
           "enabled": "Enable durable analytics",
           "enabled_desc": "Collect new proxy usage for Analytics pages. Proxying and key limits keep working if analytics fails.",
           "storage_usage": {
@@ -2549,17 +2567,31 @@
             "partial": "Some locations could not be fully measured. CPA usage may be understated. Refresh to try again.",
             "unavailable": "Storage usage could not be refreshed. Try Refresh again. Any readings shown are from the last successful measurement.",
             "unsupported": "This CPA version does not report storage usage. Update CPA to see disk usage here.",
-            "empty": "No filesystem readings are available for CPA's configured locations."
+            "empty": "No filesystem readings are available for CPA's configured locations.",
+            "clickhouse_drive": "ClickHouse disk",
+            "analytics": "Analytics",
+            "request_logs": "Request logs and transcripts",
+            "cpa_other": "Other CPA data",
+            "clickhouse_other": "Other ClickHouse data",
+            "clickhouse_unreachable": "ClickHouse database {{database}} is not reachable. Local readings are still shown. {{reason}}",
+            "clickhouse_unreachable_generic": "The server did not report why.",
+            "clickhouse_partial": "Some ClickHouse readings may be incomplete. Refresh to try again.",
+            "clickhouse_empty": "ClickHouse did not report any storage devices.",
+            "clickhouse_details": "Measured ClickHouse sources",
+            "clickhouse_scope": "ClickHouse groups active parts by table. Other ClickHouse data includes active parts in system tables and other databases. Other files covers everything else on the disk.",
+            "clickhouse_database": "CPA database",
+            "clickhouse_path": "Disk path",
+            "clickhouse_keep_free": "Kept free"
           },
           "collection_title": "Collection and storage",
-          "collection_desc": "Defaults suit most single-instance installs. Queue and database location changes require a CPA restart.",
-          "path": "Database path (analytics.path)",
+          "collection_desc": "Queue and database connection changes require a CPA restart.",
+          "path": "Legacy SQLite path (analytics.path)",
           "path_placeholder": "Default: auth-dir/state/analytics/analytics.db",
-          "path_hint": "Leave empty to store analytics below auth-dir. A custom path also places identity.key and viewers.json beside the database, so move or back up all three together. Changing it requires a CPA restart.",
+          "path_hint": "CPA imports this SQLite database once when it first creates the ClickHouse database. Its directory also holds identity.key and viewers.json. Move or back up all three together. Restart CPA after changing the path.",
           "queue_capacity": "Queue capacity",
-          "queue_capacity_hint": "Maximum sanitized events waiting for SQLite, 1 to 8192. Changing it requires a CPA restart.",
+          "queue_capacity_hint": "Maximum sanitized events waiting for ClickHouse, from 1 to 8192. Restart CPA after changing it.",
           "batch_size": "Write batch size",
-          "batch_size_hint": "Events committed per SQLite batch. Must not exceed queue capacity.",
+          "batch_size_hint": "Events written per ClickHouse batch. Must not exceed queue capacity.",
           "flush_interval": "Flush interval",
           "flush_interval_hint": "Maximum wait before writing a partial batch, from 1ms to 1m.",
           "hot_retention_days": "Raw-event retention (days)",
@@ -2567,9 +2599,9 @@
           "circuit_failure_threshold": "Failure threshold",
           "circuit_failure_threshold_hint": "Consecutive writer failures before analytics opens its circuit and drops new events.",
           "max_storage_bytes": "Maximum storage (bytes)",
-          "max_storage_bytes_hint": "Hard budget for the database, WAL, shared-memory, and temporary analytics files. Set 0 only when minimum free space remains non-zero.",
+          "max_storage_bytes_hint": "Maximum space for analytics data in ClickHouse. Set 0 only if reserved free space is nonzero.",
           "min_free_bytes": "Reserved free space (bytes)",
-          "min_free_bytes_hint": "Analytics stops writes before the filesystem falls below this reserve. Set 0 only when maximum storage remains non-zero.",
+          "min_free_bytes_hint": "Analytics pauses writes when free space on a ClickHouse disk falls below this reserve. Set 0 only if maximum storage is nonzero.",
           "privacy_title": "Credential privacy",
           "privacy_desc": "Analytics never stores raw credentials. This switch controls whether it keeps a keyed pseudonymous credential identity.",
           "store_credential_id": "Store credential identity",
@@ -2583,7 +2615,21 @@
           "allow_loopback_http_desc": "Development only. Permit viewer credential exchange over plain HTTP from a direct loopback peer. Changes require a CPA restart.",
           "storage_time_zone": "Storage time zone (analytics.storage-time-zone)",
           "storage_time_zone_hint": "IANA time zone used for retained rollups. Changing this after retention has run requires an analytics reset.",
-          "storage_time_zone_placeholder": "UTC"
+          "storage_time_zone_placeholder": "UTC",
+          "clickhouse_dsn": "ClickHouse DSN",
+          "clickhouse_dsn_hint": "Connects CPA to ClickHouse. Restart CPA after changing it. CPA keeps this value hidden.",
+          "clickhouse_database": "ClickHouse database",
+          "clickhouse_database_hint": "Database name. Must start with a letter or underscore and use letters, digits, or underscores. Restart CPA after changing it.",
+          "clickhouse_retention_days": "Telemetry retention (days)",
+          "clickhouse_retention_days_hint": "Remove requests and attempts older than this many days. Transcript content is cleaned up later, once no retained request uses it.",
+          "clickhouse_agent_enabled": "Agent SQL queries",
+          "clickhouse_agent_enabled_hint": "Let management agents run read-only SQL against this database.",
+          "clickhouse_agent_time": "Agent SQL maximum runtime",
+          "clickhouse_agent_time_hint": "Stop an agent SQL query after this long, for example 30s.",
+          "clickhouse_agent_rows": "Agent SQL maximum rows",
+          "clickhouse_agent_rows_hint": "Return at most this many rows from one agent SQL query.",
+          "clickhouse_agent_memory": "Agent SQL maximum memory (bytes)",
+          "clickhouse_agent_memory_hint": "Most memory one agent SQL query may use."
         },
         "advanced": {
           "antigravity_credits": "Use Antigravity Credits",
@@ -2890,7 +2936,8 @@
         "payload_invalid_number": "Enter a valid number",
         "payload_invalid_boolean": "Choose true or false",
         "payload_invalid_json": "Enter valid JSON",
-        "analytics_storage_time_zone_invalid": "Enter a valid IANA time zone name, for example UTC or Asia/Kolkata"
+        "analytics_storage_time_zone_invalid": "Enter a valid IANA time zone name, for example UTC or Asia/Kolkata",
+        "invalid_clickhouse_database": "Use a database name that starts with a letter or underscore and contains only letters, digits, or underscores."
       },
       "common": {
         "edit": "Edit",

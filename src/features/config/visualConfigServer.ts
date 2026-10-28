@@ -28,6 +28,29 @@ export const SERVER_FIELDS = [
     path: ['server', 'discovery', 'advertise-management'],
     kind: 'boolean',
   },
+  { key: 'clickhouseDsn', path: ['clickhouse', 'dsn'], kind: 'string' },
+  { key: 'clickhouseDatabase', path: ['clickhouse', 'database'], kind: 'string' },
+  {
+    key: 'clickhouseTelemetryRetentionDays',
+    path: ['clickhouse', 'telemetry-retention-days'],
+    kind: 'number',
+  },
+  { key: 'clickhouseAgentQueryEnabled', path: ['clickhouse', 'agent-query', 'enabled'], kind: 'boolean' },
+  {
+    key: 'clickhouseAgentQueryMaxExecutionTime',
+    path: ['clickhouse', 'agent-query', 'max-execution-time'],
+    kind: 'string',
+  },
+  {
+    key: 'clickhouseAgentQueryMaxResultRows',
+    path: ['clickhouse', 'agent-query', 'max-result-rows'],
+    kind: 'number',
+  },
+  {
+    key: 'clickhouseAgentQueryMaxMemoryBytes',
+    path: ['clickhouse', 'agent-query', 'max-memory-bytes'],
+    kind: 'number',
+  },
 ] as const;
 
 type Doc = ReturnType<typeof parseDocument>;
@@ -49,9 +72,15 @@ export function readVisualServer(doc: Doc) {
             : []
           : kind === 'boolean'
             ? readConfigBoolean(raw, DEFAULT_VISUAL_VALUES[key])
-            : typeof raw === 'string'
-              ? raw
-              : DEFAULT_VISUAL_VALUES[key],
+            : kind === 'number'
+              ? typeof raw === 'number'
+                ? String(raw)
+                : typeof raw === 'string'
+                  ? raw
+                  : DEFAULT_VISUAL_VALUES[key]
+              : typeof raw === 'string'
+                ? raw
+                : DEFAULT_VISUAL_VALUES[key],
     });
   }
   return values;
@@ -104,7 +133,8 @@ export function writeVisualServer(
     } else {
       parents(doc, path);
       const old = doc.getIn(path, true);
-      const desired = typeof value === 'string' ? value.trim() : value;
+      const desired =
+        kind === 'number' && typeof value === 'string' ? Number(value.trim()) : typeof value === 'string' ? value.trim() : value;
       if (isScalar(old)) old.value = desired;
       else doc.setIn(path, desired);
     }

@@ -279,7 +279,6 @@
       "tier_multiplier_input": "입력 ×{{multiplier}}",
       "tier_multiplier_output": "출력 ×{{multiplier}}",
       "disconnect_reason": "연결 해제 이유",
-
       "session_not_sent": "클라이언트가 보내지 않음",
       "pricing": "요금",
       "component": "항목",
@@ -289,7 +288,6 @@
       "component_output": "출력",
       "component_cache_read": "캐시 읽기",
       "component_cache_write": "캐시 쓰기",
-
       "client_disconnected": "클라이언트 연결 끊김",
       "state_canceled": "완료 전에 취소됨",
       "session_id_exact": "정확한 세션 ID",
@@ -309,7 +307,6 @@
       "pricing_details": "요금 상세",
       "cost_total": "총비용",
       "applied_rate": "{{tokens}} 토큰, ${{rate}} / 100만",
-
       "timeline": "요청 경로",
       "timing": "타이밍",
       "total": "합계: {{value}}",
@@ -941,7 +938,7 @@
     },
     "maintenance": {
       "abandoned": "중단된 이벤트",
-      "backup_copy": "삭제나 변경 작업 전에 백업을 만드세요.",
+      "backup_copy": "삭제나 변경 작업 전에 분석 테이블을 논리 내보내기로 백업하세요.",
       "backup_id": "백업 ID",
       "backup_title": "백업 및 복원",
       "category": "카테고리",
@@ -980,7 +977,28 @@
       "rollback_hint": "롤백하면 가져온 배치가 제거됩니다. 작업이 성공할 때까지 백업을 보관하세요.",
       "truncated": "잘린 필드",
       "unknown": "알 수 없음",
-      "verified_backup": "검증된 백업 경로"
+      "verified_backup": "검증된 백업 경로",
+      "integrity_check_copy": "분석 테이블에서 CHECK TABLE을 실행합니다.",
+      "checkpoint_copy": "ClickHouse 연결을 확인합니다.",
+      "reindex_copy": "분석 테이블에서 OPTIMIZE FINAL을 실행합니다.",
+      "legacy_import": "이전 분석 가져오기",
+      "legacy_import_states": {
+        "pending": "대기 중",
+        "running": "진행 중",
+        "done": "완료",
+        "failed": "실패",
+        "abandoned": "포기됨"
+      },
+      "legacy_import_counts": {
+        "events": "이벤트",
+        "rollups": "집계",
+        "request_rollups": "요청 집계",
+        "files_seen": "확인한 파일",
+        "imported": "가져온 파일",
+        "skipped_unparseable": "분석할 수 없는 파일",
+        "records": "레코드"
+      },
+      "legacy_request_log_import": "이전 요청 로그 가져오기"
     },
     "load_failed": "분석 데이터를 로드할 수 없습니다",
     "no_data_title": "분석 데이터 없음",
@@ -1037,7 +1055,7 @@
       "job_kind": {
         "backup": "백업",
         "integrity_check": "무결성 검사",
-        "checkpoint": "WAL 체크포인트",
+        "checkpoint": "체크포인트",
         "reindex": "재색인",
         "restore": "복원",
         "purge_key": "키 정리",
@@ -2532,7 +2550,7 @@
         },
         "analytics": {
           "title": "영구 분석",
-          "description": "CPA의 격리된 분석 데이터베이스에서 키별 사용량을 수집합니다",
+          "description": "키별 사용량을 ClickHouse에 저장합니다. 분석에는 ClickHouse DSN이 필요합니다.",
           "enabled": "영구 분석 사용",
           "enabled_desc": "분석 페이지를 위해 새 프록시 사용량을 수집합니다. 분석에 실패해도 프록시 처리와 키 한도는 계속 작동합니다.",
           "storage_usage": {
@@ -2550,17 +2568,31 @@
             "partial": "일부 위치를 완전히 측정하지 못했습니다. CPA 사용량이 실제보다 적게 표시될 수 있습니다. 새로고침하여 다시 시도하세요.",
             "unavailable": "저장 공간 사용량을 새로고침하지 못했습니다. 다시 시도하세요. 표시된 수치는 마지막으로 성공한 측정값입니다.",
             "unsupported": "이 CPA 버전은 저장 공간 사용량을 제공하지 않습니다. 사용량을 보려면 CPA를 업데이트하세요.",
-            "empty": "CPA에 설정된 위치의 파일 시스템 측정값이 없습니다."
+            "empty": "CPA에 설정된 위치의 파일 시스템 측정값이 없습니다.",
+            "clickhouse_drive": "ClickHouse 디스크",
+            "analytics": "분석 데이터",
+            "request_logs": "요청 로그 및 트랜스크립트",
+            "cpa_other": "기타 CPA 데이터",
+            "clickhouse_other": "기타 ClickHouse 데이터",
+            "clickhouse_unreachable": "ClickHouse 데이터베이스 {{database}}에 연결할 수 없습니다. 로컬 측정값은 계속 표시됩니다. {{reason}}",
+            "clickhouse_unreachable_generic": "서버가 이유를 보고하지 않았습니다.",
+            "clickhouse_partial": "일부 ClickHouse 측정값이 불완전할 수 있습니다. 새로고침하여 다시 시도하세요.",
+            "clickhouse_empty": "ClickHouse가 저장 장치를 보고하지 않았습니다.",
+            "clickhouse_details": "측정된 ClickHouse 소스",
+            "clickhouse_scope": "ClickHouse는 활성 파트를 테이블별로 묶습니다. 기타 ClickHouse 데이터에는 시스템 테이블과 다른 데이터베이스의 활성 파트가 포함됩니다. 기타 파일은 디스크의 나머지 데이터를 포함합니다.",
+            "clickhouse_database": "CPA 데이터베이스",
+            "clickhouse_path": "디스크 경로",
+            "clickhouse_keep_free": "비워 둔 공간"
           },
           "collection_title": "수집 및 저장",
-          "collection_desc": "기본값은 대부분의 단일 인스턴스 설치에 적합합니다. 큐와 데이터베이스 위치를 변경하면 CPA를 다시 시작해야 합니다.",
-          "path": "데이터베이스 경로 (analytics.path)",
+          "collection_desc": "큐 또는 데이터베이스 연결을 변경한 후 CPA를 다시 시작하세요.",
+          "path": "이전 SQLite 경로 (analytics.path)",
           "path_placeholder": "기본값: auth-dir/state/analytics/analytics.db",
-          "path_hint": "비워 두면 auth-dir 아래에 분석 데이터를 저장합니다. 사용자 지정 경로를 사용하면 identity.key와 viewers.json도 데이터베이스 옆에 저장되므로 세 파일을 함께 이동하거나 백업하세요. 변경하려면 CPA를 다시 시작해야 합니다.",
+          "path_hint": "CPA가 ClickHouse 데이터베이스를 처음 만들 때 이 SQLite 데이터베이스를 한 번 가져옵니다. 같은 디렉터리에 identity.key와 viewers.json도 있습니다. 세 파일을 함께 이동하거나 백업하세요. 경로를 변경한 후 CPA를 다시 시작하세요.",
           "queue_capacity": "큐 용량",
-          "queue_capacity_hint": "SQLite 대기 중인 정제된 이벤트의 최대 개수이며 1~8192입니다. 변경하려면 CPA를 다시 시작해야 합니다.",
+          "queue_capacity_hint": "ClickHouse에 쓰기를 기다리는 정제된 이벤트의 최대 개수입니다. 1~8192이며 변경 후 CPA를 다시 시작해야 합니다.",
           "batch_size": "쓰기 배치 크기",
-          "batch_size_hint": "SQLite 배치당 커밋되는 이벤트 수입니다. 큐 용량을 초과할 수 없습니다.",
+          "batch_size_hint": "ClickHouse 배치당 기록할 이벤트 수입니다. 큐 용량을 초과할 수 없습니다.",
           "flush_interval": "플러시 간격",
           "flush_interval_hint": "부분 배치를 쓰기 전 최대 대기 시간이며 1ms~1m입니다.",
           "hot_retention_days": "원시 이벤트 보존 기간 (일)",
@@ -2568,9 +2600,9 @@
           "circuit_failure_threshold": "실패 임계값",
           "circuit_failure_threshold_hint": "분석이 서킷을 열고 새 이벤트를 버리기까지의 연속 작성기 실패 횟수입니다.",
           "max_storage_bytes": "최대 저장 용량 (바이트)",
-          "max_storage_bytes_hint": "데이터베이스, WAL, 공유 메모리, 임시 분석 파일 전체에 적용되는 하드 예산입니다. 최소 여유 공간이 0이 아닌 값으로 유지되는 경우에만 0으로 설정하세요.",
+          "max_storage_bytes_hint": "ClickHouse 분석 데이터의 최대 용량입니다. 예약 여유 공간이 0이 아닐 때만 0으로 설정하세요.",
           "min_free_bytes": "예약 여유 공간 (바이트)",
-          "min_free_bytes_hint": "파일 시스템 여유 공간이 이 예약 크기보다 작아지기 전에 분석 쓰기를 중지합니다. 최대 저장 용량이 0이 아닌 값으로 유지되는 경우에만 0으로 설정하세요.",
+          "min_free_bytes_hint": "ClickHouse 디스크의 여유 공간이 이 값보다 적으면 분석 쓰기를 중단합니다. 최대 저장 용량이 0이 아닐 때만 0으로 설정하세요.",
           "privacy_title": "자격 증명 프라이버시",
           "privacy_desc": "분석은 원시 자격 증명을 저장하지 않습니다. 이 스위치는 키 기반 가명 자격 증명 식별자를 유지할지 여부를 제어합니다.",
           "store_credential_id": "자격 증명 식별자 저장",
@@ -2584,7 +2616,21 @@
           "allow_loopback_http_desc": "개발 전용입니다. 직접 연결된 루프백 피어에서 일반 HTTP로 뷰어 자격 증명 교환을 허용합니다. 변경 시 CPA를 다시 시작해야 합니다.",
           "storage_time_zone": "저장 시간대 (analytics.storage-time-zone)",
           "storage_time_zone_hint": "보존된 롤업에 사용하는 IANA 시간대입니다. 보존 처리가 이미 실행된 후 변경하면 분석 데이터를 초기화해야 합니다.",
-          "storage_time_zone_placeholder": "UTC"
+          "storage_time_zone_placeholder": "UTC",
+          "clickhouse_dsn": "ClickHouse DSN",
+          "clickhouse_dsn_hint": "CPA를 ClickHouse에 연결합니다. 변경 후 CPA를 다시 시작하세요. CPA는 이 값을 숨깁니다.",
+          "clickhouse_database": "ClickHouse 데이터베이스",
+          "clickhouse_database_hint": "데이터베이스 이름입니다. 첫 글자는 문자 또는 밑줄이어야 하며 문자, 숫자, 밑줄만 쓸 수 있습니다. 변경 후 CPA를 다시 시작하세요.",
+          "clickhouse_retention_days": "텔레메트리 보존(일)",
+          "clickhouse_retention_days_hint": "이 기간보다 오래된 요청과 시도를 삭제합니다. 트랜스크립트 내용은 보존된 요청에서 더 이상 사용하지 않을 때 나중에 정리합니다.",
+          "clickhouse_agent_enabled": "에이전트 SQL 질의",
+          "clickhouse_agent_enabled_hint": "관리 에이전트가 이 데이터베이스에 읽기 전용 SQL을 실행할 수 있게 합니다.",
+          "clickhouse_agent_time": "에이전트 SQL 최대 실행 시간",
+          "clickhouse_agent_time_hint": "예: 30s. 이 시간이 지나면 에이전트 SQL 질의를 중단합니다.",
+          "clickhouse_agent_rows": "에이전트 SQL 최대 행",
+          "clickhouse_agent_rows_hint": "한 에이전트 SQL 질의에서 반환하는 최대 행 수입니다.",
+          "clickhouse_agent_memory": "에이전트 SQL 최대 메모리(바이트)",
+          "clickhouse_agent_memory_hint": "에이전트 SQL 질의 하나가 쓸 수 있는 최대 메모리입니다."
         },
         "advanced": {
           "antigravity_credits": "Antigravity 크레딧 사용",
@@ -2895,7 +2941,8 @@
         "payload_invalid_number": "유효한 숫자를 입력하세요",
         "payload_invalid_boolean": "true 또는 false를 선택하세요",
         "payload_invalid_json": "유효한 JSON을 입력하세요",
-        "analytics_storage_time_zone_invalid": "유효한 IANA 시간대 이름을 입력하세요 (예: UTC 또는 Asia/Kolkata)"
+        "analytics_storage_time_zone_invalid": "유효한 IANA 시간대 이름을 입력하세요 (예: UTC 또는 Asia/Kolkata)",
+        "invalid_clickhouse_database": "데이터베이스 이름은 문자 또는 밑줄로 시작하고 문자, 숫자, 밑줄만 사용해야 합니다."
       },
       "common": {
         "edit": "편집",

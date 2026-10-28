@@ -70,6 +70,13 @@ export const COMMON_FIELD_IDS = [
   'analyticsStoreCredentialId',
   'analyticsViewerTrustedProxyCidrs',
   'analyticsViewerAllowLoopbackHttp',
+  'clickhouseDsn',
+  'clickhouseDatabase',
+  'clickhouseTelemetryRetentionDays',
+  'clickhouseAgentQueryEnabled',
+  'clickhouseAgentQueryMaxExecutionTime',
+  'clickhouseAgentQueryMaxResultRows',
+  'clickhouseAgentQueryMaxMemoryBytes',
 ] as const;
 
 /**
@@ -101,6 +108,13 @@ export const SECTION_VALIDATION_FIELDS: Record<VisualSectionId, readonly VisualC
       'analyticsMinFreeBytes',
       'analyticsStorageTimeZone',
       'analyticsViewerTrustedProxyCidrs',
+      'clickhouseDsn',
+      'clickhouseDatabase',
+      'clickhouseTelemetryRetentionDays',
+      'clickhouseAgentQueryEnabled',
+      'clickhouseAgentQueryMaxExecutionTime',
+      'clickhouseAgentQueryMaxResultRows',
+      'clickhouseAgentQueryMaxMemoryBytes',
     ],
     streaming: [
       'streaming.keepaliveSeconds',
@@ -212,6 +226,13 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   analyticsStoreCredentialId: ['analyticsStoreCredentialId'],
   analyticsViewerTrustedProxyCidrs: ['analyticsViewerTrustedProxyCidrs'],
   analyticsViewerAllowLoopbackHttp: ['analyticsViewerAllowLoopbackHttp'],
+  clickhouseDsn: ['clickhouseDsn'],
+  clickhouseDatabase: ['clickhouseDatabase'],
+  clickhouseTelemetryRetentionDays: ['clickhouseTelemetryRetentionDays'],
+  clickhouseAgentQueryEnabled: ['clickhouseAgentQueryEnabled'],
+  clickhouseAgentQueryMaxExecutionTime: ['clickhouseAgentQueryMaxExecutionTime'],
+  clickhouseAgentQueryMaxResultRows: ['clickhouseAgentQueryMaxResultRows'],
+  clickhouseAgentQueryMaxMemoryBytes: ['clickhouseAgentQueryMaxMemoryBytes'],
   // ── streaming ─────────────────────────────────────────────────────────────
   streamingKeepaliveSeconds: ['streaming.keepaliveSeconds'],
   streamingBootstrapRetries: ['streaming.bootstrapRetries'],

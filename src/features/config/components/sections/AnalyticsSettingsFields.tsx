@@ -42,6 +42,93 @@ export function AnalyticsSettingsFields({
       <SettingList title={t(A('collection_title'))} description={t(A('collection_desc'))}>
         <StorageUsage wide />
         <TextSetting
+          fieldId="clickhouseDsn"
+          wide
+          size="lg"
+          type="password"
+          autoComplete="new-password"
+          label={t(A('clickhouse_dsn'))}
+          description={t(A('clickhouse_dsn_hint'))}
+          placeholder="clickhouse://user:password@host:9000"
+          value={values.clickhouseDsn}
+          onChange={(clickhouseDsn) => onChange({ clickhouseDsn })}
+          disabled={disabled}
+        />
+        <TextSetting
+          fieldId="clickhouseDatabase"
+          size="md"
+          label={t(A('clickhouse_database'))}
+          description={t(A('clickhouse_database_hint'))}
+          value={values.clickhouseDatabase}
+          onChange={(clickhouseDatabase) => onChange({ clickhouseDatabase })}
+          disabled={disabled}
+          error={validation('clickhouseDatabase')}
+        />
+        <TextSetting
+          fieldId="clickhouseTelemetryRetentionDays"
+          size="sm"
+          type="number"
+          min={1}
+          label={t(A('clickhouse_retention_days'))}
+          description={t(A('clickhouse_retention_days_hint'))}
+          value={values.clickhouseTelemetryRetentionDays}
+          onChange={(clickhouseTelemetryRetentionDays) =>
+            onChange({ clickhouseTelemetryRetentionDays })
+          }
+          disabled={disabled}
+          error={validation('clickhouseTelemetryRetentionDays')}
+        />
+        <ToggleSetting
+          fieldId="clickhouseAgentQueryEnabled"
+          wide
+          label={t(A('clickhouse_agent_enabled'))}
+          description={t(A('clickhouse_agent_enabled_hint'))}
+          checked={values.clickhouseAgentQueryEnabled}
+          disabled={disabled}
+          onChange={(clickhouseAgentQueryEnabled) => onChange({ clickhouseAgentQueryEnabled })}
+        />
+        <TextSetting
+          fieldId="clickhouseAgentQueryMaxExecutionTime"
+          size="sm"
+          placeholder="30s"
+          label={t(A('clickhouse_agent_time'))}
+          description={t(A('clickhouse_agent_time_hint'))}
+          value={values.clickhouseAgentQueryMaxExecutionTime}
+          onChange={(clickhouseAgentQueryMaxExecutionTime) =>
+            onChange({ clickhouseAgentQueryMaxExecutionTime })
+          }
+          disabled={disabled}
+          error={validation('clickhouseAgentQueryMaxExecutionTime')}
+        />
+        <TextSetting
+          fieldId="clickhouseAgentQueryMaxResultRows"
+          size="sm"
+          type="number"
+          min={1}
+          label={t(A('clickhouse_agent_rows'))}
+          description={t(A('clickhouse_agent_rows_hint'))}
+          value={values.clickhouseAgentQueryMaxResultRows}
+          onChange={(clickhouseAgentQueryMaxResultRows) =>
+            onChange({ clickhouseAgentQueryMaxResultRows })
+          }
+          disabled={disabled}
+          error={validation('clickhouseAgentQueryMaxResultRows')}
+        />
+        <TextSetting
+          fieldId="clickhouseAgentQueryMaxMemoryBytes"
+          size="sm"
+          type="number"
+          min={1}
+          label={t(A('clickhouse_agent_memory'))}
+          description={t(A('clickhouse_agent_memory_hint'))}
+          value={values.clickhouseAgentQueryMaxMemoryBytes}
+          onChange={(clickhouseAgentQueryMaxMemoryBytes) =>
+            onChange({ clickhouseAgentQueryMaxMemoryBytes })
+          }
+          disabled={disabled}
+          error={validation('clickhouseAgentQueryMaxMemoryBytes')}
+        />
+        <TextSetting
           fieldId="analyticsPath"
           wide
           size="lg"

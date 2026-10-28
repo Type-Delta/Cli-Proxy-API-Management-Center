@@ -549,6 +549,16 @@ tbody tr:hover .stickyAction {
   margin: 4px 0 0;
 }
 
+.healthGrid :global(.status-badge) {
+  margin-bottom: 0;
+}
+
+.legacyImportCounts,
+.legacyImportReason {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
 .jobResultList {
   display: grid;
   gap: 4px;

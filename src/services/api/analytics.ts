@@ -16,6 +16,7 @@ import type {
   AnalyticsEventPage,
   AnalyticsEventPageResponse,
   AnalyticsHealth,
+  TelemetryHealth,
   AnalyticsImportRequest,
   AnalyticsJob,
   AnalyticsKeyCatalogRange,
@@ -423,6 +424,7 @@ export const analyticsApi = {
     return modelCostSeriesCache.get(analyticsRequestKey(request));
   },
   health: () => apiClient.get<AnalyticsHealth>('/analytics/health'),
+  telemetryHealth: () => apiClient.get<TelemetryHealth>('/telemetry/health'),
   summary: (request: AnalyticsQuery) => query<AnalyticsSummary>(request),
   async timeseries(request: AnalyticsQuery): Promise<AnalyticsTimeseries> {
     const data = await query<AnalyticsTimeseriesResponse>(request);

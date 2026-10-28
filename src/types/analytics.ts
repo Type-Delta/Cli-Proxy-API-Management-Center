@@ -33,7 +33,16 @@ export type ManagementCapabilities = {
   api_keys: import('./apiKeys').ApiKeyCapabilities;
 };
 
+export type LegacyImportStatus = { state: string; counts?: Record<string, number>; reason?: string };
+
+export type TelemetryHealth = {
+  legacy_import?: LegacyImportStatus;
+  backlog_files: number;
+  last_error?: string;
+};
+
 export type AnalyticsHealth = {
+  legacy_import?: LegacyImportStatus;
   state: AnalyticsState;
   category?: string;
   field?: string;

@@ -5,7 +5,7 @@ import { IconRefreshCw } from '@/components/ui/icons';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { apiClient } from '@/services/api/client';
 import { storageApi, type StorageUsage as StorageSnapshot } from '@/services/api/storage';
-import { formatStorageBytes, storageSegments } from '../storageUsage';
+import { clickHouseSegments, formatStorageBytes, storageSegments } from '../storageUsage';
 import styles from './StorageUsage.module.scss';
 import fieldStyles from './fields/Field.module.scss';
 
@@ -70,6 +70,9 @@ function StorageUsageSession({ revision }: { revision: number }) {
     return value > 0 && value < 0.01 ? `<${formatted}` : formatted;
   };
 
+  const clickHouse = snapshot?.clickhouse;
+  const used = (capacity: number, available: number) => capacity - Math.min(capacity, available);
+
   return (
     <div className={styles.root} aria-busy={loading}>
       <div className={styles.heading}>
@@ -112,7 +115,7 @@ function StorageUsageSession({ revision }: { revision: number }) {
           {snapshot.volumes.map((volume) => {
             const segments = storageSegments(volume);
             const summary = t(S('used'), {
-              used: bytes(volume.capacityBytes - volume.availableBytes),
+              used: bytes(used(volume.capacityBytes, volume.availableBytes)),
               capacity: bytes(volume.capacityBytes),
             });
             return (
@@ -158,6 +161,86 @@ function StorageUsageSession({ revision }: { revision: number }) {
               </div>
             );
           })}
+
+          {clickHouse && !clickHouse.reachable && (
+            <p className={styles.warning} role="status">
+              {t(S('clickhouse_unreachable'), {
+                database: clickHouse.database,
+                reason: clickHouse.message || t(S('clickhouse_unreachable_generic')),
+              })}
+            </p>
+          )}
+
+          {clickHouse?.reachable && (
+            <>
+              {clickHouse.partial && (
+                <p className={styles.warning} role="status">
+                  {t(S('clickhouse_partial'))}
+                </p>
+              )}
+              {clickHouse.disks.length === 0 && (
+                <p className={styles.note}>{t(S('clickhouse_empty'))}</p>
+              )}
+              {clickHouse.disks.map((disk) => {
+                const segments = clickHouseSegments(disk);
+                const summary = t(S('used'), {
+                  used: bytes(used(disk.capacityBytes, disk.availableBytes)),
+                  capacity: bytes(disk.capacityBytes),
+                });
+                return (
+                  <div key={`${disk.name}:${disk.path}`} className={styles.volume}>
+                    <div className={styles.volumeHeading}>
+                      <span className={styles.drive}>
+                        <span>{t(S('clickhouse_drive'))}</span>
+                        <code>{disk.name}</code>
+                      </span>
+                      <span className={styles.summary}>{summary}</span>
+                    </div>
+                    <div className={styles.bar} role="img" aria-label={summary}>
+                      {segments.map((segment) => (
+                        <span
+                          key={segment.key}
+                          className={styles[segment.key]}
+                          style={{ width: `${segment.percent}%` }}
+                        />
+                      ))}
+                    </div>
+                    <ul className={styles.legend}>
+                      {segments.map((segment) => (
+                        <li key={segment.key}>
+                          <span className={`${styles.dot} ${styles[segment.key]}`} aria-hidden="true" />
+                          <span>{t(S(segment.key))}</span>
+                          <span className={styles.amount}>{bytes(segment.bytes)}</span>
+                          <span className={styles.percent}>{percent(segment.percent)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <details className={styles.details}>
+                      <summary>{t(S('clickhouse_details'))}</summary>
+                      <p className={styles.note}>{t(S('clickhouse_scope'))}</p>
+                      <ul>
+                        <li>
+                          <span>{t(S('clickhouse_database'))}</span>
+                          <code>{clickHouse.database}</code>
+                        </li>
+                        <li>
+                          <span>{t(S('clickhouse_path'))}</span>
+                          <code>{disk.path}</code>
+                        </li>
+                        {disk.keepFreeBytes > 0 && (
+                          <li>
+                            <span>{t(S('clickhouse_keep_free'))}</span>
+                            <code>{bytes(disk.keepFreeBytes)}</code>
+                          </li>
+                        )}
+                      </ul>
+                    </details>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
           <div className={styles.footer}>
             <time dateTime={snapshot.measuredAt}>
               {t(S('updated'), {

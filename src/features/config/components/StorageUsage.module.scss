@@ -79,6 +79,22 @@
   background: var(--viz-cat-other);
 }
 
+.analytics {
+  background: var(--viz-cat-1);
+}
+
+.request_logs {
+  background: var(--viz-cat-2);
+}
+
+.cpa_other {
+  background: var(--viz-cat-3);
+}
+
+.clickhouse_other {
+  background: var(--viz-cat-4);
+}
+
 .available {
   background: var(--bg-tertiary);
   box-shadow: inset 0 0 0 1px var(--border-primary);

@@ -1,3 +1,5 @@
+import type { AnalyticsHealth, TelemetryHealth } from '@/types';
+
 export function purgeConfirmationPhrase(keyIdentity: string) {
   return `PURGE ${keyIdentity}`;
 }
@@ -30,4 +32,15 @@ export async function cancelAndRefreshJob<T>(
 ) {
   await cancel();
   return refresh();
+}
+
+export async function loadMaintenanceHealth(
+  analytics: () => Promise<AnalyticsHealth>,
+  telemetry: () => Promise<TelemetryHealth>
+) {
+  const [health, telemetryHealth] = await Promise.all([
+    analytics(),
+    telemetry().catch(() => null),
+  ]);
+  return { analytics: health, telemetry: telemetryHealth };
 }

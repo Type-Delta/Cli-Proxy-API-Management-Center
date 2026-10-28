@@ -56,6 +56,20 @@ On a provider tab, a quota history chart replaces the summary card. Its header c
 
 Validation: `bun run verify` passes 2,203 tests, lint, TypeScript and production build. Tests cover aggregation, gaps, first-visit rendering, capacity changes, throttled-sample resets, and projection cases. CDP checks with mocked quota responses cover desktop and mobile in both themes.
 
+### DL072: ClickHouse server mode in storage, settings, and analytics health
+
+Status: shipped
+
+Files: `src/features/config/{storageUsage.ts,components/StorageUsage.tsx,components/sections/AnalyticsSettingsFields.tsx,visualConfigServer.ts}`, `src/features/analytics/views/{Maintenance.tsx,manage/maintenanceModel.ts}`, `src/services/api/{storage.ts,analytics.ts}`, `src/types/{analytics.ts,visualConfig.ts}`, `src/i18n/locales/**`, `tests/{analyticsLegacyImport.test.tsx,visualConfigClickHouse.test.ts}`
+
+CPA can store analytics and request capture in ClickHouse (CPA DL060). When the storage response includes ClickHouse, Collection and storage renders one stacked bar per ClickHouse disk with the same legend, formatting, and measured-source disclosure as local volumes. The segments are CPA analytics, request logs and transcripts, other CPA tables, other ClickHouse data, other files, and free space. An unreachable ClickHouse shows an inline unavailable state, and local volumes stay visible.
+
+The same section edits the ClickHouse DSN (as a password input), database, telemetry retention, and agent-query limits, with restart hints for the DSN and database. The visual editor leaves untouched YAML as it was and writes numeric fields as numbers. Analytics copy in all six locales describes ClickHouse storage and its DSN requirement. SQLite now appears only for the one-time legacy import and the files beside it, and backup and maintenance copy describes logical exports and ClickHouse checks.
+
+Analytics health shows the legacy analytics import and the legacy request-log import as status chips: pending, running, done with counts, failed with the reason, or abandoned with the reason. Telemetry health loads in parallel. When it is unavailable, including a 503, the request-log item is hidden and analytics health still shows. Servers without these fields keep the previous health view.
+
+Validation: `bun run verify` passes, along with focused rendering and contract tests for every import state, a telemetry 503, and the locale keys. Isolated Chrome CDP checks against a local CPA and ClickHouse database cover the storage card on desktop and mobile in light, dark, and white themes, plus real import health showing Done with counts, Failed with the reason, and Abandoned.
+
 ### DL068: Kiro credit pricing in analytics
 
 Status: shipped

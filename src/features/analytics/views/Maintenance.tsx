@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { analyticsApi } from '@/services/api';
 import { useNotificationStore } from '@/stores';
-import type { AnalyticsHealth, AnalyticsJob, AnalyticsKey } from '@/types';
+import type { AnalyticsHealth, AnalyticsJob, AnalyticsKey, LegacyImportStatus, TelemetryHealth } from '@/types';
 import { analyticsKeyIdentity } from '../analyticsKeyFilterModel';
 import {
   formatAnalyticsEnum,
@@ -24,6 +24,7 @@ import {
   canConfirmPurge,
   cancelAndRefreshJob,
   isTerminalAnalyticsJob,
+  loadMaintenanceHealth,
   purgeConfirmationPhrase,
 } from './manage/maintenanceModel';
 import styles from '../Analytics.module.scss';
@@ -31,7 +32,7 @@ import styles from '../Analytics.module.scss';
 export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
   const { t } = useTranslation();
   const notify = useNotificationStore((state) => state.showNotification);
-  const health = useLoad(() => analyticsApi.health(), 'maintenance-health');
+  const health = useLoad(() => loadMaintenanceHealth(analyticsApi.health, analyticsApi.telemetryHealth), 'maintenance-health');
   const [backupPath, setBackupPath] = useState('');
   const [restore, setRestore] = useState({ id: '', path: '', manifest: '' });
   const [importState, setImportState] = useState({ path: '', backup: '', batch: '', dryRun: true });
@@ -139,7 +140,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
       <Card title={copy('analytics.maintenance.backup_title', 'Backup and restore')}>
         <div className={styles.manageForm}>
           <p>
-            {copy('analytics.maintenance.backup_copy', 'Create a backup before destructive work.')}
+            {copy('analytics.maintenance.backup_copy', 'Back up the analytics tables as a logical export before destructive work.')}
           </p>
           <Input
             label={copy('analytics.backup_path', 'Backup destination path')}
@@ -315,9 +316,9 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
           <div className={styles.manageActions}>
             {(
               [
-                ['integrity_check', 'Verify database integrity without changing data.'],
-                ['checkpoint', 'Flush the write-ahead log into the database file.'],
-                ['reindex', 'Rebuild database indexes. This can take longer on large histories.'],
+                ['integrity_check', 'Run CHECK TABLE on the analytics tables.'],
+                ['checkpoint', 'Check the ClickHouse connection.'],
+                ['reindex', 'Run OPTIMIZE FINAL on the analytics tables.'],
               ] as const
             ).map(([kind, description]) => (
               <Button
@@ -470,7 +471,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
   );
 }
 
-function HealthCard({ health }: { health: AnalyticsLoadResult<AnalyticsHealth> }) {
+function HealthCard({ health }: { health: AnalyticsLoadResult<{ analytics: AnalyticsHealth; telemetry: TelemetryHealth | null }> }) {
   const { t, i18n } = useTranslation();
   const copy = (key: string, defaultValue: string) => t(key, { defaultValue });
   return (
@@ -495,7 +496,7 @@ function HealthCard({ health }: { health: AnalyticsLoadResult<AnalyticsHealth> }
           }
         />
       ) : health.data ? (
-        <HealthDetails health={health.data} locale={i18n.resolvedLanguage} copy={copy} />
+        <HealthDetails health={health.data.analytics} telemetry={health.data.telemetry} locale={i18n.resolvedLanguage} copy={copy} />
       ) : null}
     </Card>
   );
@@ -506,18 +507,43 @@ function RelativeTimestamp({ value, locale }: { value: string; locale?: string }
   return <span title={formatDateTime(value, locale)}>{formatRelativeDate(value, locale)}</span>;
 }
 
-function HealthDetails({
+export function HealthDetails({
   health,
+  telemetry,
   locale,
   copy,
 }: {
   health: AnalyticsHealth;
+  telemetry?: TelemetryHealth | null;
   locale?: string;
   copy: (key: string, defaultValue: string) => string;
 }) {
   const { t } = useTranslation();
+  const importField = (label: string, legacyImport?: LegacyImportStatus): Array<[string, ReactNode]> => legacyImport
+    ? [[label,
+      <>
+        <span className={`status-badge ${legacyImport.state === 'done' ? 'success' : legacyImport.state === 'failed' ? 'error' : 'muted'}`}>
+          {t(`analytics.maintenance.legacy_import_states.${legacyImport.state}`, { defaultValue: legacyImport.state })}
+        </span>
+        {legacyImport.state === 'done' && legacyImport.counts && (
+          <div className={styles.legacyImportCounts}>
+            {Object.entries(legacyImport.counts).map(([name, count]) => (
+              <div key={name}>
+                {t(`analytics.maintenance.legacy_import_counts.${name}`, { defaultValue: name.replace(/_/g, ' ') })}: {formatNumber(count, locale)}
+              </div>
+            ))}
+          </div>
+        )}
+        {(legacyImport.state === 'failed' || legacyImport.state === 'abandoned') && legacyImport.reason && (
+          <div className={styles.legacyImportReason}>{legacyImport.reason}</div>
+        )}
+      </>,
+    ]]
+    : [];
   const fields: Array<[string, ReactNode]> = [
     [copy('common.status', 'Status'), formatAnalyticsEnum(t, 'state', health.state)],
+    ...importField(copy('analytics.maintenance.legacy_import', 'Legacy analytics import'), health.legacy_import),
+    ...importField(copy('analytics.maintenance.legacy_request_log_import', 'Legacy request-log import'), telemetry?.legacy_import),
     [copy('analytics.maintenance.category', 'Category'), health.category ?? '—'],
     [copy('analytics.maintenance.message', 'Message'), health.message ?? '—'],
     [

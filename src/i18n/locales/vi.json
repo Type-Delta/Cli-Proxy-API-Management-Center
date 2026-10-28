@@ -279,7 +279,6 @@
       "tier_multiplier_input": "×{{multiplier}} đầu vào",
       "tier_multiplier_output": "×{{multiplier}} đầu ra",
       "disconnect_reason": "Lý do ngắt kết nối",
-
       "session_not_sent": "Ứng dụng khách không gửi",
       "pricing": "Tính phí",
       "component": "Thành phần",
@@ -289,7 +288,6 @@
       "component_output": "Đầu ra",
       "component_cache_read": "Đọc bộ nhớ đệm",
       "component_cache_write": "Ghi bộ nhớ đệm",
-
       "client_disconnected": "Máy khách đã ngắt kết nối",
       "state_canceled": "Đã hủy trước khi hoàn tất",
       "session_id_exact": "ID phiên chính xác",
@@ -309,7 +307,6 @@
       "pricing_details": "Chi tiết tính phí",
       "cost_total": "Tổng chi phí",
       "applied_rate": "{{tokens}} token với giá ${{rate}} / 1 triệu",
-
       "timeline": "Request path",
       "timing": "Timing",
       "total": "Total: {{value}}",
@@ -941,7 +938,7 @@
     },
     "maintenance": {
       "abandoned": "Abandoned events",
-      "backup_copy": "Create a backup before destructive work.",
+      "backup_copy": "Sao lưu các bảng phân tích bằng bản xuất logic trước khi xóa hoặc thay đổi dữ liệu.",
       "backup_id": "Backup ID",
       "backup_title": "Backup and restore",
       "category": "Category",
@@ -980,7 +977,28 @@
       "rollback_hint": "Rollback removes the imported batch. Keep the backup until this job succeeds.",
       "truncated": "Truncated fields",
       "unknown": "Unknown",
-      "verified_backup": "Verified backup path"
+      "verified_backup": "Verified backup path",
+      "integrity_check_copy": "Chạy CHECK TABLE trên các bảng phân tích.",
+      "checkpoint_copy": "Kiểm tra kết nối ClickHouse.",
+      "reindex_copy": "Chạy OPTIMIZE FINAL trên các bảng phân tích.",
+      "legacy_import": "Nhập dữ liệu phân tích cũ",
+      "legacy_import_states": {
+        "pending": "Đang chờ",
+        "running": "Đang chạy",
+        "done": "Hoàn tất",
+        "failed": "Thất bại",
+        "abandoned": "Đã bỏ qua"
+      },
+      "legacy_import_counts": {
+        "events": "Sự kiện",
+        "rollups": "Bản tổng hợp",
+        "request_rollups": "Bản tổng hợp yêu cầu",
+        "files_seen": "Tệp đã xem",
+        "imported": "Tệp đã nhập",
+        "skipped_unparseable": "Tệp không đọc được",
+        "records": "Bản ghi"
+      },
+      "legacy_request_log_import": "Nhập nhật ký yêu cầu cũ"
     },
     "load_failed": "Analytics could not load",
     "no_data_title": "No analytics data",
@@ -1037,7 +1055,7 @@
       "job_kind": {
         "backup": "Backup",
         "integrity_check": "Integrity check",
-        "checkpoint": "WAL checkpoint",
+        "checkpoint": "Checkpoint",
         "reindex": "Reindex",
         "restore": "Restore",
         "purge_key": "Purge key",
@@ -2323,7 +2341,7 @@
         },
         "analytics": {
           "title": "Durable Analytics",
-          "description": "Collect per-key usage in CPA's isolated analytics database",
+          "description": "Lưu mức sử dụng theo khóa trong ClickHouse. Analytics cần DSN ClickHouse.",
           "enabled": "Enable durable analytics",
           "enabled_desc": "Collect new proxy usage for Analytics pages. Proxying and key limits keep working if analytics fails.",
           "storage_usage": {
@@ -2341,17 +2359,31 @@
             "partial": "Không thể đo đầy đủ một số vị trí. Dung lượng CPA có thể thấp hơn thực tế. Hãy làm mới để thử lại.",
             "unavailable": "Không thể làm mới dung lượng lưu trữ. Hãy thử làm mới lại. Số liệu đang hiển thị là từ lần đo thành công gần nhất.",
             "unsupported": "Phiên bản CPA này không báo cáo dung lượng lưu trữ. Hãy cập nhật CPA để xem số liệu.",
-            "empty": "Không có số liệu hệ thống tệp cho các vị trí đã cấu hình của CPA."
+            "empty": "Không có số liệu hệ thống tệp cho các vị trí đã cấu hình của CPA.",
+            "clickhouse_drive": "Ổ đĩa ClickHouse",
+            "analytics": "Dữ liệu phân tích",
+            "request_logs": "Nhật ký yêu cầu và bản ghi hội thoại",
+            "cpa_other": "Dữ liệu CPA khác",
+            "clickhouse_other": "Dữ liệu ClickHouse khác",
+            "clickhouse_unreachable": "Không truy cập được cơ sở dữ liệu ClickHouse {{database}}. Số liệu cục bộ vẫn được hiển thị. {{reason}}",
+            "clickhouse_unreachable_generic": "Máy chủ không cho biết lý do.",
+            "clickhouse_partial": "Một số số liệu ClickHouse có thể chưa đầy đủ. Hãy làm mới để thử lại.",
+            "clickhouse_empty": "ClickHouse không báo cáo thiết bị lưu trữ nào.",
+            "clickhouse_details": "Nguồn ClickHouse đã đo",
+            "clickhouse_scope": "ClickHouse nhóm các part đang hoạt động theo bảng. Dữ liệu ClickHouse khác gồm các part đang hoạt động của bảng hệ thống và cơ sở dữ liệu khác. Tệp khác gồm phần còn lại trên ổ đĩa.",
+            "clickhouse_database": "Cơ sở dữ liệu CPA",
+            "clickhouse_path": "Đường dẫn ổ đĩa",
+            "clickhouse_keep_free": "Chừa trống"
           },
           "collection_title": "Collection and storage",
-          "collection_desc": "Defaults suit most single-instance installs. Queue and database location changes require a CPA restart.",
-          "path": "Database path (analytics.path)",
+          "collection_desc": "Khởi động lại CPA sau khi thay đổi hàng đợi hoặc kết nối cơ sở dữ liệu.",
+          "path": "Đường dẫn SQLite cũ (analytics.path)",
           "path_placeholder": "Default: auth-dir/state/analytics/analytics.db",
-          "path_hint": "Leave empty to store analytics below auth-dir. A custom path also places identity.key and viewers.json beside the database, so move or back up all three together. Changing it requires a CPA restart.",
+          "path_hint": "CPA nhập cơ sở dữ liệu SQLite này một lần khi tạo cơ sở dữ liệu ClickHouse lần đầu. Thư mục đó cũng chứa identity.key và viewers.json. Hãy chuyển hoặc sao lưu cả ba tệp cùng nhau. Khởi động lại CPA sau khi đổi đường dẫn.",
           "queue_capacity": "Queue capacity",
-          "queue_capacity_hint": "Maximum sanitized events waiting for SQLite, 1 to 8192. Changing it requires a CPA restart.",
+          "queue_capacity_hint": "Số sự kiện đã lọc tối đa chờ ghi vào ClickHouse, từ 1 đến 8192. Khởi động lại CPA sau khi thay đổi.",
           "batch_size": "Write batch size",
-          "batch_size_hint": "Events committed per SQLite batch. Must not exceed queue capacity.",
+          "batch_size_hint": "Số sự kiện ghi trong mỗi lô ClickHouse. Không vượt quá dung lượng hàng đợi.",
           "flush_interval": "Flush interval",
           "flush_interval_hint": "Maximum wait before writing a partial batch, from 1ms to 1m.",
           "hot_retention_days": "Raw-event retention (days)",
@@ -2359,9 +2391,9 @@
           "circuit_failure_threshold": "Failure threshold",
           "circuit_failure_threshold_hint": "Consecutive writer failures before analytics opens its circuit and drops new events.",
           "max_storage_bytes": "Maximum storage (bytes)",
-          "max_storage_bytes_hint": "Hard budget for the database, WAL, shared-memory, and temporary analytics files. Set 0 only when minimum free space remains non-zero.",
+          "max_storage_bytes_hint": "Dung lượng tối đa cho dữ liệu phân tích trong ClickHouse. Chỉ đặt 0 khi dung lượng trống dự phòng khác 0.",
           "min_free_bytes": "Reserved free space (bytes)",
-          "min_free_bytes_hint": "Analytics stops writes before the filesystem falls below this reserve. Set 0 only when maximum storage remains non-zero.",
+          "min_free_bytes_hint": "Analytics tạm dừng ghi khi dung lượng trống trên ổ đĩa ClickHouse thấp hơn mức này. Chỉ đặt 0 khi dung lượng tối đa khác 0.",
           "privacy_title": "Credential privacy",
           "privacy_desc": "Analytics never stores raw credentials. This switch controls whether it keeps a keyed pseudonymous credential identity.",
           "store_credential_id": "Store credential identity",
@@ -2375,7 +2407,21 @@
           "allow_loopback_http_desc": "Development only. Permit viewer credential exchange over plain HTTP from a direct loopback peer. Changes require a CPA restart.",
           "storage_time_zone": "Storage time zone (analytics.storage-time-zone)",
           "storage_time_zone_hint": "IANA time zone used for retained rollups. Changing this after retention has run requires an analytics reset.",
-          "storage_time_zone_placeholder": "UTC"
+          "storage_time_zone_placeholder": "UTC",
+          "clickhouse_dsn": "DSN ClickHouse",
+          "clickhouse_dsn_hint": "Kết nối CPA với ClickHouse. Hãy khởi động lại CPA sau khi thay đổi. CPA ẩn giá trị này.",
+          "clickhouse_database": "Cơ sở dữ liệu ClickHouse",
+          "clickhouse_database_hint": "Tên cơ sở dữ liệu. Bắt đầu bằng chữ hoặc dấu gạch dưới, chỉ dùng chữ, số và dấu gạch dưới. Khởi động lại CPA sau khi thay đổi.",
+          "clickhouse_retention_days": "Lưu giữ telemetry (ngày)",
+          "clickhouse_retention_days_hint": "Xóa yêu cầu và lần thử cũ hơn số ngày này. Nội dung hội thoại được dọn sau khi không còn yêu cầu được giữ lại sử dụng.",
+          "clickhouse_agent_enabled": "Truy vấn SQL của agent",
+          "clickhouse_agent_enabled_hint": "Cho phép agent quản lý chạy SQL chỉ đọc trên cơ sở dữ liệu này.",
+          "clickhouse_agent_time": "Thời gian chạy tối đa của SQL",
+          "clickhouse_agent_time_hint": "Ví dụ 30s. Sau thời gian này, dừng truy vấn SQL của agent.",
+          "clickhouse_agent_rows": "Số hàng tối đa của SQL",
+          "clickhouse_agent_rows_hint": "Một truy vấn SQL của agent trả về nhiều nhất số hàng này.",
+          "clickhouse_agent_memory": "Bộ nhớ tối đa của SQL (byte)",
+          "clickhouse_agent_memory_hint": "Bộ nhớ nhiều nhất mà một truy vấn SQL của agent dùng."
         },
         "advanced": {
           "antigravity_credits": "Dùng credit Antigravity",
@@ -2686,7 +2732,8 @@
         "udp_port_capacity": "Phạm vi UDP phải chứa số cổng tối thiểu bằng hai lần số lượng phiên tối đa hiệu dụng (0 phiên sẽ tính là 32)",
         "invalid_ice_servers": "Mỗi máy chủ ICE cần ít nhất một URL stun:, stuns:, turn:, hoặc turns: hợp lệ",
         "integer_range_0_65535": "Nhập số nguyên từ 0 đến 65535",
-        "integer": "Nhập một số nguyên"
+        "integer": "Nhập một số nguyên",
+        "invalid_clickhouse_database": "Tên cơ sở dữ liệu phải bắt đầu bằng chữ hoặc dấu gạch dưới và chỉ dùng chữ, số hoặc dấu gạch dưới."
       },
       "common": {
         "edit": "Chỉnh sửa",

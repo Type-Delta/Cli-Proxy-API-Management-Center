@@ -188,6 +188,9 @@ describe('v8 scalar read/write path parity', () => {
     'analyticsCircuitFailureThreshold',
     'analyticsMaxStorageBytes',
     'analyticsMinFreeBytes',
+    'clickhouseTelemetryRetentionDays',
+    'clickhouseAgentQueryMaxResultRows',
+    'clickhouseAgentQueryMaxMemoryBytes',
   ]);
   for (const entry of CONFIG_FIELD_SEARCH_INDEX) {
     const field = FIELD_VALUE_KEYS[entry.fieldId][0];

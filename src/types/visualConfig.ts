@@ -39,6 +39,13 @@ export type VisualConfigFieldPath =
   | 'analyticsMinFreeBytes'
   | 'analyticsStorageTimeZone'
   | 'analyticsViewerTrustedProxyCidrs'
+  | 'clickhouseDsn'
+  | 'clickhouseDatabase'
+  | 'clickhouseTelemetryRetentionDays'
+  | 'clickhouseAgentQueryEnabled'
+  | 'clickhouseAgentQueryMaxExecutionTime'
+  | 'clickhouseAgentQueryMaxResultRows'
+  | 'clickhouseAgentQueryMaxMemoryBytes'
   | 'errorLogsMaxFiles'
   | 'logsMaxTotalSizeMb'
   | 'redisUsageQueueRetentionSeconds'
@@ -73,7 +80,8 @@ export type VisualConfigValidationErrorCode =
   | 'analytics_storage_budget_required'
   | 'analytics_storage_bytes_range'
   | 'analytics_storage_time_zone_invalid'
-  | 'analytics_proxy_cidrs_invalid';
+  | 'analytics_proxy_cidrs_invalid'
+  | 'invalid_clickhouse_database';
 
 export type VisualConfigValidationErrors = Partial<
   Record<VisualConfigFieldPath, VisualConfigValidationErrorCode>
@@ -211,6 +219,13 @@ export type VisualConfigValues = {
   analyticsStoreCredentialId: boolean;
   analyticsViewerTrustedProxyCidrs: string[];
   analyticsViewerAllowLoopbackHttp: boolean;
+  clickhouseDsn: string;
+  clickhouseDatabase: string;
+  clickhouseTelemetryRetentionDays: string;
+  clickhouseAgentQueryEnabled: boolean;
+  clickhouseAgentQueryMaxExecutionTime: string;
+  clickhouseAgentQueryMaxResultRows: string;
+  clickhouseAgentQueryMaxMemoryBytes: string;
   proxyUrl: string;
   forceModelPrefix: boolean;
   passthroughHeaders: boolean;
@@ -328,6 +343,13 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   analyticsStoreCredentialId: true,
   analyticsViewerTrustedProxyCidrs: [],
   analyticsViewerAllowLoopbackHttp: false,
+  clickhouseDsn: '',
+  clickhouseDatabase: 'cpa',
+  clickhouseTelemetryRetentionDays: '30',
+  clickhouseAgentQueryEnabled: true,
+  clickhouseAgentQueryMaxExecutionTime: '30s',
+  clickhouseAgentQueryMaxResultRows: '10000',
+  clickhouseAgentQueryMaxMemoryBytes: '2147483648',
   proxyUrl: '',
   forceModelPrefix: false,
   passthroughHeaders: false,
