@@ -16,6 +16,7 @@ import {
 } from '../query';
 import { useAnalyticsLoad } from '../useAnalyticsLoad';
 import { CostBreakdown, ModelEfficiency } from './analysis/CostInsights';
+import { modelCostSelectionKey } from './analysis/modelCostEfficiency';
 import { KeyModelHeatmap } from './analysis/KeyModelHeatmap';
 import { LatencyDiagnostics } from './analysis/LatencyDiagnostics';
 import { ANALYSIS_DISTRIBUTIONS, type AnalysisDistribution } from './analysis/analysisModel';
@@ -72,6 +73,20 @@ export function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: str
   const latency = useAnalysisCard(request, 'latency');
   const costBreakdown = useAnalysisCard(request, 'cost-breakdown');
   const modelEfficiency = useAnalysisCard(request, 'model-efficiency');
+  const efficiencyRange = modelEfficiency.data?.meta.range;
+  const efficiencyRequest = useMemo<AnalyticsAnalysisQuery>(
+    () =>
+      efficiencyRange
+        ? {
+            ...request,
+            range: undefined,
+            start: efficiencyRange.start,
+            end: efficiencyRange.end,
+            time_zone: efficiencyRange.time_zone,
+          }
+        : request,
+    [request, efficiencyRange]
+  );
   const keyModel = useAnalysisCard(request, 'key-model');
   const keyDistribution = useDistribution('key', range, keyIds);
   const modelDistribution = useDistribution('model', range, keyIds);
@@ -128,6 +143,12 @@ export function Analysis({ range, keyIds }: { range: AnalyticsRange; keyIds: str
           {t('analytics.analysis.section_behaviour', { defaultValue: 'Behaviour' })}
         </Eyebrow>
         <ModelEfficiency
+          request={efficiencyRequest}
+          selectionKey={modelCostSelectionKey(request)}
+          totalCost={(tokenUsage.data?.series_by_category?.buckets ?? []).reduce(
+            (sum, bucket) => sum + Number(bucket.known_cost_usd),
+            0
+          )}
           section={modelEfficiency.data?.model_by_time}
           costs={costBreakdown.data?.cost_components?.models}
           costPartial={costBreakdown.data?.cost_components?.meta.partial}

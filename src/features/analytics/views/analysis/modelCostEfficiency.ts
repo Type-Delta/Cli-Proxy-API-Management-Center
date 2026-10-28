@@ -1,3 +1,7 @@
+import type { AnalyticsPalette } from '../../components/chartTheme';
+import { analyticsRequestKey } from '@/services/api/analytics';
+import { providerLabel } from '@/features/dashboard/utils';
+import type { AnalyticsAnalysisQuery, ModelCostSeriesQuery } from '@/types';
 import { compareModelEfficiencyCost, type ModelEfficiencyRow } from './analysisModel';
 
 export const MODEL_COST_PAGE_SIZE = 10;
@@ -8,7 +12,7 @@ export type ModelCostSortKey =
   | 'input'
   | 'output'
   | 'cache_read'
-  | 'cache_write'
+  | 'cache_hit'
   | 'total_cost'
   | 'tokens'
   | 'cost';
@@ -23,10 +27,10 @@ export type ModelCostPage = {
 };
 
 export function filterModelCostEfficiency(rows: readonly ModelCostEfficiencyRow[], query: string) {
-  const priced = rows.filter((row) => row.pricingStatus !== 'unknown');
+  const models = [...rows];
   const needle = query.trim().toLocaleLowerCase();
-  if (!needle) return priced;
-  return priced.filter((row) => row.model.toLocaleLowerCase().includes(needle));
+  if (!needle) return models;
+  return models.filter((row) => row.model.toLocaleLowerCase().includes(needle));
 }
 
 const compareValues = (
@@ -34,6 +38,7 @@ const compareValues = (
   right: ModelCostEfficiencyRow,
   key: ModelCostSortKey
 ) => {
+  if (key === 'cache_hit') return (left.cacheHitRate ?? -1) - (right.cacheHitRate ?? -1);
   if (key === 'model') return left.model.localeCompare(right.model);
   if (key === 'requests') return left.requests - right.requests;
   if (key === 'tokens') return left.total_tokens - right.total_tokens;
@@ -45,9 +50,7 @@ const compareValues = (
         ? 'output_usd'
         : key === 'cache_read'
           ? 'cache_read_usd'
-          : key === 'cache_write'
-            ? 'cache_creation_usd'
-            : 'total_usd';
+          : 'total_usd';
   return (
     Number(left.costComponents?.[costField] ?? 0) - Number(right.costComponents?.[costField] ?? 0)
   );
@@ -83,3 +86,44 @@ export function paginateModelCostEfficiency(
     totalPages,
   };
 }
+
+export const buildModelCostSeriesQuery = (
+  request: AnalyticsAnalysisQuery,
+  model: string
+): ModelCostSeriesQuery => ({
+  ...request,
+  operation: 'model_cost_series',
+  filters: { ...request.filters, model: [model] },
+});
+
+/** Named page selection, before its rolling range is resolved for each refresh. */
+export const modelCostSelectionKey = (request: AnalyticsAnalysisQuery | undefined) =>
+  analyticsRequestKey(request);
+
+export function modelCostProviderLabel(provider: string, unknownLabel: string) {
+  const prefix = 'openai-compatible-';
+  return provider.startsWith(prefix)
+    ? `${providerLabel('openai', unknownLabel)} · ${provider.slice(prefix.length)}`
+    : providerLabel(provider, unknownLabel);
+}
+
+export function modelCostPresentation(row: ModelCostEfficiencyRow) {
+  const cost = Number(row.known_cost_usd);
+  const costKnown =
+    row.pricingStatus !== 'unknown' &&
+    Number.isFinite(cost) &&
+    (Boolean(row.costComponents) || cost > 0);
+  return {
+    costKnown,
+    cost: costKnown ? cost : null,
+    emptyReason:
+      row.total_tokens <= 0 ? ('tokens' as const) : !costKnown ? ('pricing' as const) : null,
+  };
+}
+
+/** Matches Token Usage's input/output/cache-read/cache-write category order. */
+export const modelCostTokenColors = (palette: AnalyticsPalette) =>
+  [0, 2, 3, 1].map((index) => palette.categorical[index]);
+
+export const modelCostHasNoTokens = (row: Pick<ModelCostEfficiencyRow, 'total_tokens'>) =>
+  row.total_tokens <= 0;

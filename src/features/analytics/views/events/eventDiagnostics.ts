@@ -16,7 +16,7 @@ export type EventStepId = 'client_request' | 'cpa_dispatch' | 'provider' | 'cpa_
  * skipped: an earlier hop failed, so this hop never carried a normal response.
  * unknown: CPA did not record enough to tell (legacy events, missing instrumentation).
  */
-export type EventStepState = 'complete' | 'failed' | 'skipped' | 'unknown';
+export type EventStepState = 'complete' | 'failed' | 'skipped' | 'unknown' | 'canceled';
 
 export type EventStepSummary =
   | { kind: 'request_line'; method: string | null; path: string | null }
@@ -29,6 +29,7 @@ export type EventStepSummary =
       ttftMs: number | null;
     }
   | { kind: 'proxy_result'; status: number | null; error: string | null; succeeded: boolean }
+  | { kind: 'client_disconnected' }
   | { kind: 'unrecorded' };
 
 export type EventStep = {
@@ -303,21 +304,40 @@ const reachedProvider = (event: AnalyticsEvent) =>
   finite(event.upstream_status_code) !== null ||
   event.succeeded;
 
-/**
- * Whether the provider itself answered acceptably. The recorded upstream status wins so a stream
- * that broke after a 200 blames CPA rather than the provider; without a status the only signal
- * left is the attempt outcome.
- */
-const upstreamAccepted = (event: AnalyticsEvent) => {
-  const status = finite(event.upstream_status_code);
-  return status === null ? event.succeeded : status < 400;
-};
+/** Legacy compatibility is used only when the server has no outcome contract. */
+export function eventOutcome(event: AnalyticsEvent): 'succeeded' | 'failed' | 'canceled' {
+  if (event.outcome) return event.outcome;
+  if (event.succeeded) return 'succeeded';
+  const body = text(event.upstream_error_body) ?? '';
+  return body === 'context canceled' || /^(Post|Get) ".*": context canceled$/.test(body)
+    ? 'canceled'
+    : 'failed';
+}
 
-/** A CPA-side failure after a usable provider response: bad translation, aborted stream, 5xx. */
-const proxyFailed = (event: AnalyticsEvent) => {
-  const status = finite(event.proxy_status_code);
-  return Boolean(text(event.proxy_error)) || (status !== null && status >= 400);
-};
+export function classifiedFailureHop(event: AnalyticsEvent): EventHopId | null {
+  if (eventOutcome(event) !== 'failed') return null;
+  if (event.outcome) return event.failure_hop ?? null;
+  const body = text(event.upstream_error_body) ?? '';
+  if (
+    !event.upstream_sent_at &&
+    (event.executor_type === 'auth-selection' || body.startsWith('Claude OAuth safeguard'))
+  ) {
+    return 'cpa_to_provider';
+  }
+  if (
+    /server_is_overloaded|"(?:code|type)":"server_error"|Kiro stream exception|upstream stream returned an error payload|stream disconnected before completion|upstream stream closed before|unexpected eof|INTERNAL_ERROR; received from peer/i.test(
+      body
+    ) ||
+    (event.upstream_status_code != null &&
+      event.upstream_status_code >= 400 &&
+      event.upstream_status_code !== 499)
+  ) {
+    return 'provider_to_cpa';
+  }
+  if (!reachedProvider(event) && hasHopInstrumentation(event)) return 'cpa_to_provider';
+  if (event.upstream_sent_at && text(event.proxy_error) && !body) return 'cpa_to_client';
+  return null;
+}
 
 const respondedToClient = (event: AnalyticsEvent) =>
   finite(event.proxy_status_code) !== null || epochMs(event.responded_at) !== null;
@@ -329,12 +349,18 @@ const respondedToClient = (event: AnalyticsEvent) =>
  */
 export function buildEventTimeline(event: AnalyticsEvent): EventStep[] {
   const instrumented = hasHopInstrumentation(event);
-  const sent = reachedProvider(event);
-  const accepted = upstreamAccepted(event);
-  const cpaFailed = !event.succeeded && !sent;
-  const upstreamFailed = !event.succeeded && sent && !accepted;
-  // Provider delivered, CPA did not: a broken stream, a failed translation, or a CPA-side status.
-  const returnFailed = sent && accepted && (proxyFailed(event) || !event.succeeded);
+  const canceled = eventOutcome(event) === 'canceled';
+  const hop = classifiedFailureHop(event);
+  const cpaFailed = hop === 'cpa_to_provider';
+  const upstreamFailed = hop === 'provider_to_cpa';
+  const returnFailed = hop === 'cpa_to_client';
+  const sent = !cpaFailed && reachedProvider(event);
+  const providerStatus = finite(event.upstream_status_code);
+  const accepted =
+    !upstreamFailed &&
+    (eventOutcome(event) === 'succeeded' ||
+      returnFailed ||
+      (canceled && providerStatus !== null && providerStatus < 400));
 
   const clientRequest: EventStep = {
     id: 'client_request',
@@ -352,7 +378,11 @@ export function buildEventTimeline(event: AnalyticsEvent): EventStep[] {
 
   const dispatch: EventStep = {
     id: 'cpa_dispatch',
-    state: sent ? 'complete' : cpaFailed && instrumented ? 'failed' : 'unknown',
+    state: sent
+      ? 'complete'
+      : cpaFailed && (instrumented || Boolean(event.failure_hop))
+        ? 'failed'
+        : 'unknown',
     at: text(event.upstream_sent_at),
     summary: cpaFailed
       ? instrumented
@@ -396,23 +426,27 @@ export function buildEventTimeline(event: AnalyticsEvent): EventStep[] {
 
   const cpaResponse: EventStep = {
     id: 'cpa_response',
-    state: returnFailed
-      ? 'failed'
-      : provider.state === 'complete'
-        ? 'complete'
-        : provider.state === 'unknown'
-          ? 'unknown'
-          : 'skipped',
+    state: canceled
+      ? 'canceled'
+      : returnFailed
+        ? 'failed'
+        : provider.state === 'complete'
+          ? 'complete'
+          : provider.state === 'unknown'
+            ? 'unknown'
+            : 'skipped',
     at: text(event.responded_at),
     summary:
-      provider.state === 'complete' || respondedToClient(event)
-        ? {
-            kind: 'proxy_result',
-            status: finite(event.proxy_status_code),
-            error: text(event.proxy_error),
-            succeeded: !returnFailed,
-          }
-        : { kind: 'unrecorded' },
+      canceled && event.cancellation_source === 'client'
+        ? { kind: 'client_disconnected' }
+        : provider.state === 'complete' || respondedToClient(event)
+          ? {
+              kind: 'proxy_result',
+              status: finite(event.proxy_status_code),
+              error: text(event.proxy_error),
+              succeeded: !returnFailed,
+            }
+          : { kind: 'unrecorded' },
   };
 
   return [clientRequest, dispatch, provider, cpaResponse];
@@ -584,4 +618,13 @@ export function tokenizeJson(source: string): JsonToken[] {
   }
   if (index < source.length) tokens.push({ type: 'plain', value: source.slice(index) });
   return tokens;
+}
+
+export function errorPayloadFormat(source: string): { language: 'json' | 'text'; tone?: 'error' } {
+  try {
+    JSON.parse(source);
+    return { language: 'json' };
+  } catch {
+    return { language: 'text', tone: 'error' };
+  }
 }

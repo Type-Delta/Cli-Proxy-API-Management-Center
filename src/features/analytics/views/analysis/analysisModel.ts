@@ -1,3 +1,4 @@
+import { analyticsRate } from '../../components/analyticsFormatting';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { CustomSeriesRenderItem } from 'echarts/types/dist/option';
 import {
@@ -68,6 +69,7 @@ export type TooltipRow = {
   marker?: string;
   /** Optional palette colour for rows added by a custom tooltip formatter. */
   color?: string;
+  detail?: boolean;
 };
 
 /**
@@ -78,7 +80,7 @@ export type TooltipRow = {
  */
 export function tooltipPanel(header: string, rows: TooltipRow[], total?: TooltipRow) {
   const line = (row: TooltipRow, isTotal = false) =>
-    `<div data-tt="row"${isTotal ? ' data-tt-total="true"' : ''}>` +
+    `<div data-tt="row"${isTotal ? ' data-tt-total="true"' : row.detail ? ' data-tt-detail="true"' : ''}>` +
     `<span data-tt="name">${
       row.marker ??
       (row.color
@@ -440,6 +442,7 @@ export function buildDistributionRows(rows: DimensionRow[]): DistributionRow[] {
 }
 
 export type ModelEfficiencyRow = AnalysisModel & {
+  cacheHitRate: number | null;
   costPerMillion: number | null;
   pricingStatus: 'complete' | 'partial' | 'unknown';
   costComponents?: AnalysisModelCost;
@@ -472,6 +475,10 @@ export function buildModelEfficiency(
         coverageUnknown || whollyUnpriced ? 'unknown' : unpricedCount > 0 ? 'partial' : 'complete';
       return {
         ...model,
+        cacheHitRate: analyticsRate(
+          nonNegative(model.cache_read_tokens),
+          nonNegative(model.input_tokens)
+        ),
         costPerMillion:
           pricingStatus === 'complete' && tokens > 0 && cost >= 0
             ? (cost / tokens) * 1_000_000

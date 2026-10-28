@@ -854,11 +854,190 @@ test('Kiro details distinguish reported zero credits from absent metering and sh
     price_usd_per_credit: '0.02',
     price_source: 'kiro-credits',
   });
-  expect(zero).toContain('Reported credits');
+  expect(zero).toContain('Credits used');
   expect(zero).toContain('$0.02');
   expect(zero).toContain('Kiro credits');
   expect(zero).not.toContain('Not reported');
   const missing = render({ price_source: 'models.dev' });
   expect(missing).toContain('Not reported');
   expect(missing).toContain('Not applied');
+});
+
+describe('terminal outcomes and provider stream failures', () => {
+  for (const body of [
+    '{"error":{"code":"server_is_overloaded"}}',
+    '{"error":{"code":"server_error"}}',
+    'Kiro stream exception: serviceUnavailableError',
+    'upstream stream returned an error payload',
+    'stream error: stream disconnected before completion: stream closed before response.completed',
+    'stream error: stream ID 11; INTERNAL_ERROR; received from peer',
+  ]) {
+    test(`HTTP 200 does not override ${body}`, () => {
+      const steps = buildEventTimeline(
+        fullyInstrumented({
+          succeeded: false,
+          upstream_status_code: 200,
+          upstream_error_body: body,
+          proxy_error: 'context canceled',
+        })
+      );
+      expect(eventFailureHop(steps)).toBe('provider_to_cpa');
+    });
+  }
+
+  test('authoritative backend hop wins over transport status', () => {
+    expect(
+      eventFailureHop(
+        buildEventTimeline(
+          fullyInstrumented({
+            outcome: 'failed',
+            failure_hop: 'cpa_to_client',
+            succeeded: false,
+            upstream_status_code: 200,
+            upstream_error_body: 'server_is_overloaded',
+          })
+        )
+      )
+    ).toBe('cpa_to_client');
+  });
+
+  test('local safeguard has a dispatch failure', () => {
+    expect(
+      eventFailureHop(
+        buildEventTimeline(
+          fullyInstrumented({
+            succeeded: false,
+            upstream_sent_at: null,
+            upstream_status_code: 403,
+            upstream_error_body: 'Claude OAuth safeguard flagged this request',
+          })
+        )
+      )
+    ).toBe('cpa_to_provider');
+  });
+
+  test('canceled has a neutral badge, interrupted timeline, and no failure point', () => {
+    const event = fullyInstrumented({
+      outcome: 'canceled',
+      succeeded: true,
+      cancellation_source: 'client',
+      failure_hop: null,
+      proxy_error: 'context canceled',
+    });
+    const steps = buildEventTimeline(event);
+    expect(eventFailureHop(steps)).toBeNull();
+    expect(steps.at(-1)?.state).toBe('canceled');
+    const html = renderToStaticMarkup(
+      createElement(
+        I18nextProvider,
+        { i18n },
+        createElement(EventDetailSheet, {
+          open: true,
+          event,
+          loading: false,
+          error: '',
+          keyIdentity: 'test-key',
+          onClose: () => {},
+          onRetry: () => {},
+        })
+      )
+    );
+    expect(html).toContain('Canceled');
+    expect(html).not.toContain('Failure point');
+  });
+});
+
+test('event details keep one precise cost total for token, credit and historic prices', () => {
+  for (const extra of [
+    {},
+    {
+      provider: 'kiro',
+      provider_credits: '1.25',
+      price_usd_per_credit: '0.03',
+      price_source: 'kiro-credits',
+    },
+  ]) {
+    const html = renderDetail(fullyInstrumented({ known_cost_usd: '0.000328', ...extra }));
+    expect(html.match(/Total cost/g)).toHaveLength(1);
+    expect(html).toContain('0.000328 USD');
+    expect(html).not.toContain('Estimated cost');
+  }
+});
+
+test('event details do not present an internal digest as a client session ID', () => {
+  const html = renderDetail(
+    fullyInstrumented({ session_id: 'derived:ctx:v1:internal-digest', session_source: 'derived' })
+  );
+  expect(html).toContain('Not sent by client');
+  expect(html).not.toContain('>derived:ctx:v1:internal-digest<');
+});
+
+test('client disconnect preserves the observed provider hop', () => {
+  const event = fullyInstrumented({
+    outcome: 'canceled',
+    cancellation_source: 'client',
+    succeeded: true,
+    upstream_status_code: 200,
+    session_captured: true,
+    session_id: null,
+  });
+  const steps = buildEventTimeline(event);
+  expect(steps.find((step) => step.id === 'provider')?.state).toBe('complete');
+  expect(steps.find((step) => step.id === 'cpa_response')?.state).toBe('canceled');
+  expect(eventFailureHop(steps)).toBeNull();
+  const html = renderDetail(event);
+  expect(html).toContain('Client disconnected');
+  expect(html).not.toContain('Failure point');
+});
+
+test('absent client sessions distinguish captured and historical events', () => {
+  for (const extra of [
+    { session_id: null, session_captured: true },
+    { session_id: 'derived:ctx:v1:internal', session_source: 'derived' },
+  ]) {
+    const html = renderDetail(fullyInstrumented(extra));
+    expect(html).toContain('Not sent by client');
+    expect(html).not.toMatch(/class="[^"\n]*mono[^"\n]*"[^>]*>Not sent by client/);
+  }
+  const historic = renderDetail(fullyInstrumented({ session_id: null, session_captured: false }));
+  expect(historic).not.toContain('Not sent by client');
+});
+
+test('plain error bodies stay plain and error class follows the client failure', () => {
+  const plain = 'write tcp 127.0.0.1:8317->127.0.0.1:52344: broken pipe';
+  const html = renderDetail(
+    fullyInstrumented({
+      outcome: 'failed',
+      failure_hop: 'cpa_to_client',
+      succeeded: false,
+      proxy_status_code: 500,
+      error_class: 'internal',
+      proxy_error: plain,
+      upstream_error_body: plain,
+    })
+  );
+  const provider = html.slice(
+    html.indexOf('<h3>Provider to CPA'),
+    html.indexOf('<h3>CPA to client')
+  );
+  const client = html.slice(html.indexOf('<h3>CPA to client'), html.indexOf('<h3>Tokens and cost'));
+  expect(provider).not.toContain('Error class');
+  expect(client).toContain('Error class');
+  expect(client).toContain(plain.replace(/>/g, '&gt;'));
+  expect(client).not.toContain('<span>127');
+});
+
+test('canceled events use a disconnect reason and consistent missing status', () => {
+  const html = renderDetail(
+    fullyInstrumented({
+      outcome: 'canceled',
+      succeeded: true,
+      proxy_status_code: null,
+      proxy_error: 'client disconnected',
+      cancellation_source: 'client',
+    })
+  );
+  expect(html).toContain('Disconnect reason');
+  expect(html).not.toContain('CPA error');
+  expect(html).toContain('CPA status');
 });

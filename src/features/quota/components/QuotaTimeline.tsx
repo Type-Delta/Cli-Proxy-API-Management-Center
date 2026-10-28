@@ -12,7 +12,7 @@
  * quotaTimeline.ts.)
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatRelativeInstant, TYPE_COLORS } from '@/utils/quota';
@@ -63,6 +63,7 @@ export interface QuotaTimelineProps {
   initialMode?: TimelineMode;
   /** Injectable initial date offset for tests/screenshots; defaults to the current period. */
   initialOffset?: number;
+  onWeeklyOffsetChange?: (offset: number) => void;
 }
 
 export function QuotaTimeline({
@@ -73,10 +74,14 @@ export function QuotaTimeline({
   now: nowProp,
   initialMode = 'weekly',
   initialOffset = 0,
+  onWeeklyOffsetChange,
 }: QuotaTimelineProps) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<TimelineMode>(initialMode);
   const [offset, setOffset] = useState(initialOffset);
+  useEffect(() => {
+    onWeeklyOffsetChange?.(mode === 'weekly' ? offset : 0);
+  }, [mode, offset, onWeeklyOffsetChange]);
 
   // The clock has to advance on its own: bars are classified past/live/next
   // against it and the marker is positioned by it, so a long-lived tab would

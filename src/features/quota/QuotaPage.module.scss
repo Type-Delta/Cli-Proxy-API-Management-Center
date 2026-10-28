@@ -232,3 +232,9 @@
     gap: 16px;
   }
 }
+
+.historyLoading {
+  min-height: 250px;
+  display: grid;
+  place-items: center;
+}

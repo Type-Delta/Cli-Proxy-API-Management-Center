@@ -168,6 +168,8 @@ describe('Event filters reset', () => {
       source: '',
       result: '',
       errorClass: '',
+      sessionId: '',
+        outcome: '',
     });
   });
 });

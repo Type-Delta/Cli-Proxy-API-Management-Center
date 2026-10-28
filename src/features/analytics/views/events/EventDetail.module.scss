@@ -449,7 +449,6 @@
 // Fact lists ---------------------------------------------------------------
 .factGrid {
   display: grid;
-  overflow: hidden;
   margin: 0;
   gap: 0 18px;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -460,10 +459,7 @@
   min-width: 0;
   flex-direction: column;
   gap: 2px;
-  // Clip the first row divider at the grid edge, regardless of column count or wide facts.
-  margin-top: -1px;
   padding: 7px 0 6px;
-  border-top: 1px solid var(--border-color);
 }
 
 .factWide {
@@ -646,5 +642,63 @@
 
   .timingPill {
     justify-content: flex-end;
+  }
+}
+
+.pricing {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pricingTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+
+  th,
+  td {
+    padding: 7px 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  th:first-child {
+    text-align: left;
+    width: 31%;
+  }
+
+  thead th {
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  tbody th {
+    color: var(--text-secondary);
+    font-weight: 400;
+  }
+}
+
+.pricingCaption {
+  caption-side: top;
+  padding: 4px 0 8px;
+  color: var(--text-secondary);
+  text-align: left;
+  font-size: 12px;
+}
+
+.pricingTable {
+  tfoot th,
+  tfoot td {
+    border-top: 1px solid var(--border-color);
+    padding-top: 10px;
+    font-weight: 600;
+  }
+  td:first-child {
+    text-align: left;
   }
 }

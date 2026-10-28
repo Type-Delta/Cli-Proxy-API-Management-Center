@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/Table';
+import { analyticsApi } from '@/services/api';
+import { apiClient } from '@/services/api/client';
+import { ModelCostModal } from './ModelCostModal';
+import modalStyles from './ModelCostModal.module.scss';
+import type { AnalyticsAnalysisQuery } from '@/types';
+import type { ModelEfficiencyRow } from './analysisModel';
 import type { AnalysisCostComponents, AnalysisModelByTime, AnalysisModelCost } from '@/types';
 import {
   formatCompactTokens,
@@ -15,6 +21,10 @@ import { CostRadar } from './CostRadar';
 import { SortableHeader } from '../../components/SortableHeader';
 import { TablePagination } from '../../components/TablePagination';
 import {
+  buildModelCostSeriesQuery,
+  modelCostHasNoTokens,
+  modelCostTokenColors,
+  modelCostSelectionKey,
   filterModelCostEfficiency,
   MODEL_COST_PAGE_SIZE,
   paginateModelCostEfficiency,
@@ -30,7 +40,7 @@ import styles from './Analysis.module.scss';
  * Cost segments borrow the token-category hues so a category means the same colour across
  * Token Usage, Cost Breakdown and Usage Distribution: input, output, cache read, cache write.
  */
-const COST_SEGMENT_HUES = [0, 1, 2, 3] as const;
+const COST_SEGMENT_ORDER = [0, 3, 1, 2] as const;
 
 export function CostBreakdown({
   section,
@@ -82,7 +92,7 @@ export function CostBreakdown({
   const segments = amounts.map((amount, index) => ({
     ...amount,
     value: Number.isFinite(amount.value) ? Math.max(0, amount.value) : 0,
-    color: palette.categorical[COST_SEGMENT_HUES[index]],
+    color: modelCostTokenColors(palette)[COST_SEGMENT_ORDER[index]],
     percent:
       total > 0
         ? ((Number.isFinite(amount.value) ? Math.max(0, amount.value) : 0) / total) * 100
@@ -190,6 +200,9 @@ export function CostBreakdown({
 }
 
 export function ModelEfficiency({
+  request,
+  selectionKey,
+  totalCost,
   section,
   costs,
   costPartial,
@@ -200,6 +213,9 @@ export function ModelEfficiency({
   onRetry,
   locale,
 }: {
+  request?: AnalyticsAnalysisQuery;
+  selectionKey?: string;
+  totalCost?: number;
   section: AnalysisModelByTime | null | undefined;
   costs?: readonly AnalysisModelCost[] | null;
   costPartial?: boolean;
@@ -211,6 +227,19 @@ export function ModelEfficiency({
   locale?: string;
 }) {
   const { t, i18n } = useTranslation();
+  const [selected, setSelected] = useState<ModelEfficiencyRow | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const selection = selectionKey ?? modelCostSelectionKey(request);
+  useEffect(() => apiClient.onConnectionChange(() => setModalOpen(false)), []);
+  useEffect(() => setModalOpen(false), [selection]);
+  const prefetch = (model: string) => {
+    if (request)
+      void analyticsApi.modelCostSeries(buildModelCostSeriesQuery(request, model)).catch(() => {});
+  };
+  const selectedRequest = useMemo(
+    () => (selected && request ? buildModelCostSeriesQuery(request, selected.model) : null),
+    [selected, request]
+  );
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<ModelCostSortKey>('cost');
   const [sortDirection, setSortDirection] = useState<ModelCostSortDirection>('asc');
@@ -259,160 +288,203 @@ export function ModelEfficiency({
   );
 
   return (
-    <AnalysisCard
-      title={t('analytics.analysis.model_efficiency_title', {
-        defaultValue: 'Model Cost Efficiency',
-      })}
-      description={t('analytics.analysis.model_efficiency_description', {
-        defaultValue:
-          'Estimated cost divided by total tokens, per 1 million tokens. This is not a token price.',
-      })}
-      loading={loading}
-      error={error}
-      errorStatus={errorStatus}
-      retryAt={retryAt}
-      hasData={filteredModels.length > 0}
-      partial={
-        section?.meta.partial ||
-        costPartial ||
-        models.some((model) => Number(model.costComponents?.credit_based_usd ?? 0) > 0)
-      }
-      emptyDescription={
-        section === null
-          ? t('analytics.analysis.section_unavailable_description', {
-              defaultValue: 'The server did not return this analysis section.',
-            })
-          : t('analytics.analysis.no_efficiency', {
-              defaultValue:
-                'Model cost efficiency will appear when token and cost data are available.',
-            })
-      }
-      onRetry={onRetry}
-      extra={
-        // <input
-        //   className={styles.modelSearch}
-        //   type="search"
-        //   value={search}
-        //   aria-label={t('analytics.analysis.model_search', { defaultValue: 'Search models' })}
-        //   placeholder={t('analytics.analysis.model_search', { defaultValue: 'Search models' })}
-        //   onChange={(event) => {
-        //     setSearch(event.target.value);
-        //     setPage(1);
-        //   }}
-        // />
-        <div className={styles.searchWrap}>
-          <span className={styles.searchIcon} aria-hidden="true">
-            <IconSearch size={16} />
-          </span>
-          <input
-            type="search"
-            className={styles.searchInput}
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
-            }}
-            aria-label={t('analytics.analysis.model_search', { defaultValue: 'Search models' })}
-            placeholder={t('analytics.analysis.model_search', { defaultValue: 'Search models' })}
-          />
-        </div>
-      }
-    >
-      {filteredModels.length === 0 ? (
-        <p className={styles.modelSearchEmpty} role="status">
-          {t('analytics.analysis.no_matching_models', {
-            defaultValue: 'No models match your search.',
-          })}
-        </p>
-      ) : (
-        <>
-          <Table
-            aria-label={t('analytics.analysis.model_efficiency_title', {
-              defaultValue: 'Model Cost Efficiency',
+    <>
+      <AnalysisCard
+        title={t('analytics.analysis.model_efficiency_title', {
+          defaultValue: 'Model Cost Efficiency',
+        })}
+        description={t('analytics.analysis.model_efficiency_description', {
+          defaultValue:
+            'Estimated cost divided by total tokens, per 1 million tokens. This is not a token price.',
+        })}
+        loading={loading}
+        error={error}
+        errorStatus={errorStatus}
+        retryAt={retryAt}
+        hasData={filteredModels.length > 0}
+        partial={
+          section?.meta.partial ||
+          costPartial ||
+          models.some((model) => Number(model.costComponents?.credit_based_usd ?? 0) > 0)
+        }
+        emptyDescription={
+          section === null
+            ? t('analytics.analysis.section_unavailable_description', {
+                defaultValue: 'The server did not return this analysis section.',
+              })
+            : t('analytics.analysis.no_efficiency', {
+                defaultValue:
+                  'Model cost efficiency will appear when token and cost data are available.',
+              })
+        }
+        onRetry={onRetry}
+        extra={
+          // <input
+          //   className={styles.modelSearch}
+          //   type="search"
+          //   value={search}
+          //   aria-label={t('analytics.analysis.model_search', { defaultValue: 'Search models' })}
+          //   placeholder={t('analytics.analysis.model_search', { defaultValue: 'Search models' })}
+          //   onChange={(event) => {
+          //     setSearch(event.target.value);
+          //     setPage(1);
+          //   }}
+          // />
+          <div className={styles.searchWrap}>
+            <span className={styles.searchIcon} aria-hidden="true">
+              <IconSearch size={16} />
+            </span>
+            <input
+              type="search"
+              className={styles.searchInput}
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              aria-label={t('analytics.analysis.model_search', { defaultValue: 'Search models' })}
+              placeholder={t('analytics.analysis.model_search', { defaultValue: 'Search models' })}
+            />
+          </div>
+        }
+      >
+        {filteredModels.length === 0 ? (
+          <p className={styles.modelSearchEmpty} role="status">
+            {t('analytics.analysis.no_matching_models', {
+              defaultValue: 'No models match your search.',
             })}
-          >
-            <TableHeader>
-              <TableRow>
-                {column('model', 'analytics.analysis.model_name', 'Model name')}
-                {column('requests', 'analytics.analysis.observed_requests', 'Observed requests')}
-                {column('input', 'analytics.analysis.cost_input', 'Input')}
-                {column('output', 'analytics.analysis.cost_output', 'Output')}
-                {column('cache_read', 'analytics.analysis.cost_cache_read', 'Cache read')}
-                {column('cache_write', 'analytics.analysis.cost_cache_write', 'Cache write')}
-                {column('total_cost', 'analytics.analysis.total_cost', 'Total cost')}
-                {column('tokens', 'analytics.analysis.volume_tokens', 'Volume (tokens)')}
-                {column('cost', 'analytics.analysis.price_per_million', 'Cost per 1M tokens')}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedModels.pageItems.map((model) => {
-                const tokens = formatCompactTokens(model.total_tokens, resolvedLocale);
-                const pricingQualifier =
-                  model.pricingStatus === 'partial'
-                    ? t('analytics.analysis.partial_pricing', { defaultValue: 'Partial pricing' })
-                    : t('analytics.analysis.price_unknown', { defaultValue: 'Price unknown' });
-                const cost =
-                  model.costPerMillion === null
-                    ? { text: pricingQualifier, title: pricingQualifier }
-                    : formatCostValue(model.costPerMillion, resolvedLocale);
-                const component = model.costComponents;
-                const totalCost = component ? Number(component.total_usd) : null;
-                const tokenComponentsUnavailable =
-                  Number(component?.credit_based_usd ?? 0) > 0 &&
-                  [
-                    component?.uncached_input_usd,
-                    component?.output_usd,
-                    component?.cache_read_usd,
-                    component?.cache_creation_usd,
-                  ].every((value) => Number(value ?? 0) === 0);
-                const componentCell = (value: string | undefined) => {
-                  if (
-                    tokenComponentsUnavailable ||
-                    value == null ||
-                    !Number.isFinite(Number(value))
-                  )
-                    return '—';
-                  const amount = Number(value);
-                  const share = totalCost && totalCost > 0 ? (amount / totalCost) * 100 : 0;
-                  return (
-                    <>
-                      <span>{formatCostValue(value, resolvedLocale).text}</span>{' '}
-                      <small className={styles.costContribution}>
-                        {formatPercent(share, resolvedLocale)}
-                      </small>
-                    </>
-                  );
-                };
-                return (
-                  <TableRow key={model.model}>
-                    <TableCell title={model.model}>{model.model}</TableCell>
-                    <TableCell alignRight>{formatNumber(model.requests, resolvedLocale)}</TableCell>
-                    <TableCell alignRight>{componentCell(component?.uncached_input_usd)}</TableCell>
-                    <TableCell alignRight>{componentCell(component?.output_usd)}</TableCell>
-                    <TableCell alignRight>{componentCell(component?.cache_read_usd)}</TableCell>
-                    <TableCell alignRight>{componentCell(component?.cache_creation_usd)}</TableCell>
-                    <TableCell alignRight>
-                      {component ? formatCostValue(component.total_usd, resolvedLocale).text : '—'}
-                    </TableCell>
-                    <TableCell alignRight title={tokens.title}>
-                      {tokens.text}
-                    </TableCell>
-                    <TableCell alignRight title={cost.title}>
-                      {cost.text}
-                    </TableCell>
-                  </TableRow>
-                );
+          </p>
+        ) : (
+          <>
+            <Table
+              aria-label={t('analytics.analysis.model_efficiency_title', {
+                defaultValue: 'Model Cost Efficiency',
               })}
-            </TableBody>
-          </Table>
-          <TablePagination
-            currentPage={paginatedModels.currentPage}
-            totalItems={filteredModels.length}
-            pageSize={MODEL_COST_PAGE_SIZE}
-            onPageChange={setPage}
-          />
-        </>
+            >
+              <TableHeader>
+                <TableRow>
+                  {column('model', 'analytics.analysis.model_name', 'Model name')}
+                  {column('requests', 'analytics.analysis.observed_requests', 'Observed requests')}
+                  {column('input', 'analytics.analysis.cost_input', 'Input')}
+                  {column('output', 'analytics.analysis.cost_output', 'Output')}
+                  {column('cache_read', 'analytics.analysis.cost_cache_read', 'Cache read')}
+                  {column('cache_hit', 'analytics.analysis.cache_hit', 'Cache hit')}
+                  {column('total_cost', 'analytics.analysis.total_cost', 'Total cost')}
+                  {column('tokens', 'analytics.analysis.volume_tokens', 'Volume (tokens)')}
+                  {column('cost', 'analytics.analysis.price_per_million', 'Cost per 1M tokens')}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedModels.pageItems.map((model) => {
+                  const tokens = formatCompactTokens(model.total_tokens, resolvedLocale);
+                  const pricingQualifier =
+                    model.pricingStatus === 'partial'
+                      ? t('analytics.analysis.partial_pricing', { defaultValue: 'Partial pricing' })
+                      : t('analytics.analysis.price_unknown', { defaultValue: 'Price unknown' });
+                  const cost = modelCostHasNoTokens(model)
+                    ? { text: '—', title: t('analytics.analysis.detail_no_token_data') }
+                    : model.costPerMillion === null
+                      ? { text: pricingQualifier, title: pricingQualifier }
+                      : formatCostValue(model.costPerMillion, resolvedLocale);
+                  const component = model.costComponents;
+                  const totalCost = component ? Number(component.total_usd) : null;
+                  const tokenComponentsUnavailable =
+                    Number(component?.credit_based_usd ?? 0) > 0 &&
+                    [
+                      component?.uncached_input_usd,
+                      component?.output_usd,
+                      component?.cache_read_usd,
+                      component?.cache_creation_usd,
+                    ].every((value) => Number(value ?? 0) === 0);
+                  const componentCell = (value: string | undefined) => {
+                    if (
+                      tokenComponentsUnavailable ||
+                      value == null ||
+                      !Number.isFinite(Number(value))
+                    )
+                      return '—';
+                    const amount = Number(value);
+                    const share = totalCost && totalCost > 0 ? (amount / totalCost) * 100 : 0;
+                    return (
+                      <>
+                        <span>{formatCostValue(value, resolvedLocale).text}</span>{' '}
+                        <small
+                          className={`${styles.costContribution} ${modalStyles.componentShare}`}
+                        >
+                          {formatPercent(share, resolvedLocale)}
+                        </small>
+                      </>
+                    );
+                  };
+                  return (
+                    <TableRow
+                      key={model.model}
+                      className={modalStyles.row}
+                      onMouseEnter={() => prefetch(model.model)}
+                      onFocus={() => prefetch(model.model)}
+                      onClick={(event) => {
+                        event.currentTarget.querySelector('button')?.focus();
+                        setSelected(model);
+                        setModalOpen(true);
+                      }}
+                    >
+                      <TableCell title={model.model}>
+                        <button
+                          type="button"
+                          className={modalStyles.modelButton}
+                          aria-haspopup="dialog"
+                        >
+                          {model.model}
+                        </button>
+                      </TableCell>
+                      <TableCell alignRight>
+                        {formatNumber(model.requests, resolvedLocale)}
+                      </TableCell>
+                      <TableCell alignRight>
+                        {componentCell(component?.uncached_input_usd)}
+                      </TableCell>
+                      <TableCell alignRight>{componentCell(component?.output_usd)}</TableCell>
+                      <TableCell alignRight>{componentCell(component?.cache_read_usd)}</TableCell>
+                      <TableCell alignRight>
+                        {formatPercent(model.cacheHitRate, resolvedLocale)}
+                      </TableCell>
+                      <TableCell alignRight>
+                        {component
+                          ? formatCostValue(component.total_usd, resolvedLocale).text
+                          : '—'}
+                      </TableCell>
+                      <TableCell alignRight title={tokens.title}>
+                        {tokens.text}
+                      </TableCell>
+                      <TableCell alignRight title={cost.title}>
+                        {cost.text}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            <TablePagination
+              currentPage={paginatedModels.currentPage}
+              totalItems={filteredModels.length}
+              pageSize={MODEL_COST_PAGE_SIZE}
+              onPageChange={setPage}
+            />
+          </>
+        )}
+      </AnalysisCard>
+      {selected && selectedRequest && (
+        <ModelCostModal
+          open={modalOpen}
+          model={models.find((row) => row.model === selected.model) ?? selected}
+          request={selectedRequest}
+          totalCost={
+            totalCost ?? (costs ?? []).reduce((sum, item) => sum + Number(item.total_usd), 0)
+          }
+          locale={resolvedLocale}
+          onClose={() => setModalOpen(false)}
+        />
       )}
-    </AnalysisCard>
+    </>
   );
 }

@@ -222,6 +222,12 @@ export type AnalyticsOutputTiming = {
   max_interarrival_ns?: number;
 };
 
+export type AnalyticsPricingComponent = {
+  tokens: number;
+  rate_per_million_usd: string;
+  cost_usd: string;
+};
+
 export type AnalyticsEvent = {
   schema_version: number;
   attempt_id: string;
@@ -240,6 +246,9 @@ export type AnalyticsEvent = {
   credential_filename?: string | null;
   credential_label?: string | null;
   credential_id_algorithm: string | null;
+  outcome?: 'succeeded' | 'failed' | 'canceled';
+  failure_hop?: 'client_to_cpa' | 'cpa_to_provider' | 'provider_to_cpa' | 'cpa_to_client' | null;
+  cancellation_source?: 'client' | 'internal' | 'unknown' | null;
   succeeded: boolean;
   upstream_status_code: number | null;
   error_class: string | null;
@@ -278,6 +287,18 @@ export type AnalyticsEvent = {
   price_source?: string;
   provider_credits?: string | null;
   price_usd_per_credit?: string | null;
+  session_id?: string | null;
+  session_source?: string | null;
+  session_captured?: boolean;
+  pricing_breakdown?: {
+    input: AnalyticsPricingComponent;
+    output: AnalyticsPricingComponent;
+    cache_read: AnalyticsPricingComponent;
+    cache_write: AnalyticsPricingComponent;
+    service_tier?: string;
+    input_tier_multiplier: string | null;
+    output_tier_multiplier: string | null;
+  } | null;
   import_batch_id?: string;
   source?: string;
   // Hop instrumentation added by CPA schema v1 (additive, all nullable). Events recorded before
@@ -551,9 +572,11 @@ export type AnalyticsOperation =
   | 'leaderboard'
   | 'activity'
   | 'analysis'
+  | 'model_cost_series'
   | 'model_leaderboard';
 
 export type AnalyticsFilters = {
+  session_id?: string[];
   provider?: string[];
   model?: string[];
   credential_id?: string[];
@@ -566,6 +589,7 @@ export type AnalyticsFilters = {
   token_quality?: TokenQuality[];
   generated?: boolean;
   result?: 'success' | 'failure';
+  outcome?: 'succeeded' | 'failed' | 'canceled';
   source?: string[];
 };
 
@@ -816,3 +840,30 @@ export type AnalyticsImportRequest = {
 export type AnalyticsRepriceRequest =
   | { range: AnalyticsNamedRange; dry_run: boolean; resume?: boolean }
   | { start: string; end: string; time_zone: string; dry_run: boolean; resume?: boolean };
+
+/** Components use uncached input, cache read, cache write, output order. */
+export type ModelCostSeriesTier = {
+  provider: string;
+  serviceTier: string;
+  inputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  cost: number;
+  rates: (number | null)[];
+  costs: (number | null)[];
+  creditCost: number;
+  inputMultiplier: number | null;
+  outputMultiplier: number | null;
+};
+export type ModelCostSeries = {
+  meta: AnalyticsMeta;
+  model: string;
+  partial: boolean;
+  buckets: { start: string; tiers: ModelCostSeriesTier[] }[];
+};
+export type ModelCostSeriesQuery = AnalyticsQuery & {
+  schema_version: 2;
+  operation: 'model_cost_series';
+};

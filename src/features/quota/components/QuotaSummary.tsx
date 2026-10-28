@@ -82,7 +82,7 @@ const toneFor = (line: QuotaSummaryLine): string => {
       : styles.segmentHigh;
 };
 
-function SummaryMeter({
+export function SummaryMeter({
   lines,
   now,
   locale,

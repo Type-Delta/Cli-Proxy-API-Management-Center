@@ -16,7 +16,7 @@ import {
   type IconProps,
 } from '@/components/ui/icons';
 import type { MeterTone } from '@/features/dashboard/utils';
-import { formatNumber } from '../../components/analyticsFormatting';
+import { analyticsRate as rate, formatNumber } from '../../components/analyticsFormatting';
 import { MAX_ANALYTICS_KEY_FILTERS, type AnalyticsRange } from '../../query';
 import type { ComparisonMetric } from './comparisonModel';
 
@@ -52,9 +52,6 @@ const numeric = (value: number | string | null | undefined): number | null => {
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
-
-const rate = (part: number, whole: number): number | null =>
-  whole > 0 ? (part / whole) * 100 : null;
 
 /**
  * Maps bucket totals onto 0-1 over the P5-P95 band on a log scale, so a handful of spikes cannot

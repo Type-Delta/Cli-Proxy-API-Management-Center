@@ -21,6 +21,19 @@
   }
 }
 
+.control :global(.form-group) {
+  margin: 0;
+}
+
+.sessionInput {
+  height: 40px;
+  padding: 0 12px;
+  background-color: var(--bg-primary);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .filterFooter,
 .tableActions,
 .pagination {
@@ -119,6 +132,7 @@
   min-height: 40px;
 }
 
+.canceledBadge,
 .successBadge,
 .failureBadge {
   display: inline-flex;
@@ -275,5 +289,35 @@
 
   .controlGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+.canceledBadge {
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.sessionFilterRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin-top: 12px;
+
+  > label {
+    max-width: 430px;
+  }
+}
+
+.sessionFilterRow button.clearFilters {
+  min-height: 40px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+@media (max-width: 480px) {
+  .sessionFilterRow {
+    gap: 8px;
   }
 }

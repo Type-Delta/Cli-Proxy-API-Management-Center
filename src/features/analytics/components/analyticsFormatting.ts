@@ -98,17 +98,19 @@ const asDate = (value: Date | string | number) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-export function formatDateTime(value: Date | string | number, locale?: string) {
+export function formatDateTime(value: Date | string | number, locale?: string, timeZone?: string) {
   const date = asDate(value);
   return date
-    ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+    ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone }).format(
+        date
+      )
     : DASH;
 }
 
-export function formatTime(value: Date | string | number, locale?: string) {
+export function formatTime(value: Date | string | number, locale?: string, timeZone?: string) {
   const date = asDate(value);
   return date
-    ? new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(date)
+    ? new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', timeZone }).format(date)
     : DASH;
 }
 
@@ -158,3 +160,7 @@ export function formatAnalyticsEnum(
   const fallback = category === 'provider' ? value : readableEnumFallback(value);
   return t(`analytics.enums.${category}.${value}`, { defaultValue: fallback });
 }
+
+/** Input includes uncached input, cache reads and cache writes in CPA's token schema. */
+export const analyticsRate = (part: number, whole: number): number | null =>
+  whole > 0 ? (part / whole) * 100 : null;

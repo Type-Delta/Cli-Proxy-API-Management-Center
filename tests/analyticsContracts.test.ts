@@ -120,13 +120,15 @@ describe('analytics client contracts', () => {
         source: 'import',
         result: 'failure',
         errorClass: 'rate_limit',
+        sessionId: '',
+        outcome: '',
       },
       activityWindow: 'month',
       distribution: 'model',
     });
 
     expect(search).toBe(
-      '?range=last_n_days&time_zone=Asia%2FBangkok&n=30&grain=1d&keys=a1b2c3d4e5f6%2Csecond_ref&provider=openai&model=gpt-5.1&source=import&result=failure&error_class=rate_limit&activity=month&distribution=model'
+      '?range=last_n_days&time_zone=Asia%2FBangkok&n=30&grain=1d&keys=a1b2c3d4e5f6%2Csecond_ref&provider=openai&model=gpt-5.1&source=import&outcome=failed&error_class=rate_limit&activity=month&distribution=model'
     );
     expect(search).not.toContain(fullId);
     expect(parseAnalyticsUrlState(search)).toEqual({
@@ -137,8 +139,10 @@ describe('analytics client contracts', () => {
         provider: 'openai',
         model: 'gpt-5.1',
         source: 'import',
-        result: 'failure',
+        result: '',
         errorClass: 'rate_limit',
+        sessionId: '',
+        outcome: 'failed',
       },
       activityWindow: 'month',
       distribution: 'model',
@@ -152,7 +156,15 @@ describe('analytics client contracts', () => {
       range: sevenDays,
       keyRefs: ['ok'],
       sort: 'cost',
-      eventFilters: { provider: '', model: '', source: '', result: '', errorClass: '' },
+      eventFilters: {
+        provider: '',
+        model: '',
+        source: '',
+        result: '',
+        errorClass: '',
+        sessionId: '',
+        outcome: '',
+      },
       activityWindow: 'week',
       distribution: 'key',
     });

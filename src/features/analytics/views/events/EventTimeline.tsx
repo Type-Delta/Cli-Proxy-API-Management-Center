@@ -11,6 +11,7 @@ import { formatAnalyticsEnum, formatDuration } from '../../components/analyticsF
 import styles from './EventDetail.module.scss';
 
 const STATE_CLASS: Record<EventStepState, string> = {
+  canceled: styles.stateUnknown,
   complete: styles.stateComplete,
   failed: styles.stateFailed,
   skipped: styles.stateSkipped,
@@ -42,6 +43,8 @@ export function EventTimeline({ steps }: { steps: readonly EventStep[] }) {
 
   const stateLabel = (state: EventStepState) => {
     switch (state) {
+      case 'canceled':
+        return t('analytics.event_detail.state_canceled');
       case 'complete':
         return t('analytics.event_detail.state_complete', { defaultValue: 'Completed' });
       case 'failed':
@@ -56,6 +59,16 @@ export function EventTimeline({ steps }: { steps: readonly EventStep[] }) {
   const notRecorded = t('analytics.event_detail.not_recorded', { defaultValue: 'Not recorded' });
 
   const describe = (step: EventStep): Described => {
+    if (step.summary.kind === 'client_disconnected') {
+      const caption = t('analytics.event_detail.client_disconnected');
+      return { caption, detail: caption };
+    }
+    if (step.state === 'canceled') {
+      return {
+        caption: stateLabel('canceled'),
+        detail: t('analytics.event_detail.state_canceled'),
+      };
+    }
     const summary = step.summary;
     switch (summary.kind) {
       case 'request_line': {

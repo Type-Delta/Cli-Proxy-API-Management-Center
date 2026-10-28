@@ -1,3 +1,6 @@
+import { createModelCostSeriesCache } from './modelCostSeriesCache';
+import { normalizeModelCostSeries, type ModelCostSeriesResponse } from './modelCostSeries';
+import type { ModelCostSeries, ModelCostSeriesQuery } from '@/types';
 import type {
   ApiError,
   AnalyticsActivity,
@@ -41,6 +44,7 @@ import type {
 import { apiClient } from './client';
 
 type QueryResult =
+  | ModelCostSeriesResponse
   | AnalyticsSummary
   | AnalyticsTimeseriesResponse
   | AnalyticsDimensionPageResponse
@@ -408,7 +412,16 @@ export function buildModelLeaderboardRequest(
   };
 }
 
+const modelCostSeriesCache = createModelCostSeriesCache<ModelCostSeries>(async (key) => {
+  const request = JSON.parse(key) as ModelCostSeriesQuery;
+  return normalizeModelCostSeries(await query<ModelCostSeriesResponse>(request));
+});
+apiClient.onConnectionChange(() => modelCostSeriesCache.clear());
+
 export const analyticsApi = {
+  modelCostSeries(request: ModelCostSeriesQuery): Promise<ModelCostSeries> {
+    return modelCostSeriesCache.get(analyticsRequestKey(request));
+  },
   health: () => apiClient.get<AnalyticsHealth>('/analytics/health'),
   summary: (request: AnalyticsQuery) => query<AnalyticsSummary>(request),
   async timeseries(request: AnalyticsQuery): Promise<AnalyticsTimeseries> {

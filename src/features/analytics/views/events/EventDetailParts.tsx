@@ -1,8 +1,14 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { AnalyticsEvent } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { IconCheck, IconChevronDown, type IconProps } from '@/components/ui/icons';
 import { copyToClipboard } from '@/utils/clipboard';
+import {
+  formatCostValue,
+  formatNumber,
+  formatAnalyticsEnum,
+} from '../../components/analyticsFormatting';
 import { tokenizeJson } from './eventDiagnostics';
 import styles from './EventDetail.module.scss';
 
@@ -93,6 +99,7 @@ export function Fact({
   label,
   value,
   mono,
+  muted,
   wide,
   copyValue,
   title,
@@ -100,6 +107,7 @@ export function Fact({
   label: string;
   value: ReactNode;
   mono?: boolean;
+  muted?: boolean;
   wide?: boolean;
   copyValue?: string | null;
   title?: string;
@@ -108,7 +116,7 @@ export function Fact({
   return (
     <div className={[styles.fact, wide ? styles.factWide : ''].filter(Boolean).join(' ')}>
       <dt className={styles.factLabel}>{label}</dt>
-      <dd className={[styles.factValue, empty ? styles.factValueMuted : ''].join(' ')}>
+      <dd className={[styles.factValue, empty || muted ? styles.factValueMuted : ''].join(' ')}>
         <span className={mono && !empty ? styles.mono : undefined} title={title}>
           {empty ? DASH : value}
         </span>
@@ -195,6 +203,123 @@ export function RawPayload({
           {language === 'json' ? <JsonText source={source} /> : source}
         </pre>
       ) : null}
+    </div>
+  );
+}
+
+export function PricingBreakdown({ event }: { event: AnalyticsEvent }) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage;
+  const missing = t('analytics.event_detail.not_recorded', { defaultValue: 'Not recorded' });
+  const pricing = event.pricing_breakdown;
+  const creditPriced =
+    event.price_source === 'kiro-credits' || (event.provider === 'kiro' && !pricing);
+  const money = (value: string | null | undefined) => {
+    const fraction = value?.split('/');
+    const display = fraction?.length === 2 ? Number(fraction[0]) / Number(fraction[1]) : value;
+    const formatted = formatCostValue(display, locale);
+    return <span title={value == null ? undefined : `${value} USD`}>{formatted.text}</span>;
+  };
+  const total = event.known_cost_usd == null ? missing : money(event.known_cost_usd);
+  const tier = pricing?.service_tier || event.service_tier_used || event.service_tier_requested;
+  const input = pricing?.input_tier_multiplier;
+  const output = pricing?.output_tier_multiplier;
+  const multiplier =
+    input != null && input === output
+      ? t('analytics.event_detail.tier_multiplier_both', { multiplier: input })
+      : [
+          input == null
+            ? ''
+            : t('analytics.event_detail.tier_multiplier_input', { multiplier: input }),
+          output == null
+            ? ''
+            : t('analytics.event_detail.tier_multiplier_output', { multiplier: output }),
+        ]
+          .filter(Boolean)
+          .join(' · ');
+  return (
+    <div className={styles.pricing}>
+      <h4 className={styles.sectionTitle}>{t('analytics.event_detail.pricing')}</h4>
+      {pricing && !creditPriced ? (
+        <table className={styles.pricingTable} aria-label={t('analytics.event_detail.pricing')}>
+          {tier || multiplier ? (
+            <caption className={styles.pricingCaption}>
+              {[tier ? formatAnalyticsEnum(t, 'service_tier', tier) : '', multiplier]
+                .filter(Boolean)
+                .join(' · ')}
+            </caption>
+          ) : null}
+          <thead>
+            <tr>
+              <th scope="col">{t('analytics.event_detail.component')}</th>
+              <th scope="col">{t('analytics.event_detail.component_tokens')}</th>
+              <th scope="col">{t('analytics.event_detail.rate_per_million')}</th>
+              <th scope="col">{t('analytics.event_detail.component_cost')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(['input', 'output', 'cache_read', 'cache_write'] as const).map((name) => {
+              const part = pricing[name];
+              return (
+                <tr key={name}>
+                  <th scope="row">
+                    {t(
+                      name === 'input'
+                        ? 'analytics.event_detail.uncached_input'
+                        : `analytics.event_detail.component_${name}`
+                    )}
+                  </th>
+                  <td>{formatNumber(part.tokens, locale)}</td>
+                  <td>{money(part.rate_per_million_usd)}</td>
+                  <td>{part.tokens === 0 ? DASH : money(part.cost_usd)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row" colSpan={3}>
+                {t('analytics.event_detail.cost_total')}
+              </th>
+              <td>{total}</td>
+            </tr>
+          </tfoot>
+        </table>
+      ) : creditPriced ? (
+        <table className={styles.pricingTable} aria-label={t('analytics.event_detail.pricing')}>
+          <thead>
+            <tr>
+              <th scope="col">{t('analytics.event_detail.credits_used')}</th>
+              <th scope="col">{t('analytics.event_detail.credit_price')}</th>
+              <th scope="col">{t('analytics.event_detail.component_cost')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{event.provider_credits ?? t('analytics.credits_not_reported')}</td>
+              <td>
+                {event.price_usd_per_credit == null
+                  ? t('analytics.credit_rate_not_applied')
+                  : money(event.price_usd_per_credit)}
+              </td>
+              <td>{total}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row" colSpan={2}>
+                {t('analytics.event_detail.cost_total')}
+              </th>
+              <td>{total}</td>
+            </tr>
+          </tfoot>
+        </table>
+      ) : (
+        <dl className={styles.factGrid}>
+          <Fact label={t('analytics.event_detail.pricing_details')} value={missing} />
+          <Fact label={t('analytics.event_detail.cost_total')} value={total} />
+        </dl>
+      )}
     </div>
   );
 }

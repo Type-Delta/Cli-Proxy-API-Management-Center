@@ -274,7 +274,7 @@ describe('analytics Analysis models', () => {
         locale: 'en',
       })
     );
-    expect(markup).not.toContain('Price unknown');
+    expect(markup).toContain('Price unknown');
   });
 
   test('does not let one unpriced model hide pricing for other models', () => {
@@ -336,6 +336,7 @@ describe('analytics Analysis models', () => {
     expect(filterModelCostEfficiency(rows, '').map((row) => row.model)).toEqual([
       'known',
       'partial',
+      'unpriced',
     ]);
   });
 
@@ -388,7 +389,7 @@ describe('analytics Analysis models', () => {
     expect(sortModelCostEfficiency(rows, 'input', 'desc')[0]?.model).toBe('model-10');
     expect(sortModelCostEfficiency(rows, 'output', 'desc')[0]?.model).toBe('model-10');
     expect(sortModelCostEfficiency(rows, 'cache_read', 'desc')[0]?.model).toBe('model-10');
-    expect(sortModelCostEfficiency(rows, 'cache_write', 'desc')[0]?.model).toBe('model-10');
+    expect(sortModelCostEfficiency(rows, 'cache_hit', 'desc')[0]?.cacheHitRate).toBeNull();
     expect(sortModelCostEfficiency(rows, 'total_cost', 'desc')[0]?.model).toBe('model-10');
     expect(sortModelCostEfficiency(rows, 'tokens', 'desc')[0]?.total_tokens).toBe(11_000_000);
     expect(sortModelCostEfficiency(rows, 'model', 'asc')[0]?.model).toBe('Claude-3');
@@ -670,7 +671,10 @@ describe('analytics Analysis models', () => {
     expect(markup).toContain('Partial data');
     expect(row('mixed')).toContain('50.0%');
     expect(row('mixed')).toContain('$10.00');
-    expect(row('credit-only').match(/—/g)).toHaveLength(4);
+    expect(row('credit-only').match(/—/g)).toHaveLength(3);
+    expect(markup).toContain('Cache hit');
+    expect(markup.match(/<thead[\s\S]*?<\/thead>/)?.[0]).not.toContain('Cache write');
+    expect(row('credit-only')).toContain('0.0%');
     expect(row('credit-only')).toContain('$5.00');
     expect(row('token-only')).toContain('100.0%');
     expect(

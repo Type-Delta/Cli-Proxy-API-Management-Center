@@ -48,7 +48,9 @@ export type AnalyticsEventFilters = {
   model: string;
   source: string;
   result: '' | 'success' | 'failure';
+  outcome: '' | 'succeeded' | 'failed' | 'canceled';
   errorClass: string;
+  sessionId: string;
 };
 export type AnalyticsDistribution = 'key' | 'model' | 'credential' | 'provider';
 export const DEFAULT_ANALYTICS_EVENT_FILTERS: AnalyticsEventFilters = {
@@ -56,7 +58,9 @@ export const DEFAULT_ANALYTICS_EVENT_FILTERS: AnalyticsEventFilters = {
   model: '',
   source: '',
   result: '',
+  outcome: '',
   errorClass: '',
+  sessionId: '',
 };
 export const DEFAULT_ANALYTICS_ACTIVITY_WINDOW: ActivityWindow = 'week';
 export const DEFAULT_ANALYTICS_DISTRIBUTION: AnalyticsDistribution = 'key';
@@ -116,11 +120,16 @@ const validDate = (value: string | null) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
-const validFilterValue = (value: string | null) => {
+const validFilterValue = (value: string | null, maxBytes = 200) => {
   // Reject control characters so hash-state filters cannot smuggle terminal/log escapes.
   // eslint-disable-next-line no-control-regex
   const hasControlCharacters = /[\u0000-\u001f\u007f]/.test(value ?? '');
-  if (!value || value.length > 200 || value.trim() !== value || hasControlCharacters) {
+  if (
+    !value ||
+    new TextEncoder().encode(value).length > maxBytes ||
+    value.trim() !== value ||
+    hasControlCharacters
+  ) {
     return '';
   }
   return value;
@@ -439,6 +448,7 @@ export function parseAnalyticsUrlState(search: string): AnalyticsUrlState {
       .filter((value) => SAFE_KEY_REF.test(value))
   ).slice(0, MAX_ANALYTICS_KEY_FILTERS);
   const result = params.get('result');
+  const outcome = params.get('outcome');
   const activityWindow = params.get('activity') as ActivityWindow | null;
   const distribution = params.get('distribution') as AnalyticsDistribution | null;
 
@@ -450,8 +460,17 @@ export function parseAnalyticsUrlState(search: string): AnalyticsUrlState {
       provider: validFilterValue(params.get('provider')),
       model: validFilterValue(params.get('model')),
       source: validFilterValue(params.get('source')),
-      result: result === 'success' || result === 'failure' ? result : '',
+      result: '',
+      outcome:
+        outcome === 'succeeded' || outcome === 'failed' || outcome === 'canceled'
+          ? outcome
+          : result === 'success'
+            ? 'succeeded'
+            : result === 'failure'
+              ? 'failed'
+              : '',
       errorClass: validFilterValue(params.get('error_class')),
+      sessionId: validFilterValue(params.get('session_id'), 256),
     },
     activityWindow:
       activityWindow && ANALYTICS_ACTIVITY_WINDOWS.has(activityWindow)
@@ -491,10 +510,19 @@ export function serializeAnalyticsUrlState(state: AnalyticsUrlState): string {
     ['provider', eventFilters.provider],
     ['model', eventFilters.model],
     ['source', eventFilters.source],
-    ['result', eventFilters.result],
+    [
+      'outcome',
+      eventFilters.outcome ||
+        (eventFilters.result === 'success'
+          ? 'succeeded'
+          : eventFilters.result === 'failure'
+            ? 'failed'
+            : ''),
+    ],
     ['error_class', eventFilters.errorClass],
+    ['session_id', eventFilters.sessionId],
   ] as const) {
-    const safeValue = validFilterValue(value);
+    const safeValue = validFilterValue(value, name === 'session_id' ? 256 : 200);
     if (safeValue) params.set(name, safeValue);
   }
   if (state.activityWindow !== DEFAULT_ANALYTICS_ACTIVITY_WINDOW) {

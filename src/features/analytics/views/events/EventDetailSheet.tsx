@@ -8,21 +8,23 @@ import type { AnalyticsEvent } from '@/types';
 import {
   formatAnalyticsEnum,
   formatCompactTokens,
-  formatCostValue,
   formatDateTime,
   formatDuration,
 } from '../../components/analyticsFormatting';
 import { deriveUnclassifiedTokens } from '../analysis/analysisModel';
 import { shortIdentifier } from './eventColumns';
+import { clientSessionId } from './sessionIdentity';
 import styles from './EventDetail.module.scss';
-import { CopyButton, Fact, RawPayload, StatusPill } from './EventDetailParts';
+import { CopyButton, Fact, PricingBreakdown, RawPayload, StatusPill } from './EventDetailParts';
 import {
+  errorPayloadFormat,
   buildEventTiming,
   buildEventTimeline,
   eventArrivalEstimate,
   eventArrivalRate,
   eventEffectiveOutputRate,
   eventFailureHop,
+  eventOutcome,
   eventOutputWindow,
   estimateReasonKey,
   estimateUnavailableExplainsMore,
@@ -78,7 +80,6 @@ export function EventDetailSheet({
   const rawUsage = useMemo(() => normalizeRawUsage(event?.upstream_usage_raw), [event]);
 
   const notRecorded = t('analytics.event_detail.not_recorded', { defaultValue: 'Not recorded' });
-  const cost = event ? formatCostValue(event.known_cost_usd, locale) : { text: '' };
   const formatRate = (value: number) =>
     t('analytics.tokens_per_second', {
       value: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value),
@@ -338,8 +339,20 @@ export function EventDetailSheet({
 
           <div className={styles.statusStrip}>
             <StatusPill
-              value={event.succeeded ? t('common.success') : t('common.failure')}
-              tone={event.succeeded ? 'success' : 'failure'}
+              value={
+                eventOutcome(event) === 'canceled'
+                  ? t('analytics.events.canceled')
+                  : eventOutcome(event) === 'succeeded'
+                    ? t('common.success')
+                    : t('common.failure')
+              }
+              tone={
+                eventOutcome(event) === 'canceled'
+                  ? 'neutral'
+                  : eventOutcome(event) === 'succeeded'
+                    ? 'success'
+                    : 'failure'
+              }
             />
             {event.error_class ? (
               <StatusPill
@@ -352,12 +365,12 @@ export function EventDetailSheet({
               caption={t('analytics.event_detail.provider_status', {
                 defaultValue: 'Provider status',
               })}
-              value={event.upstream_status_code ?? notRecorded}
+              value={event.upstream_status_code ?? '—'}
               tone={statusTone(event.upstream_status_code)}
             />
             <StatusPill
               caption={t('analytics.event_detail.proxy_status', { defaultValue: 'CPA status' })}
-              value={event.proxy_status_code ?? notRecorded}
+              value={event.proxy_status_code ?? '—'}
               tone={statusTone(event.proxy_status_code)}
             />
             <StatusPill
@@ -594,6 +607,21 @@ export function EventDetailSheet({
                 })}
               />
               <Fact
+                label={t('analytics.event_detail.session_id', { defaultValue: 'Session ID' })}
+                value={
+                  clientSessionId(event) ??
+                  (event.session_captured || event.session_id
+                    ? t('analytics.event_detail.session_not_sent', {
+                        defaultValue: 'Not sent by client',
+                      })
+                    : notRecorded)
+                }
+                mono={Boolean(clientSessionId(event))}
+                muted={!clientSessionId(event)}
+                wide
+                copyValue={clientSessionId(event)}
+              />
+              <Fact
                 label={t('analytics.event_detail.received_at', { defaultValue: 'Received at' })}
                 value={formatPreciseTime(event.received_at, locale)}
               />
@@ -706,10 +734,12 @@ export function EventDetailSheet({
                   label={t('analytics.used_tier', { defaultValue: 'Used tier' })}
                   value={formatAnalyticsEnum(t, 'service_tier', event.service_tier_used)}
                 />
-                <Fact
-                  label={t('analytics.error_class', { defaultValue: 'Error class' })}
-                  value={formatAnalyticsEnum(t, 'error_class', event.error_class)}
-                />
+                {failureHop !== 'cpa_to_client' ? (
+                  <Fact
+                    label={t('analytics.error_class', { defaultValue: 'Error class' })}
+                    value={formatAnalyticsEnum(t, 'error_class', event.error_class)}
+                  />
+                ) : null}
                 <Fact
                   label={t('analytics.generated', { defaultValue: 'Generated' })}
                   value={
@@ -735,7 +765,7 @@ export function EventDetailSheet({
                     defaultValue: 'Raw provider error body',
                   })}
                   source={String(event.upstream_error_body)}
-                  language="json"
+                  {...errorPayloadFormat(String(event.upstream_error_body))}
                   defaultOpen={failureHop === 'provider_to_cpa'}
                 />
               ) : null}
@@ -751,6 +781,12 @@ export function EventDetailSheet({
                   value={event.proxy_status_code}
                   mono
                 />
+                {failureHop === 'cpa_to_client' ? (
+                  <Fact
+                    label={t('analytics.error_class', { defaultValue: 'Error class' })}
+                    value={formatAnalyticsEnum(t, 'error_class', event.error_class)}
+                  />
+                ) : null}
                 <Fact
                   label={t('analytics.analysis.e2e_latency', { defaultValue: 'E2E latency' })}
                   value={formatDuration(event.latency_ms, locale)}
@@ -764,11 +800,20 @@ export function EventDetailSheet({
               </dl>
               {trimmed(event.proxy_error) ? (
                 <RawPayload
-                  label={t('analytics.event_detail.proxy_error', { defaultValue: 'CPA error' })}
+                  label={
+                    eventOutcome(event) === 'canceled'
+                      ? t('analytics.event_detail.disconnect_reason', {
+                          defaultValue: 'Disconnect reason',
+                        })
+                      : t('analytics.event_detail.proxy_error', { defaultValue: 'CPA error' })
+                  }
                   source={String(event.proxy_error)}
-                  language="text"
-                  tone="error"
-                  defaultOpen={failureHop === 'cpa_to_client' || failureHop === 'cpa_to_provider'}
+                  {...errorPayloadFormat(String(event.proxy_error))}
+                  defaultOpen={
+                    eventOutcome(event) === 'canceled' ||
+                    failureHop === 'cpa_to_client' ||
+                    failureHop === 'cpa_to_provider'
+                  }
                 />
               ) : null}
             </>
@@ -829,32 +874,16 @@ export function EventDetailSheet({
                   <Fact key={label} label={label} value={formatted.text} title={formatted.title} />
                 );
               })}
-              <Fact label={t('analytics.known_cost')} value={cost.text} title={cost.title} />
               <Fact
                 label={t('analytics.unpriced_tokens')}
                 value={formatCompactTokens(event.unpriced_tokens ?? 0, locale).text}
               />
-              {event.provider.toLowerCase() === 'kiro' && (
-                <>
-                  <Fact
-                    label={t('analytics.provider_credits')}
-                    value={event.provider_credits ?? t('analytics.credits_not_reported')}
-                  />
-                  <Fact
-                    label={t('analytics.applied_credit_rate')}
-                    value={
-                      event.price_usd_per_credit != null
-                        ? `$${event.price_usd_per_credit}`
-                        : t('analytics.credit_rate_not_applied')
-                    }
-                  />
-                </>
-              )}
               <Fact
                 label={t('analytics.price_source', { defaultValue: 'Price source' })}
                 value={formatAnalyticsEnum(t, 'source', event.price_source)}
               />
             </dl>
+            <PricingBreakdown event={event} />
           </section>
         </div>
       ) : null}

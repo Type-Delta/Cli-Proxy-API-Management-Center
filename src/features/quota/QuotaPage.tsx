@@ -10,9 +10,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { authFilesApi } from '@/services/api';
+import { authFilesApi, capabilitiesApi } from '@/services/api';
+import { apiClient } from '@/services/api/client';
+import { quotaHistoryApi } from '@/services/api/quotaHistory';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { IconSearch, IconX } from '@/components/ui/icons';
 import { Select } from '@/components/ui/Select';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
@@ -26,6 +29,9 @@ import { QuotaHeader } from './components/QuotaHeader';
 import { QuotaCard, QuotaCardSkeleton } from './components/QuotaCard';
 import { QuotaTimeline } from './components/QuotaTimeline';
 import { QuotaSummary } from './components/QuotaSummary';
+import { QuotaHistory } from './components/QuotaHistory';
+import { quotaHistoryEnabled, quotaHistoryInputs, quotaSummaryVisible } from './quotaHistoryModel';
+import { aggregateQuotaSummaries } from './quotaSummary';
 import {
   CARD_ENTRANCE_BUDGET_MS,
   QUOTA_PAGE_SIZE,
@@ -71,6 +77,7 @@ export function QuotaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<QuotaTabId>(() => readQuotaUiState()?.tab ?? 'all');
+  const [historyChartAvailable, setHistoryChartAvailable] = useState(true);
   const [sortMode, setSortMode] = useState<QuotaSortMode>(
     () => readQuotaUiState()?.sortMode ?? 'default'
   );
@@ -214,6 +221,7 @@ export function QuotaPage() {
   );
 
   const handleTabChange = useCallback((next: string) => {
+    setHistoryChartAvailable(true);
     setTab(next as QuotaTabId);
     setPage(1);
     writeQuotaUiState({ tab: next as QuotaTabId });
@@ -316,6 +324,94 @@ export function QuotaPage() {
     loadQuota
   );
 
+  const [historyAvailable, setHistoryAvailable] = useState<boolean | null>(null);
+  const [historyRevision, setHistoryRevision] = useState(0);
+  const [weeklyOffset, setWeeklyOffset] = useState(0);
+  const observedStates = useRef(new Map<string, QuotaCardState>());
+
+  useEffect(() => {
+    let current = true;
+    observedStates.current.clear();
+    setHistoryAvailable(disableControls ? false : null);
+    if (!disableControls) {
+      void capabilitiesApi
+        .get()
+        .then((capabilities) => {
+          if (current)
+            setHistoryAvailable(capabilities.analytics.enabled && capabilities.analytics.available);
+        })
+        .catch(() => {
+          if (current) setHistoryAvailable(false);
+        });
+    }
+    return () => {
+      current = false;
+    };
+  }, [disableControls, sessionGeneration]);
+
+  useEffect(() => {
+    if (
+      !historyAvailable ||
+      batchLoading ||
+      loading ||
+      filesGeneration !== sessionGeneration ||
+      entries.some((entry) => entry.type === tab && getQuota(entry)?.status === 'loading')
+    )
+      return;
+    const samples = new Map<QuotaProviderType, ReturnType<typeof quotaHistoryInputs>>();
+    for (const entry of entries) {
+      const key = `${entry.type}:${getQuotaCacheKey(entry.file)}`;
+      const state = getQuota(entry);
+      if (state?.status === 'success' && observedStates.current.get(key) !== state)
+        samples.set(entry.type, [
+          ...(samples.get(entry.type) ?? []),
+          ...quotaHistoryInputs(entry, state),
+        ]);
+      if (state) observedStates.current.set(key, state);
+    }
+    const connection = apiClient.getConnectionRevision();
+    for (const [provider, values] of samples) {
+      for (let i = 0; i < values.length; i += 100) {
+        void quotaHistoryApi
+          .record(provider, values.slice(i, i + 100))
+          .then(() => {
+            if (connection === apiClient.getConnectionRevision())
+              setHistoryRevision((value) => value + 1);
+          })
+          .catch(() => {});
+      }
+    }
+  }, [
+    batchLoading,
+    loading,
+    entries,
+    getQuota,
+    tab,
+    historyAvailable,
+    filesGeneration,
+    sessionGeneration,
+  ]);
+
+  const activeSummary = useMemo(
+    () => aggregateQuotaSummaries(entries, getQuota).find((summary) => summary.type === tab),
+    [entries, getQuota, tab]
+  );
+  const historyInputs = useMemo(() => {
+    const tabEntries = entries.filter((entry) => entry.type === tab);
+    return {
+      credentialsKey: tabEntries
+        .map((entry) => getQuotaCacheKey(entry.file))
+        .sort()
+        .join('\0'),
+      liveInputs: tabEntries.flatMap((entry) => {
+        const quota = getQuota(entry);
+        return quota ? quotaHistoryInputs(entry, quota) : [];
+      }),
+    };
+  }, [entries, getQuota, tab]);
+  const showHistory = tab !== 'all' && quotaHistoryEnabled(tab, historyAvailable === true);
+  const historyPending = tab !== 'all' && historyAvailable === null;
+
   const canUseActions = !disableControls && !loading && filesGeneration === sessionGeneration;
 
   /* ---------- One-shot first-screen row cascade ----------
@@ -363,13 +459,34 @@ export function QuotaPage() {
           />
         </div>
 
-        <QuotaSummary
-          entries={entries}
-          quotaFor={getQuota}
-          resolvedTheme={resolvedTheme}
-          active={tab}
-          onSelect={handleTabChange}
-        />
+        {!historyPending &&
+          quotaSummaryVisible(tab, historyAvailable === true, historyChartAvailable) && (
+            <QuotaSummary
+              entries={entries}
+              quotaFor={getQuota}
+              resolvedTheme={resolvedTheme}
+              active={tab}
+              onSelect={handleTabChange}
+            />
+          )}
+
+        {historyPending && (
+          <div className={styles.historyLoading} aria-busy="true">
+            <LoadingSpinner />
+          </div>
+        )}
+        {showHistory && (
+          <QuotaHistory
+            key={tab}
+            provider={tab}
+            offset={weeklyOffset}
+            revision={historyRevision}
+            credentialsKey={historyInputs.credentialsKey}
+            summary={activeSummary}
+            liveInputs={historyInputs.liveInputs}
+            onAvailabilityChange={setHistoryChartAvailable}
+          />
+        )}
 
         <div className={styles.toolbar}>
           <div className={styles.search}>
@@ -501,6 +618,7 @@ export function QuotaPage() {
           quotaFor={getQuota}
           displayNameFor={displayNameFor}
           resolvedTheme={resolvedTheme}
+          onWeeklyOffsetChange={setWeeklyOffset}
         />
       </section>
     </div>

@@ -1,4 +1,6 @@
+import { eventOutcome } from './events/eventDiagnostics';
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -13,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { AnalyticsCard as Card } from '@/features/analytics/components/AnalyticsCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Pagination } from '@/components/ui/Pagination';
+import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import {
   Table,
@@ -99,6 +102,27 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     eventFilters: filters,
     setEventFilters: setFilters,
   } = useAnalyticsFilters();
+  const [sessionDraft, setSessionDraft] = useState(filters.sessionId);
+  const sessionFocused = useRef(false);
+  const latestFilters = useRef(filters);
+  useEffect(() => {
+    latestFilters.current = filters;
+    if (!sessionFocused.current) setSessionDraft(filters.sessionId);
+  }, [filters]);
+  const commitSession = useCallback(
+    (value: string) => {
+      value = value.trim();
+      if (value !== latestFilters.current.sessionId) {
+        setFilters({ ...latestFilters.current, sessionId: value });
+      }
+    },
+    [setFilters]
+  );
+  useEffect(() => {
+    if (sessionDraft === filters.sessionId) return;
+    const timer = window.setTimeout(() => commitSession(sessionDraft), 400);
+    return () => window.clearTimeout(timer);
+  }, [sessionDraft, filters.sessionId, commitSession]);
   const [pages, setPages] = useState<AnalyticsEventPage[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState('');
@@ -151,8 +175,10 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     () => ({
       ...(filters.provider ? { provider: [filters.provider] } : {}),
       ...(filters.model ? { model: [filters.model] } : {}),
+      ...(filters.sessionId ? { session_id: [filters.sessionId] } : {}),
       ...(filters.source ? { source: [filters.source] } : {}),
       ...(filters.result ? { result: filters.result } : {}),
+      ...(filters.outcome ? { outcome: filters.outcome } : {}),
       ...(filters.errorClass ? { error_class: [filters.errorClass] } : {}),
     }),
     [filters]
@@ -301,11 +327,6 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
       label: formatAnalyticsEnum(t, 'source', value),
     })),
   ];
-  const resultOptions = [
-    allOption(t('analytics.all_results', { defaultValue: 'All results' })),
-    { value: 'success', label: t('common.success') },
-    { value: 'failure', label: t('common.failure') },
-  ];
   const errorOptions = [
     allOption(t('analytics.all_error_classes', { defaultValue: 'All error classes' })),
     ...[
@@ -344,7 +365,11 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     name: K,
     value: AnalyticsEventFilters[K]
   ) => {
-    setFilters({ ...filters, [name]: value });
+    setFilters({
+      ...filters,
+      ...(name === 'outcome' ? { result: '' } : name === 'result' ? { outcome: '' } : {}),
+      [name]: value,
+    });
   };
 
   const loadMore = async (): Promise<boolean> => {
@@ -456,8 +481,20 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
         );
       case 'result':
         return (
-          <span className={event.succeeded ? styles.successBadge : styles.failureBadge}>
-            {event.succeeded ? t('common.success') : t('common.failure')}
+          <span
+            className={
+              eventOutcome(event) === 'canceled'
+                ? styles.canceledBadge
+                : eventOutcome(event) === 'succeeded'
+                  ? styles.successBadge
+                  : styles.failureBadge
+            }
+          >
+            {eventOutcome(event) === 'canceled'
+              ? t('analytics.events.canceled')
+              : eventOutcome(event) === 'succeeded'
+                ? t('common.success')
+                : t('common.failure')}
           </span>
         );
       case 'request_type':
@@ -570,7 +607,12 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     t('analytics.event_row_label', {
       time: formatDateTime(event.requested_at, i18n.resolvedLanguage),
       model: event.model || t('analytics.unknown_model', { defaultValue: 'Unknown model' }),
-      result: event.succeeded ? t('common.success') : t('common.failure'),
+      result:
+        eventOutcome(event) === 'canceled'
+          ? t('analytics.events.canceled')
+          : eventOutcome(event) === 'succeeded'
+            ? t('common.success')
+            : t('common.failure'),
       defaultValue: '{{time}}, {{model}}, {{result}}. Open event details',
     });
 
@@ -646,14 +688,19 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
               />
             </label>
             <label className={styles.control}>
-              <span>{t('analytics.result', { defaultValue: 'Result' })}</span>
+              <span>{t('analytics.events.outcome')}</span>
               <Select
-                value={filters.result}
+                value={filters.outcome}
                 onChange={(value) =>
-                  updateFilter('result', value as AnalyticsEventFilters['result'])
+                  updateFilter('outcome', value as AnalyticsEventFilters['outcome'])
                 }
-                options={resultOptions}
-                ariaLabel={t('analytics.result', { defaultValue: 'Result' })}
+                options={[
+                  { value: '', label: t('analytics.all_results') },
+                  { value: 'succeeded', label: t('common.success') },
+                  { value: 'failed', label: t('common.failure') },
+                  { value: 'canceled', label: t('analytics.events.canceled') },
+                ]}
+                ariaLabel={t('analytics.events.outcome')}
               />
             </label>
             <label className={styles.control}>
@@ -666,14 +713,46 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
               />
             </label>
           </div>
-          <div className={styles.filterFooter}>
+          <div className={styles.sessionFilterRow}>
+            <label className={styles.control}>
+              <span>{t('analytics.event_detail.session_id', { defaultValue: 'Session ID' })}</span>
+              <Input
+                className={styles.sessionInput}
+                spellCheck={false}
+                autoComplete="off"
+                aria-label={t('analytics.event_detail.session_id', { defaultValue: 'Session ID' })}
+                value={sessionDraft}
+                maxLength={256}
+                onFocus={() => {
+                  sessionFocused.current = true;
+                }}
+                onChange={(event) => setSessionDraft(event.target.value)}
+                onBlur={() => {
+                  sessionFocused.current = false;
+                  commitSession(sessionDraft);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') commitSession(sessionDraft);
+                }}
+                placeholder={t('analytics.event_detail.session_id_exact', {
+                  defaultValue: 'Exact session ID',
+                })}
+              />
+            </label>
             <Button
               variant="secondary"
+              size="sm"
+              className={styles.clearFilters}
               disabled={!hasFilters}
-              onClick={() => setFilters(DEFAULT_ANALYTICS_EVENT_FILTERS)}
+              onClick={() => {
+                setSessionDraft('');
+                setFilters(DEFAULT_ANALYTICS_EVENT_FILTERS);
+              }}
             >
               {t('analytics.clear_filters', { defaultValue: 'Clear filters' })}
             </Button>
+          </div>
+          <div className={styles.filterFooter}>
             {sourceDimensions.error && (
               <span className={styles.sourceNotice}>
                 {t('analytics.source_loaded_fallback', {

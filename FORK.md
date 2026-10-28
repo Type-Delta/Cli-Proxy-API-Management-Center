@@ -2,7 +2,7 @@
 
 This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
 
-Last updated: 2026-10-27
+Last updated: 2026-10-28
 
 ## Repository relationship
 
@@ -25,6 +25,36 @@ divergence changes. Keep IDs stable and unique: gaps and out-of-order IDs are in
 entries are removed. If duplicate IDs are found, remove the duplicate when the content is the same;
 when the content is different, assign the distinct entry the next unused ID. Remove or rewrite an
 entry when upstream absorbs its difference rather than preserving chronology.
+
+### DL069: Model cost modal and cache-hit efficiency
+
+Status: shipped
+
+Files: `src/features/analytics/views/analysis/**`, `src/services/api/{modelCostSeries.ts,modelCostSeriesCache.ts}`, `src/types/analytics.ts`, `src/i18n/locales/**`
+
+Model Cost Efficiency replaces its cache-write column with a sortable cache-hit rate (cache-read tokens over all input tokens, the Overview ratio); zero-input rows show a dash. Clicking a row opens a modal with the model's family logo, provider and cost share, KPIs, a stacked cost history split by provider and service tier, and cost and token category bars. The provider and cost share sit under the model name in the modal header. The chart uses monotone smoothing and a bottom-right legend of plain line swatches. Tier colors skip the four token-component hues so they never read as a category in the bars below. The compact tooltip shows one row per tier, plus labeled rates and multipliers only when they differ from the base. It flips to the left of the cursor on the chart's right half and uses date-only headers for daily buckets. The category bars use the Usage page's token colors, with inline, non-interactive legends. Shares appear in their titles. Table rows have a visible hover state, and zero-token models show a dash instead of "Price unknown". The series comes from CPA's `model_cost_series` query, prefetched on row hover or focus and cached per selection for 30 seconds, so nothing loads up front and touch taps still work. The modal stays open across analytics auto-refresh, restores focus to its row, dims the whole page, and distinguishes unknown prices and missing token data from missing requests.
+
+Validation: `bun run verify` passes 2,203 tests, lint, TypeScript and production build. CDP checks on desktop and mobile in both themes confirm one request per hovered row and none on open, a modal that survives a 67-second refresh, focus return, a three-tier tooltip inside the chart, and the unknown-price and zero-token states.
+
+### DL070: Event pricing, session, and outcome details
+
+Status: shipped
+
+Files: `src/features/analytics/views/events/**`, `src/features/analytics/views/Events.tsx`, `src/features/analytics/query.ts`, `src/types/analytics.ts`, `src/i18n/locales/**`
+
+The event detail sheet shows the recorded pricing as a component, tokens, rate, and cost table, with the app's cost formatting (exact values in titles). A one-line `×N` tier caption sits above it and a footer row shows the total. The uncached row is labeled "Uncached input", and zero-token rows keep their rate but show a dash for cost. Kiro events show credits used, price per credit, and total; events without a snapshot read as not recorded. Client to CPA shows the raw client session ID, or "Not sent by client" when the client supplied none. Provider and CPA-to-client errors use the shared JSON highlighter when the payload parses as JSON, and the plain error tone otherwise. Sections have a single divider, and for client-side failures the error class appears in the failure-point section. Outcomes come from CPA: canceled events use a neutral badge, keep the reached provider step, mark the client disconnect on the return leg, label the payload "Disconnect reason", and show no failure point. Event filters add a debounced Session ID field (spell-check off, on one row with Clear filters) and replace the success/failure selector with one Outcome control (All, Success, Failure, Canceled); legacy `result=` links map to outcomes.
+
+Validation: `bun run verify` passes 2,203 tests, lint, TypeScript and production build. CDP checks cover token, Kiro, and historical pricing variants, a real canceled stream, a provider-hop error, raw and absent session IDs, and typing into Session ID at 50 ms per key without lost characters.
+
+### DL071: Quota history chart with drain projection
+
+Status: shipped
+
+Files: `src/features/quota/**`, `src/services/api/quotaHistory.ts`, `src/i18n/locales/**`
+
+On a provider tab, a quota history chart replaces the summary card. Its header carries only the title and the "N% of M% tier" figure, both at the Quota windows heading size. CPAMC posts per-credential window samples to CPA after each refresh and rebuilds the hourly total with the same aggregation as the live summary, carrying a credential's last sample forward until an unobserved reset. The chart spans the Quota windows weekly range with a current-time marker, and its plot stretches to the heading's edges. It scales to the visible capacity on round ticks, with a capacity line that stays out of the tooltip. The remaining and projected lines carry translucent fills in the provider's Quota windows color. A legend footer names the charted window and explains the total and projection. The dashed projection is drawn from each credential's recent drain rate that resets at the live reset times. The All tab is unchanged, and the chart is hidden when analytics is unavailable.
+
+Validation: `bun run verify` passes 2,203 tests, lint, TypeScript and production build. Tests cover aggregation, gaps, first-visit rendering, capacity changes, throttled-sample resets, and projection cases. CDP checks with mocked quota responses cover desktop and mobile in both themes.
 
 ### DL068: Kiro credit pricing in analytics
 
