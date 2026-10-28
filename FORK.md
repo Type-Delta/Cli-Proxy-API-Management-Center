@@ -1043,10 +1043,22 @@ The configuration page's Routing Strategy dropdown now includes the backend's
 `greedy-soonest-recovery` strategy, labeled "Greedy Soonest Recovery (GSR)".
 The visual config parser accepts the canonical value and `gsr` aliases, writes
 the canonical backend value, includes the strategy in search, and shows the same
-label on the dashboard. All five locales include the new option label.
+label on the dashboard. All six locales include the option label.
+Scheduling weight help in auth-file details, card tooltips, and provider forms
+explains both weighted round robin and GSR. GSR adds the configured weight after
+its recovery and plan-tier calculation; non-positive values add nothing. Weighted
+round robin continues to exclude credentials with non-positive weights. The
+auth-file hint links to routing settings for either strategy. Credential cards
+use the strategy-neutral label "Weight".
 
 Validation: focused routing strategy tests, TypeScript type-check, production
-build, and the canonical CPA management bundle build pass.
+build, and the canonical CPA management bundle build pass. Scheduling-weight
+copy validation passes focused auth-file, routing, and localization tests, lint,
+TypeScript, and the production build. An initial `bun run verify` passed 2,150
+tests; later full runs fail while importing the unchanged analytics SCSS module,
+which also reproduces at the pinned CPAMC baseline. Desktop and mobile CDP checks
+confirm the auth-file help wraps without horizontal overflow and retains its
+routing-settings link.
 
 ### DL053: Quota summary and credential-aware quota tooltips
 
