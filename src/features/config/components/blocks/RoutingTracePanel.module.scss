@@ -1,0 +1,216 @@
+@use '../../../../styles/mixins' as *;
+
+/* "Trace a request" — dry-run panel for the Routing tab. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: clamp(16px, 1.8vw, 20px);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
+  min-width: 0;
+}
+
+.panelHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.panelTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.lead {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.fieldLabel {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mono {
+  font-family: $font-mono;
+  font-size: 12.5px;
+}
+
+.hint {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid var(--warning-border);
+  border-radius: 8px;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.errorPath {
+  display: block;
+  margin-top: 2px;
+  font-family: $font-mono;
+  font-size: 11.5px;
+  opacity: 0.85;
+}
+
+.warnings {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+}
+
+.loading {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.winner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--success-color) 42%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--success-color) 10%, transparent);
+  color: var(--success-color);
+}
+
+.winnerFail {
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+/* A strategy pick a dry run cannot predict is not a failure of routing. */
+.winnerUnknown {
+  border-color: var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.winnerName {
+  font-family: $font-mono;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.winnerWhy {
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-color);
+  font-size: 12.5px;
+}
+
+.step:first-child {
+  border-top: 0;
+}
+
+.stepIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+}
+
+.tone_match {
+  color: var(--success-color);
+  background: color-mix(in srgb, var(--success-color) 16%, transparent);
+}
+
+.tone_info {
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.tone_veto {
+  color: var(--error-color);
+  background: color-mix(in srgb, var(--error-color) 16%, transparent);
+}
+
+.tone_skip,
+.tone_over {
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+}
+
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.stepTitle {
+  color: var(--text-primary);
+  font-weight: 620;
+  overflow-wrap: anywhere;
+}
+
+.stepDetail {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+@include mobile {
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

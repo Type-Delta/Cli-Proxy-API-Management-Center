@@ -1,3 +1,5 @@
+import type { RoutingTrace } from './routing';
+
 export type AnalyticsState =
   'disabled' | 'starting' | 'ready' | 'degraded' | 'circuit_open' | 'stopping';
 
@@ -310,6 +312,8 @@ export type AnalyticsEvent = {
   } | null;
   import_batch_id?: string;
   source?: string;
+  /** Selection evidence for CPA routing schema v1; absent on events recorded before it. */
+  routing_trace?: RoutingTrace | null;
   // Hop instrumentation added by CPA schema v1 (additive, all nullable). Events recorded before
   // the upgrade carry none of these, so every consumer must treat them as "not recorded".
   client_method?: string | null;

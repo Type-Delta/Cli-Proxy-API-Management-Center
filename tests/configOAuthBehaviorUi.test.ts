@@ -7,6 +7,7 @@ import { DEFAULT_VISUAL_VALUES } from '@/types/visualConfig';
 import { SectionAdvanced } from '@/features/config/components/sections/SectionAdvanced';
 import { SectionNetwork } from '@/features/config/components/sections/SectionNetwork';
 import { SectionOAuthBehavior } from '@/features/config/components/sections/SectionOAuthBehavior';
+import { SectionRouting } from '@/features/config/components/sections/SectionRouting';
 import { CodexLiveICEServersEditor } from '@/features/config/components/blocks/CodexLiveICEServersEditor';
 import { CONFIG_SECTION_IDS } from '@/features/config/constants';
 import { CONFIG_FIELD_SEARCH_INDEX } from '@/features/config/searchIndex';
@@ -28,17 +29,23 @@ const server = {
 };
 
 describe('OAuth behavior configuration UI', () => {
-  test('keeps six canonical tabs and places every addition in its designated section', () => {
-    expect(CONFIG_SECTION_IDS).toHaveLength(6);
-    const network = render(createElement(SectionNetwork, props));
-    const advanced = render(createElement(SectionAdvanced, props));
+  test('keeps seven canonical tabs and places every addition in its designated section', () => {
+    expect(CONFIG_SECTION_IDS).toHaveLength(7);
+    const sections = {
+      network: render(createElement(SectionNetwork, props)),
+      routing: render(createElement(SectionRouting, props)),
+      advanced: render(createElement(SectionAdvanced, props)),
+    };
     const additions = CONFIG_FIELD_SEARCH_INDEX.filter((entry) =>
       entry.labelKey.includes('.additions.')
     );
     expect(additions).toHaveLength(26);
     for (const entry of additions) {
-      const own = entry.sectionId === 'network' ? network : advanced;
-      const other = entry.sectionId === 'network' ? advanced : network;
+      const own = sections[entry.sectionId as keyof typeof sections];
+      const other = Object.entries(sections)
+        .filter(([id]) => id !== entry.sectionId)
+        .map(([, markup]) => markup)
+        .join('');
       expect(own).toContain(`id="cfg-field-${entry.fieldId}"`);
       expect(other).not.toContain(`id="cfg-field-${entry.fieldId}"`);
       expect(own).toContain(escapeText(translations.t(entry.labelKey)));

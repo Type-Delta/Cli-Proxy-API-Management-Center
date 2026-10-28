@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useReducer } from 'react';
-import { isMap, isScalar, isSeq, parse as parseYaml, parseDocument } from 'yaml';
+import { isMap, isNode, isScalar, isSeq, parse as parseYaml, parseDocument } from 'yaml';
 import type { Node, Pair, YAMLMap, YAMLSeq } from 'yaml';
 import { normalizeYamlLineEndings } from '@/utils/yaml';
 import type {
@@ -18,6 +18,17 @@ import type {
   PayloadParamValidationErrorCode,
 } from '@/types/visualConfig';
 import { DEFAULT_VISUAL_VALUES } from '@/types/visualConfig';
+import {
+  alignRoutingRules,
+  areRoutingRulesEqual,
+  hasRoutingRuleValidationIssues,
+  parseRoutingRules,
+  routingConditionNodeToPlain,
+  routingConditionToYaml,
+  type RoutingConditionGroupDraft,
+  type RoutingConditionNode,
+  type RoutingRuleDraft,
+} from '@/features/config/routingRules';
 import { assertConfigListsUnchanged, ConfigDraftConflictError } from '@/services/api/configPatch';
 import {
   ADDITION_FIELDS,
@@ -495,6 +506,9 @@ export function getVisualConfigValidationErrors(
     errorLogsMaxFiles: getNonNegativeIntegerError(values.errorLogsMaxFiles),
     logsMaxTotalSizeMb: getNonNegativeIntegerError(values.logsMaxTotalSizeMb),
     redisUsageQueueRetentionSeconds: getRedisRetentionError(values.redisUsageQueueRetentionSeconds),
+    routingRules: hasRoutingRuleValidationIssues(values.routingRules)
+      ? 'invalid_routing_rules'
+      : undefined,
     requestRetry: getNonNegativeIntegerError(values.requestRetry),
     maxRetryCredentials: getIntegerError(values.maxRetryCredentials),
     maxRetryInterval: getIntegerError(values.maxRetryInterval),
@@ -739,6 +753,12 @@ export function parseRoutingStrategy(raw: unknown): RoutingStrategy {
     return 'greedy-soonest-recovery';
   }
   return 'round-robin';
+}
+
+/** Keeps unrecognized values verbatim so saving never rewrites a newer backend option. */
+export function parseSessionAffinityRebindOn(raw: unknown): string {
+  const value = typeof raw === 'string' ? raw.trim() : '';
+  return value || 'any';
 }
 
 export function parseDisableImageGenerationMode(raw: unknown): DisableImageGenerationMode {
@@ -1324,6 +1344,173 @@ function syncPayloadFilterSequence(
   replaceSequenceItems(seq, items);
 }
 
+/** A YAML map that really is a condition group: exactly one of `all`, `any`, `not`. */
+function isRoutingGroupMap(node: unknown): node is YAMLMap {
+  if (!isMap(node) || node.items.length !== 1) return false;
+  const key = node.items[0]?.key;
+  const name = String(isScalar(key) ? key.value : '');
+  return name === 'all' || name === 'any' || name === 'not';
+}
+
+function collectRoutingConditionNodes(
+  baseline: RoutingConditionNode,
+  node: unknown,
+  reuse: Map<string, Node>
+): void {
+  if (baseline.kind === 'condition') {
+    if (isNode(node)) reuse.set(baseline.id, node);
+    return;
+  }
+  // A synthetic root is not a YAML node: its single child owns the `when` value itself.
+  if (baseline.synthetic && baseline.items.length === 1) {
+    const [child] = baseline.items;
+    const inner = baseline.not && isMap(node) ? node.get('not', true) : node;
+    if (child.kind === 'condition') {
+      if (isNode(inner)) reuse.set(child.id, inner);
+      return;
+    }
+  }
+  // A shape that is not a group (for example a bare leaf left over from a synthetic root)
+  // must never be reused as one: that is how `model:` and `all:` ended up sharing a map.
+  if (!isRoutingGroupMap(node)) return;
+  const inner = baseline.not ? node.get('not', true) : node;
+  if (!isMap(inner)) return;
+  reuse.set(baseline.id, inner);
+  const seq = inner.get(baseline.op, true);
+  const items = isSeq(seq) ? (seq.items as unknown[]) : [];
+  baseline.items.forEach((child, index) => {
+    const childNode = items[index];
+    if (childNode !== undefined) collectRoutingConditionNodes(child, childNode, reuse);
+  });
+}
+
+/** Key-order-insensitive JSON, so an untouched condition compares equal to its YAML node. */
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const entries = Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`);
+    return `{${entries.join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/** Leaf conditions render as `model: {match: ...}`, matching the documented schema. */
+function createFlowNode(doc: YamlDocument, value: unknown): Node {
+  const node = doc.createNode(value);
+  const markFlow = (item: unknown) => {
+    if (!isMap(item) && !isSeq(item)) return;
+    item.flow = true;
+    const children = isMap(item) ? item.items.map((pair) => pair.value) : item.items;
+    children.forEach(markFlow);
+  };
+  // Keep the item map itself in block style so it reads as `- model: {match: ...}`.
+  if (isMap(node)) node.items.forEach((pair) => markFlow(pair.value));
+  else if (isSeq(node)) node.items.forEach(markFlow);
+  return node;
+}
+
+function buildRoutingConditionNode(
+  doc: YamlDocument,
+  node: RoutingConditionNode,
+  reuse: Map<string, Node>
+): Node {
+  const prior = reuse.get(node.id);
+  if (node.kind === 'condition') {
+    const plain = routingConditionNodeToPlain(node);
+    // An untouched leaf stays byte-identical, keeping its inline comments.
+    if (isMap(prior) && stableJson(prior.toJSON()) === stableJson(plain)) return prior;
+    return preserveNodeComments(prior, createFlowNode(doc, plain));
+  }
+  // A synthetic root with one condition is written bare (`model: ...`), not as a group.
+  if (node.synthetic && node.items.length === 1) {
+    const childNode = buildRoutingConditionNode(doc, node.items[0], reuse);
+    if (!node.not) return childNode;
+    const wrapper = doc.createNode({}) as YAMLMap;
+    wrapper.items.push(doc.createPair('not', childNode));
+    return wrapper;
+  }
+  const map = isRoutingGroupMap(prior) ? prior : (doc.createNode({}) as YAMLMap);
+  const seq = ensureSeqValue(doc, map, node.op);
+  replaceSequenceItems(
+    seq,
+    node.items.map((child) => buildRoutingConditionNode(doc, child, reuse))
+  );
+  for (const key of ['all', 'any'] as const) {
+    if (key !== node.op) deleteMapValue(map, key);
+  }
+  if (!node.not) return map;
+  const wrapper = doc.createNode({}) as YAMLMap;
+  wrapper.items.push(doc.createPair('not', map));
+  return wrapper;
+}
+
+function syncRoutingWhen(
+  doc: YamlDocument,
+  ruleMap: YAMLMap,
+  baseline: RoutingConditionGroupDraft | undefined,
+  desired: RoutingConditionGroupDraft
+): void {
+  // The serializer owns the empty-group meaning: a real `{any: []}` is "never" and must be
+  // written, while a synthetic root with no conditions simply omits `when`.
+  const desiredWhen = routingConditionToYaml(desired);
+  const pair = mapPair(ruleMap, 'when');
+  if (!desiredWhen) {
+    deleteMapValue(ruleMap, 'when');
+    return;
+  }
+  const existing = pair && isMap(pair.value) ? stableJson(pair.value.toJSON()) : undefined;
+  if (existing !== undefined && existing === stableJson(desiredWhen)) return;
+
+  const reuse = new Map<string, Node>();
+  if (pair && baseline) collectRoutingConditionNodes(baseline, pair.value, reuse);
+  const node = buildRoutingConditionNode(doc, desired, reuse);
+  if (pair) {
+    const previous = isNode(pair.value) ? pair.value : undefined;
+    pair.value = preserveNodeComments(previous, node);
+  } else {
+    ruleMap.items.push(doc.createPair('when', node));
+  }
+}
+
+/** Mirrors syncPayloadRuleSequence: reuse the baseline node per editor id so unknown
+ *  rule fields and comments survive edits, reorders and deletions. */
+function syncRoutingRuleSequence(
+  doc: YamlDocument,
+  baseline: RoutingRuleDraft[],
+  desired: RoutingRuleDraft[]
+): void {
+  const routing = doc.getIn(['routing'], true);
+  if (!isMap(routing)) throw new Error('Expected routing map');
+  if (desired.length === 0) {
+    deleteMapValue(routing, 'rules');
+    return;
+  }
+
+  const seq = ensureSeqValue(doc, routing, 'rules');
+  const nodesById = new Map(baseline.map((rule, index) => [rule.id, seq.items[index]]));
+  const items = desired.map((rule) => {
+    const existing = nodesById.get(rule.id);
+    const ruleMap = isMap(existing) ? existing : (doc.createNode({}) as YAMLMap);
+    const prior = baseline.find((candidate) => candidate.id === rule.id);
+    const name = rule.name.trim();
+    if (name) setMapValue(doc, ruleMap, 'name', name);
+    else deleteMapValue(ruleMap, 'name');
+    // Only rewrite `enabled` when the user toggled it: an explicit `enabled: true` (or a
+    // missing key, which means the same) must stay byte-identical.
+    if (!prior || prior.enabled !== rule.enabled) {
+      if (!rule.enabled) setMapValue(doc, ruleMap, 'enabled', false);
+      else deleteMapValue(ruleMap, 'enabled');
+    }
+    syncRoutingWhen(doc, ruleMap, prior?.when, rule.when);
+    syncStringSequence(doc, ruleMap, 'route-to', prior?.routeTo, rule.routeTo);
+    return ruleMap;
+  });
+  replaceSequenceItems(seq, items);
+}
+
 /** IDs are editor identity, not YAML data. Reserve exact matches before matching edited
  * entries, so a deletion/reorder cannot steal another entry's AST node. New entries
  * use a separate namespace rather than their parsed positional IDs.
@@ -1420,6 +1607,7 @@ function alignRebasedValues(
       draft.pluginStoreAuth,
       (rule) => rule.match
     ),
+    routingRules: alignRoutingRules(baseline.routingRules, draft.routingRules),
   };
 }
 
@@ -1571,6 +1759,7 @@ function getNextDirtyFields(
       'routingStrategy',
       'routingSessionAffinity',
       'routingSessionAffinityTTL',
+      'sessionAffinityRebindOn',
     ] as Array<keyof VisualConfigValues>
   ).forEach(updateScalarDirty);
 
@@ -1650,6 +1839,12 @@ function getNextDirtyFields(
     updateDirty(
       'payloadFilterRules',
       arePayloadFilterRulesEqual(nextValues.payloadFilterRules, baselineValues.payloadFilterRules)
+    );
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'routingRules')) {
+    updateDirty(
+      'routingRules',
+      areRoutingRulesEqual(nextValues.routingRules, baselineValues.routingRules)
     );
   }
   if (patch.streaming) {
@@ -1890,6 +2085,8 @@ function parseVisualValuesFromYaml(yamlContent: string): VisualConfigValues {
     routingSessionAffinity: Boolean(routing?.['session-affinity']),
     routingSessionAffinityTTL:
       typeof routing?.['session-affinity-ttl'] === 'string' ? routing['session-affinity-ttl'] : '',
+    sessionAffinityRebindOn: parseSessionAffinityRebindOn(routing?.['session-affinity-rebind-on']),
+    routingRules: parseRoutingRules(routing?.rules),
 
     payloadDefaultRules: parsePayloadRules(payload?.default),
     payloadDefaultRawRules: parseRawPayloadRules(payload?.['default-raw']),
@@ -1995,6 +2192,13 @@ export function useVisualConfig() {
             }
           });
         }
+        if (rebasedPayload && dirtyFields.has('routingRules')) {
+          const draftDoc = parseDocument(rebasedPayload.yaml);
+          const node = draftDoc.getIn(['routing', 'rules'], true);
+          ensureMapInDoc(doc, ['routing']);
+          if (node) doc.setIn(['routing', 'rules'], node);
+          else if (doc.hasIn(['routing', 'rules'])) deletePathInDoc(doc, ['routing', 'rules']);
+        }
         const values = visualValues;
         writeVisualAdditions(doc, values, dirtyFields);
         writeVisualServer(
@@ -2047,6 +2251,8 @@ export function useVisualConfig() {
             'routingStrategy',
             'routingSessionAffinity',
             'routingSessionAffinityTTL',
+            'sessionAffinityRebindOn',
+            'routingRules',
           ].some((field) => dirtyFields.has(field as keyof VisualConfigValues))
         ) {
           ensureMapInDoc(doc, ['routing']);
@@ -2464,7 +2670,9 @@ export function useVisualConfig() {
         const routingDirty =
           dirtyFields.has('routingStrategy') ||
           dirtyFields.has('routingSessionAffinity') ||
-          dirtyFields.has('routingSessionAffinityTTL');
+          dirtyFields.has('routingSessionAffinityTTL') ||
+          dirtyFields.has('sessionAffinityRebindOn') ||
+          dirtyFields.has('routingRules');
         if (routingDirty) {
           ensureMapInDoc(doc, ['routing']);
           if (dirtyFields.has('routingStrategy')) {
@@ -2479,6 +2687,14 @@ export function useVisualConfig() {
               ['routing', 'session-affinity-ttl'],
               values.routingSessionAffinityTTL
             );
+          }
+          if (dirtyFields.has('sessionAffinityRebindOn')) {
+            doc.setIn(['routing', 'session-affinity-rebind-on'], values.sessionAffinityRebindOn);
+          }
+          if (dirtyFields.has('routingRules')) {
+            const rulesBaseline =
+              rebasedPayload?.values.routingRules ?? baselineValues.routingRules;
+            syncRoutingRuleSequence(doc, rulesBaseline, values.routingRules);
           }
           deleteIfMapEmpty(doc, ['routing']);
         }
@@ -2582,6 +2798,11 @@ export function useVisualConfig() {
             dirtyFields.has(field) ? [['requests', 'payload', PAYLOAD_SECTIONS[index]]] : []
           );
           assertConfigListsUnchanged(rebasedPayload.serverYaml, draftYaml, currentYaml, paths);
+        }
+        if (target === 'server' && rebasedPayload && dirtyFields.has('routingRules')) {
+          assertConfigListsUnchanged(rebasedPayload.serverYaml, draftYaml, currentYaml, [
+            ['routing', 'rules'],
+          ]);
         }
         return draftYaml;
       } catch (error) {

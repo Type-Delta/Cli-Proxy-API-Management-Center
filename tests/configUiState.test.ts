@@ -178,6 +178,7 @@ describe('Antigravity credits UI and search', () => {
       '04',
       '05',
       '06',
+      '07',
     ]);
     expect(CONFIG_FIELD_SEARCH_INDEX.some((entry) => String(entry.sectionId) === 'quota')).toBe(
       false

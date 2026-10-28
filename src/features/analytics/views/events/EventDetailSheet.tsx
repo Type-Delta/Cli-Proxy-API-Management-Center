@@ -34,6 +34,8 @@ import {
   rateReasonKey,
   type EventHopId,
 } from './eventDiagnostics';
+import { RoutingDecision } from './RoutingDecision';
+import { normalizeRoutingTrace } from './eventRoutingModel';
 import { EventTimeline } from './EventTimeline';
 import { EventTimingGraph } from './EventTimingGraph';
 import sheetStyles from './Events.module.scss';
@@ -78,6 +80,10 @@ export function EventDetailSheet({
   const outputWindow = useMemo(() => (event ? eventOutputWindow(event) : null), [event]);
   const failureHop = useMemo(() => eventFailureHop(steps), [steps]);
   const rawUsage = useMemo(() => normalizeRawUsage(event?.upstream_usage_raw), [event]);
+  const routingTrace = useMemo(
+    () => (event ? normalizeRoutingTrace(event.routing_trace) : null),
+    [event]
+  );
 
   const notRecorded = t('analytics.event_detail.not_recorded', { defaultValue: 'Not recorded' });
   const formatRate = (value: number) =>
@@ -398,6 +404,26 @@ export function EventDetailSheet({
             </div>
             <EventTimeline steps={steps} />
           </section>
+
+          {routingTrace ? (
+            <section className={styles.section}>
+              <div className={styles.sectionHead}>
+                <h3 className={styles.sectionTitle}>
+                  {t('analytics.event_detail.routing_decision', {
+                    defaultValue: 'Routing decision',
+                  })}
+                </h3>
+                <span className={styles.sectionHint}>
+                  {t('analytics.routing_decision.attempt', {
+                    selection: routingTrace.selection + 1,
+                    round: routingTrace.retry_round,
+                    defaultValue: 'Attempt {{selection}} · round {{round}}',
+                  })}
+                </span>
+              </div>
+              <RoutingDecision trace={routingTrace} />
+            </section>
+          ) : null}
 
           <section className={styles.section}>
             <div className={styles.sectionHead}>
