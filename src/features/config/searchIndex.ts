@@ -9,7 +9,7 @@
 // extra entry anywhere fails CI.
 
 export type VisualSectionId =
-  'connectivity' | 'network' | 'logging' | 'streaming' | 'advanced' | 'payload';
+  'connectivity' | 'network' | 'routing' | 'logging' | 'streaming' | 'advanced' | 'payload';
 
 export interface ConfigFieldSearchEntry {
   /** Stable anchor id; matches FieldAnchor's `fieldId` and the rendered DOM id. */
@@ -39,7 +39,7 @@ const L = (key: string) => `config_management.visual.${key}`;
 export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
   {
     fieldId: 'routingSessionAffinitySubagents',
-    sectionId: 'network',
+    sectionId: 'routing',
     labelKey: L('additions.routingSessionAffinitySubagents.label'),
     hintKey: L('additions.routingSessionAffinitySubagents.hint'),
     yamlKeys: ['routing', 'session-affinity-subagents'],
@@ -408,7 +408,7 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
   },
   {
     fieldId: 'routingStrategy',
-    sectionId: 'network',
+    sectionId: 'routing',
     labelKey: L('sections.network.routing_strategy'),
     hintKey: L('sections.network.routing_strategy_hint'),
     yamlKeys: ['routing', 'strategy'],
@@ -438,13 +438,13 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
   },
   {
     fieldId: 'routingSessionAffinityTTL',
-    sectionId: 'network',
+    sectionId: 'routing',
     labelKey: L('sections.network.session_affinity_ttl'),
     yamlKeys: ['routing', 'session-affinity-ttl'],
   },
   {
     fieldId: 'forceModelPrefix',
-    sectionId: 'network',
+    sectionId: 'routing',
     labelKey: L('sections.network.force_model_prefix'),
     hintKey: L('sections.network.force_model_prefix_desc'),
     yamlKeys: ['routing', 'force-model-prefix'],
@@ -465,9 +465,25 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
   },
   {
     fieldId: 'routingSessionAffinity',
-    sectionId: 'network',
+    sectionId: 'routing',
     labelKey: L('sections.network.session_affinity'),
     yamlKeys: ['routing', 'session-affinity'],
+  },
+  {
+    fieldId: 'sessionAffinityRebindOn',
+    sectionId: 'routing',
+    labelKey: L('sections.routing.rebind_on'),
+    hintKey: L('sections.routing.rebind_on_hint'),
+    yamlKeys: ['routing', 'session-affinity-rebind-on'],
+    keywords: ['any', 'quota'],
+  },
+  {
+    fieldId: 'routingRules',
+    sectionId: 'routing',
+    labelKey: L('sections.routing.rules_title'),
+    hintKey: L('sections.routing.rules_description'),
+    yamlKeys: ['routing', 'rules'],
+    keywords: ['rule', 'condition', 'any', 'all', 'not', 'route-to'],
   },
   {
     fieldId: 'wsAuth',

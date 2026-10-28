@@ -1,0 +1,544 @@
+@use '../../../../styles/mixins' as *;
+
+/* Custom routing rules: precedence list, rule cards and the recursive condition builder.
+   Every color comes from a theme token so both themes work without overrides. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty {
+  border: 1px dashed var(--border-primary);
+  border-radius: 10px;
+  padding: 16px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.addRule {
+  align-self: flex-start;
+}
+
+/* ---------- rule card ---------- */
+
+.rule {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+  transition:
+    border-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
+    opacity var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+}
+
+.rule:hover {
+  border-color: var(--border-primary);
+}
+
+.ruleDisabled {
+  opacity: 0.6;
+}
+
+.ruleDragging {
+  opacity: 0.45;
+}
+
+.ruleDropTarget {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 1px var(--border-primary);
+}
+
+.ruleTop {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px 9px 6px;
+}
+
+.handle {
+  display: inline-grid;
+  place-items: center;
+  padding: 3px;
+  border-radius: 6px;
+  color: var(--text-tertiary);
+  cursor: grab;
+
+  &:hover {
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.ruleIndex {
+  font-family: $font-mono;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+.ruleName {
+  min-width: 0;
+  width: 100%;
+  padding: 3px 5px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 600;
+
+  &:hover {
+    border-color: var(--border-color);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--border-primary);
+    background: var(--bg-secondary);
+  }
+
+  &::placeholder {
+    font-weight: 500;
+    color: var(--text-tertiary);
+  }
+}
+
+.ruleTools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.iconButton {
+  min-width: 26px;
+  height: 26px;
+  padding: 0 4px;
+  color: var(--text-tertiary);
+
+  &:hover:not(:disabled) {
+    color: var(--text-primary);
+  }
+}
+
+.expandButton svg {
+  transition: transform var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+}
+
+.rule [aria-expanded='true'].expandButton svg {
+  transform: rotate(180deg);
+}
+
+/* ---------- summary line ---------- */
+
+.summary {
+  margin: 0;
+  padding: 0 14px 11px 46px;
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+
+.keyword {
+  color: var(--warning-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.arrow {
+  color: var(--text-tertiary);
+}
+
+.summaryCondition {
+  color: var(--text-secondary);
+}
+
+.summaryEmpty {
+  font-style: italic;
+}
+
+.summaryTarget {
+  display: inline-block;
+  padding: 0 6px;
+  margin-right: 3px;
+  border-radius: 5px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: $font-mono;
+  font-size: 11.5px;
+  line-height: 1.7;
+}
+
+/* ---------- builder ---------- */
+
+.builder {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 13px 14px 14px;
+  border-top: 1px solid var(--border-color);
+  border-radius: 0 0 12px 12px;
+  background: color-mix(in srgb, var(--bg-secondary) 55%, transparent);
+}
+
+.blockTitle {
+  margin-bottom: 7px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--border-primary);
+  border-radius: 10px;
+  background: var(--bg-primary);
+}
+
+.group .group {
+  background: color-mix(in srgb, var(--bg-secondary) 60%, transparent);
+}
+
+.groupNegated {
+  border-left-color: var(--error-color);
+}
+
+.groupHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.groupLabel {
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+.groupRemove {
+  margin-left: auto;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 4px;
+  color: var(--text-tertiary);
+}
+
+.groupActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.notButton {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  background: none;
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--text-secondary);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+}
+
+.notButtonOn {
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.condition {
+  display: grid;
+  grid-template-columns: auto 118px 104px minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.condition:has(.headerNameInput) {
+  grid-template-columns: auto 118px 104px 104px minmax(0, 1fr) auto;
+}
+
+.headerNameInput {
+  min-width: 0;
+  font-family: $font-mono;
+  font-size: 12px;
+}
+
+.valueCell {
+  display: flex;
+  min-width: 0;
+}
+
+.valueInput {
+  min-width: 0;
+  width: 100%;
+  font-family: $font-mono;
+  font-size: 12.5px;
+}
+
+/* `in` values are tokens: a value may contain commas and must stay one list entry. */
+.tokenCell {
+  align-items: flex-start;
+}
+
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding: 3px 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.token {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 1px 2px 1px 7px;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: $font-mono;
+  font-size: 11.5px;
+}
+
+.tokenLabel {
+  /* Values can be long (a full Accept header); wrap instead of hiding the text. */
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.tokenRemove {
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+  }
+}
+
+.tokenInput {
+  flex: 1 1 90px;
+  min-width: 60px;
+  height: 24px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font-family: $font-mono;
+  font-size: 12px;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+/* ---------- then: route to ---------- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 3px 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--primary-color) 34%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.chipMissing {
+  border-style: dashed;
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+}
+
+.chipDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success-color);
+  flex-shrink: 0;
+}
+
+.chipDotOff {
+  background: var(--text-tertiary);
+}
+
+.chipLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: $font-mono;
+}
+
+.chipMeta {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.chipBadge {
+  padding: 0 5px;
+  border-radius: 99px;
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.chipRemove {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+}
+
+.routePicker {
+  min-width: 160px;
+  max-width: 240px;
+}
+
+.hint {
+  margin: 8px 0 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+/* ---------- validation ---------- */
+
+.issues {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 9px 11px;
+  list-style: none;
+  border: 1px solid var(--warning-border);
+  border-radius: 8px;
+  background: var(--warning-bg);
+}
+
+.issue {
+  color: var(--warning-text);
+  font-size: 12px;
+}
+
+@include mobile {
+  .summary {
+    padding-left: 14px;
+  }
+
+  .ruleTop {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    row-gap: 6px;
+  }
+
+  .ruleTools {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  .duplicateButton {
+    display: none;
+  }
+
+  /* Let the row wrap: the operator select keeps a usable width instead of truncating. */
+  .condition,
+  .condition:has(.headerNameInput) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* A minimum width makes the row wrap instead of shrinking the labels to "A…"/"is …",
+     which matters most in nested groups where indentation eats the width. */
+  .conditionSelect {
+    flex: 1 1 116px;
+    min-width: 112px;
+  }
+
+  .headerNameInput {
+    flex: 1 1 92px;
+    min-width: 88px;
+  }
+
+  .valueCell {
+    flex: 1 1 140px;
+    min-width: 0;
+    order: 4;
+  }
+
+  .condition > .iconButton {
+    order: 5;
+  }
+}

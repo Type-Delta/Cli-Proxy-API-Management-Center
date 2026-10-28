@@ -51,7 +51,11 @@ describe('search index integrity', () => {
   test('resolves the routing strategy deep-link target', () => {
     expect(findConfigFieldById('routingStrategy')).toMatchObject({
       fieldId: 'routingStrategy',
-      sectionId: 'network',
+      sectionId: 'routing',
+    });
+    expect(findConfigFieldById('routingRules')).toMatchObject({
+      fieldId: 'routingRules',
+      sectionId: 'routing',
     });
     expect(findConfigFieldById('unknown')).toBeUndefined();
   });

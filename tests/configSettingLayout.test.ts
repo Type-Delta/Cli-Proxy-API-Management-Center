@@ -24,6 +24,7 @@ const sections = {
   connectivity: (await import('@/features/config/components/sections/SectionConnectivity'))
     .SectionConnectivity,
   network: (await import('@/features/config/components/sections/SectionNetwork')).SectionNetwork,
+  routing: (await import('@/features/config/components/sections/SectionRouting')).SectionRouting,
   logging: (await import('@/features/config/components/sections/SectionLogging')).SectionLogging,
   streaming: (await import('@/features/config/components/sections/SectionStreaming'))
     .SectionStreaming,

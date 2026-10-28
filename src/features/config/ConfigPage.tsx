@@ -43,6 +43,7 @@ import { SectionConnectivity } from './components/sections/SectionConnectivity';
 import { SectionLogging } from './components/sections/SectionLogging';
 import { SectionNetwork } from './components/sections/SectionNetwork';
 import { SectionPayload } from './components/sections/SectionPayload';
+import { SectionRouting } from './components/sections/SectionRouting';
 import { SectionStreaming } from './components/sections/SectionStreaming';
 import styles from './ConfigPage.module.scss';
 
@@ -280,6 +281,8 @@ export function ConfigPage() {
         return <SectionConnectivity {...sectionProps} />;
       case 'network':
         return <SectionNetwork {...sectionProps} />;
+      case 'routing':
+        return <SectionRouting {...sectionProps} />;
       case 'logging':
         return <SectionLogging {...sectionProps} />;
       case 'streaming':

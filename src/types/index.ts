@@ -13,3 +13,4 @@ export * from './quota';
 export * from './plugin';
 export * from './apiKeys';
 export * from './analytics';
+export * from './routing';

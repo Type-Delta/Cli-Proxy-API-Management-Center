@@ -1,3 +1,5 @@
+import type { RoutingRuleDraft } from '@/features/config/routingRules';
+
 export type PayloadParamValueType = 'string' | 'number' | 'boolean' | 'json';
 export type DisableImageGenerationMode = 'false' | 'true' | 'chat' | 'passthrough';
 export type RoutingStrategy =
@@ -42,6 +44,7 @@ export type VisualConfigFieldPath =
   | 'errorLogsMaxFiles'
   | 'logsMaxTotalSizeMb'
   | 'redisUsageQueueRetentionSeconds'
+  | 'routingRules'
   | 'requestRetry'
   | 'maxRetryCredentials'
   | 'maxRetryInterval'
@@ -73,7 +76,8 @@ export type VisualConfigValidationErrorCode =
   | 'analytics_storage_budget_required'
   | 'analytics_storage_bytes_range'
   | 'analytics_storage_time_zone_invalid'
-  | 'analytics_proxy_cidrs_invalid';
+  | 'analytics_proxy_cidrs_invalid'
+  | 'invalid_routing_rules';
 
 export type VisualConfigValidationErrors = Partial<
   Record<VisualConfigFieldPath, VisualConfigValidationErrorCode>
@@ -226,6 +230,10 @@ export type VisualConfigValues = {
   routingStrategy: RoutingStrategy;
   routingSessionAffinity: boolean;
   routingSessionAffinityTTL: string;
+  /** routing.session-affinity-rebind-on: `any` or `quota`; unknown values pass through. */
+  sessionAffinityRebindOn: string;
+  /** routing.rules[]; editor drafts with client ids, serialized by useVisualConfig. */
+  routingRules: RoutingRuleDraft[];
   wsAuth: boolean;
   antigravitySensitiveWords: string[];
   devinSensitiveWords: string[];
@@ -342,6 +350,8 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   routingStrategy: 'round-robin',
   routingSessionAffinity: false,
   routingSessionAffinityTTL: '',
+  sessionAffinityRebindOn: 'any',
+  routingRules: [],
   wsAuth: true,
   antigravitySensitiveWords: [],
   devinSensitiveWords: [],
