@@ -61,7 +61,7 @@ describe('Routing config section', () => {
   test('renders the precedence stack with the moved controls and read-only gate chips', () => {
     const markup = renderSection([opusRule]);
 
-    expect(markup).toContain('Routing Rules');
+    expect(markup).toContain('<h2>Routing</h2>');
     for (const fieldId of [
       'routingRules',
       'routingStrategy',
@@ -90,7 +90,10 @@ describe('Routing config section', () => {
     expect(markup).toContain('R1');
     expect(markup).toContain('WHEN');
     expect(markup).toContain('ROUTE TO');
-    expect(markup).toContain('model match &quot;claude-opus-*&quot;');
+    // The field keyword carries its icon (Bot for model).
+    expect(markup).toMatch(
+      /<svg[^>]*>.*?<path d="M12 8V4H8"><\/path>.*?<\/svg>model<\/span> match &quot;claude-opus-\*&quot;/
+    );
     expect(markup).toContain('claude-max-01');
     expect(markup).toContain('Trace a request');
     expect(markup).toContain('Strategy and session affinity use the saved settings.');
@@ -252,9 +255,9 @@ describe('Routing config section', () => {
     ).toBe('none');
   });
 
-  test('shows the empty state when no rules are configured', () => {
-    const markup = renderSection([]);
-    expect(markup).toContain('No custom rules yet.');
-    expect(markup).toContain('Add rule');
+  test('adds rules from a placeholder that waits until every rule is valid', () => {
+    expect(renderSection([])).toContain('No custom rules yet. Click to add one.');
+    expect(renderSection([opusRule])).toContain('Click to add another rule');
+    expect(renderSection([{ ...opusRule, routeTo: [] }])).not.toContain('Click to add');
   });
 });

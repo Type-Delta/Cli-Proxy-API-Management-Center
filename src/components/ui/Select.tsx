@@ -43,6 +43,8 @@ interface CommonSelectProps {
   emptyLabel?: string;
   loading?: boolean;
   loadingLabel?: string;
+  /** Lets a narrow trigger open a wider list, e.g. for options with descriptions. */
+  dropdownMinWidth?: number;
 }
 
 interface SingleSelectProps extends CommonSelectProps {
@@ -76,11 +78,15 @@ const DROPDOWN_MAX_HEIGHT = 380;
 const DROPDOWN_Z_INDEX = 2010;
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-const resolveDropdownStyle = (element: HTMLElement, multiple: boolean): CSSProperties => {
+const resolveDropdownStyle = (
+  element: HTMLElement,
+  multiple: boolean,
+  minWidth = 0
+): CSSProperties => {
   const rect = element.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const preferredWidth = multiple ? Math.max(rect.width, 340) : rect.width;
+  const preferredWidth = Math.max(rect.width, multiple ? 340 : 0, minWidth);
   const width = Math.min(preferredWidth, Math.max(0, viewportWidth - VIEWPORT_MARGIN * 2));
   const left = clamp(
     rect.left,
@@ -129,6 +135,7 @@ export function Select(props: SelectProps) {
     fullWidth = true,
     size = 'md',
     id,
+    dropdownMinWidth,
   } = props;
   const multiple = props.mode === 'multiple';
   const searchable = multiple || props.searchable === true;
@@ -194,8 +201,10 @@ export function Select(props: SelectProps) {
   }, [close, isOpen, searchable]);
 
   const updatePosition = useCallback(() => {
-    if (wrapRef.current) setDropdownStyle(resolveDropdownStyle(wrapRef.current, multiple));
-  }, [multiple]);
+    if (wrapRef.current) {
+      setDropdownStyle(resolveDropdownStyle(wrapRef.current, multiple, dropdownMinWidth));
+    }
+  }, [multiple, dropdownMinWidth]);
   const schedulePosition = useCallback(() => {
     if (rafRef.current !== null) window.cancelAnimationFrame(rafRef.current);
     rafRef.current = window.requestAnimationFrame(() => {

@@ -97,6 +97,7 @@ const DEFAULT_FIELD_OP: Record<RoutingConditionField, RoutingConditionOp> = {
 export type RoutingRuleValidationCode =
   | 'value_required'
   | 'regex_too_long'
+  | 'regex_invalid'
   | 'header_name_required'
   | 'op_not_allowed'
   | 'route_required'
@@ -397,11 +398,46 @@ function validateNode(
     issues.push({ ruleId, nodeId: node.id, code: 'value_required' });
     return;
   }
-  // Go RE2 accepts syntax JS RegExp rejects and vice versa, so the client only checks the
-  // documented size limit on the exact serialized string; the server validates the
-  // expression (dry run 400 path, save error).
-  if (node.op === 'regex' && Array.from(node.value).length > ROUTING_LIMITS.regexLength) {
+  if (node.op !== 'regex') return;
+  if (Array.from(node.value).length > ROUTING_LIMITS.regexLength) {
     issues.push({ ruleId, nodeId: node.id, code: 'regex_too_long' });
+  } else if (!isPlausibleRe2(node.value)) {
+    issues.push({ ruleId, nodeId: node.id, code: 'regex_invalid' });
+  }
+}
+
+/**
+ * Conservative client check for Go RE2 syntax: false only when the server would certainly
+ * reject the pattern. RE2-only syntax (inline flags, `(?P<name>`) is rewritten before the JS
+ * RegExp parse, and JS-only constructs RE2 refuses (lookarounds, backreferences) are flagged.
+ * Anything subtler is left to the server, which validates the expression on save.
+ */
+export function isPlausibleRe2(pattern: string): boolean {
+  let inClass = false;
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+    if (char === '\\') {
+      if (/[1-9]/.test(pattern[index + 1] ?? '')) return false;
+      index += 1;
+    } else if (inClass) {
+      if (char === ']') inClass = false;
+    } else if (char === '[') {
+      inClass = true;
+      if (pattern[index + 1] === ']') index += 1;
+    } else if (/^\(\?<?[=!]/.test(pattern.slice(index, index + 4))) {
+      return false;
+    }
+  }
+  try {
+    new RegExp(
+      pattern
+        .replace(/\(\?[imsU-]+\)/g, '')
+        .replace(/\(\?[imsU-]+:/g, '(?:')
+        .replace(/\(\?P</g, '(?<')
+    );
+    return true;
+  } catch {
+    return false;
   }
 }
 

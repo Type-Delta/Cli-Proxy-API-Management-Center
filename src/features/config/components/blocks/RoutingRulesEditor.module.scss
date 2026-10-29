@@ -16,16 +16,42 @@
   gap: 10px;
 }
 
-.empty {
-  border: 1px dashed var(--border-primary);
-  border-radius: 10px;
-  padding: 16px;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
+/* Dashed placeholder that adds a rule: the empty state, then the slot after the last rule. */
 .addRule {
-  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 1px dashed var(--border-primary);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
+    color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
+    background-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+
+  &:hover:not(:disabled) {
+    border-color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 6%, transparent);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
 }
 
 /* ---------- rule card ---------- */
@@ -295,8 +321,16 @@
   grid-template-columns: auto 118px 104px 104px minmax(0, 1fr) auto;
 }
 
+/* Selects, inputs and the token box share one height so a condition reads as one row. */
+$condition-control-height: 36px;
+
+.conditionSelect > button {
+  height: $condition-control-height;
+}
+
 .headerNameInput {
   min-width: 0;
+  height: $condition-control-height;
   font-family: $font-mono;
   font-size: 12px;
 }
@@ -308,6 +342,7 @@
 
 .valueInput {
   min-width: 0;
+  height: $condition-control-height;
   width: 100%;
   font-family: $font-mono;
   font-size: 12.5px;
@@ -325,7 +360,7 @@
   gap: 4px;
   width: 100%;
   min-width: 0;
-  min-height: 32px;
+  min-height: $condition-control-height;
   padding: 3px 4px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -369,10 +404,12 @@
   }
 }
 
-.tokenInput {
+.tokens > .tokenInput {
+  /* Out-specifies the settings `.input` geometry, which would make the token box taller than its row. */
   flex: 1 1 90px;
   min-width: 60px;
   height: 24px;
+  min-height: 0;
   padding: 0 4px;
   border: 0;
   background: none;

@@ -288,14 +288,3 @@ export function summarizeRoutingDecision(
       .filter(({ candidate }) => Boolean(candidate.gate)),
   };
 }
-
-/** Human-facing gate categories; exact reason text stays in the localized layer tooltip. */
-export const gateBlockTone = (reason: RoutingGateReason): 'warning' | 'failure' | 'muted' =>
-  reason === 'cooldown' || reason === 'quota'
-    ? 'warning'
-    : reason === 'tried' ||
-        reason === 'unauthorized' ||
-        reason === 'retry_limit' ||
-        reason === 'gone'
-      ? 'failure'
-      : 'muted';

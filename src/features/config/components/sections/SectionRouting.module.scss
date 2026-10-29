@@ -49,13 +49,25 @@
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 16px;
+  gap: 6px 16px;
+  /* Aligns with the layers, past the rail column and its gap. */
+  margin: -4px 0 4px 34px;
   color: var(--text-tertiary);
-  font-size: 12px;
+  font-size: 12.5px;
 
   b {
     color: var(--text-secondary);
     font-weight: 600;
+  }
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  svg {
+    flex: 0 0 auto;
   }
 }
 
@@ -134,6 +146,20 @@
   margin-top: 6px;
 }
 
+.rulesGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.error {
+  margin: 0;
+  color: var(--error-color);
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .hint {
   margin: 0;
   color: var(--text-tertiary);
@@ -149,7 +175,12 @@
   padding: 12px;
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--bg-secondary) 55%, transparent);
+  /* Diagonal stripes mark the fixed layers that cannot be moved or removed. */
+  background: repeating-linear-gradient(
+    135deg,
+    var(--bg-primary) 0 10px,
+    color-mix(in srgb, var(--bg-primary) 95%, var(--text-primary)) 10px 20px
+  );
   min-width: 0;
 }
 
@@ -168,6 +199,9 @@
 }
 
 .lockBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 1px 8px;
   border: 1px solid var(--border-primary);
   border-radius: 99px;
@@ -194,6 +228,9 @@
 }
 
 .gateChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 2px 9px;
   border: 1px solid var(--border-color);
   border-radius: 99px;
@@ -209,5 +246,9 @@
 
   .rail {
     display: none;
+  }
+
+  .legend {
+    margin-left: 0;
   }
 }

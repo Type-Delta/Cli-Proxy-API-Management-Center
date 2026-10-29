@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { IconAlertTriangle } from '@/components/ui/icons';
+import { useEffect, useId, useMemo, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
+import { IconAlertTriangle, IconLock, IconTag } from '@/components/ui/icons';
+import { ROUTING_GATE_ICONS } from '@/components/ui/routingIcons';
 import { apiKeysApi } from '@/services/api/apiKeys';
 import { routingApi } from '@/services/api/routing';
 import type { RoutingCredential } from '@/types/routing';
@@ -10,7 +11,7 @@ import { CONFIG_TAB_ICONS, SECTION_INDEX_LABELS } from '../../constants';
 import type { ConfigSectionProps } from '../../types';
 import { SectionCard } from '../SectionCard';
 import {
-  BlockSetting,
+  FieldAnchor,
   SelectSetting,
   SettingList,
   TextSetting,
@@ -27,15 +28,18 @@ type Strategy = VisualConfigValues['routingStrategy'];
 
 /** Read-only gate checks, in the order the selection pipeline applies them. */
 const GATE_CHIPS = [
-  'gate_disabled',
-  'gate_cooldown',
-  'gate_quota',
-  'gate_unsupported',
-  'gate_prefix',
-  'gate_retry',
-  'gate_weight',
-  'gate_pinned',
+  ['gate_disabled', ROUTING_GATE_ICONS.disabled],
+  ['gate_cooldown', ROUTING_GATE_ICONS.cooldown],
+  ['gate_quota', ROUTING_GATE_ICONS.quota],
+  ['gate_reserve', ROUTING_GATE_ICONS.reserve],
+  ['gate_unsupported', ROUTING_GATE_ICONS.unsupported],
+  ['gate_prefix', IconTag],
+  ['gate_retry', ROUTING_GATE_ICONS.retry_limit],
+  ['gate_weight', ROUTING_GATE_ICONS.weight],
+  ['gate_pinned', ROUTING_GATE_ICONS.pinned],
 ] as const;
+
+const LEGEND = ['legend_order', 'legend_lower_wins', 'legend_locked'] as const;
 
 type CredentialsState = {
   loading: boolean;
@@ -65,6 +69,9 @@ export function SectionRouting({
   onChange,
 }: ConfigSectionProps) {
   const { t } = useTranslation();
+  const rulesLabelId = useId();
+  const rulesErrorId = useId();
+  const rulesError = getValidationMessage(t, validationErrors?.routingRules);
   const [credentials, setCredentials] = useState<CredentialsState>(INITIAL_CREDENTIALS);
   const [identityLabels, setIdentityLabels] = useState<string[]>([]);
 
@@ -162,24 +169,27 @@ export function SectionRouting({
           description={t('config_management.visual.sections.routing.description')}
           animateIn={animateIn}
         >
+          <p className={styles.legend}>
+            {LEGEND.map((key) => (
+              <span key={key} className={styles.legendItem}>
+                {/* Only the base-rule note keeps its icon; three icons crowd the line. */}
+                {key === 'legend_locked' ? <IconLock size={13} /> : null}
+                <span>
+                  <Trans
+                    i18nKey={`config_management.visual.sections.routing.${key}`}
+                    components={{ b: <b /> }}
+                  />
+                </span>
+              </span>
+            ))}
+          </p>
+
           {credentials.homeMode ? (
             <div className={styles.notice} role="status">
               <IconAlertTriangle size={14} aria-hidden="true" />
               <span>{t('config_management.visual.sections.routing.home_mode_notice')}</span>
             </div>
           ) : null}
-
-          <div className={styles.legend}>
-            <span>
-              <b>{t('config_management.visual.sections.routing.legend_order')}</b>
-            </span>
-            <span>
-              <b>{t('config_management.visual.sections.routing.legend_lower_wins')}</b>
-            </span>
-            <span>
-              <b>{t('config_management.visual.sections.routing.legend_locked')}</b>
-            </span>
-          </div>
 
           <div className={styles.stack}>
             <div className={styles.rail} aria-hidden="true">
@@ -198,21 +208,32 @@ export function SectionRouting({
                 </p>
               ) : null}
 
-              <BlockSetting
-                fieldId="routingRules"
-                label={t('config_management.visual.sections.routing.rules_title')}
-                description={t('config_management.visual.sections.routing.rules_description')}
-                error={getValidationMessage(t, validationErrors?.routingRules)}
-              >
-                <RoutingRulesEditor
-                  value={values.routingRules}
-                  disabled={disabled}
-                  credentials={credentials.credentials}
-                  apiKeyLabels={apiKeyLabels}
-                  clientTypes={credentials.clientTypes}
-                  onChange={handleRulesChange}
-                />
-              </BlockSetting>
+              <FieldAnchor fieldId="routingRules">
+                <div
+                  className={styles.rulesGroup}
+                  role="group"
+                  aria-labelledby={rulesLabelId}
+                  aria-describedby={rulesError ? rulesErrorId : undefined}
+                  aria-invalid={rulesError ? true : undefined}
+                >
+                  <div id={rulesLabelId} className={styles.groupLabel}>
+                    {t('config_management.visual.sections.routing.rules_title')}
+                  </div>
+                  {rulesError ? (
+                    <p id={rulesErrorId} className={styles.error}>
+                      {rulesError}
+                    </p>
+                  ) : null}
+                  <RoutingRulesEditor
+                    value={values.routingRules}
+                    disabled={disabled}
+                    credentials={credentials.credentials}
+                    apiKeyLabels={apiKeyLabels}
+                    clientTypes={credentials.clientTypes}
+                    onChange={handleRulesChange}
+                  />
+                </div>
+              </FieldAnchor>
 
               <div className={`${styles.groupLabel} ${styles.groupLabelSpaced}`}>
                 {t('config_management.visual.sections.routing.base_layers')}
@@ -224,6 +245,7 @@ export function SectionRouting({
                     {t('config_management.visual.sections.routing.strategy_title')}
                   </h3>
                   <span className={styles.lockBadge}>
+                    <IconLock size={11} strokeWidth={2.4} />
                     {t('config_management.visual.sections.routing.base_lock')}
                   </span>
                 </header>
@@ -249,6 +271,7 @@ export function SectionRouting({
                     {t('config_management.visual.sections.routing.affinity_title')}
                   </h3>
                   <span className={styles.lockBadge}>
+                    <IconLock size={11} strokeWidth={2.4} />
                     {t('config_management.visual.sections.routing.base_lock')}
                   </span>
                 </header>
@@ -307,6 +330,7 @@ export function SectionRouting({
                     {t('config_management.visual.sections.routing.gate_title')}
                   </h3>
                   <span className={styles.lockBadge}>
+                    <IconLock size={11} strokeWidth={2.4} />
                     {t('config_management.visual.sections.routing.base_lock')}
                   </span>
                 </header>
@@ -314,8 +338,9 @@ export function SectionRouting({
                   {t('config_management.visual.sections.routing.gate_description')}
                 </p>
                 <ul className={styles.gateChips}>
-                  {GATE_CHIPS.map((chip) => (
+                  {GATE_CHIPS.map(([chip, ChipIcon]) => (
                     <li key={chip} className={styles.gateChip}>
+                      <ChipIcon size={13} />
                       {t(`config_management.visual.sections.routing.${chip}`)}
                     </li>
                   ))}

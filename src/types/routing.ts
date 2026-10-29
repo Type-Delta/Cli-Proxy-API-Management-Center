@@ -42,6 +42,7 @@ export type RoutingGateReason =
   | 'retry_limit'
   | 'tried'
   | 'weight'
+  | 'reserve'
   | 'policy'
   | 'pinned'
   | 'gone';

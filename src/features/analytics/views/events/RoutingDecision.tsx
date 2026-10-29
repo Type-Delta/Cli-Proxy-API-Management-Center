@@ -2,12 +2,15 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
+  IconBan,
   IconInfo,
   IconListTree,
   IconRefreshCw,
   IconShare2,
   IconShield,
 } from '@/components/ui/icons';
+import { RoutingConditionText } from '@/components/ui/RoutingConditionText';
+import { ROUTING_GATE_ICONS } from '@/components/ui/routingIcons';
 import type {
   RoutingGateReason,
   RoutingRuleTrace,
@@ -17,7 +20,6 @@ import type {
 import { formatAccumulatedDuration } from '../../components/analyticsFormatting';
 import {
   buildRoutingMatrix,
-  gateBlockTone,
   normalizeRoutingTrace,
   summarizeRoutingDecision,
   type RoutingCell,
@@ -428,6 +430,10 @@ export function RoutingDecision({ trace: traceInput }: { trace: RoutingTrace | n
       cell.collapsedIndexes
     );
     const isCollapsed = Boolean(cell.collapsedIndexes?.length);
+    const GateIcon =
+      cell.glyph === 'blocked' && !isCollapsed
+        ? (cell.blockedReason && ROUTING_GATE_ICONS[cell.blockedReason]) || IconBan
+        : null;
     return {
       tabIndex: 0,
       role: 'img',
@@ -435,11 +441,6 @@ export function RoutingDecision({ trace: traceInput }: { trace: RoutingTrace | n
         styles.cell,
         className,
         cell.glyph === 'blocked' ? styles.blocked : '',
-        cell.blockedReason
-          ? styles[
-              `gate${gateBlockTone(cell.blockedReason).replace(/^./, (char) => char.toUpperCase())}`
-            ]
-          : '',
         columnIndex !== null && focusedColumn === columnIndex ? styles.columnActive : '',
         columnIndex !== null && columnIndex === matrix.columns.length - 1 ? styles.lastColumn : '',
       ]
@@ -475,6 +476,7 @@ export function RoutingDecision({ trace: traceInput }: { trace: RoutingTrace | n
                   defaultValue: '+{{count}}',
                 })
               : null}
+            {GateIcon ? <GateIcon size={13} strokeWidth={2.4} /> : null}
           </span>
         </>
       ),
@@ -544,7 +546,7 @@ export function RoutingDecision({ trace: traceInput }: { trace: RoutingTrace | n
                 className={styles.condition}
                 data-cpamc-tooltip={conditionRule.condition}
               >
-                {conditionRule.condition}
+                <RoutingConditionText text={conditionRule.condition ?? ''} />
               </span>
             </div>
           ) : null}
@@ -652,10 +654,14 @@ export function RoutingDecision({ trace: traceInput }: { trace: RoutingTrace | n
               ] as const
             ).map(([glyph, key]) => (
               <span key={glyph} className={styles.legendItem}>
-                <span
-                  className={`${styles.glyph} ${styles[`legend${glyph.replace(/^./, (char) => char.toUpperCase())}`]}`}
-                  aria-hidden="true"
-                />
+                {glyph === 'blocked' ? (
+                  <IconBan size={12} strokeWidth={2.4} className={styles.legendBlocked} />
+                ) : (
+                  <span
+                    className={`${styles.glyph} ${styles[`legend${glyph.replace(/^./, (char) => char.toUpperCase())}`]}`}
+                    aria-hidden="true"
+                  />
+                )}
                 {t(`analytics.routing_decision.legend.${key}`, { defaultValue: key })}
               </span>
             ))}

@@ -2,6 +2,7 @@ import { memo, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { RoutingConditionText } from '@/components/ui/RoutingConditionText';
 import { Select } from '@/components/ui/Select';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import {
@@ -14,6 +15,7 @@ import {
   IconTrash2,
   IconX,
 } from '@/components/ui/icons';
+import { ROUTING_FIELD_ICONS } from '@/components/ui/routingIcons';
 import type { RoutingCredential } from '@/types/routing';
 import { makeClientId } from '@/types/visualConfig';
 import {
@@ -43,6 +45,9 @@ import {
 import styles from './RoutingRulesEditor.module.scss';
 
 const cx = (...classes: Array<string | false | undefined>) => classes.filter(Boolean).join(' ');
+
+/** Condition menus open wider than their triggers so each option's description fits. */
+const CONDITION_MENU_WIDTH = 320;
 
 type UpdateNode = (
   nodeId: string,
@@ -201,13 +206,21 @@ function ConditionRow({
       leaf.id,
       (node) => ({ ...(node as RoutingConditionLeafDraft), ...patch }) as RoutingConditionNode
     );
-  const fieldOptions = ROUTING_FIELD_ORDER.map((field) => ({
-    value: field,
-    label: t(`config_management.visual.routing_rules.field_${field.replace('-', '_')}`),
-  }));
+  const fieldOptions = ROUTING_FIELD_ORDER.map((field) => {
+    const FieldIcon = ROUTING_FIELD_ICONS[field];
+    return {
+      value: field,
+      icon: <FieldIcon size={14} />,
+      label: t(`config_management.visual.routing_rules.field_${field.replace('-', '_')}`),
+      description: t(
+        `config_management.visual.routing_rules.field_${field.replace('-', '_')}_hint`
+      ),
+    };
+  });
   const opOptions = ROUTING_FIELD_OPS[leaf.field].map((op) => ({
     value: op,
     label: t(`config_management.visual.routing_rules.op_${op}`),
+    description: t(`config_management.visual.routing_rules.op_${op}_hint`),
   }));
   const options =
     leaf.field === 'api-key'
@@ -236,6 +249,7 @@ function ConditionRow({
         className={styles.conditionSelect}
         value={leaf.field}
         options={fieldOptions}
+        dropdownMinWidth={CONDITION_MENU_WIDTH}
         disabled={disabled}
         ariaLabel={t('config_management.visual.routing_rules.field')}
         onChange={(value) => {
@@ -265,6 +279,7 @@ function ConditionRow({
         className={styles.conditionSelect}
         value={leaf.op}
         options={opOptions}
+        dropdownMinWidth={CONDITION_MENU_WIDTH}
         disabled={disabled}
         ariaLabel={t('config_management.visual.routing_rules.operator')}
         onChange={(value) => set({ op: value as RoutingConditionOp, value: '', values: [] })}
@@ -639,7 +654,9 @@ function RuleCard({
         <span className={styles.keyword}>
           {t('config_management.visual.routing_rules.summary_when')}
         </span>{' '}
-        <span className={styles.summaryCondition}>{renderRoutingRuleCondition(rule)}</span>{' '}
+        <span className={styles.summaryCondition}>
+          <RoutingConditionText text={renderRoutingRuleCondition(rule)} />
+        </span>{' '}
         <span className={styles.arrow} aria-hidden="true">
           →
         </span>{' '}
@@ -785,10 +802,6 @@ export const RoutingRulesEditor = memo(function RoutingRulesEditor({
 
   return (
     <div className={styles.root}>
-      {value.length === 0 ? (
-        <div className={styles.empty}>{t('config_management.visual.routing_rules.no_rules')}</div>
-      ) : null}
-
       <div className={styles.rules} role="list">
         {value.map((rule, index) => {
           const ruleIssues = issuesForRule(issues, rule.id);
@@ -839,17 +852,15 @@ export const RoutingRulesEditor = memo(function RoutingRulesEditor({
         })}
       </div>
 
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        className={styles.addRule}
-        icon={<IconPlus size={14} />}
-        disabled={disabled || value.length >= ROUTING_LIMITS.rules}
-        onClick={addRule}
-      >
-        {t('config_management.visual.routing_rules.add_rule')}
-      </Button>
+      {/* Another rule can be added once every rule is valid, so drafts are finished one at a time. */}
+      {issues.length === 0 && value.length < ROUTING_LIMITS.rules ? (
+        <button type="button" className={styles.addRule} disabled={disabled} onClick={addRule}>
+          <IconPlus size={14} />
+          {value.length === 0
+            ? t('config_management.visual.routing_rules.add_first_rule')
+            : t('config_management.visual.routing_rules.add_rule')}
+        </button>
+      ) : null}
     </div>
   );
 });

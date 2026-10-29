@@ -5,9 +5,9 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 import { EventDetailSheet } from '@/features/analytics/views/events/EventDetailSheet';
 import { RoutingDecision } from '@/features/analytics/views/events/RoutingDecision';
+import { ROUTING_GATE_ICONS, splitRoutingCondition } from '@/components/ui/routingIcons';
 import {
   buildRoutingMatrix,
-  gateBlockTone,
   normalizeRoutingTrace,
   summarizeRoutingDecision,
 } from '@/features/analytics/views/events/eventRoutingModel';
@@ -274,9 +274,6 @@ describe('routing decision matrix', () => {
       blocked: candidates.length,
       total: candidates.length,
     });
-    expect(gateBlockTone('cooldown')).toBe('warning');
-    expect(gateBlockTone('tried')).toBe('failure');
-    expect(gateBlockTone('unsupported')).toBe('muted');
   });
 });
 
@@ -681,5 +678,62 @@ describe('routing decision verdict strategy label', () => {
     const html = renderVerdict('custom-picker');
     expect(html).toContain('custom-picker');
     expect(html).not.toContain('routing_decision.strategies');
+  });
+});
+
+describe('routing decision gate icons', () => {
+  test('names a quota reserve hold and draws a reason icon instead of a cross', () => {
+    const trace: RoutingTrace = {
+      ...baseTrace,
+      candidates: [
+        ...candidates.slice(0, 6),
+        { id: 'cred-team-06', label: 'claude-team-06', gate: 'reserve' },
+      ],
+    };
+    const html = renderToStaticMarkup(
+      createElement(I18nextProvider, { i18n }, createElement(RoutingDecision, { trace }))
+    );
+    expect(html).toContain('claude-team-06 — Routing gate: Held back by its quota reserve.');
+    expect(html).not.toContain('A credential policy excludes it.');
+    // Each blocked gate cell draws its reason's icon: snowflake, ban, and piggy bank.
+    expect(html).toContain('m10 20-1.25-2.5L6 18');
+    expect(html).toContain('M4.929 4.929 19.07 19.071');
+    expect(html).toContain('M16 10h.01');
+  });
+});
+
+describe('routing gate reason coverage', () => {
+  test('every gate reason has event and dry-run copy in all locales', async () => {
+    const reasons = Object.keys(ROUTING_GATE_ICONS);
+    for (const locale of ['en', 'zh-CN', 'zh-TW', 'ko', 'ru', 'vi']) {
+      const json = (await Bun.file(`src/i18n/locales/${locale}.json`).json()) as {
+        analytics: { routing_decision: { reason: Record<string, string> } };
+        config_management: { visual: { routing_trace: Record<string, string> } };
+      };
+      for (const reason of reasons) {
+        expect(json.analytics.routing_decision.reason[reason], `${locale} ${reason}`).toBeString();
+        expect(
+          json.config_management.visual.routing_trace[`reason_${reason}`],
+          `${locale} reason_${reason}`
+        ).toBeString();
+      }
+    }
+  });
+});
+
+describe('routing condition field icons', () => {
+  test('marks field keywords but not quoted values, list values or header names', () => {
+    const fields = (text: string) =>
+      splitRoutingCondition(text)
+        .filter((part) => part.field)
+        .map((part) => `${part.field}:${part.text}`);
+    expect(
+      fields('(model is "model is" or header model is "x") and not (api-key in [model, client])')
+    ).toEqual(['model:model', 'header:header model', 'api-key:api-key']);
+    expect(fields('client in ["a b", codex] and header "x y" regex "^a"')).toEqual([
+      'client:client',
+      'header:header "x y"',
+    ]);
+    expect(splitRoutingCondition('always')).toEqual([{ text: 'always' }]);
   });
 });

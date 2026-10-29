@@ -238,12 +238,6 @@
   white-space: nowrap;
 }
 
-.blocked .glyph {
-  width: auto;
-  height: auto;
-  background: transparent;
-}
-
 .status {
   display: inline-flex;
   justify-self: end;
@@ -333,28 +327,8 @@
 }
 
 .legendBlocked {
-  position: relative;
-  width: 11px;
-  height: 11px;
+  flex: 0 0 auto;
   color: var(--error-color);
-  background: transparent;
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -1px;
-    left: 4.5px;
-    width: 2px;
-    height: 13px;
-    border-radius: 1px;
-    background: currentColor;
-    transform: rotate(45deg);
-  }
-
-  &::after {
-    transform: rotate(-45deg);
-  }
 }
 
 .legendIcon {
@@ -449,41 +423,15 @@
   background: color-mix(in srgb, var(--viz-success) 72%, transparent);
 }
 
+/* Gate-blocked cells show the reason's icon in red. */
 .blocked .glyph {
-  position: relative;
-  width: 12px;
-  height: 12px;
-  color: inherit;
+  display: grid;
+  width: auto;
+  height: auto;
+  place-items: center;
+  border-radius: 0;
   background: transparent;
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -1px;
-    left: 5px;
-    width: 2px;
-    height: 14px;
-    border-radius: 1px;
-    background: currentColor;
-    transform: rotate(45deg);
-  }
-
-  &::after {
-    transform: rotate(-45deg);
-  }
-}
-
-.gateWarning {
-  color: var(--amber-color);
-}
-
-.gateFailure {
   color: var(--error-color);
-}
-
-.gateMuted {
-  color: var(--text-tertiary);
 }
 
 .glyphCollapsed {

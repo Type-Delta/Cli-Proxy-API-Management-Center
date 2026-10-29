@@ -6,6 +6,7 @@ import { useVisualConfig } from '../src/hooks/useVisualConfig';
 import type { VisualConfigValues } from '../src/types/visualConfig';
 import {
   areRoutingRulesEqual,
+  isPlausibleRe2,
   makeRoutingCondition,
   makeRoutingGroup,
   parseRoutingRules,
@@ -286,7 +287,6 @@ describe('routing rule validation', () => {
     expect(validateRoutingRules([emptyValue])).toEqual([
       { ruleId: 'r', nodeId: 'c', code: 'value_required' },
     ]);
-    // RE2 syntax is left to the server; the client only enforces the documented size limit.
     const longRegex = rule(
       makeRoutingGroup('all', [
         { ...makeRoutingCondition('model'), id: 'c', op: 'regex', value: 'a'.repeat(513) },
@@ -294,6 +294,14 @@ describe('routing rule validation', () => {
     );
     expect(validateRoutingRules([longRegex])).toEqual([
       { ruleId: 'r', nodeId: 'c', code: 'regex_too_long' },
+    ]);
+    const badRegex = rule(
+      makeRoutingGroup('all', [
+        { ...makeRoutingCondition('model'), id: 'c', op: 'regex', value: '(glm' },
+      ])
+    );
+    expect(validateRoutingRules([badRegex])).toEqual([
+      { ruleId: 'r', nodeId: 'c', code: 'regex_invalid' },
     ]);
     const noHeaderName = rule(
       makeRoutingGroup('all', [
@@ -320,6 +328,30 @@ describe('routing rule validation', () => {
         ),
       ])
     ).toEqual([]);
+  });
+});
+
+describe('routing rules: RE2 plausibility', () => {
+  // Each verdict matches Go regexp.Compile.
+  test('accepts RE2-only syntax JS RegExp rejects', () => {
+    for (const pattern of [
+      '(?i)^claude',
+      '(?P<v>\\d+)',
+      '(?s).*',
+      '(?U)a+',
+      '\\pL+',
+      '[[:alpha:]]',
+      '[(?=]',
+      '\\\\1',
+    ]) {
+      expect(isPlausibleRe2(pattern)).toBe(true);
+    }
+  });
+
+  test('rejects broken syntax and JS-only constructs', () => {
+    for (const pattern of ['(glm', '*abc', 'x**', 'a(?=b)', '(?<!x)y', '(a)\\1']) {
+      expect(isPlausibleRe2(pattern)).toBe(false);
+    }
   });
 });
 

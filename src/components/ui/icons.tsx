@@ -647,3 +647,164 @@ export function IconNotebookPen({ size = 20, ...props }: IconProps) {
     </svg>
   );
 }
+
+export function IconBan({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M4.929 4.929 19.07 19.071" />
+    </svg>
+  );
+}
+
+export function IconSnowflake({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="m10 20-1.25-2.5L6 18" />
+      <path d="M10 4 8.75 6.5 6 6" />
+      <path d="m14 20 1.25-2.5L18 18" />
+      <path d="m14 4 1.25 2.5L18 6" />
+      <path d="m17 21-3-6h-4" />
+      <path d="m17 3-3 6 1.5 3" />
+      <path d="M2 12h6.5L10 9" />
+      <path d="m20 10-1.5 2 1.5 2" />
+      <path d="M22 12h-6.5L14 15" />
+      <path d="m4 10 1.5 2L4 14" />
+      <path d="m7 21 3-6-1.5-3" />
+      <path d="m7 3 3 6h4" />
+    </svg>
+  );
+}
+
+export function IconGauge({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="m12 14 4-4" />
+      <path d="M3.34 19a10 10 0 1 1 17.32 0" />
+    </svg>
+  );
+}
+
+export function IconPiggyBank({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M11 17h3v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3a3.16 3.16 0 0 0 2-2h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1a5 5 0 0 0-2-4V3a4 4 0 0 0-3.2 1.6l-.3.4H11a6 6 0 0 0-6 6v1a5 5 0 0 0 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1z" />
+      <path d="M16 10h.01" />
+      <path d="M2 8v1a2 2 0 0 0 2 2h1" />
+    </svg>
+  );
+}
+
+export function IconBox({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+      <path d="m3.3 7 8.7 5 8.7-5" />
+      <path d="M12 22V12" />
+    </svg>
+  );
+}
+
+export function IconTag({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+      <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function IconRepeat({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="m17 2 4 4-4 4" />
+      <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+      <path d="m7 22-4-4 4-4" />
+      <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+    </svg>
+  );
+}
+
+export function IconHistory({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M12 7v5l4 2" />
+    </svg>
+  );
+}
+
+export function IconWeight({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <circle cx="12" cy="5" r="3" />
+      <path d="M6.5 8a2 2 0 0 0-1.905 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.925-2.54L19.4 9.5A2 2 0 0 0 17.48 8Z" />
+    </svg>
+  );
+}
+
+export function IconFileLock({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M4 9.8V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2h-3" />
+      <path d="M14 2v5a1 1 0 0 0 1 1h5" />
+      <path d="M9 17v-2a2 2 0 0 0-4 0v2" />
+      <rect width="8" height="5" x="3" y="17" rx="1" />
+    </svg>
+  );
+}
+
+export function IconPin({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M12 17v5" />
+      <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+    </svg>
+  );
+}
+
+export function IconCircleDashed({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M10.1 2.182a10 10 0 0 1 3.8 0" />
+      <path d="M13.9 21.818a10 10 0 0 1-3.8 0" />
+      <path d="M17.609 3.721a10 10 0 0 1 2.69 2.7" />
+      <path d="M2.182 13.9a10 10 0 0 1 0-3.8" />
+      <path d="M20.279 17.609a10 10 0 0 1-2.7 2.69" />
+      <path d="M21.818 10.1a10 10 0 0 1 0 3.8" />
+      <path d="M3.721 6.391a10 10 0 0 1 2.7-2.69" />
+      <path d="M6.391 20.279a10 10 0 0 1-2.69-2.7" />
+    </svg>
+  );
+}
+
+export function IconLock({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
+export function IconAppWindow({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="M10 4v4" />
+      <path d="M2 8h20" />
+      <path d="M6 4v4" />
+    </svg>
+  );
+}
+
+export function IconHeading({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...baseSvgProps} width={size} height={size} {...props}>
+      <path d="M6 12h12" />
+      <path d="M6 20V4" />
+      <path d="M18 20V4" />
+    </svg>
+  );
+}

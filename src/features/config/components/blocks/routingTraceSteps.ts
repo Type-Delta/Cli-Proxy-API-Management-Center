@@ -24,7 +24,13 @@ const formatTime = (untilMs: number | undefined): string => {
   if (untilMs === undefined || !Number.isFinite(untilMs)) return '';
   const date = new Date(untilMs);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  // Quota reserves can hold for days, so a reset after today also names its date.
+  const sameDay = date.toDateString() === new Date().toDateString();
+  return date.toLocaleString(undefined, {
+    ...(sameDay ? {} : { month: 'short', day: 'numeric' }),
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
 
 /**
