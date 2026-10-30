@@ -406,14 +406,12 @@ export function ModelEfficiency({
                     const amount = Number(value);
                     const share = totalCost && totalCost > 0 ? (amount / totalCost) * 100 : 0;
                     return (
-                      <>
-                        <span>{formatCostValue(value, resolvedLocale).text}</span>{' '}
-                        <small
-                          className={`${styles.costContribution} ${modalStyles.componentShare}`}
-                        >
+                      <span className={modalStyles.componentCost}>
+                        {formatCostValue(value, resolvedLocale).text}{' '}
+                        <small className={styles.costContribution}>
                           {formatPercent(share, resolvedLocale)}
                         </small>
-                      </>
+                      </span>
                     );
                   };
                   return (

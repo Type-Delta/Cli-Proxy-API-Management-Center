@@ -340,6 +340,7 @@ describe('analytics client contracts', () => {
       text: '1.3M',
       title: '1,284,000',
     });
+    expect(formatCompactTokens(1_196_000_000, 'en-US', true).text).toBe('1.1B');
     expect(formatDateTime('2026-09-03T12:30:00Z', 'en-US')).not.toContain('2026-09-03T');
     expect(
       formatRelativeDate('2026-09-01T12:00:00Z', 'en-US', new Date('2026-09-03T12:00:00Z'))

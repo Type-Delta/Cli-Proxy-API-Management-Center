@@ -136,7 +136,7 @@ export function UsageDistribution({
       categoryLabels,
       selectedCategories: selectedCategoryFlags,
       palette,
-      formatTokens: (value) => formatCompactTokens(value, locale).text,
+      formatTokens: (value) => formatCompactTokens(value, locale, true).text,
       tooltip: (index) => {
         const row = rows[index];
         const categories = categoryMix(row);
@@ -189,7 +189,7 @@ export function UsageDistribution({
         categoryLabels,
         selectedCategories: selectedCategoryFlags,
         palette,
-        formatTokens: (value) => formatCompactTokens(value, locale).text,
+        formatTokens: (value) => formatCompactTokens(value, locale, true).text,
         tooltip: () => ({ header: '', rows: [] }),
       });
       return (dimensionOption.series as BarSeriesOption[]).map((series, index) => {

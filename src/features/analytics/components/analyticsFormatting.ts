@@ -37,7 +37,12 @@ export function formatCostValue(
 export const formatCost = (value: number | string | null | undefined, locale?: string) =>
   formatCostValue(value, locale).text;
 
-export function formatCompactTokens(value: number, locale?: string): AnalyticsFormattedValue {
+/** `roundDown` keeps a compact label from claiming a value the number has not reached. */
+export function formatCompactTokens(
+  value: number,
+  locale?: string,
+  roundDown = false
+): AnalyticsFormattedValue {
   if (!Number.isFinite(value)) return { text: DASH };
   const exact = formatNumber(value, locale);
   return {
@@ -47,6 +52,7 @@ export function formatCompactTokens(value: number, locale?: string): AnalyticsFo
         : new Intl.NumberFormat(locale, {
             notation: 'compact',
             maximumFractionDigits: 1,
+            ...(roundDown ? { roundingMode: 'trunc' } : {}),
           }).format(value),
     title: exact,
   };

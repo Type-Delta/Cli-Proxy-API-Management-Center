@@ -99,7 +99,9 @@
   appearance: none;
   background: none;
   border: 0;
+  // The padding enlarges the hit area; the margin keeps the name on the cells' text line.
   padding: 8px 0;
+  margin-block: -8px;
   color: inherit;
   font: inherit;
   text-align: start;
@@ -115,13 +117,9 @@
 }
 .row {
   cursor: pointer;
-  &:hover td,
-  &:focus-within td {
-    background: var(--bg-hover);
-  }
 }
-.componentShare {
-  display: block;
+.componentCost {
+  white-space: nowrap;
 }
 @media (max-width: 600px) {
   .kpis {
