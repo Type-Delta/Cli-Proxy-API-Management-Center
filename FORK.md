@@ -1,225 +1,130 @@
-# Type-Delta CPAMC fork notes
+# Cli-Proxy-API-Management-Center Fork
 
-This file records behavior and maintenance work that differs from official CPAMC. Entries describe the current branch, not planned work.
+<!-- In-synced fork: maintained with the `syncfork` skill. -->
 
-Last updated: 2026-10-28
-
-## Repository relationship
-
-- Fork: https://github.com/Type-Delta/Cli-Proxy-API-Management-Center
-- Upstream: https://github.com/router-for-me/Cli-Proxy-API-Management-Center
-- Initial fork head: `d249ff008e0bc2803deb23fb3e2c62418a1e8d17`
-- Current upstream base: `fe2963330f32a933f562282165f62ae52cf57145`
-- Upstream release at the base: `v1.26.5`
-
-The fork uses append-only merge history. Routine upstream syncs merge official history into `main`; they do not rebase or force-push published commits.
+This fork is the management panel that the Type-Delta CLIProxyAPI fork (CPA) ships. It adds the CPAUK analytics workspace, labeled and limited API-key management, quota summaries and history, and configuration screens for CPA's fork-only features. It started from upstream commit `d249ff008e0bc2803deb23fb3e2c62418a1e8d17`.
 
 ## Divergence Log
 
-This is a current-state record only. Entries describe surviving differences from official CPAMC.
-Do not record merge or sync details, branch history, current commit pins, or other volatile
-integration references here; keep those in **Merge History** or the relevant build metadata.
+Each behavior where this fork differs from upstream has one entry here. If you change code in this repository, check if this log needs an update.
 
-Update this section only when a new fork feature or behavior is introduced, or when an existing
-divergence changes. Keep IDs stable and unique: gaps and out-of-order IDs are intentional when
-entries are removed. If duplicate IDs are found, remove the duplicate when the content is the same;
-when the content is different, assign the distinct entry the next unused ID. Remove or rewrite an
-entry when upstream absorbs its difference rather than preserving chronology.
+The rules:
 
-### DL069: Model cost modal and cache-hit efficiency
+- Update the entry that owns the behavior you changed, or add an entry with the next unused ID. One entry covers one behavior, not one commit.
+- Describe the current behavior, why the fork needs it, and how it composes with upstream's related behavior. When the behavior changes, rewrite the entry. Do not append a changelog; git and the Merge History hold history.
+- Under **Implementation evidence**, list the key source files and tests. Under **Recorded validation**, list the checks that proved the current behavior.
+- Set **Last updated** to today's date on every entry you touch.
+- Never reuse an ID. Retire an entry only with the user's explicit approval: delete it and name the retired ID in the next Merge History entry.
+- When an ID conflicts from merges, renumber the IDs as needed.
+- A change that does not alter how the fork differs from upstream (formatting, or an edit to this file) needs no entry.
 
-Status: shipped
-
-Files: `src/features/analytics/views/analysis/**`, `src/services/api/{modelCostSeries.ts,modelCostSeriesCache.ts}`, `src/types/analytics.ts`, `src/i18n/locales/**`
-
-Model Cost Efficiency replaces its cache-write column with a sortable cache-hit rate (cache-read tokens over all input tokens, the Overview ratio); zero-input rows show a dash. Clicking a row opens a modal with the model's family logo, provider and cost share, KPIs, a stacked cost history split by provider and service tier, and cost and token category bars. The provider and cost share sit under the model name in the modal header. The chart uses monotone smoothing and a bottom-right legend of plain line swatches. Tier colors skip the four token-component hues so they never read as a category in the bars below. The compact tooltip shows one row per tier, plus labeled rates and multipliers only when they differ from the base. It flips to the left of the cursor on the chart's right half and uses date-only headers for daily buckets. The category bars use the Usage page's token colors, with inline, non-interactive legends. Shares appear in their titles. Table rows use the shared table hover, without a focus highlight that lingered after the modal closed. Each cost cell keeps its share inline beside the amount, and zero-token models show a dash instead of "Price unknown". The series comes from CPA's `model_cost_series` query, prefetched on row hover or focus and cached per selection for 30 seconds, so nothing loads up front and touch taps still work. The modal stays open across analytics auto-refresh, restores focus to its row, dims the whole page, and distinguishes unknown prices and missing token data from missing requests.
-
-Validation: `bun run verify` passes 2,203 tests, lint, TypeScript and production build. CDP checks on desktop and mobile in both themes confirm one request per hovered row and none on open, a modal that survives a 67-second refresh, focus return, a three-tier tooltip inside the chart, and the unknown-price and zero-token states.
-
-### DL070: Event pricing, session, and outcome details
-
-Status: shipped
-
-Files: `src/features/analytics/views/events/**`, `src/features/analytics/views/Events.tsx`, `src/features/analytics/query.ts`, `src/types/analytics.ts`, `src/i18n/locales/**`
-
-The event detail sheet shows the recorded pricing as a component, tokens, rate, and cost table, with the app's cost formatting (exact values in titles). A one-line `×N` tier caption sits above it and a footer row shows the total. The uncached row is labeled "Uncached input", and zero-token rows keep their rate but show a dash for cost. Kiro events show credits used, price per credit, and total; events without a snapshot read as not recorded. Client to CPA shows the raw client session ID, or "Not sent by client" when the client supplied none. Provider and CPA-to-client errors use the shared JSON highlighter when the payload parses as JSON, and the plain error tone otherwise. Sections have a single divider, and for client-side failures the error class appears in the failure-point section. Outcomes come from CPA: canceled events use a neutral badge, keep the reached provider step, mark the client disconnect on the return leg, label the payload "Disconnect reason", and show no failure point. Event filters add a debounced Session ID field (spell-check off, on one row with Clear filters) and replace the success/failure selector with one Outcome control (All, Success, Failure, Canceled); legacy `result=` links map to outcomes.
-
-Validation: `bun run verify` passes 2,203 tests, lint, TypeScript and production build. CDP checks cover token, Kiro, and historical pricing variants, a real canceled stream, a provider-hop error, raw and absent session IDs, and typing into Session ID at 50 ms per key without lost characters.
-
-### DL071: Quota history chart with drain projection
-
-Status: shipped
-
-Files: `src/features/quota/**`, `src/services/api/quotaHistory.ts`, `src/i18n/locales/**`
-
-On a provider tab, a quota history chart replaces the summary card. Its header carries only the title and the "N% of M% tier" figure, both at the Quota windows heading size. CPAMC posts per-credential window samples to CPA after each refresh, once per fetched reading, so revisiting the page does not re-post cached readings as new ones. It rebuilds the hourly total with the same aggregation as the live summary. A credential's last sample carries forward until an unobserved reset, and a credential with no reading for 24 hours (disabled, removed, or failing to fetch) leaves the total instead of blanking it. Samples without a plan, such as CPA's hourly Claude samples, reuse the credential's last recorded plan. The chart spans the Quota windows weekly range with a current-time marker, and its plot stretches to the heading's edges. It scales to the visible capacity on round ticks, with a capacity line that stays out of the tooltip. The remaining line is lightly smoothed, and the remaining and projected lines carry translucent fills in the provider's Quota windows color. A legend footer names the charted window and explains the total and projection. The dashed projection starts from the credentials behind the live summary and falls back to stored samples only without live readings, so a disabled or failing credential does not suppress it. Each credential drains at its net drop per reset cycle over the last week, so fluctuating or stale readings do not inflate the rate, and refills at the live reset times. The All tab is unchanged, and the chart is hidden when analytics is unavailable.
-
-Validation: `bun run verify` passes 2,203 tests, lint, TypeScript and production build. Tests cover aggregation, gaps, first-visit rendering, capacity changes, throttled-sample resets, and projection cases. CDP checks with mocked quota responses cover desktop and mobile in both themes. Later fixes add regression tests for disabled and failing credentials, silent credentials, stale and fluctuating readings, and missing plans. They were checked through CDP against a live CPA's real Codex and Claude history, with the panel's history writes intercepted, including a page revisit that posts nothing new.
-
-### DL072: ClickHouse server mode in storage, settings, and analytics health
-
-Status: shipped
-
-Files: `src/features/config/{storageUsage.ts,components/StorageUsage.tsx,components/sections/AnalyticsSettingsFields.tsx,visualConfigServer.ts}`, `src/features/analytics/views/{Maintenance.tsx,manage/maintenanceModel.ts}`, `src/services/api/{storage.ts,analytics.ts}`, `src/types/{analytics.ts,visualConfig.ts}`, `src/i18n/locales/**`, `tests/{analyticsLegacyImport.test.tsx,visualConfigClickHouse.test.ts}`
-
-CPA can store analytics and request capture in ClickHouse (CPA DL060). When the storage response includes ClickHouse, Collection and storage renders one stacked bar per ClickHouse disk with the same legend, formatting, and measured-source disclosure as local volumes. The segments are CPA analytics, request logs and transcripts, other CPA tables, other ClickHouse data, other files, and free space. An unreachable ClickHouse shows an inline unavailable state, and local volumes stay visible.
-
-The same section edits the ClickHouse DSN (as a password input), database, telemetry retention, and agent-query limits, with restart hints for the DSN and database. The visual editor leaves untouched YAML as it was and writes numeric fields as numbers. Analytics copy in all six locales describes ClickHouse storage and its DSN requirement. SQLite now appears only for the one-time legacy import and the files beside it, and backup and maintenance copy describes logical exports and ClickHouse checks.
-
-Analytics health shows the legacy analytics import and the legacy request-log import as status chips: pending, running, done with counts, failed with the reason, or abandoned with the reason. Telemetry health loads in parallel. When it is unavailable, including a 503, the request-log item is hidden and analytics health still shows. Servers without these fields keep the previous health view.
-
-Validation: `bun run verify` passes, along with focused rendering and contract tests for every import state, a telemetry 503, and the locale keys. Isolated Chrome CDP checks against a local CPA and ClickHouse database cover the storage card on desktop and mobile in light, dark, and white themes, plus real import health showing Done with counts, Failed with the reason, and Abandoned.
-
-### DL073: Config Routing tab, rule-based routing dry run, and event routing decisions
-
-Status: shipped
-
-Files: `src/features/config/**`, `src/features/analytics/views/events/**`, `src/components/ui/{icons,Select,RoutingConditionText}.tsx`, `src/components/ui/routingIcons.ts`, `src/hooks/useVisualConfig.ts`, `src/types/{visualConfig,routing}.ts`, `src/services/api/routing.ts`, `src/i18n/locales/**`, `tests/{routingSection,visualConfigRoutingRules,configFieldParity,configUiState,configSettingLayout,configOAuthBehaviorUi,configServerUi,analyticsEventRouting}.test.ts`
-
-A new Config tab `routing` (03, labeled "Routing") sits between Network and Logging, renumbering the sections to 01–07. Routing strategy, session affinity, its TTL, subagent inheritance and force-model-prefix move there from Network, and the previously UI-less `routing.session-affinity-rebind-on` gains an `any`/`quota` select that passes unknown values through. The tab renders the precedence stack weakest-first: custom rules, routing strategy, session affinity, then the read-only routing gate (disabled, cooling down, quota, quota reserve, model not supported, model prefix, retry round, weight, pinned/policy). The section description explains the stack, a one-line legend under it bolds the three rules of thumb (only the base-rule note keeps a lock icon), all-caps CUSTOM RULES and BASE RULES labels head the two groups, base rules sit on a diagonal-stripe background mixed from the theme's text color and carry a locked BASE pill, and each gate chip carries the same icon the event matrix uses for that reason. Custom rules use a client-id draft list. A dashed placeholder adds a rule: it is the empty state, then sits under the last rule and appears only while every rule is valid, so drafts are finished one at a time. Each rule has an inline name, enable switch, duplicate/delete, keyboard move up/down plus native drag reordering, a WHEN → ROUTE TO summary, and a recursive ALL/ANY/NOT condition builder over model, api-key, client and header with the server's operator set and limits. The field and operator menus open at least 300px wide and describe every option (for example, "is" is an exact case-insensitive value, "matches" a `*`/`?` wildcard, "regex" a case-sensitive regular expression); `Select` gained an optional `dropdownMinWidth` for this, and its trigger text now fills the space after an option icon. Condition selects, inputs and the `in` token box share one 36px height. Model, API key, client and header carry an icon in the field menu, its trigger, the rule summary and the event condition line; one splitter places the icons in both panel-rendered and CPA-rendered condition text, skipping quoted values, list values and header names. `routing.rules` is written with an AST-preserving writer that reuses baseline nodes, so untouched rules stay byte-identical and edits, reorders and deletions only rewrite the affected nodes (the server rejects unknown rule fields, so none reach the editor from a valid config). Comments outside the rules list are kept; comments inside the list, on or between rule items, are lost when a save applies the JSON PATCH, exactly as with the existing payload rule lists. The null `routing` section is normalized on first write, rebases re-align editor ids, and saves guard the list with `assertConfigListsUnchanged(['routing','rules'])`. Client validation mirrors the server's structure rules (one operator, non-empty values, regex length, non-empty route-to, depth/node/target/rule limits counted on the serialized tree) plus a conservative RE2 check (inline flags and `(?P<name>` are rewritten before a JS parse; lookarounds and backreferences are rejected) that flags only patterns Go would reject, so the server's save error stays the final word, and blocks saving with an inline message per rule. Route targets are picked from `GET /routing/credentials`, show label, provider and a disabled badge, and unknown ids render as removable missing chips; Home mode shows a notice that custom rules are ignored. The side panel posts the current draft rules to `POST /routing/dry-run` (debounced, side-effect free) and renders the trace as the winner card plus one row per layer in stack order, including rule statuses, tier pool and pick (or "not predictable"), affinity state, and blocked candidates with reasons; a rejected draft shows the endpoint's message and path inline. All six locales carry the new copy.
-
-Usage → Events → Event details gains a "Routing decision" section directly after "Request path", fed by the event-detail `routing_trace`. A verdict line shows the routed credential and how it was chosen (strategy, session binding, pin, plugin, paid credits, or Home) with the applied rule; the applied rule's rendered condition sits on its own muted line, with a fell-through marker when a matching rule could not be used. A compact dot matrix has one row per layer in stack order (custom rules, strategy, session affinity, routing gate) and one column per candidate, aligned with CSS subgrid; glyphs show wanted, overridden, bound, kept, broken, held, gate-passed and blocked states, with each blocked cell drawing its gate reason's icon in red (a piggy bank for a quota-reserve hold, a snowflake for cooldown, and so on), the deciding row carries a crown chip, and the routed column has an accent band. Every cell, row and the verdict explain themselves in tooltips on hover and keyboard focus. More than 16 candidates collapse untargeted blocked credentials into one "+N blocked" cell. Traces are normalized at read time (null arrays become empty, malformed traces hide the section), and events without a trace omit the section.
-
-Validation: `bun run verify` passes 2,286 tests, lint, TypeScript and the production build. Three QA rounds against a live CPA (two Z.ai credentials, real upstream traffic, hot-reloaded rules) and an isolated Chrome CDP context covered the Routing tab (nested ALL/ANY/NOT rules built, reordered and saved; untouched rules byte-identical; comma, padded and empty `in` values kept; the Trace a request panel against the live dry run, including predicted, unpredictable and rejected drafts) and the event Routing decision section (rule applied, overridden, fell through, session binding kept/held/agreeing, absent targets, events without a trace) at 1440px and 390px in both themes, with matrix columns aligned to 0px and no horizontal overflow. A follow-up restored the approved mockup's Routing tab styling, added gate icons and option descriptions, and verified them with `bun run verify` (2,313 tests) and a live CPA with a Z.ai credential held by a 99% weekly quota reserve, whose event showed the red reserve icon and "Held back by its quota reserve. Resets in 6.9 days." at 1440px and 390px in both themes. The dry-run panel names the reserve too, and its reset times include the date when they fall after today. Option descriptions were checked for fit in English, Russian, Vietnamese, Korean and Chinese menus. A second follow-up added the add-rule placeholder, field icons, the locked BASE pill, matched condition control heights and the inline RE2 check; before it, an invalid regex such as `(glm` reached the save dialog and failed with a 422. Against the live CPA it now shows the inline error, a rule built and saved in the editor with `(?i)^glm-` was accepted by the server, and its live Z.ai events show the model icon on the condition line. Eighteen patterns, including RE2-only syntax, got the same verdict from the panel check and Go `regexp.Compile`.
-
-### DL068: Kiro credit pricing in analytics
-
-Status: shipped
-
-Files: `src/features/analytics/**`, `src/services/api/analytics.ts`, `src/types/analytics.ts`, `src/i18n/locales/**`
-
-Analytics supports the Kiro USD-per-credit setting, displays reported credits and the applied rate on events, and includes credit-based cost in analysis totals while hiding its category from the breakdown and model table. Incomplete token breakdowns use the generic partial-data presentation. Manual pricing overrides retain precedence. The credit editor appears only when the server exposes the setting; token-rule updates remain compatible with older servers. Events without credit fields remain supported.
-
-Validation: `bun run verify` passes 2,138 tests, lint, TypeScript and production
-build. Desktop and mobile CDP checks against the Docker app verify four visible
-token categories, hidden costs in totals and percentage denominators, and retained
-rate-editor and event-credit details. Mixed token/credit fixtures preserve full
-monetary totals without page overflow. Earlier live Kiro checks cover metering,
-rate editing, restart and repricing. The canonical panel bundle and repository
-Docker image build successfully.
-
-### DL001: Fork maintenance convention
-
-Status: shipped
-
-Files: `AGENTS.md`, `FORK.md`
-
-The fork records its fork and upstream URLs, repository commands, architecture, glossary, sync rules, stable divergence IDs, validation, and merge history.
-
-Evidence:
-
-- `AGENTS.md` defines CPA, CPAUK, and CPAMC and documents the `origin` and `upstream` convention.
-- This file records the exact baseline, sync comparison, and validation.
-
-### DL002: Revisioned structured API-key management
-
-Status: shipped
-
-Files: `src/types/apiKeys.ts`, `src/services/api/apiKeys.ts`, `src/services/api/capabilities.ts`, `src/services/api/transformers.ts`, `src/hooks/useVisualConfig.ts`, `src/features/config/components/blocks/ApiKeysCardEditor.tsx`
+### DL002 — Revisioned structured API-key management
 
 CPAMC reads legacy string keys and structured key objects without coercing objects to strings. Row edits preserve unknown entry and limit fields, use the configuration index plus revision on supported CPA versions, and block structured limit writes on older versions. Raw keys remain available to administrators but start concealed. Reveal and raw-copy actions are per row, revealed state clears when the route or authenticated connection changes, and full SHA-256 key IDs remain internal until the administrator explicitly copies one. The visible identity uses the shortest collision-safe even-length prefix starting at 12 characters. The existing configuration page now shows request and token caps, reset cadence, current consumption, and confirmed counter reset.
 
 Compatibility tests cover legacy and structured fixtures, unknown-field preservation, duplicate full IDs, and colliding display prefixes.
 
-Validation on 2026-08-31:
+**Implementation evidence:** `src/types/apiKeys.ts`, `src/services/api/apiKeys.ts`, `src/services/api/capabilities.ts`, `src/services/api/transformers.ts`, `src/hooks/useVisualConfig.ts`, `src/features/config/components/blocks/ApiKeysCardEditor.tsx`.
+
+**Recorded validation:** On 2026-08-31:
 
 - `bunx bun@1.3.14 install --frozen-lockfile`
 - `bunx bun@1.3.14 run verify`
 - Result: 427 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 
-### DL003: Isolated analytics workspace
+**Last updated:** 2026-08-31
 
-Status: shipped
-
-Files: `src/features/analytics/**`, `src/services/api/analytics.ts`, `src/types/analytics.ts`, `src/components/layout/MainLayout.tsx`, `src/router/MainRoutes.tsx`, `src/App.tsx`
+### DL003 — Isolated analytics workspace
 
 CPAMC keeps the existing dashboard and shell and adds a capability-gated Analytics workspace with eight lazy, route-contained pages: Overview, Analysis, Keys, Events, Pricing, Providers and quotas, Shared views, and Maintenance. The sidebar has one Analytics entry; the workspace tab strip groups Usage and Manage pages. The former Leaderboard route redirects to Keys, where rank-by tokens or cost absorbs its local ranking. Applicable reads use the versioned POST query contract. Full key IDs remain in memory and request bodies, catalog cursors use `X-Analytics-Cursor`, multi-key filters stop at 100 keys, and the client normalizes nullable empty Go collections before rendering. The key catalog covers the bounded 10,000-key lifecycle maximum.
 
 Keys use backend token or known-cost ranking, opaque cursor pagination, stable backend ties, and explicit unpriced-token disclosure. Short collision-safe key references may appear in hash URL state; full hashes stay in request bodies and in-memory values only. Shared-view credentials appear only in one-time fragment links, are removed from history before decoding or exchange, and are never stored in browser storage. Failed credential exchanges stop the loading state and show the localized error. The durable viewer list exposes only labels, expiry, and revocation controls in the UI. Maintenance uses pollable jobs and the preview, batch ID, backup, and confirmed purge sequence. All four supported locales include the new routes and states.
 
-Validation on 2026-08-31:
+**Implementation evidence:** `src/features/analytics/**`, `src/services/api/analytics.ts`, `src/types/analytics.ts`, `src/components/layout/MainLayout.tsx`, `src/router/MainRoutes.tsx`, `src/App.tsx`.
+
+**Recorded validation:** On 2026-08-31:
 
 - `bunx bun@1.3.14 install --frozen-lockfile`
 - `bunx bun@1.3.14 run verify`
 - Result: 436 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 - An isolated Chrome DevTools Protocol run against a live local CPA exercised all nine routes at 1440 by 900 and Overview, Keys, Leaderboard, Shared views, and Maintenance at 390 by 844. It found no body overflow, unreachable non-scrollable controls, positive-tabindex ordering, API alerts, or runtime exceptions after the nullable-collection fix.
 
-### DL004: Analytics configuration and navigation clarity
+**Last updated:** 2026-09-03
 
-Status: shipped
-
-Files: `src/components/layout/MainLayout.tsx`, `src/components/ui/icons.tsx`, `src/features/config/**`, `src/hooks/useVisualConfig.ts`, `src/types/visualConfig.ts`, `src/utils/yaml.ts`, `src/i18n/locales/**`, `tests/visualConfigAnalytics.test.ts`
+### DL004 — Analytics configuration and navigation clarity
 
 The eight Analytics workspace tabs use distinct vendored Lucide icons, while the sidebar exposes one Analytics entry. The Config Panel Common tab exposes every durable analytics setting through the same typed controls used by Logging and Diagnostics. The visual YAML adapter loads and writes the complete nested `analytics` contract, changes only dirty fields, and preserves unknown YAML fields.
 
 Frontend validation matches CPA's queue, batch, duration, retention, circuit, signed 64-bit storage, and trusted proxy CIDR constraints. Storage byte values retain full `int64` precision. Path help identifies `identity.key` and `viewers.json` as companion files beside the SQLite database. CRLF input is normalized before YAML parsing and diff normalization so serialized comments cannot retain stray carriage returns or gain visible blank lines on Windows.
 
-Validation on 2026-09-02:
+**Implementation evidence:** `src/components/layout/MainLayout.tsx`, `src/components/ui/icons.tsx`, `src/features/config/**`, `src/hooks/useVisualConfig.ts`, `src/types/visualConfig.ts`, `src/utils/yaml.ts`, `src/i18n/locales/**`, `tests/visualConfigAnalytics.test.ts`.
+
+**Recorded validation:** On 2026-09-02:
 
 - `bunx bun@1.3.14 run verify`
 - Result: 441 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 - An isolated raw Chrome DevTools Protocol run against a live local CPA checked the Common panel at 1440 by 900 and 390 by 844. All 12 analytics controls rendered, all nine Analytics links used SVG icons with no fallback dots, invalid CIDRs showed an error, a real `analytics.enabled` save and reload succeeded, and the run found no horizontal overflow or runtime exceptions.
 
-### DL005: Analytics navigation and key-filter parity
+**Last updated:** 2026-09-03
 
-Status: shipped
-
-Files: `src/features/analytics/**`, `src/components/layout/MainLayout.tsx`, `src/features/config/ConfigPage.module.scss`, `src/i18n/locales/**`, `tests/analyticsContracts.test.ts`
+### DL005 — Analytics navigation and key-filter parity
 
 Every Analytics route uses one routed tab bar with the same underline, bottom rule, icon sizing, interaction states, horizontal scrolling, and desktop/mobile content rhythm as the Config Panel tabs. Analytics page order, its eight vendored Lucide icons, and its Usage and Manage groups come from one registry shared with the single Analytics sidebar entry. The Config Panel also keeps a visible 20 px desktop and 16 px mobile gap between the Common and Durable Analytics cards.
 
 The Analytics key scope is a searchable multi-select dropdown. An empty selection continues to mean all keys and omits `key_ids` from query bodies; explicit selections retain full key hashes only in memory and request bodies, stop at 100 keys, and show friendly labels alongside collision-safe short hashes. Short references may be represented in hash URL state without exposing full hashes. Selection applies without closing the menu, search covers labels, short hashes, and lifecycle status, and the Keys catalog no longer duplicates that search field. The control includes keyboard navigation, listbox semantics, loading, retry, empty, and no-match states. It caps the rendered option window at 200 while search continues to cover the full catalog. The Keys catalog also keeps the short hash visible when a friendly label exists.
 
-Validation on 2026-09-02:
+**Implementation evidence:** `src/features/analytics/**`, `src/components/layout/MainLayout.tsx`, `src/features/config/ConfigPage.module.scss`, `src/i18n/locales/**`, `tests/analyticsContracts.test.ts`.
+
+**Recorded validation:** On 2026-09-02:
 
 - `bunx bun@1.3.14 run verify`
 - Result: 447 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 - Isolated raw Chrome DevTools Protocol runs against the Docker Compose stack verified the nine icon tabs, active underline and bottom rule, 20 px desktop and 16 px mobile tab-to-body spacing, searchable two-key selection, menu persistence, all-keys reset, two-stage Escape behavior, internal-only full hashes, viewport-contained menus, and no page overflow or runtime exceptions. The multi-key interaction used a synthetic three-key catalog response inside the isolated browser context; all other application traffic used the live CPA stack.
 
-### DL006: Analytics control and state consistency
+**Last updated:** 2026-09-03
 
-Status: shipped
-
-Files: `src/components/ui/Select.*`, `src/features/analytics/**`, `src/components/layout/MainLayout.tsx`, `src/router/MainRoutes.tsx`, `tests/analyticsContracts.test.ts`
+### DL006 — Analytics control and state consistency
 
 Analytics uses the shared Select component for every single- and multi-select control. Time range and API-key filters now share the same 40 px trigger and label typography, while the searchable multi-select retains full key IDs only as internal values and announces its current selection. Labeled keys remain collision-safe in filters, Keys, Shared views, and Maintenance by pairing the label with the short hash. Analytics buttons, dropdowns, and single-line inputs use a scoped 40 px control height; textareas and the existing ToggleSwitch keep their native dimensions.
 
 Analytics stores the time range, selected keys, and Keys sort in hash URL state, without browser storage. Overview, Analysis, Keys, and Events share the range and key filter; Events adds its own provider, model, source, and result filters. Short collision-safe references may appear in that URL state, while full hashes remain body-only. Fork-owned Analytics loading paths use the shared Skeleton component with an accessible loading status, and Maintenance uses the existing ToggleSwitch for dry-run mode.
 
-Validation on 2026-09-02:
+**Implementation evidence:** `src/components/ui/Select.*`, `src/features/analytics/**`, `src/components/layout/MainLayout.tsx`, `src/router/MainRoutes.tsx`, `tests/analyticsContracts.test.ts`.
+
+**Recorded validation:** On 2026-09-02:
 
 - `bunx bun@1.3.14 run verify`
 - Result: 455 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 - An isolated raw Chrome DevTools Protocol run against the Docker Compose stack exercised all nine Analytics routes at desktop and mobile sizes. All 33 visible buttons, dropdowns, and single-line inputs measured 40 px; no native selects, horizontal overflow, visible text loaders, or runtime exceptions remained. Delayed requests exposed Skeleton states, shared filters retained 30 days and two selected keys across routes, and the Leaderboard request omitted `key_ids`.
 
-### DL007: Persistent Analytics shell and portal loading
+**Last updated:** 2026-09-03
 
-Status: shipped
-
-Files: `src/components/layout/MainLayout.tsx`, `src/router/MainRoutes.tsx`, `src/features/analytics/**`, `tests/analyticsContracts.test.ts`
+### DL007 — Persistent Analytics shell and portal loading
 
 Analytics keeps its module label, readiness badge, page-specific title and subtitle, and routed tab bar outside lazy route content. The active route body, including Suspense, capability, query-loading, unavailable, and error states, renders through one in-page portal host below the tabs. A host-owned Skeleton covers handoffs where rapid navigation advances the URL before the keyed page transition creates its next current layer, so the content slot never becomes empty or collapses. Outgoing and stacked transition layers cannot portal stale content, while a token registry prevents an outgoing cleanup from hiding a newer payload. The visible state badge uses the localized page state label.
 
 The Analytics provider keeps one `PageTransition` instance mounted across Analytics and non-Analytics routes. Capability reads are enabled only while Analytics is active, and request generations prevent an older same-key response from replacing a newer result after refresh or leave and re-entry. The ready badge mirrors the Dashboard live badge geometry, typography, color, and pulse, appears immediately after “CPA Usage Keeper” above the title, and preserves the same geometry without animation for degraded and reduced-motion states.
 
-Validation on 2026-09-02:
+**Implementation evidence:** `src/components/layout/MainLayout.tsx`, `src/router/MainRoutes.tsx`, `src/features/analytics/**`, `tests/analyticsContracts.test.ts`.
+
+**Recorded validation:** On 2026-09-02:
 
 - `bunx bun@1.3.14 run verify`
 - Result: 462 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 - The Impeccable UI detector returned no findings for the changed layout, Analytics, and routing files.
 - An isolated raw Chrome DevTools Protocol run against the Docker Compose stack paused lazy capability and Analytics requests while switching Overview, Analysis, and Keys. The same shell, header, title, tabs, content host, and global page-transition nodes survived loading and route changes; header, tab, and host top coordinates remained exactly 82 px, 199 px, and 257.1875 px. A 60 ms Analysis-to-Keys double switch produced 78 samples with a minimum 222.546875 px content height and 29 host-Skeleton handoff samples. A newer ready capability response remained authoritative after an older disabled response completed late. Desktop, degraded, and 320 CSS-pixel Russian reduced-motion runs reported no overflow, runtime exceptions, or console errors.
 
-### DL008: CPAUK-fidelity Analytics rebuild
+**Last updated:** 2026-09-03
 
-Status: shipped
-
-Files: `src/features/analytics/**`, `src/services/api/analytics.ts`, `src/types/analytics.ts`, `src/components/common/{PageTransition.tsx,pageTransitionState.ts}`, `src/components/layout/MainLayout.tsx`, `src/router/MainRoutes.tsx`, `src/pages/LoginPage.tsx`, `src/i18n/locales/**`
+### DL008 — CPAUK-fidelity Analytics rebuild
 
 Analytics now follows CPAUK's information model while using CPAMC's existing Card, Table, EmptyState, Skeleton, Select, and Dashboard SVG chart idioms. Overview has CPAUK-style KPIs, sparklines, daily averages, and activity heatmaps. Analysis has independently loaded cards for time series, models, latency, distributions, cost, efficiency, and key-by-model data. Keys combines ranking with range-aware drilldown. Events has dimension filters, row detail, export, total and loaded counts, and selectable persisted columns. Pricing, Providers and quotas, Shared views, and Maintenance are rebuilt as management pages, and Viewer shows the scoped usage journey.
 
 Schema-v2 requests support named and custom ranges. Hash URL state carries shareable ranges, sort, and collision-safe short key references; query cursors freeze the resolved filter state. Full key hashes remain in request bodies only. The login flow restores Analytics deep links.
 
-Validation on 2026-09-03:
+**Implementation evidence:** `src/features/analytics/**`, `src/services/api/analytics.ts`, `src/types/analytics.ts`, `src/components/common/{PageTransition.tsx,pageTransitionState.ts}`, `src/components/layout/MainLayout.tsx`, `src/router/MainRoutes.tsx`, `src/pages/LoginPage.tsx`, `src/i18n/locales/**`.
+
+**Recorded validation:** On 2026-09-03:
 
 - `bun run verify`
 - Result: 495 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
@@ -227,15 +132,15 @@ Validation on 2026-09-03:
 - Independent raw Chrome DevTools Protocol verification rendered all eight pages at 1440 by 900 and 390 by 844 in light and dark themes. It found no document overflow, unnamed controls, raw key or full-hash leaks, raw server enum tokens, console exceptions, or ordinary-navigation request failures. Deep-link login restore, cross-tab URL state, rapid route recovery, and same-route range updates passed.
 - A seeded seven-day `Asia/Kolkata` Analysis run verified both 168-bucket time-series charts at their start, midpoint, and end. Each chart's 168 interaction targets measured exactly 40 px wide and aligned with its bucket centers to within 0.000244 px.
 
-### DL009: Analytics accessibility, state-aware charts, and URL-carried filters
+**Last updated:** 2026-09-03
 
-Status: shipped
-
-Files: `src/features/analytics/**`, `src/i18n/locales/**`
+### DL009 — Analytics accessibility, state-aware charts, and URL-carried filters
 
 Overview KPI tiles are grouped as accessible sets with roving-tabindex heatmap grids, summarized chart `aria-label`s, and cost/error KPI tones that follow semantic status rather than raw color. The activity heatmap uses a neutral ramp with contrast-switching value labels and marks the selected range as its own query zone instead of relying on color alone. Analysis latency charts use log10 axes with mobile-sized latency tiles and a bounded "browse slowest samples" list; the key/model heatmap caps visible columns and reports how many are shown. Analysis cards load independently per section so one failed section does not block the rest, and each has its own retry. Route-level errors now retry in place instead of forcing a full reload. Events filters, the activity window, and the distribution tab persist to URL state so a shared link reproduces the same view; dimension pages follow the pointer instead of a fixed layout. Keys defaults to cost-descending sort, and Keys/Events fall back to mobile card lists below the table breakpoint. Pricing catalog sync now surfaces a real failure toast instead of assuming success, and reprice runs against the analytics workspace's active range (shown and explained in the Pricing view) instead of a fixed 24h/7d/30d choice. The Viewer route reuses the same KPI tile treatment as the authenticated pages. Fifty new `analytics.*` translation keys covering these views, including a new `analytics.maintenance.*` group for the Maintenance page's job, backup, restore, and purge copy, were added to all four locale files (`en`, `ru`, `zh-CN`, `zh-TW`) with matching key sets.
 
-Validation on 2026-09-03:
+**Implementation evidence:** `src/features/analytics/**`, `src/i18n/locales/**`.
+
+**Recorded validation:** On 2026-09-03:
 
 - `bun run verify`
 - Result: 521 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
@@ -246,22 +151,24 @@ Fork baseline validation on 2026-08-31, before DL002 and DL003:
 - `bunx bun@1.3.14 run verify`
 - Result: 424 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 
-### DL010: Round-4 analytics correctness — request dedupe, shared heatmap readout, viewer expiry, and locale fixes
+**Last updated:** 2026-09-03
 
-Status: shipped
-
-Files: `src/services/api/analytics.ts`, `src/services/api/client.ts`, `src/features/analytics/useAnalyticsLoad.ts`, `src/features/analytics/components/{AnalyticsShared,HeatmapReadout}.tsx`, `src/features/analytics/components/{analyticsErrorCopy,analyticsFormatting}.ts`, `src/features/analytics/AnalyticsTabs.tsx`, `src/features/analytics/ViewerPage.tsx`, `src/features/analytics/views/{Events,Providers,Maintenance,Overview}.tsx`, `src/features/analytics/views/{overview,analysis,events,viewer}/**`, `src/styles/themes.scss`, `src/i18n/locales/**`, `src/features/config/components/sections/AnalyticsSettingsFields.tsx`, `src/hooks/useVisualConfig.ts`, `src/types/visualConfig.ts`, `src/features/config/constants.ts`, `src/features/config/searchIndex.ts`
+### DL010 — Round-4 analytics correctness — request dedupe, shared heatmap readout, viewer expiry, and locale fixes
 
 Round 4 follows the round-3 critique (`ANALYTICS_CRITIQUE.md`, R3-1…R3-14). Concurrent identical `POST /analytics/query` calls are now deduplicated at the transport on the serialized body, so a StrictMode Analysis mount issues five requests instead of twenty; `Retry-After` is read from 429 responses and every Retry button counts down before re-enabling instead of re-firing into the throttle. Both heatmaps share one `HeatmapReadout` live region (`role=status`, never `aria-hidden`) driven by pointer, pointerdown and focus, and the token ramp uses a new dataviz-neutral `--viz-neutral` token instead of the shell chrome grey. Latency chart captions sit in reserved gutters and all chart ticks are 11 px. The viewer page renders the shared-view link expiry and the 30-minute session expiry as two dated sentences. Events rows are the keyboard target (one roving stop per table instead of one per badge), four never-populated columns were removed from the picker, and a retained-range failure names the retention cutoff. `AnalyticsTabs` is a real `tablist` with Arrow/Home/End navigation. Providers counters are labelled "Observed" with an explanation, and every Maintenance input has an accessible name. Latin technical acronyms (`TTFT`, `RPM`, `TPM`) were previously transliterated in `zh-CN`, `zh-TW`, and `ru`; they now stay Latin in every locale with glosses confined to `*_description` keys. `analytics.overview.window_*`, 32 `analytics.job_result.*` keys, and `analytics.enums.{source,service_tier,endpoint}.*` were added and wired through `formatAnalyticsEnum`; seven unreferenced keys were pruned; all four locales carry the same 564 `analytics.*` keys. A new `analytics.storage-time-zone` Config field validates against `Intl.supportedValuesOf('timeZone')` (guarded) and warns that changing it after retention requires an analytics reset.
 
-Validation on 2026-09-03:
+**Implementation evidence:** `src/services/api/analytics.ts`, `src/services/api/client.ts`, `src/features/analytics/useAnalyticsLoad.ts`, `src/features/analytics/components/{AnalyticsShared,HeatmapReadout}.tsx`, `src/features/analytics/components/{analyticsErrorCopy,analyticsFormatting}.ts`, `src/features/analytics/AnalyticsTabs.tsx`, `src/features/analytics/ViewerPage.tsx`, `src/features/analytics/views/{Events,Providers,Maintenance,Overview}.tsx`, `src/features/analytics/views/{overview,analysis,events,viewer}/**`, `src/styles/themes.scss`, `src/i18n/locales/**`, `src/features/config/components/sections/AnalyticsSettingsFields.tsx`, `src/hooks/useVisualConfig.ts`, `src/types/visualConfig.ts`, `src/features/config/constants.ts`, `src/features/config/searchIndex.ts`.
+
+**Recorded validation:** On 2026-09-03:
 
 - `bunx tsc --noEmit`: 0 errors.
 - `bun test`: 550 pass, 0 fail, 1986 expect() calls, 81 files.
 - `bunx eslint` on the changed TS/TSX files above: 0 errors, 0 warnings.
 - `bun run verify`: 550 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 
-### DL011: Round-5 analytics UI hardening — chart palettes, Retry-After wiring, viewer origin, locale-independent tests
+**Last updated:** 2026-09-03
+
+### DL011 — Round-5 analytics UI hardening — chart palettes, Retry-After wiring, viewer origin, locale-independent tests
 
 CPAMC's analytics workspace picked up eight related fixes in the same round.
 
@@ -289,9 +196,7 @@ Finally, the four CPAMC locale files gained the enum-label groups `analytics.enu
 
 **Last updated:** 2026-09-03
 
-### DL012: Round-6 analytics chart engine, navigation, and locale round-trip
-
-Status: shipped
+### DL012 — Round-6 analytics chart engine, navigation, and locale round-trip
 
 Round 6 replaced the analytics workspace's charting stack and information architecture in one pass.
 
@@ -313,35 +218,43 @@ The four CPAMC locale files were re-synced for the round: the four `analytics.ra
 
 **Last updated:** 2026-09-04
 
-### DL013: Stable overview hover and Sunday-first activity cells
+### DL013 — Stable overview hover and Sunday-first activity cells
 
 Overview sparklines keep explicit CSS-variable colors during ECharts emphasis, preventing hover from clearing the SVG line and area. Their cursor stays default because they have no click action. KPI sparkline options request body-level placement, while `AnalyticsChart` adapts that request into a per-chart fixed portal clipped to the viewport. When a port does not supply a custom position, the adapter places the panel 20px above and right of the pointer, translates the viewport-clamped point back to chart-local coordinates for ECharts, and preserves custom positions. This keeps the panel outside the card's rounded `overflow: hidden` boundary without letting a hidden stale tooltip coordinate create page overflow after a resize.
 
 The activity calendars use a CSS grid with Sunday in the first row. Grid cells and legend swatches share the same 12 × 12px border-box size, rounded corners, and color classes, with 3px gaps. Monday, Wednesday, and Friday labels mark their rows while Sunday remains first. Weekday and month labels follow the app locale. Transparent 15 × 15px cell hitboxes meet across the 3px gutters, keeping hover active between neighboring 12px squares. Hover outlines the cell and immediately shows a styled day-detail tooltip through a body portal, outside the scrolling card. The tooltip sits above and to the right of the pointer, clamped inside the viewport. Its persistent panel uses the ECharts 400ms transform and 200ms opacity transitions, disabled for reduced motion. It dismisses on pointer exit, scroll, resize, or Escape. The monthly text alternative and live readout remain available. On narrow screens, each calendar shows the most recent whole week columns that fit beside the fixed weekday labels. A ResizeObserver adjusts the visible window as card width changes; the newest date stays visible without horizontal scrolling. Wider cards reveal older weeks, up to the full year. Yearly totals and the accessible monthly table retain the complete activity range.
 
-Validation: `bun run verify` passes all 626 tests, lint, TypeScript compilation, and the production build. Chrome CDP checks against the running dev server and its mock data at 1440 × 900 and 390 × 844 confirm KPI tooltip panels are visible at desktop and mobile probe points, preserve the existing ECharts motion and placement, and do not add page overflow. The resize regression check records the prior 1,219px scroll width after a desktop hover and 382px after the fix at a 390px viewport. The same checks confirm visible sparklines on hover, default computed cursors, all rendered cells at 12 × 12px, Sunday-first placement, fixed weekday labels beside the responsive date window, and visible hover tooltips and cell outlines on both calendars. Pointer probes in horizontal and vertical gutters reproduce missing tooltips before the hitbox fix and pass afterward. The calendar test covers unsorted dates, missing days, and year boundaries.
+**Implementation evidence:** `src/features/analytics/views/overview/overviewModel.ts`, `src/features/analytics/views/overview/{OverviewKpis.tsx,ActivityHeatmaps.tsx,Overview.module.scss}`, `src/features/analytics/components/{AnalyticsChart.tsx,AnalyticsChart.module.scss}`; tests: `tests/analyticsOverview.test.ts`.
 
-### DL014: Free KPI tooltip positioning
+**Recorded validation:** `bun run verify` passes all 626 tests, lint, TypeScript compilation, and the production build. Chrome CDP checks against the running dev server and its mock data at 1440 × 900 and 390 × 844 confirm KPI tooltip panels are visible at desktop and mobile probe points, preserve the existing ECharts motion and placement, and do not add page overflow. The resize regression check records the prior 1,219px scroll width after a desktop hover and 382px after the fix at a 390px viewport. The same checks confirm visible sparklines on hover, default computed cursors, all rendered cells at 12 × 12px, Sunday-first placement, fixed weekday labels beside the responsive date window, and visible hover tooltips and cell outlines on both calendars. Pointer probes in horizontal and vertical gutters reproduce missing tooltips before the hitbox fix and pass afterward. The calendar test covers unsorted dates, missing days, and year boundaries.
+
+**Last updated:** 2026-09-05
+
+### DL014 — Free KPI tooltip positioning
 
 The KPI option removes `confine: true`, which had constrained a 64px tooltip to the 32px sparkline canvas and placed it over the graph. The adapter supplies a typed default position callback only for portaled tooltips without a custom position. It uses the document client width and height so scrollbar space is excluded from the viewport bounds. It clamps the desired viewport coordinates, then converts them through the chart host rectangle back to the coordinates ECharts expects before it translates them into the fixed portal. The portal's `overflow: clip` remains in place for stale coordinates after resize. Heatmap options and behavior are unchanged.
 
-Validation: targeted Bun tests and TypeScript checks pass. The CDP mock check covers desktop/mobile left, middle, and right probes, viewport containment, no console errors, and no document overflow after resize. Full results are in `free-tooltip.md`.
+**Implementation evidence:** `src/features/analytics/components/{AnalyticsChart.tsx,AnalyticsChart.module.scss}`, `src/features/analytics/views/overview/{overviewModel.ts,OverviewKpis.tsx}`; tests: `tests/analyticsOverview.test.ts`.
 
+**Recorded validation:** Targeted Bun tests and TypeScript checks pass. The CDP mock check covers desktop/mobile left, middle, and right probes, viewport containment, no console errors, and no document overflow after resize. Full results are in `free-tooltip.md`.
 
 Responsive calendar verification (2026-09-05): isolated Chrome CDP at 1440 × 900 shows the full 365-day range in each heatmap. At 390 × 844, each shows the latest 18 week columns, including the newest day, with no horizontal grid or page overflow. Resizing back restores the full year. Independent review confirmed the fixed weekday labels, month labels, square cells, touching hitboxes, and day tooltips.
 
+**Last updated:** 2026-09-05
 
-### DL015: Global analytics refresh and scoped sidebar selection
+### DL015 — Global analytics refresh and scoped sidebar selection
 
 Analytics Usage and Analytics Management register their active-page refresh coordinator with the existing global header refresh hook. The floating header button refreshes capabilities/readiness, the key catalog, and the active analytics tab; the duplicate shell refresh buttons are removed. Coordinator refreshes propagate request failures to the existing header error notification while preserving local error/retry state. Automatic loads remain nonthrowing, and an in-flight guard prevents duplicate analytics refresh batches. Loaded views stay mounted while capabilities refresh, avoiding a second automatic request batch after refresh completion. Existing status, last-updated text, retry handling, and page loading behavior remain. The analytics shell unregisters its header callback outside analytics routes.
 
 Analytics sidebar group matching now first checks that the current path belongs to `/analytics`. This prevents the page mapper's Usage fallback from marking Usage active on unrelated routes such as AI Providers. Existing analytics aliases and history navigation retain the correct Usage or Management highlight.
 
+**Implementation evidence:** `src/features/analytics/{AnalyticsShell.tsx,analyticsRefreshState.ts,useAnalyticsLoad.ts}`, `src/hooks/useHeaderRefresh.ts`, `src/components/layout/MainLayout.tsx`, `src/features/analytics/navigation.ts`; tests: `tests/analyticsRefresh.test.ts`, `tests/analyticsContracts.test.ts`.
 
-DL015 validation: `bun run verify` passes 630 tests, lint, TypeScript, and production build; Go compile passes. Isolated Chrome CDP checks show the global button refreshes Usage queries or Management pricing, refreshes no hidden analytics data on AI Providers, and leaves only the current sidebar route active across aliases and browser history. Failure injection confirms the header shows a failure notification without success, preserves local error state, and restores Unavailable analytics to Ready after capabilities recover. Independent final review records one key read and three query POSTs per Usage refresh, with no duplicate remount batch, runtime exception, or unhandled rejection.
+**Recorded validation:** `bun run verify` passes 630 tests, lint, TypeScript, and production build; Go compile passes. Isolated Chrome CDP checks show the global button refreshes Usage queries or Management pricing, refreshes no hidden analytics data on AI Providers, and leaves only the current sidebar route active across aliases and browser history. Failure injection confirms the header shows a failure notification without success, preserves local error state, and restores Unavailable analytics to Ready after capabilities recover. Independent final review records one key read and three query POSTs per Usage refresh, with no duplicate remount batch, runtime exception, or unhandled rejection.
 
+**Last updated:** 2026-09-05
 
-### DL016: Attempt history pages and analytics entrance motion
+### DL016 — Attempt history pages and analytics entrance motion
 
 Attempt history renders at most 50 records per page using the shared Pagination control. Cursor fetches load later pages on demand, and range/filter changes or a global refresh reset the page. Export continues to cover the selected filtered dataset; the Export menu is wide enough for its labels. Button accepts a separate decorative icon slot, used by the Columns control to align its icon with the label.
 
@@ -349,57 +262,77 @@ Analytics workspaces use the dashboard-style entrance timing. ECharts defers its
 
 The four requested Overview heading/description translation keys are present in English, Russian, Simplified Chinese, and Traditional Chinese. English follows each existing `t()` default. Pagination controls are localized in all four languages.
 
+**Implementation evidence:** `src/features/analytics/views/Events.tsx`, `src/features/analytics/views/events/eventPagination.ts`, `src/components/ui/{Pagination.tsx,Button.tsx}`, `src/features/analytics/components/AnalyticsChart.tsx`, `src/features/analytics/views/overview/{ActivityHeatmaps.tsx,Overview.module.scss}`; tests: `tests/analyticsEventPagination.test.ts`.
 
-DL016 validation: `bun run verify` passes 632 tests, lint, TypeScript, and the production build; Go compile and both repository diff checks pass. Isolated Chrome CDP checks cover desktop and 390px mobile pagination, full filtered export, untruncated menu labels, centered control icons, visible chart entrances, overlapping heatmap waves, and reduced-motion behavior. Pending heatmap cells remain hidden until the entrance starts to prevent a colored flash.
+**Recorded validation:** `bun run verify` passes 632 tests, lint, TypeScript, and the production build; Go compile and both repository diff checks pass. Isolated Chrome CDP checks cover desktop and 390px mobile pagination, full filtered export, untruncated menu labels, centered control icons, visible chart entrances, overlapping heatmap waves, and reduced-motion behavior. Pending heatmap cells remain hidden until the entrance starts to prevent a colored flash.
 
 Independent final QA passed: page 2 → global refresh → page 1 → Next loads page 2 correctly; empty results hide pagination. A live heatmap timeline confirms pending cells remain invisible before the empty wave, the color wave overlaps it, and cells settle to their final colors.
 
+**Last updated:** 2026-09-05
 
-### DL017: Keys ranking without duplicated detail views
+### DL017 — Keys ranking without duplicated detail views
 
 The Keys tab contains only its sortable ranking/catalog table and mobile cards. Removed the embedded per-key Overview, Analysis, recent events, their requests, and the View details action column/buttons. Shared key filters still scope the dedicated Overview, Analysis, and Attempt history tabs. Removed unused detail styles and the obsolete action-column test.
 
-Validation: 631 tests, lint, TypeScript, production build, Go compile, and diff checks pass. Isolated Chrome CDP at 1440px and 390px confirms populated rankings, no detail sections/buttons, and no horizontal page overflow.
+**Implementation evidence:** `src/features/analytics/views/KeysView.tsx`, `src/features/analytics/views/keys/{keyRanking.ts,KeysView.module.scss}`; tests: `tests/analyticsKeysView.test.ts`.
 
+**Recorded validation:** 631 tests, lint, TypeScript, production build, Go compile, and diff checks pass. Isolated Chrome CDP at 1440px and 390px confirms populated rankings, no detail sections/buttons, and no horizontal page overflow.
 
-### DL018: Provider logos in Event filters
+**Last updated:** 2026-09-05
+
+### DL018 — Provider logos in Event filters
 
 The Events provider dropdown and selected value display existing provider brand logos. Select options accept optional icons, and ProviderCategoryList shares its themed logo renderer with Events. Analytics provider aliases resolve to their matching brand; Antigravity uses its existing OAuth asset. Unknown custom providers retain their text labels.
 
-Validation: isolated Chrome CDP at 1440px/light and 390px/dark confirms every mock provider option has one visible, loaded logo. Frontend tests, lint, TypeScript, production build, Go compile, and diff checks pass.
+**Implementation evidence:** `src/features/analytics/views/Events.tsx`, `src/components/ui/{Select.tsx,Select.module.scss}`, `src/features/providers/components/{ProviderLogo.tsx,ProviderCategoryList.tsx}`.
 
+**Recorded validation:** Isolated Chrome CDP at 1440px/light and 390px/dark confirms every mock provider option has one visible, loaded logo. Frontend tests, lint, TypeScript, production build, Go compile, and diff checks pass.
 
-### DL019: Preserve ECharts entrance on initial page load
+**Last updated:** 2026-09-05
+
+### DL019 — Preserve ECharts entrance on initial page load
 
 AnalyticsChart skips ResizeObserver callbacks when the chart already matches its host dimensions. The observer sends an initial notification after registration; calling ECharts resize for that unchanged geometry cancelled the initial entrance animation. Actual size changes still resize the chart.
 
-Validation: an isolated Chrome CDP reload trace reproduced one rendered frame per sparkline before the fix and 52–53 frames afterward. At 390px all six SVG widths match their 292px hosts. Frontend verification passes 631 tests, lint, TypeScript, and build; Go compile and diff checks pass.
+**Implementation evidence:** `src/features/analytics/components/AnalyticsChart.tsx`.
 
+**Recorded validation:** An isolated Chrome CDP reload trace reproduced one rendered frame per sparkline before the fix and 52–53 frames afterward. At 390px all six SVG widths match their 292px hosts. Frontend verification passes 631 tests, lint, TypeScript, and build; Go compile and diff checks pass.
 
-### DL020: Analytics card scroll reveals
+**Last updated:** 2026-09-05
+
+### DL020 — Analytics card scroll reveals
 
 Analytics view cards reuse the dashboard useRevealOnScroll hook through AnalyticsCard. Each card rises 24px and fades in over 450ms on first entering the viewport; reduced motion leaves cards visible. The shared Card accepts a DOM ref so the reveal adds no layout wrapper. Event detail sheets retain their existing entrance.
 
-Validation: isolated Chrome CDP at 1440px and 390px confirms offscreen cards start transparent, reveal on scroll, and settle at opacity 1 with no transform. Reduced-motion emulation leaves zero hidden cards. All 631 tests, lint, TypeScript, production build, Go compile, and diff checks pass.
+**Implementation evidence:** `src/features/analytics/components/AnalyticsCard.tsx`, `src/hooks/motion.ts`, `src/components/ui/Card.tsx`.
 
+**Recorded validation:** Isolated Chrome CDP at 1440px and 390px confirms offscreen cards start transparent, reveal on scroll, and settle at opacity 1 with no transform. Reduced-motion emulation leaves zero hidden cards. All 631 tests, lint, TypeScript, production build, Go compile, and diff checks pass.
 
-### DL021: Single analytics entrance after tab changes
+**Last updated:** 2026-09-05
+
+### DL021 — Single analytics entrance after tab changes
 
 Removed the superseded workspace-wide fade now that analytics cards reveal individually. The workspace animation started around 390ms into the cards' 450ms entrance on tab switches, causing the visible second fade. Card scroll reveals, route transitions, ECharts activation, and the heatmap ripple remain.
 
-Validation: isolated Chrome CDP reproduced overlapping card/workspace starts before the fix and no workspace animation afterward. Desktop and 390px mobile scroll reveals still settle at opacity 1 with no transform. All 631 tests, lint, TypeScript, production build, Go compile, and diff checks pass.
+**Implementation evidence:** `src/features/analytics/{AnalyticsPage.tsx,Analytics.module.scss}`.
 
+**Recorded validation:** Isolated Chrome CDP reproduced overlapping card/workspace starts before the fix and no workspace animation afterward. Desktop and 390px mobile scroll reveals still settle at opacity 1 with no transform. All 631 tests, lint, TypeScript, production build, Go compile, and diff checks pass.
 
-### DL022: Coordinated analytics palettes
+**Last updated:** 2026-09-05
+
+### DL022 — Coordinated analytics palettes
 
 Categorical chart colors use consistent blue, emerald, violet, amber, and cyan roles with separate light/dark lightness and chroma. The palette is authored in OKLCH in Sass, gamut-mapped and rounded to legacy RGB during compilation so ECharts/ZRender gradients and animation need no runtime converter. Cost overlays and success/failure markers have separate readable colors. All three stacked-bar builders use card-colored 1px boundaries, keeping adjacent bands distinguishable without forcing alternating near-black and pastel fills.
 
 Overview activity has its own blue volume ramp for light/white surfaces and clearer coral/amber/emerald health levels. Dark Token Activity, dark Request Health, and the Key × Model matrix ramp remain exactly unchanged. Palette tests compile real Sass, check perceptual category distances, graphical/text contrast, ordered volume ramps and empty cells, verify raw emitted values with ZRender, and pin preserved scales.
 
-Validation: `bun run verify` passes 644 tests, lint, TypeScript, and production build; Go compile and repository diff checks pass. Isolated Chrome CDP comparisons cover all Analysis cards and Overview heatmaps across light, white, and dark themes; mobile light/dark routes have no horizontal page overflow. Fresh independent review passes, including preservation and raw RGB compatibility.
+**Implementation evidence:** `src/styles/themes.scss`, `src/features/analytics/components/chartTheme.ts`, `src/features/analytics/views/analysis/{analysisModel.ts,useAnalysisPalette.ts}`; tests: `tests/analyticsPalette.test.ts`.
 
+**Recorded validation:** `bun run verify` passes 644 tests, lint, TypeScript, and production build; Go compile and repository diff checks pass. Isolated Chrome CDP comparisons cover all Analysis cards and Overview heatmaps across light, white, and dark themes; mobile light/dark routes have no horizontal page overflow. Fresh independent review passes, including preservation and raw RGB compatibility.
 
-### DL023: Analytics table controls and Quick Stats timing
+**Last updated:** 2026-09-05
+
+### DL023 — Analytics table controls and Quick Stats timing
 
 Analytics Management uses the Lucide notebook-pen sidebar icon. Pricing rules and missing prices, provider summaries and credentials, and shared views render pages of at most 50 entries. Tables with actions keep the rightmost Action column visible while scrolling horizontally. Shared TablePagination provides localized page and row counts.
 
@@ -407,27 +340,13 @@ Model Cost Efficiency replaces the former efficiency list with a 10-row table co
 
 Quick Stats sparklines run 15% faster: initial duration 870ms and update duration 435ms. Their initial starts are staggered by 70ms in DOM/display order so left-to-right, top-to-bottom entrances overlap. Reduced-motion and responsive resizing behavior remain.
 
+**Implementation evidence:** `src/features/analytics/views/{Pricing.tsx,Providers.tsx,SharedViews.tsx}`, `src/features/analytics/components/TablePagination.tsx`, `src/features/analytics/views/analysis/{modelCostEfficiency.ts,CostInsights.tsx}`, `src/features/analytics/views/overview/OverviewKpis.tsx`, `src/components/ui/Table/Table.module.scss`; tests: `tests/analyticsTablePagination.test.ts`, `tests/analyticsAnalysis.test.ts`.
 
-DL023 validation: `bun run verify` passes 646 tests, lint, TypeScript, and production build; Go compile and both diff checks pass. Live CDP checks confirm the Model Cost Efficiency 10-row limit, case-insensitive search, numeric sorting, mobile layout, and staggered Quick Stats frames. After the dev backend temporarily rate-limited fresh logins, isolated browser read fixtures verified all five management tables with 51 rows: 50 on page 1 and 1 on page 2, with mobile Action columns pinned within 0.5px of the scroll edge. Synchronous page clamps and a regression test prevent stale rows/ranges after a collection shrinks. Fresh independent review passes.
+**Recorded validation:** `bun run verify` passes 646 tests, lint, TypeScript, and production build; Go compile and both diff checks pass. Live CDP checks confirm the Model Cost Efficiency 10-row limit, case-insensitive search, numeric sorting, mobile layout, and staggered Quick Stats frames. After the dev backend temporarily rate-limited fresh logins, isolated browser read fixtures verified all five management tables with 51 rows: 50 on page 1 and 1 on page 2, with mobile Action columns pinned within 0.5px of the scroll edge. Synchronous page clamps and a regression test prevent stale rows/ranges after a collection shrinks. Fresh independent review passes.
 
-### DL057: Shared surfaces used by the analytics UX pass
+**Last updated:** 2026-09-05
 
-The DL013–DL022 work makes small additive changes to shared CPAMC components. These components
-remain compatible with their existing callers while exposing the optional behavior required by the
-fork's analytics workspace:
-
-- `src/components/ui/Button.tsx` — optional `icon` prop rendered before the label (hidden while loading).
-- `src/components/ui/Card.tsx` — optional `ref` forwarded to the root `div` (React 19 ref-as-prop) so scroll reveals need no wrapper.
-- `src/components/ui/Select.tsx` / `Select.module.scss` — optional `icon` on `SelectOption`, rendered in the trigger and option rows.
-- `src/components/ui/Table/Table.module.scss` — one rule for a sticky trailing action column.
-- `src/styles/components.scss` — `.btn-icon` sizing for the Button icon slot.
-- `src/components/layout/MainLayout.tsx` — sidebar selection scoped to the analytics parent page.
-- `src/features/providers/components/ProviderCategoryList.tsx` — logo rendering moved into the shared `ProviderLogo` component (also used by Event filters, DL018).
-
-No upstream behaviour changes; every addition is opt-in through a new prop or class.
-
-
-### DL024: Labeled API-key editor contract alignment
+### DL024 — Labeled API-key editor contract alignment
 
 The API-key editor supports optional exact UTF-8 labels while keeping stable key IDs for identity and
 operations. Display rows resolve their original server-side indexes, so blank or malformed entries do
@@ -436,7 +355,9 @@ field. When a visible limit changes, the editor starts from the existing limits 
 unknown extension fields. The API client retains null contract slots and the model-key hook filters them
 only at its string boundary.
 
-Validation: `bun run verify` passed 651 tests, lint, TypeScript, and the production build. After pinning
+**Implementation evidence:** `src/features/config/components/blocks/{ApiKeysCardEditor.tsx,apiKeyEditorUtils.ts,Blocks.module.scss}`, `src/utils/keyIdentity.ts`, `src/services/api/apiKeys.ts`, `src/types/apiKeys.ts`, `src/hooks/{useVisualConfig.ts,useApiKeysForModels.ts}`; tests: `tests/apiKeyContracts.test.ts`.
+
+**Recorded validation:** `bun run verify` passed 651 tests, lint, TypeScript, and the production build. After pinning
 the server index when an edit modal opens, the eight API-key contract tests, ESLint, TypeScript, and
 production build passed again. On 2026-09-06, isolated Chrome CDP checks against a real CPA backend
 through a same-origin test proxy exercised label creation, editing, and clearing at 1440px desktop
@@ -445,8 +366,9 @@ server indexes after a blank config entry, preservation of unknown limit fields,
 rotation. The mobile view had no horizontal overflow or visible raw key text; browser console errors
 were empty.
 
+**Last updated:** 2026-09-07
 
-### DL025: Lazy models.dev pricing catalog and manual overrides
+### DL025 — Lazy models.dev pricing catalog and manual overrides
 
 Pricing displays the effective catalog while keeping discovered `models.dev` rows separate from
 manual overrides. Editing a discovered row creates a management override, and removing an override
@@ -460,8 +382,91 @@ one-second refreshes while `sync_state` is `refreshing`; polling stops after rea
 unmount, or the bounded attempt limit. Shared analytics cost labels now identify API-equivalent
 estimates, with a pricing note explaining that subscription billing is not measured.
 
-Validation: targeted pricing/API tests, ESLint, TypeScript compilation, and the Impeccable detector pass.
-### DL030: Readable analytics chart labels and token breakdowns
+**Implementation evidence:** `src/features/analytics/views/Pricing.tsx`, `src/features/analytics/views/manage/pricingValidation.ts`, `src/types/analytics.ts`, `src/i18n/locales/**`; tests: `tests/analyticsPricing.test.ts`.
+
+**Recorded validation:** Targeted pricing/API tests, ESLint, TypeScript compilation, and the Impeccable detector pass.
+
+**Last updated:** 2026-09-07
+
+### DL026 — Compact latency tiles and animated analysis metrics
+
+Latency tiles use tighter spacing and larger values. The Sampled badge shares the label row and
+aligns to the card's right edge. Mobile latency summary values are larger too.
+
+Analysis card metrics reuse the dashboard's count-up hook through `AnimatedMetric`. Counters begin
+when visible, preserve exact final values and locale formatting, and honor reduced motion. Coverage
+includes cost totals and category amounts/shares, blended rate, latency summary values and sample
+count, and Top Models totals/shares. ECharts, tooltips, model-efficiency tables, sample-browser rows,
+and rank ordinals keep their existing rendering.
+
+**Implementation evidence:** `src/features/analytics/views/analysis/{LatencyDiagnostics.tsx,CostInsights.tsx,Analysis.module.scss}`, `src/features/analytics/components/AnimatedMetric.tsx`; tests: `tests/analyticsAnalysis.test.ts`.
+
+**Recorded validation:** `bun run verify` passed 651 tests, lint, TypeScript, and the production build.
+Isolated Chrome CDP checks at desktop and 390px verified intermediate count-up frames on scroll,
+exact final costs, percentages, durations and counts, and reduced motion without intermediate counts.
+Latency values render at 22px on desktop and 20px on mobile with no horizontal page overflow.
+A browser-only sampled-response fixture verified that the Sampled badge shares the label line and
+aligns to its right edge; the override was removed after checking.
+
+**Last updated:** 2026-09-07
+
+### DL027 — Reject invalid management capabilities responses
+
+The capabilities adapter rejects HTML and incomplete response objects before analytics consumes
+them. A dev server's SPA fallback previously returned HTML with HTTP 200, which the client accepted
+as capabilities and then crashed while reading `analytics.supported`. Invalid responses now use the
+existing load-error path and explain that the API server URL must point to the management API.
+The HTTP 404 fallback for older servers remains unchanged. A regression test covers the HTML response.
+The diagnostic is translated into all four supported locales. Chrome CDP verified the default
+same-origin login and populated Analysis route, plus a browser-intercepted HTML response producing
+the diagnostic without an exception. The temporary development server forwards `/v0` and `/v1` to
+the mock backend, so its default login address now serves the actual management API.
+
+**Implementation evidence:** `src/services/api/capabilities.ts`, `src/features/analytics/AnalyticsPage.tsx`, `src/i18n/locales/**`; tests: `tests/analyticsCapabilities.test.ts`.
+
+**Recorded validation:** `bun run verify` passed 652 tests, lint, TypeScript, and the production build; the CPA
+compile check also passed.
+
+**Last updated:** 2026-09-07
+
+### DL028 — Animated overview and activity summaries
+
+Overview KPI values, numeric details, daily averages, and the Token Activity and Request Health
+summary strips reuse `AnimatedMetric`. The component lives under `features/analytics/components`
+and is shared with Analysis. Values count up when visible and preserve their existing final
+formatting, missing-value display, and reduced-motion behavior. Heatmap cells, tooltips, tables,
+and descriptive range text retain their existing rendering. KPI sparkline entrance duration is
+541ms; its update duration remains unchanged.
+
+**Implementation evidence:** `src/features/analytics/components/AnimatedMetric.tsx`, `src/features/analytics/views/overview/{OverviewKpis.tsx,ActivityHeatmaps.tsx,overviewModel.ts,Overview.module.scss}`; tests: `tests/analyticsOverview.test.ts`.
+
+**Recorded validation:** Chrome CDP checks at 1440px desktop and 390px mobile verified count-up frames, offscreen activation,
+exact final costs/rates/averages, and reduced motion with no page overflow or console errors.
+Fractional metrics use finer counter precision: RPM visibly counted from zero through 0.063 and
+0.072 to 0.073, while request counts remained integers.
+
+**Last updated:** 2026-09-07
+
+### DL029 — Filter Usage Distribution by token category
+
+The Usage Distribution legend uses keyboard-accessible toggle buttons with pressed states. Hidden
+categories are muted and contribute zero to the stacked bars; bar-end labels show the visible sum,
+rounded down so a bar never claims an axis value it does not reach, including zero when every
+category is off. Selections persist across distribution dimension tabs.
+Filtered tooltips show selected category counts and distinguish Displayed tokens from the full
+Total tokens. Original cost, requests, and overall token share remain available for context.
+Axis labels fit within their left gutter and truncate long names with ellipses instead of clipping
+their prefixes.
+
+**Implementation evidence:** `src/features/analytics/views/analysis/{UsageDistribution.tsx,analysisModel.ts,Analysis.module.scss}`, `src/features/analytics/components/analyticsFormatting.ts`; tests: `tests/analyticsAnalysis.test.ts`, `tests/analyticsContracts.test.ts`.
+
+**Recorded validation:** `bun run verify` passed 654 tests, lint, TypeScript, and the production
+build. Chrome CDP verified mouse, keyboard and mobile touch toggles, filtered tooltip totals, hiding
+the last category, all-off/re-enable behavior, and selection retention across dimension tabs.
+
+**Last updated:** 2026-10-30
+
+### DL030 — Readable analytics chart labels and token breakdowns
 
 Usage Distribution and Key × Model Heatmap axes display a configured key label or fall back to the
 short key ID. Tooltips retain the label and short ID together. Usage Distribution adds a wrapping
@@ -473,88 +478,32 @@ Heatmap model headers truncate with ellipses within their column width instead o
 names. Width follows the chart container, including after analytics data loads and when it resizes.
 Cell tooltips retain the full model name.
 
-Validation: `bun run verify` passed 651 tests, lint, TypeScript, and the production build. The CPA
+**Implementation evidence:** `src/features/analytics/views/analysis/{UsageDistribution.tsx,KeyModelHeatmap.tsx,analysisModel.ts,Analysis.module.scss}`; tests: `tests/analyticsAnalysis.test.ts`.
+
+**Recorded validation:** `bun run verify` passed 651 tests, lint, TypeScript, and the production build. The CPA
 server compile check and both repository diff checks passed.
 Isolated Chrome CDP checks on 2026-09-07 verified desktop and 390px mobile layouts against the copied
 main-worktree mock data, including a cold mobile login. Named keys showed labels on axes and both
 identifiers in tooltips; unnamed keys retained short IDs. All selected model headers stayed visible,
 the legend wrapped without horizontal overflow, and tooltip category counts matched the bars.
 
-### DL026: Compact latency tiles and animated analysis metrics
+**Last updated:** 2026-09-07
 
-Latency tiles use tighter spacing and larger values. The Sampled badge shares the label row and
-aligns to the card's right edge. Mobile latency summary values are larger too.
-
-Analysis card metrics reuse the dashboard's count-up hook through `AnimatedMetric`. Counters begin
-when visible, preserve exact final values and locale formatting, and honor reduced motion. Coverage
-includes cost totals and category amounts/shares, blended rate, latency summary values and sample
-count, and Top Models totals/shares. ECharts, tooltips, model-efficiency tables, sample-browser rows,
-and rank ordinals keep their existing rendering.
-
-Validation: `bun run verify` passed 651 tests, lint, TypeScript, and the production build.
-Isolated Chrome CDP checks at desktop and 390px verified intermediate count-up frames on scroll,
-exact final costs, percentages, durations and counts, and reduced motion without intermediate counts.
-Latency values render at 22px on desktop and 20px on mobile with no horizontal page overflow.
-A browser-only sampled-response fixture verified that the Sampled badge shares the label line and
-aligns to its right edge; the override was removed after checking.
-
-### DL027: Reject invalid management capabilities responses
-
-The capabilities adapter rejects HTML and incomplete response objects before analytics consumes
-them. A dev server's SPA fallback previously returned HTML with HTTP 200, which the client accepted
-as capabilities and then crashed while reading `analytics.supported`. Invalid responses now use the
-existing load-error path and explain that the API server URL must point to the management API.
-The HTTP 404 fallback for older servers remains unchanged. A regression test covers the HTML response.
-The diagnostic is translated into all four supported locales. Chrome CDP verified the default
-same-origin login and populated Analysis route, plus a browser-intercepted HTML response producing
-the diagnostic without an exception. The temporary development server forwards `/v0` and `/v1` to
-the mock backend, so its default login address now serves the actual management API.
-Validation: `bun run verify` passed 652 tests, lint, TypeScript, and the production build; the CPA
-compile check also passed.
-
-### DL028: Animated overview and activity summaries
-
-Overview KPI values, numeric details, daily averages, and the Token Activity and Request Health
-summary strips reuse `AnimatedMetric`. The component lives under `features/analytics/components`
-and is shared with Analysis. Values count up when visible and preserve their existing final
-formatting, missing-value display, and reduced-motion behavior. Heatmap cells, tooltips, tables,
-and descriptive range text retain their existing rendering. KPI sparkline entrance duration is
-541ms; its update duration remains unchanged.
-Chrome CDP checks at 1440px desktop and 390px mobile verified count-up frames, offscreen activation,
-exact final costs/rates/averages, and reduced motion with no page overflow or console errors.
-Fractional metrics use finer counter precision: RPM visibly counted from zero through 0.063 and
-0.072 to 0.073, while request counts remained integers.
-
-### DL029: Filter Usage Distribution by token category
-
-The Usage Distribution legend uses keyboard-accessible toggle buttons with pressed states. Hidden
-categories are muted and contribute zero to the stacked bars; bar-end labels show the visible sum,
-rounded down so a bar never claims an axis value it does not reach, including zero when every
-category is off. Selections persist across distribution dimension tabs.
-Filtered tooltips show selected category counts and distinguish Displayed tokens from the full
-Total tokens. Original cost, requests, and overall token share remain available for context.
-Axis labels fit within their left gutter and truncate long names with ellipses instead of clipping
-their prefixes. Validation: `bun run verify` passed 654 tests, lint, TypeScript, and the production
-build. Chrome CDP verified mouse, keyboard and mobile touch toggles, filtered tooltip totals, hiding
-the last category, all-off/re-enable behavior, and selection retention across dimension tabs.
-
-### DL058: Remote development access
-
-Vite listens on all network interfaces and accepts all host names so the existing mock-data
-workspace can be opened through a remote IP address or a custom development hostname.
-Validation: the running development server on port 18517 returned HTTP 200 with a custom Host header.
-
-### DL031: One-minute analytics refresh
+### DL031 — One-minute analytics refresh
 
 A shared one-minute refresh coordinator updates visible analytics, respects Retry-After, skips
 hidden documents, and avoids overlapping refreshes. Queries resolve rolling ranges at request time.
 Current chart data and selections remain while refreshing. In-flight request deduplication is scoped
 to the active query generation so StrictMode and filter changes cannot leave a stale loading state.
 
-Validation: nine refresh and shell tests pass. Isolated browser checks reproduced and verified
+**Implementation evidence:** `src/features/analytics/{analyticsRefreshState.ts,useAnalyticsLoad.ts,AnalyticsShell.tsx,AnalyticsFilterProvider.tsx,query.ts}`; tests: `tests/analyticsRefresh.test.ts`.
+
+**Recorded validation:** Nine refresh and shell tests pass. Isolated browser checks reproduced and verified
 StrictMode completion, newest-filter responses, and same-query refresh deduplication.
 
-### DL032: Cost and timing radar analytics
+**Last updated:** 2026-09-08
+
+### DL032 — Cost and timing radar analytics
 
 Cost Breakdown and Usage Distribution share a row at the existing desktop breakpoint. The cost
 radar uses a four-axis diamond, category-colored gradients that fade toward the center, and
@@ -566,13 +515,17 @@ share one millisecond scale. Model efficiency includes each cost component and i
 numeric column headers align with values. Token-chart tooltips distinguish dashed requests from
 solid cost lines. The key-model heatmap switches between tokens, cost, and observed generation time.
 
-Validation: `bun run verify` passed 670 tests, ESLint, TypeScript, and the production build.
+**Implementation evidence:** `src/features/analytics/views/analysis/{CostRadar.tsx,LatencyDiagnostics.tsx,KeyModelHeatmap.tsx,CostInsights.tsx,analysisModel.ts,Analysis.module.scss}`, `src/features/analytics/components/AnalyticsSegmented.tsx`, `src/types/analytics.ts`; tests: `tests/analyticsAnalysis.test.ts`.
+
+**Recorded validation:** `bun run verify` passed 670 tests, ESLint, TypeScript, and the production build.
 Isolated Chrome CDP checks at 1440px and 390px verified colored gradients, staggered currency
 values, unclipped mobile timing labels, persistent chart instances across modes, explicit unavailable
 heatmap cells, and dashed/solid tooltip markers. Full timing data was checked using a browser-only
 fixture; the normal historical mock dataset correctly leaves missing timing unavailable.
 
-### DL033: Processing totals, comparisons, and lifetime key activity
+**Last updated:** 2026-09-08
+
+### DL033 — Processing totals, comparisons, and lifetime key activity
 
 Quick Stats includes accumulated processing time beside the narrower Daily Average card. Its
 breakdown distinguishes missing observations from measured zero and explains coverage in upstream
@@ -584,13 +537,17 @@ Config indexes precede lifetime first/last activity at the right edge. Dates sho
 a full date in the client browser's timezone. Configured keys show Active for activity in the last
 five minutes and Idle otherwise. Column help and mobile cards describe the same metrics.
 
-Validation: `bun run verify` passed 670 tests, ESLint, TypeScript, and the production build.
+**Implementation evidence:** `src/features/analytics/views/overview/{OverviewKpis.tsx,comparisonModel.ts,ComparisonNote.tsx,Overview.module.scss}`, `src/features/analytics/views/KeysView.tsx`, `src/features/analytics/views/keys/keyRanking.ts`; tests: `tests/analyticsOverview.test.ts`, `tests/analyticsKeysView.test.ts`.
+
+**Recorded validation:** `bun run verify` passed 670 tests, ESLint, TypeScript, and the production build.
 Isolated Chrome CDP checked desktop/mobile Overview and Keys, whole-phrase hover, first-tap
 tooltips constrained to the mobile viewport, the two-column Daily Average layout, and lifetime
 dates in America/New_York. There was no page overflow or console error. A full one-minute
 refresh cycle fetched the visible queries without replacing chart instances or mode selections.
 
-### DL034: Shared segmented controls, table sorting, and custom tooltips
+**Last updated:** 2026-09-08
+
+### DL034 — Shared segmented controls, table sorting, and custom tooltips
 
 Auth Files and analytics use one SegmentedControl extracted from the Auth Files toolbar, retaining
 its pill shape, active styling, and problem-state color. SortableTableHead now lives with the shared
@@ -601,13 +558,17 @@ tokens. It supports dynamically updated and removed hints, viewport placement, k
 Escape dismissal, and touch. Title-only icon controls retain accessible names. Existing custom
 panels use the same colors, border, radius, and padding. Touch release does not dismiss a tapped hint.
 
-Validation: `bun run verify` passes 673 tests, ESLint, TypeScript, and the production build. Chrome
+**Implementation evidence:** `src/components/ui/SegmentedControl.tsx`, `src/components/ui/SegmentedControl.module.scss`, `src/components/ui/Table/{SortableTableHead.tsx,SortableTableHead.module.scss}`, `src/components/ui/{Tooltip.tsx,Tooltip.module.scss}`, `src/App.tsx`, `src/features/analytics/views/KeysView.tsx`; tests: `tests/analyticsKeysView.test.ts`, `tests/tooltipProvider.test.ts`.
+
+**Recorded validation:** `bun run verify` passes 673 tests, ESLint, TypeScript, and the production build. Chrome
 CDP reproduced the key header's native gray background and outset border before the fix, then
 verified transparent styled headers and correct sort-arrow placement. Isolated browser checks
 verified dynamic title updates/removal, accessible names, focus/Escape, removed targets, and mobile
 first-tap tooltips constrained to the viewport. No console errors were observed.
 
-### DL035: Full-width metric trends and compact processing totals
+**Last updated:** 2026-09-08
+
+### DL035 — Full-width metric trends and compact processing totals
 
 Quick Stats trends extend to the card's left, right, and bottom edges, retaining their content gap
 and using a taller plotting area. Processing time uses the metric-card hierarchy with accumulated
@@ -616,12 +577,16 @@ columns; both cards fill their tracks and share a height. Coverage stays in the 
 The separate How we compare section is removed, and relevant scale assumptions appear with the
 comparison that uses them. Existing worktree spacing edits are retained.
 
-Validation: the 673-test full verification passes. Desktop browser measurements confirm both
+**Implementation evidence:** `src/features/analytics/views/overview/{OverviewKpis.tsx,Overview.module.scss,comparisonModel.ts,overviewModel.ts,ComparisonNote.tsx}`; tests: `tests/analyticsOverview.test.ts`.
+
+**Recorded validation:** The 673-test full verification passes. Desktop browser measurements confirm both
 summary cards fill their tracks, with widths of about 369 and 749 pixels and equal 306-pixel heights
 at a 1440-pixel viewport. The KPI plots meet the card edges, and comparison explanations remain
 available through hover, keyboard focus, and touch. All four locales include the relevant scales.
 
-### DL036: Compact analysis cards and visible radar animation
+**Last updated:** 2026-09-08
+
+### DL036 — Compact analysis cards and visible radar animation
 
 Cost Breakdown places totals and its category list beside the radar when the card has enough
 internal width, with a smaller blended-rate gap. Container sizing preserves the existing viewport
@@ -632,7 +597,9 @@ starts after an empty range becomes populated. Every latency summary metric has 
 measurement explanation. Every model-efficiency column sorts through the shared table header.
 Refresh states retain their spinner without dimming cards or covering charts with a translucent fill.
 
-Validation: `bun run verify` passes 673 tests, lint, TypeScript, and production build. Browser checks
+**Implementation evidence:** `src/features/analytics/views/analysis/{CostInsights.tsx,CostRadar.tsx,LatencyDiagnostics.tsx,modelCostEfficiency.ts,Analysis.module.scss}`, `src/features/analytics/components/AnalyticsChart.tsx`, `src/features/analytics/views/analysis/UsageDistribution.tsx`, `src/features/analytics/AnalyticsShell.tsx`; tests: `tests/analyticsAnalysis.test.ts`.
+
+**Recorded validation:** `bun run verify` passes 673 tests, lint, TypeScript, and production build. Browser checks
 at 390, 1024, and 1440 pixels show no page overflow; paired analysis cards have equal heights.
 All added cost sorts reorder displayed rows. Focus opens the latency metric explanations. An isolated
 actual-component probe changes empty timing data to populated data and verifies both chart hosts
@@ -758,7 +725,7 @@ Comparison explanations choose the space above or below their trigger and scroll
 to stay within the viewport. Pointer, focus, and touch state control visibility, so Escape
 dismisses a panel while its trigger remains focused. F1 explanations preserve line breaks.
 
-Validation: `bun run verify` with Bun 1.3.14 passes all 2,126 tests, ESLint, TypeScript, and
+`bun run verify` with Bun 1.3.14 passes all 2,126 tests, ESLint, TypeScript, and
 the production build. Regressions cover the cost and processing boundaries, formulas, all
 six locales, F1 breakdown, and Reaper price qualification. Chrome CDP verifies 48 production
 UI cases with sample API responses at 1440 and 390 pixels, including the F1 breakdown in all
@@ -766,17 +733,9 @@ six languages, with no clipped copy, viewport overflow, or browser errors. Focus
 dismissal after the fade transition, and touch explanations pass. A pre-existing Claude
 usage-rendering test now pins its fixture clock so its reset label stays deterministic.
 
-### DL037: Per-hop event detail sheet with request-path timeline and timing graph
+**Last updated:** 2026-10-26
 
-Status: shipped
-
-Files: `src/features/analytics/views/events/EventDetailSheet.tsx`,
-`src/features/analytics/views/events/EventDetailParts.tsx`,
-`src/features/analytics/views/events/EventTimeline.tsx`,
-`src/features/analytics/views/events/EventTimingGraph.tsx`,
-`src/features/analytics/views/events/eventDiagnostics.ts`,
-`src/features/analytics/views/events/EventDetail.module.scss`, `src/types/analytics.ts`,
-`src/i18n/locales/{en,ru,zh-CN,zh-TW}.json`, `tests/analyticsEventDiagnostics.test.ts`
+### DL037 — Per-hop event detail sheet with request-path timeline and timing graph
 
 The analytics event detail sheet keeps every field the previous sheet showed and adds the four
 CPA hops. `src/types/analytics.ts` gains nullable, additive fields for the client request
@@ -803,7 +762,9 @@ cost rows. Timeline nodes are keyboard focusable and reuse the shared tooltip th
 wraps to vertical on mobile. All new strings resolve through i18n with defaults in English, Russian,
 Simplified Chinese, and Traditional Chinese.
 
-Validation: `bun run verify` passes 689 tests, lint, TypeScript, and the production build.
+**Implementation evidence:** `src/features/analytics/views/events/EventDetailSheet.tsx`, `src/features/analytics/views/events/EventDetailParts.tsx`, `src/features/analytics/views/events/EventTimeline.tsx`, `src/features/analytics/views/events/EventTimingGraph.tsx`, `src/features/analytics/views/events/eventDiagnostics.ts`, `src/features/analytics/views/events/EventDetail.module.scss`, `src/types/analytics.ts`, `src/i18n/locales/{en,ru,zh-CN,zh-TW}.json`, `tests/analyticsEventDiagnostics.test.ts`.
+
+**Recorded validation:** `bun run verify` passes 689 tests, lint, TypeScript, and the production build.
 `analyticsEventDiagnostics.test.ts` covers success with every field, a provider 429, a CPA-side
 failure without `upstream_sent_at`, a mid-stream failure after a 200, and a legacy event with no
 new fields, plus the timing and raw-payload helpers. Isolated CDP browser checks at 1440x900 and
@@ -831,8 +792,9 @@ build. Isolated Chrome CDP checks at 1440x900 and 390x844 confirm the raw provid
 renders and a 3.47-second arrival-to-response span displays as 3.5 seconds, rather than the
 3.29-second attempt latency. Neither viewport has horizontal overflow. CPA compiles.
 
+**Last updated:** 2026-09-09
 
-### DL038: Observed timing descriptions and zero-request chart behavior
+### DL038 — Observed timing descriptions and zero-request chart behavior
 
 CPAUK's latency metrics now describe locally measured dispatch-to-first-substantive-token and
 dispatch-to-response intervals. The latter ends at HTTP response headers or the first application
@@ -846,7 +808,9 @@ The Cost Breakdown radar uses a shifted log10 USD scale with a positive floor be
 positive amount. Zero remains at the center, and tooltips continue to show raw USD amounts and
 percentages. Cost and Latency Diagnostics radar tooltip titles both end with `(log10)`.
 
-Validation: `bun run verify` passes 710 tests, lint, TypeScript, and production build; the scoped
+**Implementation evidence:** `src/features/analytics/views/analysis/analysisModel.ts`, `src/features/analytics/views/analysis/{KeyModelHeatmap.tsx,CostRadar.tsx,LatencyDiagnostics.tsx}`, `src/i18n/locales/**`; tests: `tests/analyticsAnalysis.test.ts`.
+
+**Recorded validation:** `bun run verify` passes 710 tests, lint, TypeScript, and production build; the scoped
 Impeccable detector reports no findings. Independent Chrome CDP checks at desktop and 390px
 mobile verify no-request cells show 0 tokens/0 ms, requested missing generation stays Unavailable,
 sub-dollar costs occupy equal log-decade intervals, and both radar tooltips contain `(log10)`.
@@ -854,8 +818,9 @@ The existing dev UI displays all timing values from a newly built isolated CPA b
 actual streamed request, without console errors or horizontal overflow. QA stopped its temporary
 backend/mock and disposed only its isolated browser contexts.
 
+**Last updated:** 2026-09-09
 
-### DL039: Separate event timing phases
+### DL039 — Separate event timing phases
 
 The event detail timing chart separates Routing, Provider ACK, Waiting, and Generation.
 Routing uses CPA's measured `routing_time_ms` before the first provider dispatch. Provider ACK
@@ -870,24 +835,32 @@ not separately observed stages. No provider-reported duration replaces the local
 Missing or inconsistent observations do not create fabricated bars, and zero generation duration
 does not produce infinite throughput.
 
-Validation: 714 frontend tests, lint, TypeScript, and production build pass. Independent Chrome
+**Implementation evidence:** `src/features/analytics/views/events/{eventDiagnostics.ts,EventTimingGraph.tsx,EventDetailSheet.tsx,EventDetail.module.scss}`, `src/i18n/locales/**`; tests: `tests/analyticsEventDiagnostics.test.ts`.
+
+**Recorded validation:** 714 frontend tests, lint, TypeScript, and production build pass. Independent Chrome
 CDP verification at 1440x1050 and 390x844 uses an event from a fresh CPA instance and real local
 stream: Routing 0 ms, Provider ACK 121 ms, Waiting 260 ms, Generation 80 ms. Mouse, keyboard
 focus and touch show the explanations with the final TTFT wording. Missing-position fixtures
 retain measured durations and omit only bars; neither viewport has overflow or console errors.
 QA disposed its browser contexts and stopped its temporary servers.
 
-### DL040: Credential filenames in event details
+**Last updated:** 2026-09-09
+
+### DL040 — Credential filenames in event details
 
 The event detail Credential field uses the authenticated API's `credential_filename`
 when available, matching the filename users manage in Auth Files. Missing or deleted
 credentials retain the shortened ID fallback. No extra credential catalog request is made.
 
-Validation: `bun run verify` passes 715 tests, lint, TypeScript, and the production
+**Implementation evidence:** `src/features/analytics/views/events/EventDetailSheet.tsx`, `src/types/analytics.ts`; tests: `tests/analyticsEventDiagnostics.test.ts`.
+
+**Recorded validation:** `bun run verify` passes 715 tests, lint, TypeScript, and the production
 build. Isolated desktop/mobile Chrome CDP fixtures verify the filename and a roughly
 39 KiB raw generation payload without horizontal page overflow.
 
-### DL041: Event detail latency boundaries
+**Last updated:** 2026-09-09
+
+### DL041 — Event detail latency boundaries
 
 The event detail sheet now shows three distinct latency measurements: strict `Latency` from
 provider dispatch to CPA's first substantive token (`first_token_latency_ms`), `Provider latency`
@@ -896,7 +869,9 @@ from the recorded request start through the response (`latency_ms`). The new mea
 the localized Analytics labels and boundary definitions. Missing values show the localized
 unavailable text, while measured zero values remain visible as `0 ms`.
 
-Validation: `bun run verify` passes 718 tests, lint, TypeScript, and the production build.
+**Implementation evidence:** `src/features/analytics/views/events/{EventDetailSheet.tsx,EventDetailParts.tsx}`, `src/features/analytics/views/analysis/analysisModel.ts`, `src/types/analytics.ts`, `src/i18n/locales/**`; tests: `tests/analyticsEventDiagnostics.test.ts`, `tests/analyticsAnalysis.test.ts`.
+
+**Recorded validation:** `bun run verify` passes 718 tests, lint, TypeScript, and the production build.
 Focused SSR coverage includes zero and missing measurements. Isolated Chrome CDP checks at
 1440x1050 and 390x844 show the three labels and live values without horizontal overflow or
 browser errors; the new fact tooltips expose their dispatch boundary definitions.
@@ -905,7 +880,9 @@ The token breakdown also shows localized `Unclassified` tokens using the authori
 minus normalized input and output counts, clamped at zero. This preserves total-only and Claude
 style partial usage without repairing historical events.
 
-### DL042: Shared event throughput calculation
+**Last updated:** 2026-09-09
+
+### DL042 — Shared event throughput calculation
 
 Event tables and detail timing charts render one CPA-derived throughput. A recorded generation
 interval below eight percent of the pre-generation wait is not physically reachable, so CPA
@@ -920,11 +897,15 @@ The panel no longer derives throughput itself. It renders `tokens_per_second`, m
 publishes no rate, so the table and the detail chart cannot disagree. A server that predates the
 field publishes nothing and the column stays unavailable instead of falling back to a local guess.
 
-Validation: focused speed tests cover the measured rate, the estimate label, a null rate, and
+**Implementation evidence:** `src/features/analytics/views/events/{eventDiagnostics.ts,EventTimingGraph.tsx,EventDetailSheet.tsx}`, `src/features/analytics/views/Events.tsx`, `src/types/analytics.ts`; tests: `tests/analyticsEvents.test.ts`, `tests/analyticsEventDiagnostics.test.ts`.
+
+**Recorded validation:** Focused speed tests cover the measured rate, the estimate label, a null rate, and
 servers that publish no field, and the event diagnostics tests render the published estimate.
 `bun run verify` passes the full suite, lint, TypeScript, and the production build.
 
-### DL043: Credential labels, catalog-bound pricing, and Z.AI usage windows
+**Last updated:** 2026-09-16
+
+### DL043 — Credential labels, catalog-bound pricing, and Z.AI usage windows
 
 Provider forms accept an optional `label` on every API-key entry (Claude, Codex, Gemini,
 Interactions, xAI, Vertex, and OpenAI-compatible key entries). The OpenAI-compatible form adds a
@@ -945,13 +926,17 @@ The Quota page gains a Z.AI tab. Auth-file entries with `usage_probe: zai` are p
 `display_name` as their title. Auth Files cards lead with a user-set label and the details sheet
 offers a "Rename / set label" action that patches the auth file `label`.
 
-Validation: `bun run verify` passes 731 tests, lint (one pre-existing warning), TypeScript, and the
+**Implementation evidence:** `src/features/providers/sheets/forms/{BaseProviderForm.tsx,ApiKeyEntriesEditor.tsx}`, `src/features/providers/pricingCatalogCache.ts`, `src/features/providers/components/ProviderResourceTable.tsx`, `src/features/analytics/views/Providers.tsx`, `src/features/quota/providers/zai/{ZaiQuotaBody.tsx,data.ts}`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`; tests: `tests/providerFormCapabilities.test.ts`, `tests/zaiQuota.test.ts`.
+
+**Recorded validation:** `bun run verify` passes 731 tests, lint (one pre-existing warning), TypeScript, and the
 production build. The built bundle was served by a local CPA at 1360x900 through isolated Chrome CDP
 contexts: provider edit sheet with the catalog dropdown, Z.AI quota card with live windows, analytics
 credential rows with per-window meters, and an auth-file rename round trip, all without browser
 errors or horizontal overflow.
 
-### DL044: Provider selectors and OpenCode Go usage
+**Last updated:** 2026-09-16
+
+### DL044 — Provider selectors and OpenCode Go usage
 
 Every API-key provider form now exposes the optional `Pricing catalog` selector instead of limiting
 it to OpenAI-compatible providers: Claude, Codex, Gemini, Interactions, xAI, and Vertex. The same
@@ -964,12 +949,16 @@ rolling, weekly, and monthly usage meters with reset countdowns. The card uses t
 usage-card plan style with the literal `Go` plan value; Z.AI now uses the same `Plan` label and bold
 tier value instead of the older inline `Plan level:` text.
 
-Validation: `bun run verify` passes 753 tests, TypeScript, and the production build; lint has only
+**Implementation evidence:** `src/features/providers/sheets/forms/BaseProviderForm.tsx`, `src/features/providers/descriptors.ts`, `src/features/quota/providers/opencode-go/{OpenCodeGoQuotaBody.tsx,data.ts}`, `src/features/quota/providers/index.ts`; tests: `tests/opencodeGoQuota.test.ts`, `tests/providerFormCapabilities.test.ts`.
+
+**Recorded validation:** `bun run verify` passes 753 tests, TypeScript, and the production build; lint has only
 the pre-existing `Select.tsx` warning. Focused tests cover provider-form gating and serialization,
 usage-probe normalization, quota parsing, exhausted-window gating, reset scheduling, and all four
 locales.
 
-### DL045: Top Models share areas and output-window lines
+**Last updated:** 2026-09-17
+
+### DL045 — Top Models share areas and output-window lines
 
 The Usage page's Analysis tab draws Top Models token and price modes as 100% stacked areas.
 Each bucket shows the models' relative contributions, including the folded Other models band.
@@ -981,24 +970,32 @@ Output window uses overlapping, unstacked lines on one duration axis. Values rem
 per-bucket averages, missing observations leave gaps, and the tooltip omits a total. The mobile
 layout allows the chart and ranking to shrink when switching from a desktop viewport.
 
-Validation on 2026-10-27: the full frontend verification passes 2,138 tests, lint, TypeScript, and
+**Implementation evidence:** `src/features/analytics/views/analysis/{TimeSeriesCharts.tsx,analysisModel.ts,Analysis.module.scss}`, `src/features/analytics/views/Analysis.tsx`; tests: `tests/analyticsAnalysis.test.ts`.
+
+**Recorded validation:** On 2026-10-27: the full frontend verification passes 2,138 tests, lint, TypeScript, and
 the single-file production build. Regression coverage checks per-bucket normalization, zero
 buckets, raw tooltip amounts, Other models, highlight opacity, and unstacked timing gaps.
 Browser checks using synthetic analytics responses cover all three modes at 1440x1000 and
 390x844, actual amount tooltips, keyboard highlighting, and desktop-to-mobile resizing with no
 clipped chart or ranking, page overflow, or runtime errors.
 
-### DL046: Log10 latency radar test coverage
+**Last updated:** 2026-10-27
+
+### DL046 — Log10 latency radar test coverage
 
 The latency radar has run on a log10 millisecond axis since DL038, but its test still asserted the
 linear axis that commit `2bb3c54` introduced and commit `83fe7be` reverted. The test asserts the
 log10 indicator maxima, the log10 vertex values, and the `(log10)` tooltip title again, so it goes
 red if the radar returns to a linear axis. The axis-offset and partial-polygon checks are unchanged.
 
-Validation: `bun run verify` passes 753 tests, lint (the pre-existing `Select.tsx` warning only),
+**Implementation evidence:** `src/features/analytics/views/analysis/{LatencyDiagnostics.tsx,analysisModel.ts}`; tests: `tests/analyticsAnalysis.test.ts`.
+
+**Recorded validation:** `bun run verify` passes 753 tests, lint (the pre-existing `Select.tsx` warning only),
 TypeScript, and the production build.
 
-### DL047: Model cost pricing is isolated per row
+**Last updated:** 2026-09-22
+
+### DL047 — Model cost pricing is isolated per row
 
 Model Cost Efficiency calculates the price-per-million cell from each model's own token coverage.
 A wholly unpriced model no longer marks every other model as partially priced or removes its
@@ -1006,11 +1003,15 @@ calculated cell. The table excludes wholly unpriced models, keeps partially pric
 their localized qualifier, and falls back to the card empty state when no priced models remain.
 Legacy rows that omit `unpriced_tokens` but report a known nonnegative cost remain priced.
 
-Validation: focused analysis tests cover independent per-row pricing, wholly unpriced exclusion,
+**Implementation evidence:** `src/features/analytics/views/analysis/{analysisModel.ts,modelCostEfficiency.ts,CostInsights.tsx}`; tests: `tests/analyticsAnalysis.test.ts`.
+
+**Recorded validation:** Focused analysis tests cover independent per-row pricing, wholly unpriced exclusion,
 partial-row retention, and legacy missing coverage. `bun run verify` passes 754 tests, lint (the
 pre-existing `Select.tsx` warning only), TypeScript, and the production build.
 
-### DL048: Continuous activity heatmap colors
+**Last updated:** 2026-09-23
+
+### DL048 — Continuous activity heatmap colors
 
 Token Activity and Request Health map each nonempty daily value to a continuous color intensity
 instead of choosing from five preset classes. Token volume retains its logarithmic P5-P95 scaling
@@ -1023,14 +1024,18 @@ Request Health stays at the unhealthy red through 40% success, interpolates from
 40-90%, and anchors yellow at exactly 90%. The final 90-100% band interpolates from yellow to healthy
 green. A no-request day remains visually empty instead of being treated as a 0% success day.
 
-Validation: the focused Overview suite passes 26 tests, including continuous ordering, exact 96%
+**Implementation evidence:** `src/features/analytics/views/overview/{ActivityHeatmaps.tsx,overviewModel.ts,Overview.module.scss}`, `src/styles/themes.scss`; tests: `tests/analyticsOverview.test.ts`.
+
+**Recorded validation:** The focused Overview suite passes 26 tests, including continuous ordering, exact 96%
 request-health intensity, and rendered CSS without malformed double-percent values. Isolated Chrome
 CDP checks at 1440x1050 and 390x844 found no transparent cells or page overflow. The desktop mock
 render produced 17 distinct Token Activity colors and 280 distinct Request Health colors; the
 mobile window produced 17 and 106 respectively. `bun run verify` passes 753 tests, TypeScript, and
 the production build; lint reports only the pre-existing `Select.tsx` warning.
 
-### DL049: Claude OAuth capture safeguard setting
+**Last updated:** 2026-09-23
+
+### DL049 — Claude OAuth capture safeguard setting
 
 The Claude Header Defaults section exposes CPA's optional `oauth-safeguard`
 setting. CPA privately captures its own Claude Code reference with a CPA Claude
@@ -1043,13 +1048,17 @@ setting appears in search and every supported locale. It renders as a setting ro
 (`ToggleSetting`): an external `<label for>` names the switch and the description is
 connected through `aria-describedby`; the switch track shows keyboard focus.
 
-Validation: focused config, accessibility, and four-locale copy tests pass.
+**Implementation evidence:** `src/features/config/components/sections/SectionAdvanced.tsx`, `src/hooks/useVisualConfig.ts`, `src/features/config/searchIndex.ts`, `src/types/visualConfig.ts`, `src/i18n/locales/**`; tests: `tests/visualConfigClaudeOauthSafeguard.test.ts`, `tests/toggleSwitchAccessibility.test.ts`.
+
+**Recorded validation:** Focused config, accessibility, and four-locale copy tests pass.
 `bun run verify` passes 758 tests, TypeScript, and the production build; lint
 retains the existing `Select.tsx` warning. Chrome CDP verified the rendered
 description on desktop and at a 390px mobile viewport without horizontal
 overflow.
 
-### DL050: Cache-managed quota refresh
+**Last updated:** 2026-10-19
+
+### DL050 — Cache-managed quota refresh
 
 The Quota page's "Refresh all credentials" action uses the normal quota cache
 path. CPA reconciles routing cooldowns when a provider request actually reaches
@@ -1060,11 +1069,15 @@ windows update credential state, while the Fable weekly allowance updates only
 Fable models. Opus and Sonnet fields remain display data because they draw from
 the shared weekly pool.
 
-Validation: quota tests cover cache-managed cooldown recovery and the normal
+**Implementation evidence:** `src/features/quota/{QuotaPage.tsx,logic.ts,windowGating.ts}`, `src/features/quota/hooks/useQuotaBatchLoader.ts`, `src/features/quota/providers/types.ts`, `src/features/quota/providers/claude/data.ts`; tests: `tests/quotaPageLogic.test.ts`, `tests/claudeFableQuota.test.ts`, `tests/quotaWindowGating.test.ts`.
+
+**Recorded validation:** Quota tests cover cache-managed cooldown recovery and the normal
 refresh wiring. `bun run verify` passes the affected suites, lint, TypeScript,
 and the production build.
 
-### DL052: Greedy soonest recovery routing strategy
+**Last updated:** 2026-10-07
+
+### DL052 — Greedy soonest recovery routing strategy
 
 The configuration page's Routing Strategy dropdown now includes the backend's
 `greedy-soonest-recovery` strategy, labeled "Greedy Soonest Recovery (GSR)".
@@ -1078,7 +1091,9 @@ round robin continues to exclude credentials with non-positive weights. The
 auth-file hint links to routing settings for either strategy. Credential cards
 use the strategy-neutral label "Weight".
 
-Validation: focused routing strategy tests, TypeScript type-check, production
+**Implementation evidence:** `src/features/config/components/sections/SectionRouting.tsx`, `src/hooks/useVisualConfig.ts`, `src/features/config/searchIndex.ts`, `src/features/dashboard/DashboardPage.tsx`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`, `src/features/providers/sheets/forms/BaseProviderForm.tsx`, `src/types/visualConfig.ts`, `src/i18n/locales/**`; tests: `tests/visualConfigRoutingStrategy.test.ts`, `tests/authFileCard.test.ts`.
+
+**Recorded validation:** Focused routing strategy tests, TypeScript type-check, production
 build, and the canonical CPA management bundle build pass. Scheduling-weight
 copy validation passes focused auth-file, routing, and localization tests, lint,
 TypeScript, and the production build. An initial `bun run verify` passed 2,150
@@ -1087,7 +1102,9 @@ which also reproduces at the pinned CPAMC baseline. Desktop and mobile CDP check
 confirm the auth-file help wraps without horizontal overflow and retains its
 routing-settings link.
 
-### DL053: Quota summary and credential-aware quota tooltips
+**Last updated:** 2026-10-28
+
+### DL053 — Quota summary and credential-aware quota tooltips
 
 The Quota Management page keeps its existing title, refresh controls, provider tabs, search,
 sorting, credential list, and candy-striped unavailable allowance treatment while adding a compact
@@ -1101,7 +1118,9 @@ credential, exact remaining percentage, reset instant and countdown, and plan/ti
 retain their remaining amount and use the existing candy-wrap fill in both views. All five locales
 include the new summary copy.
 
-Validation: quota summary and tooltip tests pass, the full CPAMC type-check and lint pass, and the
+**Implementation evidence:** `src/features/quota/{QuotaPage.tsx,quotaSummary.ts}`, `src/features/quota/components/{QuotaSummary.tsx,QuotaCard.tsx,QuotaMeter.tsx,QuotaResetLabel.tsx}`, `src/utils/quota/resetInstants.ts`, `src/components/ui/Tooltip.tsx`; tests: `tests/quotaSummary.test.ts`, `tests/quotaRowTitle.test.ts`, `tests/quotaResetInstants.test.ts`, `tests/tooltipProvider.test.ts`, `tests/quotaPageLogic.test.ts`.
+
+**Recorded validation:** Quota summary and tooltip tests pass, the full CPAMC type-check and lint pass, and the
 single-file production build passes. The full suite has one unrelated pre-existing legacy-backend
 probe failure on this branch.
 
@@ -1185,7 +1204,7 @@ one account of each tier totals 125% of Pro Max. Known dollar-credit pool
 `iguana_necktie` uses the existing Cloud session credits translation in the row
 and tooltip, while its raw key remains unchanged in normalized quota data.
 
-Validation: 76 focused tests cover reported plan tiers, Team precedence,
+76 focused tests cover reported plan tiers, Team precedence,
 card/summary consistency, allowance-weighted remaining quota, and all six credit
 label translations. Lint, TypeScript, production build, and canonical Docker
 bundle build pass. A browser using production account data confirms Max and
@@ -1201,24 +1220,16 @@ separate error strip explains refresh failures, and the loading label describes
 an in-progress refresh. This avoids presenting a retained snapshot as a new error
 on navigation or while retrying.
 
-Validation: focused Claude quota and reset-grant tests, lint, TypeScript, and the
+Focused Claude quota and reset-grant tests, lint, TypeScript, and the
 production build pass. The full frontend suite records 2,102 passes and an
 unrelated SCSS import failure in `tests/analyticsAnalysis.test.ts`; the same error
 reproduces on the unchanged parent commit. Browser checks with the updated CPA
 backend and live Claude quota verify shared usage/profile/grant responses;
 simulated error, loading, and recovery checks cover desktop and mobile.
 
-### DL059: Dense short-range analytics buckets
+**Last updated:** 2026-10-27
 
-Analytics requests for the rolling one-hour and six-hour presets now use 15-minute and 30-minute
-buckets respectively. The range URL state and displayed range labels remain unchanged, while the
-timeseries and analysis charts receive the denser points through the existing bucket-width query
-field. Other ranges retain their existing widths.
-
-Validation: the analytics range regression test covers 1h → 15m, 6h → 30m, and the unchanged 24h
-hourly mapping. TypeScript compilation and lint pass.
-
-### DL054: OAuth rule editors skip API-key credentials
+### DL054 — OAuth rule editors skip API-key credentials
 
 The OAuth excluded-models and model-alias editors build their provider picker through one
 `oauthCredentialProviders` helper, which skips credentials that carry a `usage_probe`. Those are
@@ -1226,11 +1237,15 @@ API-key entries (for example Z.AI or OpenCode Go under `openai-compatibility`) l
 quota page can poll them; CPA applies neither `oauth-excluded-models` nor OAuth aliases to API-key
 credentials, so offering them produced an unsupported model list and rules that never apply.
 
-Validation: a unit test covers the helper, and a CDP check against a CPA with a Kiro OAuth file
+**Implementation evidence:** `src/features/authFiles/constants.ts`, `src/pages/{AuthFilesOAuthExcludedEditPage.tsx,AuthFilesOAuthModelAliasEditPage.tsx}`; tests: `tests/oauthProviderOptions.test.ts`.
+
+**Recorded validation:** A unit test covers the helper, and a CDP check against a CPA with a Kiro OAuth file
 plus Z.AI and OpenCode Go usage-probe keys showed only OAuth providers in both editors, with Kiro
 listing the Claude catalog served by CPA.
 
-### DL055: Quota reserves and bypass keys
+**Last updated:** 2026-10-14
+
+### DL055 — Quota reserves and bypass keys
 
 Credentials can keep part of a supported quota bar in reserve: Claude, Codex, Z.AI, OpenCode Go,
 and Kiro. Each reserve is a minimum remaining percentage per bar. On the quota page and auth-file
@@ -1255,7 +1270,9 @@ OpenAI-compatible provider rows now take their auth index from the first key ent
 reports it as `auth_index`; the provider transformers accept both `auth_index` and `auth-index`.
 The reserve editor uses that index to find the credential's quota bars.
 
-Validation: Bun helper and patch regressions (including bypass-key-only edits), the full suite,
+**Implementation evidence:** `src/features/quota/quotaReserve.ts`, `src/features/quota/components/{QuotaReserveEditor.tsx,QuotaMeter.tsx,QuotaCard.tsx,QuotaSummary.tsx}`, `src/services/api/{transformers.ts,authFiles.ts}`, `src/features/providers/sheets/forms/BaseProviderForm.tsx`; tests: `tests/quotaReserve.test.ts`, `tests/providerEditingV8.test.ts`, `tests/quotaSummary.test.ts`.
+
+**Recorded validation:** Bun helper and patch regressions (including bypass-key-only edits), the full suite,
 lint, TypeScript compilation, and the single-file build. Through CDP, a CPA built from the matching
 CPA checkout and serving this build with a live Z.AI credential showed the striped weekly
 reserve and its tooltip on the quota page and the badge on the auth-file card. In the provider
@@ -1263,7 +1280,9 @@ form, pointer drag moved the weekly reserve from 30% to 50% and ArrowRight moved
 Saving persisted 51% with the bypass key unchanged, and the editor had no overflow at 375px. The
 only failing suite test, `legacy backend login diagnostic`, also fails without these changes.
 
-### DL056: Analytics reads revalidate against a cached response
+**Last updated:** 2026-10-19
+
+### DL056 — Analytics reads revalidate against a cached response
 
 Analytics reads now travel through the header form of the read route: the query is base64url JSON in
 `X-Analytics-Query` on a `GET` to `/v8/management/analytics/query` while the encoded header stays
@@ -1283,7 +1302,9 @@ client importing domain-specific cache modules. The in-flight dedupe key include
 response that arrives after the connection changed is rejected rather than returned to the caller or
 replayed against the new server.
 
-**Validation:** `bun test tests/analyticsQueryTransport.test.ts` (18 tests), the updated dedupe and v2
+**Implementation evidence:** `src/services/api/{analytics.ts,client.ts}`, `src/features/analytics/{analyticsRefreshState.ts,useAnalyticsLoad.ts}`; tests: `tests/analyticsQueryTransport.test.ts`, `tests/analyticsTransportDedupe.test.ts`, `tests/analyticsApiV2.test.ts`, `tests/analyticsRefresh.test.ts`.
+
+**Recorded validation:** `bun test tests/analyticsQueryTransport.test.ts` (18 tests), the updated dedupe and v2
 adapter suites, and the full analytics filter (289 tests) pass. `bun run lint` and `bun run build`
 pass. `bun run verify` stops on the pre-existing `legacy backend login diagnostic` failure (full
 suite: 1919 pass, 1 fail), which also fails at HEAD without these changes.
@@ -1300,13 +1321,62 @@ presets retain their existing identity. Cursor continuations keep exact bounds b
 signatures bind the first page's resolved range. Time zones, filters, and all other fields stay
 significant; the generic request serializer still preserves timestamp strings exactly.
 
-Validation on 2026-10-16: 40 transport and dedupe tests pass, including same-minute 304 reuse,
+On 2026-10-16: 40 transport and dedupe tests pass, including same-minute 304 reuse,
 concurrent reads, neighboring minutes, offset equivalence, zone and filter isolation, exact cursor
 bounds, and unchanged sub-minute requests and response metadata. TypeScript compilation, lint, and
 the single-file production build pass. `bun run verify` reaches 1,933 passing tests and the same
 pre-existing `legacy backend login diagnostic` failure.
 
-### DL060: Kiro sign-in in the OAuth gallery
+**Last updated:** 2026-10-19
+
+### DL057 — Shared surfaces used by the analytics UX pass
+
+The DL013–DL022 work makes small additive changes to shared CPAMC components. These components
+remain compatible with their existing callers while exposing the optional behavior required by the
+fork's analytics workspace:
+
+- `src/components/ui/Button.tsx` — optional `icon` prop rendered before the label (hidden while loading).
+- `src/components/ui/Card.tsx` — optional `ref` forwarded to the root `div` (React 19 ref-as-prop) so scroll reveals need no wrapper.
+- `src/components/ui/Select.tsx` / `Select.module.scss` — optional `icon` on `SelectOption`, rendered in the trigger and option rows.
+- `src/components/ui/Table/Table.module.scss` — a 12px top margin on the table frame. The sticky trailing action column is analytics-owned (`.stickyAction` in `src/features/analytics/Analytics.module.scss`).
+- `src/styles/components.scss` — `.btn-icon` sizing for the Button icon slot.
+- `src/components/layout/MainLayout.tsx` — sidebar selection scoped to the analytics parent page.
+- `src/features/providers/components/ProviderCategoryList.tsx` — logo rendering moved into the shared `ProviderLogo` component (also used by Event filters, DL018).
+
+No upstream behaviour changes; every addition is opt-in through a new prop or class.
+
+**Implementation evidence:** `src/components/ui/{Button.tsx,Card.tsx,Select.tsx,Select.module.scss}`, `src/styles/components.scss`, `src/components/layout/MainLayout.tsx`, `src/features/providers/components/{ProviderCategoryList.tsx,ProviderLogo.tsx}`.
+
+**Recorded validation:** None recorded.
+
+**Last updated:** 2026-10-30
+
+### DL058 — Remote development access
+
+Vite listens on all network interfaces and accepts all host names so the existing mock-data
+workspace can be opened through a remote IP address or a custom development hostname.
+
+**Implementation evidence:** `vite.config.ts`.
+
+**Recorded validation:** The running development server on port 18517 returned HTTP 200 with a custom Host header.
+
+**Last updated:** 2026-10-19
+
+### DL059 — Dense short-range analytics buckets
+
+Analytics requests for the rolling one-hour and six-hour presets now use 15-minute and 30-minute
+buckets respectively. The range URL state and displayed range labels remain unchanged, while the
+timeseries and analysis charts receive the denser points through the existing bucket-width query
+field. Other ranges retain their existing widths.
+
+**Implementation evidence:** `src/features/analytics/query.ts`, `src/features/analytics/views/{Overview.tsx,Analysis.tsx}`, `src/features/analytics/ViewerPage.tsx`; tests: `tests/analyticsRange.test.ts`.
+
+**Recorded validation:** The analytics range regression test covers 1h → 15m, 6h → 30m, and the unchanged 24h
+hourly mapping. TypeScript compilation and lint pass.
+
+**Last updated:** 2026-10-19
+
+### DL060 — Kiro sign-in in the OAuth gallery
 
 Kiro is a first-class tile in the upstream provider gallery (`src/features/oauth/providers.ts`). Unlike
 the other browser providers, opening the tile does not start sign-in: the flow dialog first shows the
@@ -1319,36 +1389,40 @@ only appears once something is typed. Starting sends `start_url` and `region` wi
 the account choice instead of reusing the previous options. The fork's former inline Kiro card on
 `src/pages/OAuthPage.tsx` was removed with that page.
 
-Validation on 2026-10-19: `tests/kiroProvider.test.ts` covers the registry entry, callback support,
+**Implementation evidence:** `src/features/oauth/providers.ts`, `src/features/oauth/{kiroOAuth.ts,OAuthPage.tsx}`, `src/features/oauth/components/{KiroLoginSetup.tsx,OAuthFlowDialog.tsx}`, `src/features/oauth/hooks/useOAuthFlows.ts`; tests: `tests/kiroProvider.test.ts`.
+
+**Recorded validation:** On 2026-10-19: `tests/kiroProvider.test.ts` covers the registry entry, callback support,
 both setup states, and validation. Through Chrome CDP against a CPA built from the fork, the gallery
 showed the Kiro tile; the dialog started a Builder ID login (AWS authorize URL, status polling), and an
 Identity Center attempt sent `start_url` and `region` to CPA. Desktop 1440px and mobile 390px had no
 horizontal overflow.
 
-### DL061: Korean coverage for fork-only strings
+**Last updated:** 2026-10-19
+
+### DL061 — Korean coverage for fork-only strings
 
 Upstream ships a Korean locale that covers only upstream keys. The fork adds Korean text for every
 fork-only key (analytics, structured API keys, quota reserves and summaries, Kiro, Z.AI, OpenCode Go,
 and related config), so `tests/koreanLocale.test.ts` holds for the whole English key set with matching
 interpolation tokens instead of falling back to Simplified Chinese.
 
-Validation on 2026-10-19: the Korean locale test passes; key sets and `{{…}}` tokens match English.
+**Implementation evidence:** `src/i18n/locales/{ko.json,en.json}`; tests: `tests/koreanLocale.test.ts`.
 
-### DL062: Analytics filter restoration
+**Recorded validation:** On 2026-10-19: the Korean locale test passes; key sets and `{{…}}` tokens match English.
 
-Status: shipped
+**Last updated:** 2026-10-19
 
-Files: `src/features/analytics/AnalyticsFilterProvider.tsx`, `src/features/analytics/analyticsFilterStorage.ts`, `tests/analyticsFilterStorage.test.ts`
+### DL062 — Analytics filter restoration
 
 CPAMC remembers the last serialized Analytics filter query in browser local storage. Returning to an `/analytics/*` route without query parameters restores that query and updates the URL. Explicit query parameters remain authoritative, so shared links and deliberate filter changes are preserved.
 
-Validation on 2026-10-21: focused analytics storage and contract tests pass; lint, TypeScript, and the single-file production build pass.
+**Implementation evidence:** `src/features/analytics/AnalyticsFilterProvider.tsx`, `src/features/analytics/analyticsFilterStorage.ts`, `tests/analyticsFilterStorage.test.ts`.
 
-### DL063: Keys catalog follows Rank by; stable Top Models colors
+**Recorded validation:** On 2026-10-21: focused analytics storage and contract tests pass; lint, TypeScript, and the single-file production build pass.
 
-Status: shipped
+**Last updated:** 2026-10-21
 
-Files: `src/features/analytics/views/KeysView.tsx`, `src/features/analytics/views/keys/keyRanking.ts`, `src/features/analytics/views/analysis/{analysisModel.ts,TimeSeriesCharts.tsx}`, `src/features/analytics/{AnalyticsKeyFilter.tsx,AnalyticsShell.tsx,components/AnalyticsShared.tsx,Analytics.module.scss}`, `tests/{analyticsKeysView,analyticsAnalysis,analyticsPalette}.test.ts`
+### DL063 — Keys catalog follows Rank by; stable Top Models colors
 
 The Keys catalog's Top model column follows the selected Rank by metric. Ranked by tokens it shows the key's highest-token model and token count. Ranked by cost it shows the key's highest-known-cost model and that cost, read from CPA's additive `top_cost_model` / `top_cost_model_usd` key catalog fields. A backend without those fields shows Unknown in cost mode instead of the token leader. Sorting the column and its header help follow the same metric.
 
@@ -1356,17 +1430,19 @@ Top Models assigns each model's hue from its token rank, whatever metric is sele
 
 The API keys filter is disabled on the Keys tab and shows All API keys, because the catalog always ranks every key and ignored the selection. The whole field is dimmed with a not-allowed cursor so the locked state reads at a glance. The selection persists for the other tabs.
 
-Validation on 2026-10-22: `bun run verify` passes 2,081 tests, lint, TypeScript, and the production build. An isolated Chrome CDP run against a fresh local CPA, a priced mock OpenAI-compatible upstream, and real proxied requests confirmed cost-mode `pricey-small $0.10` versus token-mode `cheap-bulk 150K tokens`, identical per-model swatch colors across all three Top Models modes, and a disabled `All API keys` filter on Keys only, rendered at 0.6 opacity with a not-allowed cursor while Analysis keeps full opacity.
+**Implementation evidence:** `src/features/analytics/views/KeysView.tsx`, `src/features/analytics/views/keys/keyRanking.ts`, `src/features/analytics/views/analysis/{analysisModel.ts,TimeSeriesCharts.tsx}`, `src/features/analytics/{AnalyticsKeyFilter.tsx,AnalyticsShell.tsx,components/AnalyticsShared.tsx,Analytics.module.scss}`, `tests/{analyticsKeysView,analyticsAnalysis,analyticsPalette}.test.ts`.
 
-### DL064: Standalone Model Leaderboard analytics page
+**Recorded validation:** On 2026-10-22: `bun run verify` passes 2,081 tests, lint, TypeScript, and the production build. An isolated Chrome CDP run against a fresh local CPA, a priced mock OpenAI-compatible upstream, and real proxied requests confirmed cost-mode `pricey-small $0.10` versus token-mode `cheap-bulk 150K tokens`, identical per-model swatch colors across all three Top Models modes, and a disabled `All API keys` filter on Keys only, rendered at 0.6 opacity with a not-allowed cursor while Analysis keeps full opacity.
 
-Status: shipped
+**Last updated:** 2026-10-22
 
-Files: 'src/types/analytics.ts', 'src/services/api/analytics.ts', 'src/features/analytics/navigation.ts', 'src/features/analytics/{AnalyticsPage.tsx,AnalyticsTabs.tsx}', 'src/components/layout/MainLayout.tsx', 'src/features/analytics/views/ModelLeaderboard.tsx', 'src/features/analytics/views/leaderboard/*', 'src/styles/themes.scss', 'src/i18n/locales/*', 'tests/analyticsModelLeaderboard.test.ts', 'tests/analyticsContracts.test.ts'
+### DL064 — Standalone Model Leaderboard analytics page
 
 Adds a standalone Analytics page at '/analytics/model-leaderboard' (sidebar group between Usage and Analytics Management; the legacy '/analytics/leaderboard' Keys redirect is untouched). The page reads a fixed rolling week through the v2 analytics query with the new 'model_leaderboard' operation — schema_version 2, named 'last_n_days' range with n=7, and the viewer's IANA zone beside the range — and renders the four CPAUK awards (Most Used, Most Reliable, Speed Maniac, Most Talkative) as podium cards: ranks 2-1-3 on the left with medal-framed avatars, award header and runners-up (ranks 4-6) in the right rail. Below the mobile breakpoint the runners-up collapse into a keyboard-operable details accordion; empty awards show per-metric copy, and podiums with one or two ranked models keep dashed placeholder slots instead of collapsing. Avatars resolve a provider-independent model family from the model id; the mascot registry ships empty (one line adds a family mascot) and falls back to lab logos, with a neutral placeholder for unknown families. Medal tokens ('--medal-*') join every theme, and all six locales carry the new strings.
 
-Validation on 2026-10-23: 'bun run verify' passes 2,097 tests (including new model-leaderboard coverage for family resolution, empty awards, 1- and 2-row podiums, runners-up visibility, navigation mapping, and the wire request), lint, TypeScript, and the production build. An isolated Chrome CDP session against the dev server with intercepted '/analytics/query' responses (full, empty, 1-row, 2-row) confirmed desktop and mobile renders in light and dark themes, correct sidebar highlighting, hidden tab bar on the standalone page, expanded/collapsed runners-up per breakpoint, and the legacy redirect.
+**Implementation evidence:** 'src/types/analytics.ts', 'src/services/api/analytics.ts', 'src/features/analytics/navigation.ts', 'src/features/analytics/{AnalyticsPage.tsx,AnalyticsTabs.tsx}', 'src/components/layout/MainLayout.tsx', 'src/features/analytics/views/ModelLeaderboard.tsx', 'src/features/analytics/views/leaderboard/*', 'src/styles/themes.scss', 'src/i18n/locales/*', 'tests/analyticsModelLeaderboard.test.ts', 'tests/analyticsContracts.test.ts'.
+
+**Recorded validation:** On 2026-10-23: 'bun run verify' passes 2,097 tests (including new model-leaderboard coverage for family resolution, empty awards, 1- and 2-row podiums, runners-up visibility, navigation mapping, and the wire request), lint, TypeScript, and the production build. An isolated Chrome CDP session against the dev server with intercepted '/analytics/query' responses (full, empty, 1-row, 2-row) confirmed desktop and mobile renders in light and dark themes, correct sidebar highlighting, hidden tab bar on the standalone page, expanded/collapsed runners-up per breakpoint, and the legacy redirect.
 
 Live check on 2026-10-23: a CPA build from the same change set served this bundle as its management panel, proxied seven real Z.ai 'glm-5.3-flash' requests carrying four distinct 'X-Session-ID' values, and the page reached through the sidebar after a real login showed Most Used 4 sessions and Most Talkative 322 tokens at 76% reasoning, matching a hand computation from the stored events, while Most Reliable (7 attempts) and Speed Maniac (P70 64 tok/s) showed their floor empty states. Lab-logo avatars render at 55% of the medal frame on desktop (1440px) and mobile (390px) with no console errors.
 
@@ -1393,7 +1469,7 @@ fills only the frame's inner area; pending and failed-image lab logos keep their
 and medals retain their intentional overflow. Browser regression checks measure image bounds
 against the inner frame, excluding its 4px border, because card geometry alone misses this bug.
 
-Validation on 2026-10-25: `bun run verify` with Bun 1.3.14 passes 2,115 tests, lint, TypeScript,
+On 2026-10-25: `bun run verify` with Bun 1.3.14 passes 2,115 tests, lint, TypeScript,
 and the single-file production build. Isolated Chrome CDP checks through the normal login and
 Model Leaderboard route with intercepted API fixtures cover every award size from zero through
 six models at 1440px and 390px. Card positions and heights match before and after the ranking
@@ -1426,34 +1502,29 @@ light and dark plus mobile (390px) renders with all eight mascots loading at the
 medal frames, and a 404-intercepted claude.webp swapping to the lab-logo tile with a single
 request (no retry), no broken image, and no layout change. Mascot photos never take the dark-theme logo inversion, and the 14px name and runners-up glyphs always show the lab logo, because a photo is unreadable at that size. Served from CPA's embedded bundle over the tailnet, the six podium mascots loaded with 200 responses and no console errors. Frames drop their inner padding and use a 4px medal border so the photo fills the frame, and the GLM family uses the Z.ai light/dark logo pair (the auth-file list already uses it) instead of the Zhipu mark.
 
-### DL065: Qualified output arrival telemetry in Analytics
+**Last updated:** 2026-10-26
 
-Status: shipped
-
-Files: 'src/types/analytics.ts', 'src/features/analytics/views/Events.tsx', 'src/features/analytics/views/events/{eventDiagnostics.ts,EventTimingGraph.tsx,EventDetailSheet.tsx,EventDetail.module.scss}', 'src/features/analytics/views/leaderboard/ModelLeaderboardAwardCard.tsx', 'src/features/analytics/views/KeysView.tsx', 'src/features/analytics/views/analysis/{KeyModelHeatmap.tsx,LatencyDiagnostics.tsx,TimeSeriesCharts.tsx}', 'src/features/analytics/views/overview/OverviewKpis.tsx', 'src/i18n/locales/*', 'tests/analyticsEvents.test.ts', 'tests/analyticsEventDiagnostics.test.ts', 'tests/analyticsModelLeaderboard.test.ts'
+### DL065 — Qualified output arrival telemetry in Analytics
 
 Analytics treats the additive Event `throughput` object as the only qualified arrival-rate source. The table column is labeled Arrival rate; locally tokenized windows retain approximate-count tooltips and accessible descriptions, and the frozen unavailability reasons are explained in plain language. A flat alias from an older CPA server renders as Legacy and is never promoted to a qualified observation. Event details keep Arrival rate, Token source, the separate whole-attempt Effective output rate, and first-to-last Arrival window evidence; timing and analysis labels say Output window instead of implying a provider-reported generation duration. The speed award explains P70 qualified successful arrivals and shows qualified samples against successful attempts. A fallback estimate for unmeasured requests is handled separately in DL066 and never enters these observed rankings. EST is reserved for historical cohort predictions, superseding the earlier shared badge for approximate token counts. Observed arrival rates and whole-attempt effective rates never carry EST. For observed windows with approximate token counts, the detail sheet visibly says Token count: Calculated locally, and the timing graph retains its approximate-count tooltip without an EST suffix. Types preserve nullable `stream` and `reasoning_effort` plus optional batching diagnostics for exports without adding noisy metrics. All six locales carry the new copy.
 
-Validation on 2026-10-24: `bun run verify` passed the full panel suite, ESLint, TypeScript, and the Vite single-file production build. Focused regressions cover qualified, estimated, unavailable, and legacy rate states; effective-rate separation; output-window parsing; detail copy; and leaderboard coverage semantics.
+**Implementation evidence:** 'src/types/analytics.ts', 'src/features/analytics/views/Events.tsx', 'src/features/analytics/views/events/{eventDiagnostics.ts,EventTimingGraph.tsx,EventDetailSheet.tsx,EventDetail.module.scss}', 'src/features/analytics/views/leaderboard/ModelLeaderboardAwardCard.tsx', 'src/features/analytics/views/KeysView.tsx', 'src/features/analytics/views/analysis/{KeyModelHeatmap.tsx,LatencyDiagnostics.tsx,TimeSeriesCharts.tsx}', 'src/features/analytics/views/overview/OverviewKpis.tsx', 'src/i18n/locales/*', 'tests/analyticsEvents.test.ts', 'tests/analyticsEventDiagnostics.test.ts', 'tests/analyticsModelLeaderboard.test.ts'.
 
-### DL066: Guarded arrival-rate estimate for unmeasured events
+**Recorded validation:** On 2026-10-24: `bun run verify` passed the full panel suite, ESLint, TypeScript, and the Vite single-file production build. Focused regressions cover qualified, estimated, unavailable, and legacy rate states; effective-rate separation; output-window parsing; detail copy; and leaderboard coverage semantics.
 
-Status: shipped
+**Last updated:** 2026-10-26
 
-Files: 'src/types/analytics.ts', 'src/features/analytics/views/Events.tsx', 'src/features/analytics/views/events/{eventDiagnostics.ts,EventDetailSheet.tsx,EventDetail.module.scss}', 'src/i18n/locales/*', 'tests/analyticsEventDiagnostics.test.ts', 'tests/analyticsModelLeaderboard.test.ts'
+### DL066 — Guarded arrival-rate estimate for unmeasured events
 
 When CPA publishes the additive Event `throughput_estimate`, the panel renders it only for requests without a measured arrival window or legacy alias. A measured window always wins, and old-server values stay Legacy, so a stale estimate can never pose as an observation. Unmeasured events can show an Estimated arrival rate with an EST pill, the empirical historical P10-P90 arrival range, training and validation sample counts, validation error and range coverage as localized percentages, plus human-readable history and as-of times. The range is described as observed spread, not a confidence interval. Estimated values never enter the timing graph, never draw an output bar, never use the approximate-token marker, and never feed the speed leaderboard, whose copy now states that rankings use measured windows only. The EST pill identifies only this historical prediction, never a locally counted observation or whole-attempt effective rate. Approximate token-count explanations remain separate from prediction labels. Validation and history notes sit in a native disclosure so touch and keyboard users can read them, and an unavailable-estimate row is omitted when it would only repeat a failed, ineligible, or already-explained gap. Estimate unavailability reasons are spelled out in plain language in all six locales, and raw cohort or method identifiers stay out of primary copy.
 
-Validation on 2026-10-25: `bunx bun@1.3.14 run verify` passed 2,120 tests with no failures, ESLint, TypeScript, and the Vite single-file production build. Focused regressions cover observed-over-estimate precedence, EST fallback marking, meaningful versus redundant unavailable estimates, percentage formatting, absence of a fabricated timing bar, keyboard-reachable estimate details, legacy aliases, and measured-only leaderboard copy.
+**Implementation evidence:** 'src/types/analytics.ts', 'src/features/analytics/views/Events.tsx', 'src/features/analytics/views/events/{eventDiagnostics.ts,EventDetailSheet.tsx,EventDetail.module.scss}', 'src/i18n/locales/*', 'tests/analyticsEventDiagnostics.test.ts', 'tests/analyticsModelLeaderboard.test.ts'.
 
-### DL067: Config Panel storage usage
+**Recorded validation:** On 2026-10-25: `bunx bun@1.3.14 run verify` passed 2,120 tests with no failures, ESLint, TypeScript, and the Vite single-file production build. Focused regressions cover observed-over-estimate precedence, EST fallback marking, meaningful versus redundant unavailable estimates, percentage formatting, absence of a fabricated timing bar, keyboard-reachable estimate details, legacy aliases, and measured-only leaderboard copy.
 
-Status: shipped
+**Last updated:** 2026-10-26
 
-Files: `src/services/api/storage.ts`, `src/features/config/storageUsage.ts`,
-`src/features/config/components/StorageUsage.{tsx,module.scss}`,
-`src/features/config/components/sections/AnalyticsSettingsFields.tsx`,
-`src/i18n/locales/*`, `tests/storageUsage.test.ts`
+### DL067 — Config Panel storage usage
 
 Collection and storage displays live filesystem usage from CPA's authenticated v8 storage
 endpoint. The stacked bar and legend separate CPA logs, CPA data, other files, and available
@@ -1468,7 +1539,9 @@ Failures preserve the last successful measurement with a warning; unsupported ba
 partial scans have explicit states. All six locales carry the added copy. The API adapter
 validates the response and normalizes backend field names before rendering.
 
-Validation on 2026-10-27: `bunx bun@1.3.14 run verify` passes 2,130 tests, ESLint,
+**Implementation evidence:** `src/services/api/storage.ts`, `src/features/config/storageUsage.ts`, `src/features/config/components/StorageUsage.{tsx,module.scss}`, `src/features/config/components/sections/AnalyticsSettingsFields.tsx`, `src/i18n/locales/*`, `tests/storageUsage.test.ts`.
+
+**Recorded validation:** On 2026-10-27: `bunx bun@1.3.14 run verify` passes 2,130 tests, ESLint,
 TypeScript, and the single-file production build. Contract tests cover multiple filesystems,
 partial results, invalid counts and inconsistent partitions, zero capacity, and localized
 sizes through TiB. Live Chrome CDP checks exercise the Config Panel against the built CPA
@@ -1476,40 +1549,92 @@ server at desktop and mobile widths in light, dark, and white themes. Refresh, m
 disclosure, and preservation of readings after a failed refresh pass; no runtime errors or
 horizontal overflow were observed. The CPA Docker image also builds and serves the bundled panel.
 
+**Last updated:** 2026-10-27
+
+### DL068 — Kiro credit pricing in analytics
+
+Analytics supports the Kiro USD-per-credit setting, displays reported credits and the applied rate on events, and includes credit-based cost in analysis totals while hiding its category from the breakdown and model table. Incomplete token breakdowns use the generic partial-data presentation. Manual pricing overrides retain precedence. The credit editor appears only when the server exposes the setting; token-rule updates remain compatible with older servers. Events without credit fields remain supported.
+
+**Implementation evidence:** `src/features/analytics/**`, `src/services/api/analytics.ts`, `src/types/analytics.ts`, `src/i18n/locales/**`.
+
+**Recorded validation:** `bun run verify` passes 2,138 tests, lint, TypeScript and production
+build. Desktop and mobile CDP checks against the Docker app verify four visible
+token categories, hidden costs in totals and percentage denominators, and retained
+rate-editor and event-credit details. Mixed token/credit fixtures preserve full
+monetary totals without page overflow. Earlier live Kiro checks cover metering,
+rate editing, restart and repricing. The canonical panel bundle and repository
+Docker image build successfully.
+
+**Last updated:** 2026-10-27
+
+### DL069 — Model cost modal and cache-hit efficiency
+
+Model Cost Efficiency replaces its cache-write column with a sortable cache-hit rate (cache-read tokens over all input tokens, the Overview ratio); zero-input rows show a dash. Clicking a row opens a modal with the model's family logo, provider and cost share, KPIs, a stacked cost history split by provider and service tier, and cost and token category bars. The provider and cost share sit under the model name in the modal header. The chart uses monotone smoothing and a bottom-right legend of plain line swatches. Tier colors skip the four token-component hues so they never read as a category in the bars below. The compact tooltip shows one row per tier, plus labeled rates and multipliers only when they differ from the base. It flips to the left of the cursor on the chart's right half and uses date-only headers for daily buckets. The category bars use the Usage page's token colors, with inline, non-interactive legends. Shares appear in their titles. Table rows use the shared table hover, without a focus highlight that lingered after the modal closed. Each cost cell keeps its share inline beside the amount, and zero-token models show a dash instead of "Price unknown". The series comes from CPA's `model_cost_series` query, prefetched on row hover or focus and cached per selection for 30 seconds, so nothing loads up front and touch taps still work. The modal stays open across analytics auto-refresh, restores focus to its row, dims the whole page, and distinguishes unknown prices and missing token data from missing requests.
+
+**Implementation evidence:** `src/features/analytics/views/analysis/**`, `src/services/api/{modelCostSeries.ts,modelCostSeriesCache.ts}`, `src/types/analytics.ts`, `src/i18n/locales/**`.
+
+**Recorded validation:** `bun run verify` passes 2,203 tests, lint, TypeScript and production build. CDP checks on desktop and mobile in both themes confirm one request per hovered row and none on open, a modal that survives a 67-second refresh, focus return, a three-tier tooltip inside the chart, and the unknown-price and zero-token states.
+
+**Last updated:** 2026-10-30
+
+### DL070 — Event pricing, session, and outcome details
+
+The event detail sheet shows the recorded pricing as a component, tokens, rate, and cost table, with the app's cost formatting (exact values in titles). A one-line `×N` tier caption sits above it and a footer row shows the total. The uncached row is labeled "Uncached input", and zero-token rows keep their rate but show a dash for cost. Kiro events show credits used, price per credit, and total; events without a snapshot read as not recorded. Client to CPA shows the raw client session ID, or "Not sent by client" when the client supplied none. Provider and CPA-to-client errors use the shared JSON highlighter when the payload parses as JSON, and the plain error tone otherwise. Sections have a single divider, and for client-side failures the error class appears in the failure-point section. Outcomes come from CPA: canceled events use a neutral badge, keep the reached provider step, mark the client disconnect on the return leg, label the payload "Disconnect reason", and show no failure point. Event filters add a debounced Session ID field (spell-check off, on one row with Clear filters) and replace the success/failure selector with one Outcome control (All, Success, Failure, Canceled); legacy `result=` links map to outcomes.
+
+**Implementation evidence:** `src/features/analytics/views/events/**`, `src/features/analytics/views/Events.tsx`, `src/features/analytics/query.ts`, `src/types/analytics.ts`, `src/i18n/locales/**`.
+
+**Recorded validation:** `bun run verify` passes 2,203 tests, lint, TypeScript and production build. CDP checks cover token, Kiro, and historical pricing variants, a real canceled stream, a provider-hop error, raw and absent session IDs, and typing into Session ID at 50 ms per key without lost characters.
+
+**Last updated:** 2026-10-28
+
+### DL071 — Quota history chart with drain projection
+
+On a provider tab, a quota history chart replaces the summary card. Its header carries only the title and the "N% of M% tier" figure, both at the Quota windows heading size. CPAMC posts per-credential window samples to CPA after each refresh, once per fetched reading, so revisiting the page does not re-post cached readings as new ones. It rebuilds the hourly total with the same aggregation as the live summary. A credential's last sample carries forward until an unobserved reset, and a credential with no reading for 24 hours (disabled, removed, or failing to fetch) leaves the total instead of blanking it. Samples without a plan, such as CPA's hourly Claude samples, reuse the credential's last recorded plan. The chart spans the Quota windows weekly range with a current-time marker, and its plot stretches to the heading's edges. It scales to the visible capacity on round ticks, with a capacity line that stays out of the tooltip. The remaining line is lightly smoothed, and the remaining and projected lines carry translucent fills in the provider's Quota windows color. A legend footer names the charted window and explains the total and projection. The dashed projection starts from the credentials behind the live summary and falls back to stored samples only without live readings, so a disabled or failing credential does not suppress it. Each credential drains at its net drop per reset cycle over the last week, so fluctuating or stale readings do not inflate the rate, and refills at the live reset times. The All tab is unchanged, and the chart is hidden when analytics is unavailable.
+
+**Implementation evidence:** `src/features/quota/**`, `src/services/api/quotaHistory.ts`, `src/i18n/locales/**`.
+
+**Recorded validation:** `bun run verify` passes 2,203 tests, lint, TypeScript and production build. Tests cover aggregation, gaps, first-visit rendering, capacity changes, throttled-sample resets, and projection cases. CDP checks with mocked quota responses cover desktop and mobile in both themes. Later fixes add regression tests for disabled and failing credentials, silent credentials, stale and fluctuating readings, and missing plans. They were checked through CDP against a live CPA's real Codex and Claude history, with the panel's history writes intercepted, including a page revisit that posts nothing new.
+
+**Last updated:** 2026-10-30
+
+### DL072 — ClickHouse server mode in storage, settings, and analytics health
+
+CPA can store analytics and request capture in ClickHouse (CPA DL060). When the storage response includes ClickHouse, Collection and storage renders one stacked bar per ClickHouse disk with the same legend, formatting, and measured-source disclosure as local volumes. The segments are CPA analytics, request logs and transcripts, other CPA tables, other ClickHouse data, other files, and free space. An unreachable ClickHouse shows an inline unavailable state, and local volumes stay visible.
+
+The same section edits the ClickHouse DSN (as a password input), database, telemetry retention, and agent-query limits, with restart hints for the DSN and database. The visual editor leaves untouched YAML as it was and writes numeric fields as numbers. Analytics copy in all six locales describes ClickHouse storage and its DSN requirement. SQLite now appears only for the one-time legacy import and the files beside it, and backup and maintenance copy describes logical exports and ClickHouse checks.
+
+Analytics health shows the legacy analytics import and the legacy request-log import as status chips: pending, running, done with counts, failed with the reason, or abandoned with the reason. Telemetry health loads in parallel. When it is unavailable, including a 503, the request-log item is hidden and analytics health still shows. Servers without these fields keep the previous health view.
+
+**Implementation evidence:** `src/features/config/{storageUsage.ts,components/StorageUsage.tsx,components/sections/AnalyticsSettingsFields.tsx,visualConfigServer.ts}`, `src/features/analytics/views/{Maintenance.tsx,manage/maintenanceModel.ts}`, `src/services/api/{storage.ts,analytics.ts}`, `src/types/{analytics.ts,visualConfig.ts}`, `src/i18n/locales/**`, `tests/{analyticsLegacyImport.test.tsx,visualConfigClickHouse.test.ts}`.
+
+**Recorded validation:** `bun run verify` passes, along with focused rendering and contract tests for every import state, a telemetry 503, and the locale keys. Isolated Chrome CDP checks against a local CPA and ClickHouse database cover the storage card on desktop and mobile in light, dark, and white themes, plus real import health showing Done with counts, Failed with the reason, and Abandoned.
+
+**Last updated:** 2026-10-28
+
+### DL073 — Config Routing tab, rule-based routing dry run, and event routing decisions
+
+A new Config tab `routing` (03, labeled "Routing") sits between Network and Logging, renumbering the sections to 01–07. Routing strategy, session affinity, its TTL, subagent inheritance and force-model-prefix move there from Network, and the previously UI-less `routing.session-affinity-rebind-on` gains an `any`/`quota` select that passes unknown values through. The tab renders the precedence stack weakest-first: custom rules, routing strategy, session affinity, then the read-only routing gate (disabled, cooling down, quota, quota reserve, model not supported, model prefix, retry round, weight, pinned/policy). The section description explains the stack, a one-line legend under it bolds the three rules of thumb (only the base-rule note keeps a lock icon), all-caps CUSTOM RULES and BASE RULES labels head the two groups, base rules sit on a diagonal-stripe background mixed from the theme's text color and carry a locked BASE pill, and each gate chip carries the same icon the event matrix uses for that reason. Custom rules use a client-id draft list. A dashed placeholder adds a rule: it is the empty state, then sits under the last rule and appears only while every rule is valid, so drafts are finished one at a time. Each rule has an inline name, enable switch, duplicate/delete, keyboard move up/down plus native drag reordering, a WHEN → ROUTE TO summary, and a recursive ALL/ANY/NOT condition builder over model, api-key, client and header with the server's operator set and limits. The field and operator menus open at least 300px wide and describe every option (for example, "is" is an exact case-insensitive value, "matches" a `*`/`?` wildcard, "regex" a case-sensitive regular expression); `Select` gained an optional `dropdownMinWidth` for this, and its trigger text now fills the space after an option icon. Condition selects, inputs and the `in` token box share one 36px height. Model, API key, client and header carry an icon in the field menu, its trigger, the rule summary and the event condition line; one splitter places the icons in both panel-rendered and CPA-rendered condition text, skipping quoted values, list values and header names. `routing.rules` is written with an AST-preserving writer that reuses baseline nodes, so untouched rules stay byte-identical and edits, reorders and deletions only rewrite the affected nodes (the server rejects unknown rule fields, so none reach the editor from a valid config). Comments outside the rules list are kept; comments inside the list, on or between rule items, are lost when a save applies the JSON PATCH, exactly as with the existing payload rule lists. The null `routing` section is normalized on first write, rebases re-align editor ids, and saves guard the list with `assertConfigListsUnchanged(['routing','rules'])`. Client validation mirrors the server's structure rules (one operator, non-empty values, regex length, non-empty route-to, depth/node/target/rule limits counted on the serialized tree) plus a conservative RE2 check (inline flags and `(?P<name>` are rewritten before a JS parse; lookarounds and backreferences are rejected) that flags only patterns Go would reject, so the server's save error stays the final word, and blocks saving with an inline message per rule. Route targets are picked from `GET /routing/credentials`, show label, provider and a disabled badge, and unknown ids render as removable missing chips; Home mode shows a notice that custom rules are ignored. The side panel posts the current draft rules to `POST /routing/dry-run` (debounced, side-effect free) and renders the trace as the winner card plus one row per layer in stack order, including rule statuses, tier pool and pick (or "not predictable"), affinity state, and blocked candidates with reasons; a rejected draft shows the endpoint's message and path inline. All six locales carry the new copy.
+
+Usage → Events → Event details gains a "Routing decision" section directly after "Request path", fed by the event-detail `routing_trace`. A verdict line shows the routed credential and how it was chosen (strategy, session binding, pin, plugin, paid credits, or Home) with the applied rule; the applied rule's rendered condition sits on its own muted line, with a fell-through marker when a matching rule could not be used. A compact dot matrix has one row per layer in stack order (custom rules, strategy, session affinity, routing gate) and one column per candidate, aligned with CSS subgrid; glyphs show wanted, overridden, bound, kept, broken, held, gate-passed and blocked states, with each blocked cell drawing its gate reason's icon in red (a piggy bank for a quota-reserve hold, a snowflake for cooldown, and so on), the deciding row carries a crown chip, and the routed column has an accent band. Every cell, row and the verdict explain themselves in tooltips on hover and keyboard focus. More than 16 candidates collapse untargeted blocked credentials into one "+N blocked" cell. Traces are normalized at read time (null arrays become empty, malformed traces hide the section), and events without a trace omit the section.
+
+**Implementation evidence:** `src/features/config/**`, `src/features/analytics/views/events/**`, `src/components/ui/{icons,Select,RoutingConditionText}.tsx`, `src/components/ui/routingIcons.ts`, `src/hooks/useVisualConfig.ts`, `src/types/{visualConfig,routing}.ts`, `src/services/api/routing.ts`, `src/i18n/locales/**`, `tests/{routingSection,visualConfigRoutingRules,configFieldParity,configUiState,configSettingLayout,configOAuthBehaviorUi,configServerUi,analyticsEventRouting}.test.ts`.
+
+**Recorded validation:** `bun run verify` passes 2,286 tests, lint, TypeScript and the production build. Three QA rounds against a live CPA (two Z.ai credentials, real upstream traffic, hot-reloaded rules) and an isolated Chrome CDP context covered the Routing tab (nested ALL/ANY/NOT rules built, reordered and saved; untouched rules byte-identical; comma, padded and empty `in` values kept; the Trace a request panel against the live dry run, including predicted, unpredictable and rejected drafts) and the event Routing decision section (rule applied, overridden, fell through, session binding kept/held/agreeing, absent targets, events without a trace) at 1440px and 390px in both themes, with matrix columns aligned to 0px and no horizontal overflow. A follow-up restored the approved mockup's Routing tab styling, added gate icons and option descriptions, and verified them with `bun run verify` (2,313 tests) and a live CPA with a Z.ai credential held by a 99% weekly quota reserve, whose event showed the red reserve icon and "Held back by its quota reserve. Resets in 6.9 days." at 1440px and 390px in both themes. The dry-run panel names the reserve too, and its reset times include the date when they fall after today. Option descriptions were checked for fit in English, Russian, Vietnamese, Korean and Chinese menus. A second follow-up added the add-rule placeholder, field icons, the locked BASE pill, matched condition control heights and the inline RE2 check; before it, an invalid regex such as `(glm` reached the save dialog and failed with a 422. Against the live CPA it now shows the inline error, a rule built and saved in the editor with `(?i)^glm-` was accepted by the server, and its live Z.ai events show the model icon on the condition line. Eighteen patterns, including RE2-only syntax, got the same verdict from the panel check and Go `regexp.Compile`.
+
+**Last updated:** 2026-10-29
+
+## Sync Checklist
+
+Project-specific checks every upstream sync runs, in addition to the full test suite, lint, typecheck, builds, and a smoke test of upstream and fork features.
+
+- Install with the exact Bun version from `packageManager` in `package.json` and `--frozen-lockfile`, then run `bun run verify`.
+- Keep the six locale files on one key set: take the union of both sides' keys and translate fork-only strings in every locale.
+- Check the pages that fork entries touch against a CPA built from the matching CPA fork commit, in a browser at desktop (1440px) and mobile (390px) widths, in light and dark themes.
+- Push `main` before advancing CPA's `web/management-center` gitlink, then rebuild CPA's panel bundle.
+
 ## Merge History
 
-This is an append-only historical decision record. It provides context for integrations but never, by itself, establishes an ongoing fork divergence; use the current Divergence Log for that determination.
-
-### 2026-09-09 - Merge upstream `main` at `ed5f1c4`
-
-Merged 23 upstream commits into `ef9606a` with a single merge commit. Conflict resolutions
-combine the fork's `ProviderLogo` and analytics configuration handling with upstream's provider
-quick-fill filtering, Kimi styles, segmented toolbar styles, and Antigravity sensitive-word
-parsing. Repository guidance retains the fork sync rules and upstream testing guidance.
-
-Validation: `bun run verify` passes 708 tests, lint, TypeScript, and the production build.
-Isolated Chrome CDP checks against the existing server on port 18527 cover provider and config
-pages, OAuth editors, and analytics on desktop and mobile, with no reported browser errors or
-horizontal overflow. Event fixtures confirm raw payload rendering and the routing-inclusive
-total. These browser checks use the existing development backend; merged CPA behavior is
-validated separately with the Go test suite and build. Independent review found no additional frontend issues.
-
-### 2026-10-07 - Merge upstream `main` at `6abace9`
-
-The resolved merge combines 103 upstream commits with the fork's 53 commits. Upstream fixes
-take precedence where behavior overlaps; fork-only analytics, structured API-key, provider
-workbench, quota, and YAML-preserving configuration behavior remains. The CPAMC request layer
-continues to resolve all management routes below `/v8/management`, including the fork-owned
-capabilities, analytics, revisioned API-key, and API-key-limit surfaces. The public viewer stays
-on `/v0/analytics/viewer`.
-
-The merge is recorded in `e795e5554e6559c7501733b1c06b02f979c8f53f`; the `base` tag points to
-that merge. Later fork commits update the CPAMC branch and CPA gitlink. The upstream legacy backend probe and its compatibility error
-path were removed so application code cannot probe the deprecated `/v0/management` surface.
-
-Validation: `bun run verify` passes 1,820 tests, ESLint, TypeScript, and the Vite single-file
-production build. Parent CPA v8 route registration and the bundled panel were checked with an
-isolated Chrome CDP login; the panel issued only `/v8/management/...` requests.
+This is an append-only decision record, newest first, with one entry per upstream sync. It explains past integrations but does not by itself establish a current divergence; use the Divergence Log for that. Sync with upstream only when the user explicitly asks. Do not edit past entries.
 
 ### 2026-10-19 - Merge upstream `main` at `fe29633` (`v1.26.5`)
 
@@ -1540,12 +1665,33 @@ and the single-file build pass. Chrome CDP checks against a temporary CPA built 
 the OAuth gallery and Kiro dialog, config sections, quota (live Z.AI usage with a reserve stripe),
 auth files, and analytics pages at 1440px and 390px with no horizontal overflow.
 
-## Sync procedure
+### 2026-10-07 - Merge upstream `main` at `6abace9`
 
-1. Fetch `origin` and `upstream`.
-2. Record `git rev-list --left-right --count origin/main...upstream/main`.
-3. Review the incoming range and merge the agreed upstream commit with `git merge --no-ff <sha>`.
-4. Run the exact Bun version from `package.json`, install with the frozen lockfile, and run `bun run verify`.
-5. Update the upstream base, comparison counts, validation evidence, divergence entries, and merge-history table in this file.
-6. Push `main` without rewriting published history.
-7. Update CPA's `web/management-center` gitlink only after this commit is pushed.
+The resolved merge combines 103 upstream commits with the fork's 53 commits. Upstream fixes
+take precedence where behavior overlaps; fork-only analytics, structured API-key, provider
+workbench, quota, and YAML-preserving configuration behavior remains. The CPAMC request layer
+continues to resolve all management routes below `/v8/management`, including the fork-owned
+capabilities, analytics, revisioned API-key, and API-key-limit surfaces. The public viewer stays
+on `/v0/analytics/viewer`.
+
+The merge is recorded in `e795e5554e6559c7501733b1c06b02f979c8f53f`; the `base` tag points to
+that merge. Later fork commits update the CPAMC branch and CPA gitlink. The upstream legacy backend probe and its compatibility error
+path were removed so application code cannot probe the deprecated `/v0/management` surface.
+
+Validation: `bun run verify` passes 1,820 tests, ESLint, TypeScript, and the Vite single-file
+production build. Parent CPA v8 route registration and the bundled panel were checked with an
+isolated Chrome CDP login; the panel issued only `/v8/management/...` requests.
+
+### 2026-09-09 - Merge upstream `main` at `ed5f1c4`
+
+Merged 23 upstream commits into `ef9606a` with a single merge commit. Conflict resolutions
+combine the fork's `ProviderLogo` and analytics configuration handling with upstream's provider
+quick-fill filtering, Kimi styles, segmented toolbar styles, and Antigravity sensitive-word
+parsing. Repository guidance retains the fork sync rules and upstream testing guidance.
+
+Validation: `bun run verify` passes 708 tests, lint, TypeScript, and the production build.
+Isolated Chrome CDP checks against the existing server on port 18527 cover provider and config
+pages, OAuth editors, and analytics on desktop and mobile, with no reported browser errors or
+horizontal overflow. Event fixtures confirm raw payload rendering and the routing-inclusive
+total. These browser checks use the existing development backend; merged CPA behavior is
+validated separately with the Go test suite and build. Independent review found no additional frontend issues.
