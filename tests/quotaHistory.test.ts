@@ -165,6 +165,82 @@ describe('quota history', () => {
         .pop()
     ).toBe(100);
   });
+  test('projects from live readings when a disabled or failing credential has stale history', () => {
+    const now = start + 2 * hour;
+    const live = (credential_id: string, remaining_percent: number) => ({
+      credential_id,
+      auth_index: credential_id,
+      window_id: 'weekly',
+      remaining_percent,
+      reset_at: new Date(start + 10 * hour).toISOString(),
+      period_hours: 10,
+      plan_id: 'pro',
+      capacity: null,
+    });
+    // b still exists in CPA but yields no live reading, so the summary covers a alone.
+    const stored = [sample(start, 80), sample(start + hour, 50, { credential_id: 'b' })];
+    const series = quotaHistorySeries(
+      'codex',
+      stored,
+      start,
+      start + 12 * hour,
+      now,
+      70,
+      ['a', 'b'],
+      100,
+      [live('a', 70)]
+    );
+    expect(series.projected[0]).toEqual([now, 70]);
+    expect(series.projected.some(([at, value]) => at === start + 10 * hour && value === 100)).toBe(
+      true
+    );
+  });
+  test('drops a credential silent for a day instead of blanking the total', () => {
+    const disabled = sample(start, 50, { credential_id: 'b', reset_at: null });
+    const reporting = Array.from({ length: 30 }, (_, index) =>
+      sample(start + index * hour, 80, { reset_at: null })
+    );
+    const series = quotaHistorySeries(
+      'codex',
+      [disabled, ...reporting],
+      start,
+      start + 30 * hour,
+      start + 29 * hour
+    );
+    expect(series.actual[24]).toEqual([start + 24 * hour, 130]);
+    expect(series.actual[25]).toEqual([start + 25 * hour, 80]);
+    expect(series.capacity[25]).toEqual([start + 25 * hour, 100]);
+    const resetUnobserved = sample(start, 50, {
+      credential_id: 'b',
+      reset_at: new Date(start + 2 * hour).toISOString(),
+    });
+    const blanked = quotaHistorySeries(
+      'codex',
+      [resetUnobserved, ...reporting],
+      start,
+      start + 30 * hour,
+      start + 29 * hour
+    );
+    expect(blanked.actual[3][1]).toBeNull();
+    expect(blanked.actual[25]).toEqual([start + 25 * hour, 80]);
+  });
+  test('reuses a credential plan recorded by CPAMC for collector samples without one', () => {
+    const claude = { provider: 'claude', window_id: 'seven-day', plan_id: 'plan_max20' };
+    const series = quotaHistorySeries(
+      'claude',
+      [
+        sample(start, 50, claude),
+        sample(start + hour, 60, { ...claude, plan_id: '', source: 'cpa_auto' }),
+      ],
+      start,
+      start + hour,
+      start + hour
+    );
+    expect(series.actual).toEqual([
+      [start, 50],
+      [start + hour, 60],
+    ]);
+  });
   test('jumps vertically at off-hour reset instants and repeated resets', () => {
     const reset = start + hour + 17 * 60_000;
     const stored = sample(start, 60, { reset_at: new Date(reset).toISOString(), period_hours: 2 });
@@ -178,12 +254,39 @@ describe('quota history', () => {
     expect(series.projected.some(([at]) => at === start + hour)).toBe(true);
   });
   test('estimates steady drain without counting reset jumps', () => {
+    const next = { reset_at: new Date(start + 20 * hour).toISOString() };
     expect(
       quotaDrainRate(
-        [sample(start, 90), sample(start + hour, 80), sample(start + 2 * hour, 100)],
+        [sample(start, 90), sample(start + hour, 80), sample(start + 2 * hour, 100, next)],
         start + 2 * hour
       )
     ).toBe(10);
+    const unknown = { reset_at: null };
+    expect(
+      quotaDrainRate(
+        [
+          sample(start, 90, unknown),
+          sample(start + hour, 80, unknown),
+          sample(start + 2 * hour, 100, unknown),
+        ],
+        start + 2 * hour
+      )
+    ).toBe(10);
+  });
+  test('nets fluctuating and stale readings within a reset cycle', () => {
+    const readings = [97, 92, 97, 92, 96, 91].map((value, index) =>
+      sample(start + index * hour, value)
+    );
+    // A cached reading re-posted after its window reset, and one from an earlier cycle.
+    readings.splice(
+      3,
+      0,
+      sample(start + 2.5 * hour, 5, { reset_at: new Date(start).toISOString() })
+    );
+    readings.push(
+      sample(start + 4.5 * hour, 5, { reset_at: new Date(start + 5 * hour).toISOString() })
+    );
+    expect(quotaDrainRate(readings, start + 5 * hour)).toBeCloseTo(6 / 5);
   });
   test('projects drain, zero and reset', () => {
     const current = sample(start, 40);

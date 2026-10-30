@@ -161,7 +161,8 @@ export function QuotaHistory({
         },
         {
           type: 'line',
-          step: 'end',
+          // Hourly readings of whole-percent windows read as stairs when stepped.
+          smooth: 0.3,
           showSymbol: series.actual.filter(([, value]) => value !== null).length === 1,
           connectNulls: false,
           name: t('quota_management.history_remaining'),

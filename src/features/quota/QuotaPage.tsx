@@ -67,6 +67,8 @@ const SKELETON_CARD_COUNT = 6;
  * identity-aware display label. Keep the filename fallback stable for memoization.
  */
 const displayNameFor = (name: string) => name;
+/** Readings already sent to quota history; outlives the page like the quota store does. */
+const recordedQuotaStates = new WeakSet<QuotaCardState>();
 
 export function QuotaPage() {
   const { t } = useTranslation();
@@ -327,11 +329,9 @@ export function QuotaPage() {
   const [historyAvailable, setHistoryAvailable] = useState<boolean | null>(null);
   const [historyRevision, setHistoryRevision] = useState(0);
   const [weeklyOffset, setWeeklyOffset] = useState(0);
-  const observedStates = useRef(new Map<string, QuotaCardState>());
 
   useEffect(() => {
     let current = true;
-    observedStates.current.clear();
     setHistoryAvailable(disableControls ? false : null);
     if (!disableControls) {
       void capabilitiesApi
@@ -360,14 +360,13 @@ export function QuotaPage() {
       return;
     const samples = new Map<QuotaProviderType, ReturnType<typeof quotaHistoryInputs>>();
     for (const entry of entries) {
-      const key = `${entry.type}:${getQuotaCacheKey(entry.file)}`;
       const state = getQuota(entry);
-      if (state?.status === 'success' && observedStates.current.get(key) !== state)
-        samples.set(entry.type, [
-          ...(samples.get(entry.type) ?? []),
-          ...quotaHistoryInputs(entry, state),
-        ]);
-      if (state) observedStates.current.set(key, state);
+      if (state?.status !== 'success' || recordedQuotaStates.has(state)) continue;
+      recordedQuotaStates.add(state);
+      samples.set(entry.type, [
+        ...(samples.get(entry.type) ?? []),
+        ...quotaHistoryInputs(entry, state),
+      ]);
     }
     const connection = apiClient.getConnectionRevision();
     for (const [provider, values] of samples) {

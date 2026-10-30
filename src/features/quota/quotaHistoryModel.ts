@@ -30,6 +30,8 @@ export function quotaHistoryDays(start: number, end: number): number[] {
 
 const HOUR = 3600000;
 const MAX_GAP = 6 * HOUR;
+/** A credential silent this long (disabled, removed, or failing to fetch) leaves the total. */
+const RETIRE_AFTER = 24 * HOUR;
 
 export function quotaHistoryInputs(
   entry: QuotaFileEntry,
@@ -88,12 +90,12 @@ const aggregate = (
   capacity = false
 ): number | null => {
   const groups = new Map<string, { windows: QuotaSummaryWindow[]; planId: string }>();
-  if (
-    !project &&
-    ![...latest.values()].some((sample) => now - Date.parse(sample.observed_at) <= MAX_GAP)
-  )
+  const samples = [...latest.values()].filter(
+    (sample) => project || now - Date.parse(sample.observed_at) <= RETIRE_AFTER
+  );
+  if (!project && !samples.some((sample) => now - Date.parse(sample.observed_at) <= MAX_GAP))
     return null;
-  for (const sample of latest.values()) {
+  for (const sample of samples) {
     const reset = sample.reset_at ? Date.parse(sample.reset_at) : NaN;
     if (
       !project &&
@@ -111,7 +113,11 @@ const aggregate = (
   return capacity ? result.capacity : result.remaining;
 };
 
-/** Mean drain per hour from decreases only; increases are resets. */
+/**
+ * Mean drain per hour over the last week, netted across each reset cycle so a stale or
+ * fluctuating reading cancels out instead of counting as spend. Readings join the cycle of their
+ * reset instant; without one, any increase starts a new cycle.
+ */
 export function quotaDrainRate(samples: readonly QuotaHistorySample[], now: number): number {
   const ordered = samples
     .filter(
@@ -120,26 +126,29 @@ export function quotaDrainRate(samples: readonly QuotaHistorySample[], now: numb
         Date.parse(sample.observed_at) <= now
     )
     .sort((a, b) => Date.parse(a.observed_at) - Date.parse(b.observed_at));
+  const cycles: { reset: number; readings: QuotaHistorySample[] }[] = [];
+  for (const sample of ordered) {
+    const reset = sample.reset_at ? Date.parse(sample.reset_at) : NaN;
+    // A reading taken after its own reset belongs to no cycle it can describe.
+    if (reset <= Date.parse(sample.observed_at)) continue;
+    const open = cycles[cycles.length - 1];
+    const cycle = Number.isFinite(reset)
+      ? cycles.find((candidate) => Math.abs(candidate.reset - reset) < HOUR)
+      : open &&
+          Number.isNaN(open.reset) &&
+          sample.remaining_percent <= open.readings[open.readings.length - 1].remaining_percent
+        ? open
+        : undefined;
+    if (cycle) cycle.readings.push(sample);
+    else cycles.push({ reset, readings: [sample] });
+  }
   let spent = 0,
     hours = 0;
-  for (let i = 1; i < ordered.length; i++) {
-    const a = ordered[i - 1],
-      b = ordered[i];
-    const duration = (Date.parse(b.observed_at) - Date.parse(a.observed_at)) / HOUR;
-    const reset = a.reset_at ? Date.parse(a.reset_at) : NaN;
-    const resetBetween =
-      Number.isFinite(reset) &&
-      reset > Date.parse(a.observed_at) &&
-      reset <= Date.parse(b.observed_at);
-    if (
-      duration > 0 &&
-      duration <= 6 &&
-      !resetBetween &&
-      b.remaining_percent <= a.remaining_percent
-    ) {
-      spent += a.remaining_percent - b.remaining_percent;
-      hours += duration;
-    }
+  for (const { readings } of cycles) {
+    const first = readings[0],
+      last = readings[readings.length - 1];
+    spent += Math.max(0, first.remaining_percent - last.remaining_percent);
+    hours += (Date.parse(last.observed_at) - Date.parse(first.observed_at)) / HOUR;
   }
   if (hours > 0) return Math.min(100, spent / hours);
   const last = ordered[ordered.length - 1];
@@ -184,9 +193,18 @@ export function quotaHistorySeries(
   liveCapacity?: number | null,
   liveWindows: readonly (QuotaHistoryInput & { credential_id: string })[] = []
 ): { actual: Point[]; projected: Point[]; capacity: Point[] } {
-  const sorted = [...samples]
+  const ordered = [...samples]
     .filter((sample) => Number.isFinite(Date.parse(sample.observed_at)))
     .sort((a, b) => Date.parse(a.observed_at) - Date.parse(b.observed_at));
+  // CPA's hourly collector cannot read every provider's plan; reuse the plan CPAMC last recorded.
+  const plans = new Map(
+    ordered
+      .filter((sample) => sample.plan_id)
+      .map((sample) => [sample.credential_id, sample.plan_id])
+  );
+  const sorted = ordered.map((sample) =>
+    sample.plan_id ? sample : { ...sample, plan_id: plans.get(sample.credential_id) ?? '' }
+  );
   const latestObserved = sorted.length ? Date.parse(sorted[sorted.length - 1].observed_at) : now;
   now = Math.max(now, latestObserved);
   const latest = new Map<string, QuotaHistorySample>(),
@@ -226,16 +244,17 @@ export function quotaHistorySeries(
     else capacity.push([now, liveCapacity]);
     capacity.push([end, liveCapacity]);
   }
+  // Project the credentials behind the live summary; stored readings of disabled or failing
+  // credentials would not match it. Without live readings, project the stored ones.
   const activeIds = activeCredentialIds == null ? null : new Set(activeCredentialIds);
-  const active = new Map(
-    [...latest].filter(([, sample]) => !activeIds || activeIds.has(sample.credential_id))
+  const active = new Map<string, QuotaHistorySample>(
+    liveWindows.length
+      ? liveWindows.map((input) => [
+          `${input.credential_id}:${input.window_id}`,
+          { provider, source: 'cpamc', ...input, observed_at: new Date(now).toISOString() },
+        ])
+      : [...latest].filter(([, sample]) => !activeIds || activeIds.has(sample.credential_id))
   );
-  for (const input of liveWindows) {
-    const key = `${input.credential_id}:${input.window_id}`;
-    const previous = active.get(key);
-    if (previous)
-      active.set(key, { ...previous, ...input, observed_at: new Date(now).toISOString() });
-  }
   const hasFresh = [...active.values()].some(
     (sample) => now - Date.parse(sample.observed_at) <= MAX_GAP
   );
