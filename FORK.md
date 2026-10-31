@@ -1101,15 +1101,17 @@ The upstream Routing board reads GSR and its aliases without coercing them to ro
 
 Quota Management keeps provider tabs, search, sorting, refresh controls, a capacity-weighted summary strip, and full-width credential rows. The summary wraps into even grid rows, counts only credentials with a successful reading, and normalizes each credential against the largest plan present. Claude uses its lower-remaining weekly pool with Fable as the tie-breaker and exposes the second weekly pool separately; other providers use explicit longest-recovery windows. Unknown paid-health allowances stay unknown. When every credential is blocked or errored, the summary shows the soonest unblock countdown, respecting gated versus independent windows.
 
-Capacity uses reported allowances for Kiro and Kimi, otherwise `PLAN_VALUE` in `quotaSummary.ts`. Codex is measured in Plus units: Business and Team 1, Pro 100 5, Pro 200 10, Pro 500 25. Claude uses Pro 1, Max/Max 5x 5, Max 20x 20, Team 5, Free 0. Profile `rate_limit_tier` distinguishes `plan_max5`, displayed as Max, and `plan_max20`, displayed as Pro Max, with active Team taking precedence. Z.AI uses 5-hour credit allowances of Lite 2,000, Pro 12,000 and Max 28,000. Providers without known ratios count credentials equally and show a shared plan name only when all agree.
+Capacity uses reported allowances for Kiro and Kimi, otherwise `PLAN_VALUE` in `quotaSummary.ts`. Codex is measured in Plus units: Business and Team 1, Pro 100 10, Pro 200 20, Pro 500 50. The reported Business IDs `self_serve_business_prolite` and `self_serve_business_usage_based` normalize to the Plus weight. Claude uses Pro 1, Max/Max 5x 5, Ultra 10, Team 5, Free 0. Profile `rate_limit_tier` distinguishes `plan_max5`, displayed as Max, and `plan_max20`, displayed as Ultra in all seven locales, with active Team taking precedence. Claude's [Ultra plan documentation](https://support.claude.com/en/articles/17728952-what-is-the-ultra-plan) specifies 10× Pro weekly allowance and no five-hour limit for verified accounts. The API still reports `default_claude_max_5x` and `default_claude_max_20x`; these identifiers remain unchanged and no synthetic `ultra` ID is introduced. Z.AI uses 5-hour credit allowances of Lite 2,000, Pro 12,000 and Max 28,000. Providers without known ratios count credentials equally and show a shared plan name only when all agree.
 
-Credential bodies split into a content-sized `planMeta*` column and a quota area with meters at a 200px minimum and a 960px cap. Metadata moves above the meters when needed; mobile actions share the identity line. The summary, list and controls share the glass surface, with rounded outer corners. Provider tabs without credentials are hidden unless selected, and loading skeletons match credential rows. These fork layouts and the gold/liquid-platinum badge artwork remain in place alongside upstream quota data. Codex badge classification follows upstream: only Pro 500 spellings `promax`, `pro-max` and `pro_max` are elite; Pro 200 and Pro 100 are premium gold. `codexPlanLabelKey` remains shared by rows and summary and still recognizes the legacy spaced `pro max` label.
+Credential bodies split into a content-sized `planMeta*` column and a quota area with meters at a 200px minimum and a 960px cap. Metadata moves above the meters when needed; mobile actions share the identity line. The summary, list and controls share the glass surface, with rounded outer corners. Provider tabs without credentials are hidden unless selected, and loading skeletons match credential rows. These fork layouts and the gold/liquid-platinum badge artwork remain in place alongside upstream quota data. Codex badge classification follows upstream: only Pro 500 spellings `promax`, `pro-max`, `pro_max` and the fork-compatible `pro max` are elite; Pro 200 and Pro 100 are premium gold. `codexPlanLabelKey` remains shared by rows and summary and shares the same recognized Pro 500 spellings as badge classification.
 
 Summary segments and quota meters share reserve stripes and credential-aware tooltips with exact remaining quota, plan, absolute reset, countdown and localized weekday. Reset labels group the instant and countdown and use weekday/time within six local calendar days. Codex manual resets collapse into a focusable stack with one tooltip line per credit rather than a duplicate count. Tooltip conversion survives keyed row reordering and focus rings remain visible outside transitions. Claude stale snapshots, extra usage and reset-grant details stay in the meta column; dollar balances, xAI breakdowns and plugin groups remain quota-area rows. Upstream host plan/content slots are supported using the fork metadata names. Known `iguana_necktie` balances display the localized Cloud session credits label. Routine Claude reads respect the shared cache/cooldown, while spending a reset performs fresh preflights and honors upstream backoff.
 
-**Implementation evidence:** `src/features/quota/{QuotaPage.tsx,quotaSummary.ts,types.ts}`, `src/features/quota/components/{QuotaSummary.tsx,QuotaCard.tsx,QuotaMeter.tsx,QuotaResetLabel.tsx}`, `src/features/quota/providers/{claude/ClaudeQuotaBody.tsx,kimi/KimiQuotaBody.tsx}`, `src/utils/quota/{planTier.ts,resetInstants.ts}`, `src/components/ui/Tooltip.tsx`; tests: `tests/{quotaSummary,quotaRowTitle,quotaResetInstants,tooltipProvider,quotaPageLogic,quotaPlanTier,quotaBodyRendering,claudeOAuthUsage,kimiPlan}.test.ts`.
+Verified Ultra responses with `five_hour: null` and no session entry in `limits` omit the short window. Weekly and Fable meters, summary totals, weekly timeline/history and reserve controls continue to use only reported windows, without fabricating a five-hour bar. Session mode excludes these accounts while weekly mode keeps them.
 
-**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript compilation, and the single-file production build. Sixteen isolated Chrome CDP checks cover quota, OAuth, both routing screens, desktop/mobile widths, and light/dark themes without overflow or runtime exceptions. The pre-merge baseline passes 2,320 tests. Turkish strings are machine-translated pending native review; live integration remains pending against the merged CPA.
+**Implementation evidence:** `src/features/quota/{QuotaPage.tsx,quotaSummary.ts,types.ts}`, `src/features/quota/components/{QuotaSummary.tsx,QuotaCard.tsx,QuotaMeter.tsx,QuotaResetLabel.tsx}`, `src/features/quota/providers/{claude/ClaudeQuotaBody.tsx,kimi/KimiQuotaBody.tsx}`, `src/utils/quota/{planTier.ts,resetInstants.ts}`, `src/components/ui/Tooltip.tsx`; tests: `tests/{quotaSummary,quotaRowTitle,quotaResetInstants,tooltipProvider,quotaPageLogic,quotaPlanTier,quotaBodyRendering,claudeOAuthUsage,claudeUltraQuota,kimiPlan}.test.ts`, `tests/fixtures/claude-ultra-usage.json`.
+
+**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,593 tests, ESLint, TypeScript compilation and the single-file production build. The weekly-only Ultra regression passed on the merged code before the plan update, so no missing-window implementation fix was needed. Eight isolated Chrome CDP checks at 1440px/390px in light/dark themes verify the weekly-only Ultra card, 150% Max-plus-Ultra capacity, history, session exclusion, reserves, and spaced Pro 500 badge without overflow or runtime exceptions. Live CPA integration is still pending against the merged CPA.
 
 **Last updated:** 2026-10-31
 
@@ -1144,7 +1146,7 @@ reserve per bar, and provide pointer and keyboard slider handles. Client keys th
 reserve are chosen from a searchable picker and shown as removable chips with labels and
 eight-character key fragments; missing saved IDs remain removable. API normalization and
 whole-family provider serialization preserve `quota_reserve` / `quota-reserve` and the bypass-key
-lists through unrelated edits, while explicit empties remove them. All five locales are updated.
+lists through unrelated edits, while explicit empties remove them. All seven locales carry these strings.
 The feature was first named usage caps; it was renamed before release, so no alias exists.
 Generic plugin quota cards (from upstream) render through the same reserve-aware meter, and
 fork usage-probe credentials (`usage_probe: zai` / `opencode-go`) keep their built-in cards even when
@@ -1154,17 +1156,13 @@ OpenAI-compatible provider rows now take their auth index from the first key ent
 reports it as `auth_index`; the provider transformers accept both `auth_index` and `auth-index`.
 The reserve editor uses that index to find the credential's quota bars.
 
-**Implementation evidence:** `src/features/quota/quotaReserve.ts`, `src/features/quota/components/{QuotaReserveEditor.tsx,QuotaMeter.tsx,QuotaCard.tsx,QuotaSummary.tsx}`, `src/services/api/{transformers.ts,authFiles.ts}`, `src/features/providers/sheets/forms/BaseProviderForm.tsx`; tests: `tests/quotaReserve.test.ts`, `tests/providerEditingV8.test.ts`, `tests/quotaSummary.test.ts`.
+The reserve editor derives available bars from the observed windows. A verified Ultra response without a five-hour window exposes its weekly reserves only; saved settings for unavailable bars remain removable rather than being silently discarded.
 
-**Recorded validation:** Bun helper and patch regressions (including bypass-key-only edits), the full suite,
-lint, TypeScript compilation, and the single-file build. Through CDP, a CPA built from the matching
-CPA checkout and serving this build with a live Z.AI credential showed the striped weekly
-reserve and its tooltip on the quota page and the badge on the auth-file card. In the provider
-form, pointer drag moved the weekly reserve from 30% to 50% and ArrowRight moved it to 51%.
-Saving persisted 51% with the bypass key unchanged, and the editor had no overflow at 375px. The
-only failing suite test, `legacy backend login diagnostic`, also fails without these changes.
+**Implementation evidence:** `src/features/quota/quotaReserve.ts`, `src/features/quota/components/{QuotaReserveEditor.tsx,QuotaMeter.tsx,QuotaCard.tsx,QuotaSummary.tsx}`, `src/services/api/{transformers.ts,authFiles.ts}`, `src/features/providers/sheets/forms/BaseProviderForm.tsx`; tests: `tests/quotaReserve.test.ts`, `tests/providerEditingV8.test.ts`, `tests/quotaSummary.test.ts`, `tests/claudeUltraQuota.test.ts`, `tests/fixtures/claude-ultra-usage.json`.
 
-**Last updated:** 2026-10-19
+**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,593 tests, ESLint, TypeScript compilation and the single-file production build. The weekly-only Ultra regression passed on the merged code before the plan update, so no missing-window implementation fix was needed. Eight isolated Chrome CDP checks at 1440px/390px in light/dark themes verify the weekly-only Ultra card, 150% Max-plus-Ultra capacity, history, session exclusion, reserves, and spaced Pro 500 badge without overflow or runtime exceptions. Live CPA integration is still pending against the merged CPA.
+
+**Last updated:** 2026-10-31
 
 ### DL056 — Analytics reads revalidate against a cached response
 
@@ -1285,11 +1283,11 @@ horizontal overflow.
 
 ### DL061 — Complete fork translations across seven locales
 
-English, Simplified Chinese, Traditional Chinese, Russian, Vietnamese, Korean and Turkish share one union of upstream and fork keys. Fork-only analytics, structured API keys, quota reserves/summaries/history, Kiro, Z.AI, OpenCode Go, storage and routing text exists in every locale rather than falling back to Simplified Chinese. Locale tests enumerate all seven languages and require equal key sets and matching interpolation tokens. Turkish fork strings are machine-translated and still need native-language review.
+English, Simplified Chinese, Traditional Chinese, Russian, Vietnamese, Korean and Turkish share one union of upstream and fork keys. Fork-only analytics, structured API keys, quota reserves/summaries/history, Kiro, Z.AI, OpenCode Go, storage and routing text exists in every locale rather than falling back to Simplified Chinese. Locale tests enumerate all seven languages and require equal key sets and matching interpolation tokens. Claude product names are consistently Max for `plan_max`/`plan_max5` and Ultra for `plan_max20` across all seven locales. Turkish fork strings are machine-translated and still need native-language review.
 
-**Implementation evidence:** `src/i18n/{index.ts,locales/*.json}`, `src/utils/{constants.ts,language.ts}`; tests: `tests/{koreanLocale,turkishLocale,quotaPlanTier,analyticsEventRouting,analyticsOverview,oauthPage}.test.ts`.
+**Implementation evidence:** `src/i18n/{index.ts,locales/*.json}`, `src/utils/{constants.ts,language.ts}`; tests: `tests/{koreanLocale,turkishLocale,quotaPlanTier,claudeOAuthUsage,analyticsEventRouting,analyticsOverview,oauthPage}.test.ts`.
 
-**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript compilation, and the single-file production build. Sixteen isolated Chrome CDP checks cover quota, OAuth, both routing screens, desktop/mobile widths, and light/dark themes without overflow or runtime exceptions. The pre-merge baseline passes 2,320 tests. Turkish strings are machine-translated pending native review; live integration remains pending against the merged CPA.
+**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,593 tests, ESLint, TypeScript compilation and the single-file production build. The weekly-only Ultra regression passed on the merged code before the plan update, so no missing-window implementation fix was needed. Eight isolated Chrome CDP checks at 1440px/390px in light/dark themes verify the weekly-only Ultra card, 150% Max-plus-Ultra capacity, history, session exclusion, reserves, and spaced Pro 500 badge without overflow or runtime exceptions. Live CPA integration is still pending against the merged CPA.
 
 **Last updated:** 2026-10-31
 
@@ -1474,9 +1472,11 @@ On a provider tab, a quota history chart replaces the summary card. Its header c
 
 The shared Quota windows timeline adopts upstream calendar-boundary cells with elapsed-time widths across DST changes. Used fills are measured against the full window before clipping; projected windows do not reuse stale usage. Claude anchors on the reported weekly limit. Fork Z.AI/OpenCode Go lanes, localized window labels and percentage formatting remain alongside these fixes.
 
-**Implementation evidence:** `src/features/quota/**`, `src/services/api/quotaHistory.ts`, `src/i18n/locales/**`; tests: `tests/{quotaHistory,quotaTimeline,quotaTimelineDst}.test.ts`.
+History uses the same updated plan ratios as the live summary: Codex Pro 100/200/500 are 10/20/50 Plus units; Claude Max/Ultra are 5/10 Pro units while stored `plan_max5`/`plan_max20` IDs stay valid. Verified Ultra samples contain the weekly windows that were actually reported, with no invented five-hour sample or projection.
 
-**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript compilation, and the single-file production build. Sixteen isolated Chrome CDP checks cover quota, OAuth, both routing screens, desktop/mobile widths, and light/dark themes without overflow or runtime exceptions. The pre-merge baseline passes 2,320 tests. Turkish strings are machine-translated pending native review; live integration remains pending against the merged CPA.
+**Implementation evidence:** `src/features/quota/**`, `src/services/api/quotaHistory.ts`, `src/i18n/locales/**`; tests: `tests/{quotaHistory,quotaTimeline,quotaTimelineDst,claudeUltraQuota}.test.ts`, `tests/fixtures/claude-ultra-usage.json`.
+
+**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,593 tests, ESLint, TypeScript compilation and the single-file production build. The weekly-only Ultra regression passed on the merged code before the plan update, so no missing-window implementation fix was needed. Eight isolated Chrome CDP checks at 1440px/390px in light/dark themes verify the weekly-only Ultra card, 150% Max-plus-Ultra capacity, history, session exclusion, reserves, and spaced Pro 500 badge without overflow or runtime exceptions. Live CPA integration is still pending against the merged CPA.
 
 **Last updated:** 2026-10-31
 

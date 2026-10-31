@@ -3,6 +3,7 @@ import {
   LONGEST_RECOVERY_WINDOW_MAP,
   aggregateQuotaSummaries,
   formatQuotaPercent,
+  historyPlanValue,
   percentageOfLargestTier,
   selectClaudePrimaryWindow,
   selectLongestRecoveryWindow,
@@ -139,7 +140,7 @@ describe('quota summary selection', () => {
     });
   });
 
-  test('weights Max 20x at four times Max 5x and uses the card plan label', () => {
+  test('weights Ultra at twice Max and uses the card plan label', () => {
     const entries = [entry('max20.json', 'claude'), entry('max.json', 'claude')];
     const quotas = new Map([
       [entries[0].file.name, claudeQuota('plan_max20', 100, 100)],
@@ -150,17 +151,17 @@ describe('quota summary selection', () => {
       quotas.get(candidate.file.name)
     );
 
-    expect(summary.tierCapacityPercent).toBe(125);
-    expect(summary.primaryRemainingPercent).toBe(125);
+    expect(summary.tierCapacityPercent).toBe(150);
+    expect(summary.primaryRemainingPercent).toBe(150);
     expect(summary.tierLabel).toBe('claude_quota.plan_max20');
-    expect(summary.lines.map((line) => line.capacityPercent)).toEqual([100, 25]);
+    expect(summary.lines.map((line) => line.capacityPercent)).toEqual([100, 50]);
     expect(summary.lines.map((line) => line.plan)).toEqual([
       'claude_quota.plan_max20',
       'claude_quota.plan_max5',
     ]);
   });
 
-  test('weights remaining Max 5x quota against Pro Max rather than subscription price', () => {
+  test('weights remaining Max quota against Ultra rather than subscription price', () => {
     const entries = [entry('max5.json', 'claude'), entry('max20.json', 'claude')];
     const quotas = new Map([
       [entries[0].file.name, claudeQuota('plan_max5', 92, 100)],
@@ -169,9 +170,9 @@ describe('quota summary selection', () => {
     const [summary] = aggregateQuotaSummaries(entries, (candidate) =>
       quotas.get(candidate.file.name)
     );
-    expect(summary.primaryRemainingPercent).toBe(123);
-    expect(summary.tierCapacityPercent).toBe(125);
-    expect(summary.secondaryRemainingPercent).toBe(125);
+    expect(summary.primaryRemainingPercent).toBe(146);
+    expect(summary.tierCapacityPercent).toBe(150);
+    expect(summary.secondaryRemainingPercent).toBe(150);
   });
 
   test('leaves unknown Claude quota values unknown', () => {
@@ -305,9 +306,9 @@ describe('quota summary selection', () => {
     const [summary] = aggregateQuotaSummaries(entries, (item) => quotas[entries.indexOf(item)]);
 
     expect(summary.tierLabel).toBe('codex_quota.plan_promax');
-    expect(summary.tierCapacityPercent).toBe(104);
-    expect(summary.primaryRemainingPercent).toBe(54);
-    expect(summary.lines.map((line) => line.capacityPercent)).toEqual([100, 4]);
+    expect(summary.tierCapacityPercent).toBe(102);
+    expect(summary.primaryRemainingPercent).toBe(52);
+    expect(summary.lines.map((line) => line.capacityPercent)).toEqual([100, 2]);
   });
 
   test('names a shared plan of unknown size but not a mix of unknown plans', () => {
@@ -409,5 +410,30 @@ describe('quota summary selection', () => {
       () => independent as never
     );
     expect(antigravity.unblockAtMs).toBe(1_700_000_000_000);
+  });
+});
+
+describe('plan allowance ratios', () => {
+  test.each([
+    ['codex', 'plus', 1],
+    ['codex', 'team', 1],
+    ['codex', 'prolite', 10],
+    ['codex', 'pro', 20],
+    ['codex', 'promax', 50],
+    ['codex', 'pro max', 50],
+    ['codex', 'self_serve_business_prolite', 1],
+    ['codex', 'self_serve_business_usage_based', 1],
+    ['claude', 'plan_pro', 1],
+    ['claude', 'plan_max', 5],
+    ['claude', 'plan_max5', 5],
+    ['claude', 'plan_max20', 10],
+    ['claude', 'plan_team', 5],
+    ['claude', 'plan_free', 0],
+  ] as const)('%s %s has allowance %s', (provider, plan, allowance) => {
+    expect(historyPlanValue(provider, plan)).toBe(allowance);
+  });
+
+  test('keeps unknown ids unknown rather than inventing an Ultra API id', () => {
+    expect(historyPlanValue('claude', 'ultra')).toBeNull();
   });
 });

@@ -67,11 +67,12 @@ export const LONGEST_RECOVERY_WINDOW_MAP: Readonly<
  * within one provider matter: a credential's share is its value over the largest one present.
  */
 const PLAN_VALUE: Partial<Record<QuotaProviderType, Record<string, number>>> = {
-  // Usage allowance relative to Pro, not subscription price.
-  claude: { pro: 1, max: 5, max5: 5, max20: 20, team: 5, free: 0 },
-  // × Plus. Business matches Plus (learn.chatgpt.com/docs/pricing); Pro 200 is 10×, Pro 100
-  // and Pro 500 scale with price. OpenAI publishes no Pro multipliers.
-  codex: { plus: 1, team: 1, prolite: 5, pro: 10, promax: 25 },
+  // Weekly allowance relative to Pro: Max is 5× and Ultra (API max20) is 10×.
+  // https://support.claude.com/en/articles/17728952-what-is-the-ultra-plan
+  claude: { pro: 1, max: 5, max5: 5, max20: 10, team: 5, free: 0 },
+  // Relative to Plus: Pro 100 = 10×, Pro 200 = 20×, Pro 500 = 50×.
+  // Business matches Plus.
+  codex: { plus: 1, team: 1, prolite: 10, pro: 20, promax: 50 },
   // Credits per 5 hours (docs.z.ai/devpack/overview).
   zai: { lite: 2000, pro: 12000, max: 28000 },
 };
@@ -395,7 +396,12 @@ export const historyPlanValue = (
 ): number | null => {
   if (capacity != null && capacity > 0) return capacity;
   const table = PLAN_VALUE[type];
-  const plan = normalizedPlan(planId).replace(/[^a-z0-9]/g, '');
+  const normalized = normalizedPlan(planId).replace(/[^a-z0-9]/g, '');
+  const plan =
+    type === 'codex' &&
+    ['selfservebusinessprolite', 'selfservebusinessusagebased'].includes(normalized)
+      ? 'plus'
+      : normalized;
   return table && Object.prototype.hasOwnProperty.call(table, plan) ? table[plan] : null;
 };
 

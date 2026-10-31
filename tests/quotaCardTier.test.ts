@@ -70,7 +70,7 @@ describe('quota card tier ladder', () => {
     expect(resolveAntigravityCardTier(null)).toBe('standard');
   });
 
-  test('Claude: Max 20x is the suite, Max 5x and an unspecified Max are premium', () => {
+  test('Claude: Ultra is the highest tier; Max and an unspecified Max are premium', () => {
     expect(resolveClaudeCardTier('plan_max20')).toBe('flagship');
     expect(resolveClaudeCardTier('plan_max5')).toBe('premium');
     expect(resolveClaudeCardTier('plan_max')).toBe('premium');

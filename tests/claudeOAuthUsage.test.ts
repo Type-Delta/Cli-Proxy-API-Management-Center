@@ -210,13 +210,13 @@ describe('Claude quota usage reads', () => {
     );
     expect(states.map((state) => state.planType)).toEqual(['plan_max5', 'plan_max20']);
     expect(render(states[0])).toContain('<span class="planMetaValue">Max</span>');
-    expect(render(states[1])).toContain('<span class="planMetaValue">Pro Max</span>');
+    expect(render(states[1])).toContain('<span class="planMetaValue">Ultra</span>');
     const [summary] = aggregateQuotaSummaries(
       files.map((file) => ({ file, type: 'claude' as const })),
       (entry) => states[files.findIndex((file) => file.name === entry.file.name)]
     );
-    expect(summary.tierCapacityPercent).toBe(125);
-    expect(translations.t(summary.tierLabel!)).toBe('Pro Max');
+    expect(summary.tierCapacityPercent).toBe(150);
+    expect(translations.t(summary.tierLabel!)).toBe('Ultra');
   });
 
   test('uses existing quota reads and separates dollar balances from plan windows', async () => {
@@ -443,7 +443,7 @@ describe('Claude usage snapshot rendering and retention', () => {
       expect(markup).toContain(localized.t('claude_quota.cloud_session_credits'));
       expect(markup).not.toContain('iguana_necktie');
       expect(localized.t('claude_quota.plan_max5')).toBe('Max');
-      expect(localized.t('claude_quota.plan_max20')).toBe('Pro Max');
+      expect(localized.t('claude_quota.plan_max20')).toBe('Ultra');
     }
   );
   beforeEach(() => {

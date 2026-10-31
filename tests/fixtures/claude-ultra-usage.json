@@ -1,0 +1,25 @@
+{
+  "five_hour": null,
+  "seven_day": {
+    "utilization": 20,
+    "resets_at": "2026-11-06T12:00:00Z"
+  },
+  "seven_day_opus": null,
+  "seven_day_sonnet": null,
+  "extra_usage": null,
+  "limits": [
+    {
+      "kind": "weekly",
+      "percent": 20,
+      "resets_at": "2026-11-06T12:00:00Z",
+      "is_active": true
+    },
+    {
+      "kind": "weekly_scoped",
+      "percent": 40,
+      "resets_at": "2026-11-06T12:00:00Z",
+      "is_active": true,
+      "scope": { "model": { "id": null, "display_name": "Fable" } }
+    }
+  ]
+}

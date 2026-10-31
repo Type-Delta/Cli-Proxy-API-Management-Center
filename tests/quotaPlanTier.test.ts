@@ -76,3 +76,8 @@ test('shared summary labels retain Codex plan names', () => {
   expect(codexPlanLabelKey('pro')).toBe('codex_quota.plan_pro');
   expect(codexPlanLabelKey('prolite')).toBe('codex_quota.plan_prolite');
 });
+
+test('spaced Pro Max retains both its elite badge and Pro 500 label', () => {
+  expect(resolvePlanTier('  PRO MAX  ')).toBe('elite');
+  expect(codexPlanLabelKey('  PRO MAX  ')).toBe('codex_quota.plan_promax');
+});

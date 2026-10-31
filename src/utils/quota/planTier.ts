@@ -4,7 +4,7 @@ import { normalizePlanType } from './parsers';
 export type CodexPlanTier = 'elite' | 'premium' | 'plain';
 
 /** Recognized Pro 500 spellings. */
-export const PRO_MAX_CODEX_PLAN_TYPES = new Set(['promax', 'pro-max', 'pro_max']);
+export const PRO_MAX_CODEX_PLAN_TYPES = new Set(['promax', 'pro-max', 'pro_max', 'pro max']);
 
 /** Recognized Pro 100 spellings. */
 export const PRO_LITE_CODEX_PLAN_TYPES = new Set(['prolite', 'pro-lite', 'pro_lite']);
@@ -34,7 +34,7 @@ export function codexPlanLabelKey(planType: string | null | undefined): string |
   if (!normalized) return null;
   if (normalized === 'self_serve_business_prolite') return 'codex_quota.plan_business_premium';
   if (normalized === PRO_CODEX_PLAN_TYPE) return 'codex_quota.plan_pro';
-  if (normalized === 'pro max' || PRO_MAX_CODEX_PLAN_TYPES.has(normalized)) {
+  if (PRO_MAX_CODEX_PLAN_TYPES.has(normalized)) {
     return 'codex_quota.plan_promax';
   }
   if (PRO_LITE_CODEX_PLAN_TYPES.has(normalized)) return 'codex_quota.plan_prolite';

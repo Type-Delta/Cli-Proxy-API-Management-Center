@@ -73,7 +73,7 @@ describe('quota history', () => {
       start + 8 * hour,
       start + 8 * hour
     );
-    expect(series.actual[7]).toEqual([start + 7 * hour, 65]);
+    expect(series.actual[7]).toEqual([start + 7 * hour, 62.5]);
   });
   test('makes the total unknown at an unobserved reset instead of changing its scale', () => {
     const pro = sample(start, 60, { reset_at: new Date(start + 7 * hour).toISOString() });
@@ -124,7 +124,7 @@ describe('quota history', () => {
     const pro = sample(start, 50);
     const plus = sample(start, 100, { credential_id: 'b', plan_id: 'plus' });
     const series = quotaHistorySeries('codex', [pro, plus], start, start, start);
-    expect(series.actual).toEqual([[start, 60]]);
+    expect(series.actual).toEqual([[start, 55]]);
   });
   test('excludes removed credentials from the current projection', () => {
     const pro = sample(start, 60, { reset_at: null });
