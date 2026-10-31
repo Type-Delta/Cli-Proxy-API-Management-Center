@@ -20,6 +20,8 @@ export function ClaudeQuotaBody({
   classes,
   credential,
   leadingMeta,
+  planItems,
+  afterPlan,
   quotaReserves,
   quotaReserveHits,
 }: QuotaBodyProps<ClaudeQuotaState>) {
@@ -46,7 +48,12 @@ export function ClaudeQuotaBody({
   };
 
   const hasMeta =
-    Boolean(leadingMeta) || Boolean(quota.stale) || Boolean(planType) || Boolean(extraUsage);
+    Boolean(leadingMeta) ||
+    Boolean(planItems) ||
+    Boolean(afterPlan) ||
+    Boolean(quota.stale) ||
+    Boolean(planType) ||
+    Boolean(extraUsage);
 
   return (
     <>
@@ -60,14 +67,18 @@ export function ClaudeQuotaBody({
               })}
             </div>
           )}
-          {planType && (
+          {(planType || planItems) && (
             <div className={classes.planMeta}>
-              <span className={classes.planMetaItem}>
-                <span className={classes.planMetaLabel}>{t('claude_quota.plan_label')}</span>
-                <span className={classes.planMetaValue}>{t(`claude_quota.${planType}`)}</span>
-              </span>
+              {planType && (
+                <span className={classes.planMetaItem}>
+                  <span className={classes.planMetaLabel}>{t('claude_quota.plan_label')}</span>
+                  <span className={classes.planMetaValue}>{t(`claude_quota.${planType}`)}</span>
+                </span>
+              )}
+              {planItems}
             </div>
           )}
+          {afterPlan}
           {extraUsage && (
             <div className={classes.planMeta}>
               <span className={classes.planMetaItem}>

@@ -3,7 +3,7 @@
 import { describe, expect, test } from 'bun:test';
 import i18n from '@/i18n';
 
-const LOCALES = ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko'] as const;
+const LOCALES = ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr'] as const;
 
 describe('validation error counts', () => {
   test('English uses the singular form for one error', () => {

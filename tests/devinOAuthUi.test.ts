@@ -1,3 +1,4 @@
+import tr from '@/i18n/locales/tr.json';
 import { describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -77,7 +78,7 @@ describe('Devin OAuth login UI', () => {
   test('supplies every Devin label and hint in all four languages', () => {
     const keys = Object.keys(en.auth_login).filter((key) => key.startsWith('devin_'));
     expect(keys.length).toBeGreaterThanOrEqual(14);
-    for (const locale of [en, zhCN, zhTW, ru]) {
+    for (const locale of [en, zhCN, zhTW, ru, tr]) {
       for (const key of keys) {
         expect((locale.auth_login as Record<string, string>)[key]?.trim()).toBeTruthy();
       }

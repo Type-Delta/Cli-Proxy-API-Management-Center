@@ -465,7 +465,7 @@ describe('analytics client contracts', () => {
   });
 
   test('ships the analytics page copy and enum copy in every locale without dead labels', async () => {
-    for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru']) {
+    for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr']) {
       const document = (await Bun.file(`src/i18n/locales/${locale}.json`).json()) as {
         analytics?: {
           pages?: Record<string, string>;

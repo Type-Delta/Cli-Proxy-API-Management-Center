@@ -45,6 +45,8 @@
     "collapse": "Свернуть",
     "status": "Статус",
     "action": "Действие",
+    "apply": "Применять",
+    "retry": "Повторить попытку",
     "custom_headers_label": "Пользовательские заголовки",
     "custom_headers_hint": "Необязательно — HTTP-заголовки для отправки с запросом. Оставьте пустым для удаления.",
     "custom_headers_add": "Добавить заголовок",
@@ -54,9 +56,7 @@
     "model_alias_placeholder": "Псевдоним модели (необязательно)",
     "invalid_provider_index": "Неверный индекс провайдера.",
     "unsaved_changes_title": "Несохранённые изменения",
-    "unsaved_changes_message": "У вас есть несохранённые изменения. Если вы уйдёте, они будут потеряны. Выйти?",
-    "apply": "Применять",
-    "retry": "Повторить попытку"
+    "unsaved_changes_message": "У вас есть несохранённые изменения. Если вы уйдёте, они будут потеряны. Выйти?"
   },
   "title": {
     "login": "Центр управления CLI Proxy API",
@@ -70,11 +70,11 @@
     "subtitle": "Подключение к CLI Proxy API v8 или новее",
     "connection_current": "Текущий URL",
     "connection_auto_hint": "Система автоматически использует текущий URL для подключения",
-    "custom_connection_label": "Пользовательский URL подключения:",
+    "custom_connection_label": "Пользовательский URL подключения",
     "custom_connection_placeholder": "Напр.: https://example.com:8317",
     "custom_connection_hint": "По умолчанию используется текущий URL. При необходимости замените его.",
     "remember_password_label": "Запомнить пароль",
-    "management_key_label": "Ключ управления:",
+    "management_key_label": "Ключ управления",
     "management_key_placeholder": "Введите ключ управления",
     "submit_button": "Войти",
     "submitting": "Подключение...",
@@ -89,7 +89,11 @@
     "error_server": "Backend не смог обработать запрос управления, проверьте журналы сервера",
     "error_cors": "Блокировка CORS, проверьте конфигурацию сервера",
     "error_ssl": "Ошибка проверки SSL/TLS сертификата",
-    "error_legacy_backend": "Этот сервер поддерживает Management API v0, но не v8. Обновите CLIProxyAPI до v8 или новее, чтобы использовать эту страницу управления."
+    "error_legacy_backend": "Этот сервер поддерживает Management API v0, но не v8. Обновите CLIProxyAPI до v8 или новее, чтобы использовать эту страницу управления.",
+    "connection_edit": "Изменить",
+    "connection_done": "Готово",
+    "show_key": "Показать ключ",
+    "hide_key": "Скрыть ключ"
   },
   "header": {
     "refresh_all": "Обновить всё",
@@ -112,12 +116,14 @@
     "system_info": "Информация системы",
     "analytics_usage": "Использование",
     "analytics_management": "Управление аналитикой",
-    "analytics_leaderboard": "Рейтинг моделей"
+    "analytics_leaderboard": "Рейтинг моделей",
+    "routing": "Маршрутизация"
   },
   "nav_groups": {
     "operate": "Работа",
     "gateway": "Шлюз",
     "observe": "Наблюдение",
+    "plugin_pages": "Плагины",
     "control": "Управление",
     "analytics": "Аналитика"
   },
@@ -136,7 +142,8 @@
     "analytics_usage": "Метрики использования и активность",
     "analytics_management": "Цены, провайдеры и обслуживание",
     "analytics_leaderboard": "Лучшие модели недели",
-    "analytics_model-leaderboard": "Лучшие модели недели среди всех провайдеров и учётных данных."
+    "analytics_model-leaderboard": "Лучшие модели недели среди всех провайдеров и учётных данных.",
+    "routing": "Уровни приоритета и отказоустойчивость"
   },
   "analytics": {
     "events_pagination": "Страницы истории попыток",
@@ -150,6 +157,21 @@
     "events_page": "Показано {{start}}–{{end}}",
     "navigation": "Разделы аналитики",
     "filters": "Фильтры аналитики",
+    "range_today": "Сегодня",
+    "range_yesterday": "Вчера",
+    "range_last_hours": "Последние {{count}} часов",
+    "range_last_days": "Последние {{count}} дней",
+    "range_this_week": "На этой неделе",
+    "range_this_month": "В этом месяце",
+    "range_custom_value": "Свой · {{grain}}",
+    "range_grain": "Временное зерно",
+    "range_grain_1h": "Ежечасно",
+    "range_grain_1d": "Ежедневно",
+    "range_start": "Начинать",
+    "range_end": "Конец",
+    "range_zone": "Часовой пояс: {{zone}}",
+    "range_custom_order_error": "Выберите допустимое время с началом перед концом.",
+    "range_custom_length_error": "Пользовательские диапазоны не могут превышать {{count}} дней.",
     "key_filter": "API-ключи",
     "all_keys": "Все API-ключи",
     "selected_key_count": "Выбрано ключей: {{count}}",
@@ -222,174 +244,6 @@
     "refreshing": "Обновление",
     "updated_at": "Обновлено {{time}}",
     "updated_never": "Ещё не обновлялось",
-    "load_failed": "Не удалось загрузить аналитику",
-    "no_data_title": "Нет данных аналитики",
-    "no_activity_description": "Динамика использования появится после того, как CPA запишет события за этот период.",
-    "no_dimension_description": "Значения появятся, когда за этот период будет подходящее использование.",
-    "no_events_description": "Попытки появятся, когда записанные события совпадут с периодом и фильтрами.",
-    "no_table_description": "Строки появятся, когда CPA вернёт подходящие данные аналитики.",
-    "unavailable_title": "Аналитика недоступна",
-    "unsupported": "Эта версия CPA не предоставляет API аналитики.",
-    "error_title": "Ошибка страницы аналитики",
-    "error_route": "Остальные разделы CPAMC доступны. Повторите после восстановления сервера или страницы.",
-    "errors": {
-      "network": "Не удалось связаться с API аналитики. Проверьте подключение и повторите попытку.",
-      "permission": "Ваша сессия не даёт доступа к этому представлению.",
-      "rate_limit": "Слишком много запросов. Подождите немного и повторите.",
-      "server": "Служба аналитики вернула ошибку."
-    },
-    "state_labels": {
-      "ready": "Готово",
-      "degraded": "Есть сбои",
-      "starting": "Запуск",
-      "disabled": "Отключено",
-      "stopping": "Остановка",
-      "circuit_open": "Цепь разомкнута",
-      "unavailable": "Недоступно"
-    },
-    "pages": {
-      "overview": "Обзор",
-      "analysis": "Анализ",
-      "keys": "Ключи",
-      "events": "События",
-      "model-leaderboard": "Рейтинг моделей",
-      "pricing": "Цены",
-      "providers": "Провайдеры и квоты",
-      "shared": "Общие ссылки",
-      "maintenance": "Обслуживание"
-    },
-    "dimensions": {
-      "model": "Модель",
-      "provider": "Провайдер",
-      "credential": "Учётные данные",
-      "key": "Ключ"
-    },
-    "enums": {
-      "key_status": {
-        "configured": "Настроен",
-        "rotated": "Заменён",
-        "deleted": "Удалён",
-        "historical": "Исторический",
-        "identity_conflict": "Конфликт идентификатора",
-        "active": "Активен",
-        "idle": "Бездействует"
-      },
-      "job_kind": {
-        "backup": "Резервная копия",
-        "integrity_check": "Проверка целостности",
-        "checkpoint": "Контрольная точка",
-        "reindex": "Переиндексация",
-        "restore": "Восстановление копии",
-        "purge_key": "Удаление ключа",
-        "rollback_import": "Откат импорта",
-        "import_cpauk": "Импорт CPAUK",
-        "retention": "Хранение",
-        "repair": "Ремонт",
-        "reprice": "Переоценка",
-        "start_new_identity_epoch": "Новая эпоха идентичности"
-      },
-      "job_state": {
-        "queued": "В очереди",
-        "running": "Выполняется",
-        "succeeded": "Завершено",
-        "failed": "Ошибка",
-        "canceled": "Отменено"
-      },
-      "sync_state": {
-        "synced": "Синхронизировано",
-        "stale": "Устарело",
-        "pending": "Ожидает"
-      },
-      "rounding": {
-        "half_away_from_zero_once_per_event": "Половина округляется от нуля для каждого события"
-      },
-      "state": {
-        "ready": "Готово",
-        "degraded": "Есть сбои",
-        "starting": "Запуск",
-        "disabled": "Отключено",
-        "stopping": "Остановка",
-        "circuit_open": "Цепь разомкнута"
-      },
-      "source": {
-        "native": "Собственное",
-        "kiro-credits": "Кредиты Kiro",
-        "import": "Импортировано"
-      },
-      "service_tier": {
-        "auto": "Авто",
-        "default": "По умолчанию",
-        "flex": "Гибкий",
-        "priority": "Приоритетный",
-        "scale": "Масштабируемый"
-      },
-      "endpoint": {
-        "responses": "Responses",
-        "messages": "Messages",
-        "chat_completions": "Chat Completions",
-        "generate_content": "Generate Content",
-        "embeddings": "Эмбеддинги",
-        "images": "Изображения",
-        "videos": "Видео",
-        "audio": "Аудио",
-        "unknown": "Неизвестно"
-      },
-      "provider": {
-        "openai": "OpenAI",
-        "anthropic": "Anthropic",
-        "gemini": "Gemini",
-        "codex": "Codex",
-        "claude": "Claude",
-        "antigravity": "Antigravity",
-        "qwen": "Qwen",
-        "iflow": "iFlow",
-        "kimi": "Kimi",
-        "vertex": "Vertex"
-      },
-      "executor": {
-        "AIStudioExecutor": "AI Studio",
-        "AntigravityExecutor": "Antigravity",
-        "ClaudeExecutor": "Claude",
-        "CodexExecutor": "Codex",
-        "CodexWebsocketsExecutor": "Codex (WebSocket)",
-        "CodexAutoExecutor": "Codex (авто)",
-        "GeminiVertexExecutor": "Gemini (Vertex)",
-        "KimiExecutor": "Kimi",
-        "OpenAICompatExecutor": "OpenAI-совместимый",
-        "XAIExecutor": "xAI",
-        "GeminiExecutor": "Gemini",
-        "XAIWebsocketsExecutor": "xAI (WebSocket)",
-        "XAIAutoExecutor": "xAI (авто)",
-        "auth-selection": "Выбор учетных данных (без запроса к провайдеру)"
-      },
-      "auth_type": {
-        "apikey": "API-ключ",
-        "oauth": "OAuth"
-      },
-      "error_class": {
-        "rate_limited": "Ограничение скорости",
-        "upstream_unavailable": "Вышестоящий сервер недоступен",
-        "upstream_rejected": "Вышестоящий сервер отклонил запрос",
-        "upstream_redirect": "Перенаправление вышестоящего сервера",
-        "transport_failure": "Сбой передачи",
-        "auth_unavailable": "Нет доступных учетных данных"
-      }
-    },
-    "range_today": "Сегодня",
-    "range_yesterday": "Вчера",
-    "range_last_hours": "Последние {{count}} часов",
-    "range_last_days": "Последние {{count}} дней",
-    "range_this_week": "На этой неделе",
-    "range_this_month": "В этом месяце",
-    "range_custom_value": "Свой · {{grain}}",
-    "range_grain": "Временное зерно",
-    "range_grain_1h": "Ежечасно",
-    "range_grain_1d": "Ежедневно",
-    "range_start": "Начинать",
-    "range_end": "Конец",
-    "range_zone": "Часовой пояс: {{zone}}",
-    "range_custom_order_error": "Выберите допустимое время с началом перед концом.",
-    "range_custom_length_error": "Пользовательские диапазоны не могут превышать {{count}} дней.",
     "activity_lifetime_label": "Продолжительность жизни",
     "activity_range_label": "Диапазон",
     "all_error_classes": "Все классы ошибок",
@@ -1153,6 +1007,159 @@
       },
       "legacy_request_log_import": "Импорт прежних журналов запросов"
     },
+    "load_failed": "Не удалось загрузить аналитику",
+    "no_data_title": "Нет данных аналитики",
+    "no_activity_description": "Динамика использования появится после того, как CPA запишет события за этот период.",
+    "no_dimension_description": "Значения появятся, когда за этот период будет подходящее использование.",
+    "no_events_description": "Попытки появятся, когда записанные события совпадут с периодом и фильтрами.",
+    "no_table_description": "Строки появятся, когда CPA вернёт подходящие данные аналитики.",
+    "unavailable_title": "Аналитика недоступна",
+    "unsupported": "Эта версия CPA не предоставляет API аналитики.",
+    "error_title": "Ошибка страницы аналитики",
+    "error_route": "Остальные разделы CPAMC доступны. Повторите после восстановления сервера или страницы.",
+    "errors": {
+      "network": "Не удалось связаться с API аналитики. Проверьте подключение и повторите попытку.",
+      "permission": "Ваша сессия не даёт доступа к этому представлению.",
+      "rate_limit": "Слишком много запросов. Подождите немного и повторите.",
+      "server": "Служба аналитики вернула ошибку."
+    },
+    "state_labels": {
+      "ready": "Готово",
+      "degraded": "Есть сбои",
+      "starting": "Запуск",
+      "disabled": "Отключено",
+      "stopping": "Остановка",
+      "circuit_open": "Цепь разомкнута",
+      "unavailable": "Недоступно"
+    },
+    "pages": {
+      "overview": "Обзор",
+      "analysis": "Анализ",
+      "keys": "Ключи",
+      "events": "События",
+      "model-leaderboard": "Рейтинг моделей",
+      "pricing": "Цены",
+      "providers": "Провайдеры и квоты",
+      "shared": "Общие ссылки",
+      "maintenance": "Обслуживание"
+    },
+    "dimensions": {
+      "model": "Модель",
+      "provider": "Провайдер",
+      "credential": "Учётные данные",
+      "key": "Ключ"
+    },
+    "enums": {
+      "key_status": {
+        "configured": "Настроен",
+        "rotated": "Заменён",
+        "deleted": "Удалён",
+        "historical": "Исторический",
+        "identity_conflict": "Конфликт идентификатора",
+        "active": "Активен",
+        "idle": "Бездействует"
+      },
+      "job_kind": {
+        "backup": "Резервная копия",
+        "integrity_check": "Проверка целостности",
+        "checkpoint": "Контрольная точка",
+        "reindex": "Переиндексация",
+        "restore": "Восстановление копии",
+        "purge_key": "Удаление ключа",
+        "rollback_import": "Откат импорта",
+        "import_cpauk": "Импорт CPAUK",
+        "retention": "Хранение",
+        "repair": "Ремонт",
+        "reprice": "Переоценка",
+        "start_new_identity_epoch": "Новая эпоха идентичности"
+      },
+      "job_state": {
+        "queued": "В очереди",
+        "running": "Выполняется",
+        "succeeded": "Завершено",
+        "failed": "Ошибка",
+        "canceled": "Отменено"
+      },
+      "sync_state": {
+        "synced": "Синхронизировано",
+        "stale": "Устарело",
+        "pending": "Ожидает"
+      },
+      "rounding": {
+        "half_away_from_zero_once_per_event": "Половина округляется от нуля для каждого события"
+      },
+      "state": {
+        "ready": "Готово",
+        "degraded": "Есть сбои",
+        "starting": "Запуск",
+        "disabled": "Отключено",
+        "stopping": "Остановка",
+        "circuit_open": "Цепь разомкнута"
+      },
+      "source": {
+        "native": "Собственное",
+        "kiro-credits": "Кредиты Kiro",
+        "import": "Импортировано"
+      },
+      "service_tier": {
+        "auto": "Авто",
+        "default": "По умолчанию",
+        "flex": "Гибкий",
+        "priority": "Приоритетный",
+        "scale": "Масштабируемый"
+      },
+      "endpoint": {
+        "responses": "Responses",
+        "messages": "Messages",
+        "chat_completions": "Chat Completions",
+        "generate_content": "Generate Content",
+        "embeddings": "Эмбеддинги",
+        "images": "Изображения",
+        "videos": "Видео",
+        "audio": "Аудио",
+        "unknown": "Неизвестно"
+      },
+      "provider": {
+        "openai": "OpenAI",
+        "anthropic": "Anthropic",
+        "gemini": "Gemini",
+        "codex": "Codex",
+        "claude": "Claude",
+        "antigravity": "Antigravity",
+        "qwen": "Qwen",
+        "iflow": "iFlow",
+        "kimi": "Kimi",
+        "vertex": "Vertex"
+      },
+      "executor": {
+        "AIStudioExecutor": "AI Studio",
+        "AntigravityExecutor": "Antigravity",
+        "ClaudeExecutor": "Claude",
+        "CodexExecutor": "Codex",
+        "CodexWebsocketsExecutor": "Codex (WebSocket)",
+        "CodexAutoExecutor": "Codex (авто)",
+        "GeminiVertexExecutor": "Gemini (Vertex)",
+        "KimiExecutor": "Kimi",
+        "OpenAICompatExecutor": "OpenAI-совместимый",
+        "XAIExecutor": "xAI",
+        "GeminiExecutor": "Gemini",
+        "XAIWebsocketsExecutor": "xAI (WebSocket)",
+        "XAIAutoExecutor": "xAI (авто)",
+        "auth-selection": "Выбор учетных данных (без запроса к провайдеру)"
+      },
+      "auth_type": {
+        "apikey": "API-ключ",
+        "oauth": "OAuth"
+      },
+      "error_class": {
+        "rate_limited": "Ограничение скорости",
+        "upstream_unavailable": "Вышестоящий сервер недоступен",
+        "upstream_rejected": "Вышестоящий сервер отклонил запрос",
+        "upstream_redirect": "Перенаправление вышестоящего сервера",
+        "transport_failure": "Сбой передачи",
+        "auth_unavailable": "Нет доступных учетных данных"
+      }
+    },
     "job_result": {
       "action": "Действие",
       "archived_database": "Архивированная база данных",
@@ -1267,13 +1274,9 @@
       "unit_speed": "токен/с",
       "unit_tokens": "токенов",
       "providers_one": "1 провайдер",
-      "providers_few": "{{count}} провайдера",
-      "providers_many": "{{count}} провайдеров",
       "providers_other": "{{count}} провайдеров",
       "failed": "{{failed, number}} из {{attempts, number}} с ошибкой",
       "measured_one": "1 измерение",
-      "measured_few": "{{count, number}} измерения",
-      "measured_many": "{{count, number}} измерений",
       "measured_other": "{{count, number}} измерений",
       "speed_coverage": "Измерено {{samples, number}} из {{attempts, number}} успешных запросов",
       "reasoning": "{{percent}}% рассуждений",
@@ -1297,7 +1300,11 @@
       "family_unknown": "Неизвестное семейство моделей",
       "avatar_mascot": "Талисман {{family}}",
       "avatar_logo": "Логотип {{family}}",
-      "avatar_placeholder": "Неизвестная модель"
+      "avatar_placeholder": "Неизвестная модель",
+      "providers_few": "{{count}} провайдера",
+      "providers_many": "{{count}} провайдеров",
+      "measured_few": "{{count, number}} измерения",
+      "measured_many": "{{count, number}} измерений"
     },
     "estimated_arrival_rate": "Расчётная скорость поступления",
     "estimate_badge": "ОЦЕНКА",
@@ -1564,13 +1571,9 @@
     "card_requests": "Запросы",
     "cooldown_unknown": "Состояние задержки неизвестно",
     "cooldown_models_one": "{{count}} модель на паузе",
-    "cooldown_models_few": "{{count}} модели на паузе",
-    "cooldown_models_many": "{{count}} моделей на паузе",
     "cooldown_models_other": "{{count}} модели на паузе",
     "cooldown_credential": "Задержка всего файла",
     "cooldown_credential_and_models_one": "Файл и {{count}} модель на паузе",
-    "cooldown_credential_and_models_few": "Файл и {{count}} модели на паузе",
-    "cooldown_credential_and_models_many": "Файл и {{count}} моделей на паузе",
     "cooldown_credential_and_models_other": "Файл и {{count}} модели на паузе",
     "cooldown_scope_credential": "Весь файл авторизации",
     "cooldown_earliest": "Ближайшее окончание через ~{{time}}",
@@ -1738,12 +1741,6 @@
     "websockets_hint": "Включает websocket-транспорт Responses API для этих учётных данных.",
     "using_api_label": "Использовать официальный API (using_api)",
     "using_api_hint": "Если включено, используется официальный API xAI; если выключено — Grok CLI chat-proxy.",
-    "headers_label": "Пользовательские заголовки (headers)",
-    "headers_placeholder": "{\n  \"Header-Name\": \"value\"\n}",
-    "headers_hint": "Введите пользовательские HTTP-заголовки в виде JSON-объекта, например: {\"X-My-Header\": \"value\"}",
-    "headers_invalid_json": "Заголовки должны быть записаны в корректном формате JSON.",
-    "headers_invalid_object": "Заголовки должны быть JSON-объектом.",
-    "headers_invalid_value": "Значение каждого заголовка должно быть строкой.",
     "policy_alias_name": "Псевдоним",
     "policy_alias_display_name": "Отображаемое имя",
     "policy_alias_fork": "Сохранять исходную модель в списке",
@@ -1766,6 +1763,12 @@
     "note_placeholder": "Введите заметку, например: аккаунт Ивана",
     "note_hint": "Необязательно. Используется для описания назначения или владельца учётных данных; оставьте пустым, чтобы не записывать.",
     "excluded_models_label": "Исключённые модели (excluded_models)",
+    "headers_label": "Пользовательские заголовки (headers)",
+    "headers_placeholder": "{\n  \"Header-Name\": \"value\"\n}",
+    "headers_hint": "Введите пользовательские HTTP-заголовки в виде JSON-объекта, например: {\"X-My-Header\": \"value\"}",
+    "headers_invalid_json": "Заголовки должны быть записаны в корректном формате JSON.",
+    "headers_invalid_object": "Заголовки должны быть JSON-объектом.",
+    "headers_invalid_value": "Значение каждого заголовка должно быть строкой.",
     "prefix_proxy_invalid_json": "Этот файл авторизации не является JSON-объектом, поэтому поля нельзя редактировать.",
     "prefix_proxy_html_challenge": "Скачанное содержимое является HTML-страницей проверки, а не JSON-объектом авторизации. Повторно авторизуйтесь или замените файл перед редактированием полей.",
     "prefix_proxy_saved_success": "Файл авторизации \"{{name}}\" успешно обновлён",
@@ -1773,7 +1776,15 @@
     "quota_refresh_hint": "Обновить квоту только для этих учётных данных",
     "quota_refresh_success": "Квота для \"{{name}}\" обновлена",
     "quota_refresh_failed": "Не удалось обновить квоту для \"{{name}}\": {{message}}",
-    "filter_kiro": "Kiro"
+    "filter_kiro": "Kiro",
+    "use_siwc_label": "Использовать SIWC (use_siwc)",
+    "use_siwc_hint": "Использовать привязанные учётные данные SIWC. Выключение отключает SIWC, сохраняя данные привязки. Перед включением выполните привязку.",
+    "cooldown_models": "{{count}} модели остывают",
+    "cooldown_credential_and_models": "Ваучер и охлаждение модели {{count}}",
+    "cooldown_models_few": "{{count}} модели на паузе",
+    "cooldown_models_many": "{{count}} моделей на паузе",
+    "cooldown_credential_and_models_few": "Файл и {{count}} модели на паузе",
+    "cooldown_credential_and_models_many": "Файл и {{count}} моделей на паузе"
   },
   "antigravity_subscription": {
     "plan_unknown": "Неизвестно",
@@ -1810,6 +1821,19 @@
     "duration_less_than_minute": "<1 мин",
     "refresh_button": "Обновить квоту",
     "fetch_all": "Получить все"
+  },
+  "plugin_quota": {
+    "empty_title": "Нет файлов плагинов",
+    "empty_desc": "Подключите аккаунт плагина, чтобы просмотреть оставшуюся квоту.",
+    "idle": "Нажмите, чтобы обновить квоту",
+    "loading": "Загрузка квоты…",
+    "load_failed": "Не удалось загрузить квоту: {{message}}",
+    "missing_auth_index": "В файле авторизации отсутствует auth_index",
+    "probe_unsupported": "Декларативные проверки квоты недоступны через API управления v8",
+    "plugin_not_found": "Не найден активный плагин, предоставляющий квоту для {{provider}}",
+    "empty_data": "Нет доступных данных о квоте",
+    "plan_label": "План",
+    "remaining_percent": "Осталось {{percent}}%"
   },
   "claude_quota": {
     "title": "Квота Claude",
@@ -1881,8 +1905,6 @@
     "reset_credits_expiry_label": "Срок действия ручных сбросов ({{timezone}})",
     "reset_credit_number": "Сброс {{index}}",
     "reset_credit_count_one": "{{count}} сброс",
-    "reset_credit_count_few": "{{count}} сброса",
-    "reset_credit_count_many": "{{count}} сбросов",
     "reset_credit_count_other": "{{count}} сброса",
     "reset_credits_expiry_failed": "Не удалось загрузить срок действия ручных сбросов: {{message}}",
     "reset_credits_invalid_payload": "Недопустимый ответ о сроке действия ручных сбросов",
@@ -1900,7 +1922,10 @@
     "plan_pro": "Pro 200",
     "plan_prolite": "Pro 100",
     "plan_promax": "Pro 500",
-    "plan_business_premium": "Business Premium"
+    "plan_business_premium": "Business Premium",
+    "reset_credits_label": "Ручные сбросы",
+    "reset_credit_count_few": "{{count}} сброса",
+    "reset_credit_count_many": "{{count}} сбросов"
   },
   "devin_quota": {
     "daily": "Остаток на день",
@@ -1946,19 +1971,6 @@
     "unknown": "Неизвестно",
     "remaining": "Осталось {{percent}}%"
   },
-  "plugin_quota": {
-    "empty_title": "Нет файлов плагинов",
-    "empty_desc": "Подключите аккаунт плагина, чтобы просмотреть оставшуюся квоту.",
-    "idle": "Нажмите, чтобы обновить квоту",
-    "loading": "Загрузка квоты…",
-    "load_failed": "Не удалось загрузить квоту: {{message}}",
-    "missing_auth_index": "В файле авторизации отсутствует auth_index",
-    "probe_unsupported": "Декларативные проверки квоты недоступны через API управления v8",
-    "plugin_not_found": "Не найден активный плагин, предоставляющий квоту для {{provider}}",
-    "empty_data": "Нет доступных данных о квоте",
-    "plan_label": "План",
-    "remaining_percent": "Осталось {{percent}}%"
-  },
   "kimi_quota": {
     "title": "Квота Kimi",
     "empty_title": "Файлы авторизации Kimi отсутствуют",
@@ -1976,7 +1988,9 @@
     "monthly_limit": "Месячный лимит",
     "limit_window": "Лимит {{duration}}",
     "limit_index": "Лимит #{{index}}",
-    "reset_hint": "сброс через {{hint}}"
+    "reset_hint": "сброс через {{hint}}",
+    "plan_label": "Тариф",
+    "plan_unknown": "Неизвестно"
   },
   "zai_quota": {
     "title": "Квота Z.AI",
@@ -2040,8 +2054,8 @@
     "title": "Вход с Vertex JSON",
     "description": "Загрузите JSON ключа сервисного аккаунта Google, чтобы сохранить его как auth-dir/vertex-<project>.json по тем же правилам, что и помощник CLI vertex-import.",
     "location_label": "Регион (необязательно)",
-    "location_placeholder": "us-central1",
-    "location_hint": "Оставьте пустым, чтобы использовать регион us-central1 по умолчанию.",
+    "location_placeholder": "global",
+    "location_hint": "Оставьте пустым, чтобы использовать регион global по умолчанию.",
     "file_label": "JSON ключ сервисного аккаунта",
     "file_hint": "Принимаются только JSON-файлы ключей сервисных аккаунтов Google Cloud.",
     "choose_file": "Выбрать файл",
@@ -2358,7 +2372,35 @@
     "restart_login": "Начать заново",
     "success_saved_hint": "Учётные данные сохранены — управляйте ими в файлах аутентификации.",
     "sign_up_prompt": "Нет аккаунта?",
-    "copied": "Скопировано"
+    "copied": "Скопировано",
+    "qwen_oauth_title": "Квен OAuth",
+    "qwen_oauth_button": "Начать вход в Qwen",
+    "qwen_oauth_hint": "Войдите в сервис Qwen через процесс авторизации устройства, чтобы автоматически получить и сохранить файл проверки.",
+    "qwen_oauth_url_label": "Ссылка на авторизацию:",
+    "qwen_open_link": "Открыть ссылку",
+    "qwen_copy_link": "Скопировать ссылку",
+    "qwen_oauth_status_waiting": "Ожидание проверки...",
+    "qwen_oauth_status_success": "Проверка прошла успешно!",
+    "qwen_oauth_status_error": "Проверка не удалась:",
+    "qwen_oauth_start_error": "Не удалось запустить Qwen OAuth:",
+    "qwen_oauth_polling_error": "Не удалось проверить статус проверки:",
+    "iflow_cookie_title": "Вход в систему с использованием файлов cookie iFlow",
+    "iflow_cookie_label": "Содержание файлов cookie:",
+    "iflow_cookie_placeholder": "Введите значение BXAuth, начиная с BXAuth=.",
+    "iflow_cookie_hint": "Отправьте файл cookie напрямую для завершения входа в систему (не открывая ссылку авторизации), и сервер автоматически сохранит учетные данные.",
+    "iflow_cookie_key_hint": "Совет: сначала ключ необходимо создать на платформе.",
+    "iflow_cookie_button": "Отправить файл cookie",
+    "iflow_cookie_status_success": "Вход в систему через cookie успешен, учетные данные сохранены.",
+    "iflow_cookie_status_error": "Не удалось войти в систему через cookie:",
+    "iflow_cookie_status_duplicate": "Дублирующийся профиль:",
+    "iflow_cookie_start_error": "Отправить файл cookie Не удалось войти:",
+    "iflow_cookie_config_duplicate": "Было обнаружено, что файл конфигурации уже существует (дубликат). Если вам нужно сохранить его еще раз, удалите исходный файл и повторите попытку.",
+    "iflow_cookie_required": "Пожалуйста, сначала заполните содержимое файла cookie",
+    "iflow_cookie_result_title": "Результаты входа в систему с использованием файлов cookie",
+    "iflow_cookie_result_email": "Номер счета",
+    "iflow_cookie_result_expired": "Срок годности",
+    "iflow_cookie_result_path": "путь хранения",
+    "iflow_cookie_result_type": "Тип"
   },
   "stats": {
     "success": "Успех",
@@ -3035,7 +3077,11 @@
           "fair": "Средний",
           "good": "Хороший",
           "strong": "Надёжный"
-        }
+        },
+        "name_label": "Имя / описание (необязательно)",
+        "name_placeholder": "Например: ноутбук Анны",
+        "name_hint": "Имя сразу сохраняется только в этом браузере, отдельно для каждого сервера, и не включается в конфигурацию сервера. Очистите поле, чтобы удалить имя.",
+        "name_save_error": "Не удалось сохранить имя в хранилище браузера. Проверьте настройки хранилища."
       },
       "payload_rules": {
         "rule": "Правило",
@@ -3267,9 +3313,9 @@
       }
     },
     "meta_errors_one": "{{count}} ошибка валидации",
+    "meta_errors_other": "{{count}} ошибки валидации",
     "meta_errors_few": "{{count}} ошибки валидации",
-    "meta_errors_many": "{{count}} ошибок валидации",
-    "meta_errors_other": "{{count}} ошибки валидации"
+    "meta_errors_many": "{{count}} ошибок валидации"
   },
   "quota_management": {
     "history_now": "Сейчас",
@@ -3515,6 +3561,15 @@
     "gate_step3_action": "Установить этот плагин",
     "gate_step3_hint": "Введите точный идентификатор, показанный выше, чтобы включить установку."
   },
+  "plugin_resource": {
+    "page_count": "{{count}} страниц",
+    "load_failed": "Не удалось загрузить страницу плагина.",
+    "unavailable": "Страница плагина недоступна",
+    "not_found": "Страница плагина не найдена",
+    "not_found_desc": "Эта страница плагина не объявлена в текущем списке плагинов серверной части.",
+    "empty_src": "URL-адрес страницы плагина пуст.",
+    "empty_src_desc": "Это меню плагина не предоставляет встраиваемый URL-адрес страницы."
+  },
   "system_info": {
     "title": "Информация о центре управления",
     "about_title": "CLI Proxy API Management Center",
@@ -3573,7 +3628,8 @@
     "english": "English",
     "russian": "Русский",
     "vietnamese": "Tiếng Việt",
-    "korean": "한국어"
+    "korean": "한국어",
+    "turkish": "Турецкий"
   },
   "theme": {
     "switch": "Тема",
@@ -3717,7 +3773,11 @@
       "fennoAI": "FennoAI",
       "qiniuCloud": "Qiniu Cloud",
       "kimi": "Kimi",
-      "kiro": "Kiro"
+      "kiro": "Kiro",
+      "claudeApi": "КлодAPI",
+      "code0": "Код0",
+      "lmuAI": "LMU AI (Линьмоу AI)",
+      "infistar": "Инфистар"
     },
     "table": {
       "key": "Ключ",
@@ -3918,7 +3978,9 @@
         "baseUrlRequired": "Base URL обязателен",
         "weightInteger": "Вес планирования должен быть целым числом",
         "weightMax": "Вес планирования не может превышать {{max}}"
-      }
+      },
+      "experimentalCchSigning": "Ký CCH thử nhiệm",
+      "experimentalCchSigningHint": "Ký body /v1/messages Клод đã плащ cuối cùng bằng CCH"
     },
     "delete": {
       "title": "Удалить ресурс",
@@ -3956,12 +4018,14 @@
       "loading": "Загрузка моделей…",
       "empty": "Конечная точка не вернула моделей",
       "notLoaded": "Нажмите Обновить, чтобы загрузить модели",
-      "selectAll": "Выбрать все",
-      "clearAll": "Снять выбор",
+      "selectAll": "Выбрать результаты поиска",
+      "clearAll": "Снять выбор с результатов поиска",
       "selectedCount": "{{selected}} / {{total}}",
       "alreadyAdded": "Уже добавлено",
       "close": "Закрыть",
-      "apply": "Применить ({{count}})"
+      "apply": "Применить ({{count}})",
+      "applyChanges": "Применить (+{{added}} / −{{removed}})",
+      "syncHint": "Отметьте нужные загруженные модели или снимите отметки, затем примените изменения. Модели вне этих результатов и настройки сохранённых моделей останутся без изменений. Пустой список в конфигурации использует настройки бэкенда по умолчанию и не обязательно отключает все модели."
     },
     "toolbar": {
       "sortBy": "Сортировка",
@@ -4011,7 +4075,12 @@
     "ineligible": "Эта учётная запись не соответствует условиям.",
     "unavailable": "Сбросы временно недоступны.",
     "rate_limited": "Слишком много запросов.",
-    "auth_error": "Авторизация отклонена."
+    "auth_error": "Авторизация отклонена.",
+    "failure_organization": "Сброс не отправлен: ошибка получения или разбора организации ({{code}}).",
+    "failure_status": "Сброс не отправлен: ошибка проверки актуальных условий сброса ({{code}}).",
+    "failure_eligibility": "Сброс не отправлен: условия, срок действия или период ожидания не прошли проверку. Проверьте часы устройства ({{code}}).",
+    "failure_request_id": "Сброс не отправлен: не удалось создать безопасный ID запроса. Используйте HTTPS или localhost и поддерживаемый браузер ({{code}}).",
+    "failure_operation": "Сброс не отправлен: ошибка проверки параллельной операции, сессии, учётной записи или срока повтора ({{code}})."
   },
   "kiro_quota": {
     "title": "Квота Kiro",
@@ -4033,5 +4102,135 @@
     "overage_requests": "Сверх лимита: {{count}}",
     "unknown_requests": "Количество запросов недоступно",
     "reset_unknown": "Время сброса недоступно"
+  },
+  "routing": {
+    "title": "Маршрутизация",
+    "refresh": "Обновить",
+    "refresh_discards": "Обновление отменит несохранённую расстановку.",
+    "loading": "Загрузка маршрутизации…",
+    "load_failed": "Не удалось загрузить маршрутизацию: {{message}}",
+    "retry": "Повторить",
+    "empty_title": "Пока нечего маршрутизировать",
+    "empty_desc": "Сначала добавьте API-ключ или OAuth-учётные данные в разделах «AI-провайдеры» или «Файлы авторизации».",
+    "entry": "Входящий запрос",
+    "model_placeholder": "Все модели (введите модель для предпросмотра маршрута)",
+    "models_loading": "Загрузка моделей {{done}}/{{total}}",
+    "tier_primary": "Основной",
+    "tier_backup": "Резерв {{index}}",
+    "tier_priority": "Приоритет {{priority}}",
+    "tier_priority_changed": "Приоритет {{from}} → {{to}}",
+    "tier_state_active": "Обслуживает запросы",
+    "tier_state_standby": "Ожидание: используется, когда все уровни выше недоступны",
+    "tier_state_skipped_model": "Не предоставляет эту модель; запросы пропускают уровень",
+    "tier_state_skipped": "Нет доступных участников; запросы пропускают уровень",
+    "tier_state_cooling": "Охлаждение или недоступен; запросы пропускают уровень",
+    "tier_state_unknown": "Модели некоторых участников неизвестны; уровень может обслуживать",
+    "connector": "Если весь уровень недоступен — переход к следующему",
+    "drop_new_tier": "Отпустите здесь, чтобы создать новый уровень",
+    "exhausted": "Всё недоступно",
+    "exhausted_retry": "Ошибка после ещё {{count}} раундов повторов",
+    "exhausted_no_retry": "Сразу возвращается ошибка",
+    "footnote": "Предпросмотр не учитывает привязку сессий, текущее охлаждение API-ключей и приоритет WebSocket. Модели API-ключей выводятся из конфигурации; модели плагинов показаны как неизвестные.",
+    "kind_api_key": "API-ключ",
+    "kind_oauth": "OAuth",
+    "kind_compat_keys": "Ключей: {{count}}",
+    "state_disabled": "Отключён",
+    "state_cooling": "Охлаждение {{time}}",
+    "state_blocked": "Недоступен",
+    "state_unknown": "Модели неизвестны",
+    "state_ineligible": "Не предоставляет эту модель",
+    "state_excluded": "Вес 0",
+    "no_runtime_state": "Нет данных об охлаждении",
+    "weight_badge": "Вес {{weight}}",
+    "share": "{{share}}%",
+    "locked_priority_conflict": "Между заблокированными учётными данными нет свободного приоритета. Добавьте в существующий уровень.",
+    "locked": "Учётные данные только в памяти: нет файла для хранения приоритета, перемещение невозможно",
+    "member_actions": "Действия для {{name}}",
+    "drag_handle": "Перетащите {{name}} или используйте стрелки вверх и вниз, чтобы сменить уровень",
+    "move_up": "На уровень выше",
+    "move_down": "На уровень ниже",
+    "edit_weight": "Задать вес…",
+    "weight_title": "Вес: {{name}}",
+    "weight_hint": "Взвешенный циклический выбор делит трафик по весу; GSR добавляет положительный вес после оценки восстановления и тарифа. Пустое значение означает 1; нулевой вес исключает из взвешенного выбора.",
+    "weight_placeholder": "1",
+    "weight_apply": "Применить",
+    "weight_inactive": "Текущая стратегия не использует веса.",
+    "policy_title": "Политика шлюза",
+    "policy_subtitle": "Действует на всех уровнях.",
+    "strategy_label": "Внутри уровня",
+    "strategy_round_robin": "По кругу",
+    "strategy_weighted_round_robin": "Взвешенно по кругу",
+    "strategy_fill_first": "Сначала заполнять",
+    "strategy_round_robin_desc": "Учётные данные уровня принимают запросы по очереди.",
+    "strategy_weighted_round_robin_desc": "Запросы распределяются по уровню пропорционально весам.",
+    "strategy_fill_first_desc": "Одни учётные данные принимают всё, пока не станут недоступны, затем следующие.",
+    "affinity_label": "Привязка сессий",
+    "affinity_desc": "Запросы одной сессии идут на одни учётные данные, с переключением при их недоступности.",
+    "retry_label": "Переключение при сбоях",
+    "request_retry": "Раунды повторов",
+    "request_retry_desc": "Дополнительные раунды после сбоя всех учётных данных в первом раунде.",
+    "max_retry_credentials": "Учётных данных за раунд",
+    "max_retry_credentials_desc": "Максимум попыток за раунд; 0 — все.",
+    "unlimited": "Без ограничений",
+    "dirty_region": "Несохранённые изменения маршрутизации",
+    "dirty_count": "Несохранённых изменений: {{count}}",
+    "discard": "Отменить",
+    "save": "Сохранить",
+    "review_title": "Сохранить изменения маршрутизации",
+    "review_hint": "OAuth-учётные данные записываются по одному, остальное — в конфигурацию одной записью.",
+    "confirm_save": "Сохранить",
+    "change_priority": "{{name}}: приоритет {{from}} → {{to}}",
+    "change_weight": "{{name}}: вес {{from}} → {{to}}",
+    "change_setting": "{{name}}: {{from}} → {{to}}",
+    "value_default": "По умолчанию",
+    "value_on": "Вкл.",
+    "value_off": "Выкл.",
+    "save_success": "Сохранено изменений: {{count}}",
+    "save_partial": "Сохранение прервано: не удалось записать {{name}} ({{message}}). Применено: {{applied}}; не выполнено: {{skipped}}.",
+    "save_conflict": "Конфигурация изменилась после загрузки, её часть не записана. Данные обновлены — настройте заново и сохраните.",
+    "config_target": "конфигурация",
+    "unsaved_title": "Отменить несохранённые изменения?",
+    "unsaved_message": "При уходе со страницы несохранённая расстановка будет потеряна.",
+    "unsaved_confirm": "Уйти",
+    "unsaved_cancel": "Остаться",
+    "duration_seconds": "{{count}} с",
+    "duration_minutes": "{{count}} мин",
+    "duration_hours": "{{count}} ч",
+    "strategy_greedy_soonest_recovery": "Скорейшее восстановление (GSR)",
+    "strategy_greedy_soonest_recovery_desc": "Выбор по времени восстановления и уровню тарифа с учётом веса; доли трафика меняются динамически."
+  },
+  "siwc": {
+    "title": "Привязка SIWC",
+    "bind": "Привязать SIWC",
+    "tile_caption": "Привязать SIWC к учётным данным Codex",
+    "intro": "Выберите учётные данные Codex. После авторизации в браузере SIWC будет привязан к ним.",
+    "target": "Учётные данные",
+    "active": "Активен",
+    "bound": "Привязан · неактивен",
+    "unbound": "Не привязан",
+    "expires": "Истекает {{date}}",
+    "loading": "Загрузка учётных данных…",
+    "no_targets": "Нет учётных данных Codex, к которым можно привязать SIWC.",
+    "load_failed": "Не удалось загрузить учётные данные. Закройте и повторите попытку.",
+    "start": "Начать авторизацию",
+    "starting": "Создание ссылки авторизации…",
+    "wait": "Ожидание авторизации…",
+    "cancel": "Отменить привязку",
+    "retry": "Начать заново",
+    "step_open": "Откройте страницу авторизации и войдите",
+    "open": "Открыть страницу авторизации",
+    "copy": "Копировать ссылку",
+    "callback": "Вставьте URL обратного вызова",
+    "hint": "После авторизации браузер перейдёт на http://127.0.0.1:1455/auth/callback. Даже если страница не загрузится, скопируйте полный URL из адресной строки и вставьте его сюда.",
+    "submit": "Отправить",
+    "submitted": "Обратный вызов отправлен. Ожидание подтверждения…",
+    "invalid_callback": "Неполный URL: нужны совпадающий state, а также code и client_id (или ошибка OAuth).",
+    "callback_failed": "Не удалось отправить обратный вызов. Проверьте URL и повторите попытку.",
+    "ok": "SIWC привязан",
+    "ok_hint": "SIWC привязан к {{name}}.",
+    "done": "Готово",
+    "error": "Привязка не удалась. Начните заново.",
+    "unsupported": "Этот сервер не поддерживает привязку SIWC.",
+    "expired": "Сеанс привязки истёк. Начните заново."
   }
 }

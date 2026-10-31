@@ -111,7 +111,7 @@ describe('Muse (Meta) provider and device OAuth', () => {
     expect(markup).toContain(en.auth_login.step_enter_device_code);
     expect(markup).not.toContain(en.auth_login.oauth_callback_label);
     expect(markup).not.toContain('auth_login.');
-    for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru']) {
+    for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr']) {
       const translations = JSON.parse(readFileSync(`src/i18n/locales/${locale}.json`, 'utf8'));
       for (const suffix of [
         'oauth_title',

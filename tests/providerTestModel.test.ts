@@ -125,7 +125,7 @@ describe('connectivity test models are not backend configuration', () => {
     expect(source).not.toContain('cfg.testModel');
     expect(source).toContain("t('providersPage.form.testModelHint')");
     expect(source).not.toContain('testModelClaudeHint');
-    for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi']) {
+    for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr']) {
       const messages = JSON.parse(
         readFileSync(new URL(`../src/i18n/locales/${locale}.json`, import.meta.url), 'utf8')
       );

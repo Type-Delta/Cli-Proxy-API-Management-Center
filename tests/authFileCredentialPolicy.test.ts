@@ -264,7 +264,7 @@ describe('auth-file structured credential policy contracts', () => {
   });
 
   test('all policy translation keys are present in every supported locale', () => {
-    const messages = ['en', 'zh-CN', 'zh-TW', 'ru'].map(
+    const messages = ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr'].map(
       (locale) =>
         JSON.parse(
           readFileSync(new URL(`../src/i18n/locales/${locale}.json`, import.meta.url), 'utf8')

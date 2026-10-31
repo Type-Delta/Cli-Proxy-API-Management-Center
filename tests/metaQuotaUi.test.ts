@@ -37,7 +37,7 @@ afterEach(() => useQuotaStore.getState().clearQuotaCache());
 
 describe('Muse quota UI integration', () => {
   test('provides quota labels in all six locales', () => {
-    for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko']) {
+    for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr']) {
       const translations = JSON.parse(readFileSync(`src/i18n/locales/${locale}.json`, 'utf8'));
       for (const key of [
         'title',

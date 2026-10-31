@@ -13,20 +13,24 @@ const flattenLeaves = (value: unknown, prefix = ''): Record<string, string> => {
 
 const interpolationTokens = (value: string): string[] => value.match(/\{\{[^}]+\}\}/g) ?? [];
 
-describe('Korean locale', () => {
-  test('covers every current English key with matching interpolation tokens', async () => {
-    const english = flattenLeaves(await Bun.file('src/i18n/locales/en.json').json());
-    const korean = flattenLeaves(await Bun.file('src/i18n/locales/ko.json').json());
-    const missing = Object.keys(english).filter((key) => !(key in korean));
-    const mismatches = Object.keys(english)
-      .filter((key) => key in korean)
-      .filter(
-        (key) =>
-          interpolationTokens(english[key]).sort().join('|') !==
-          interpolationTokens(korean[key]).sort().join('|')
-      );
+describe('locale key parity', () => {
+  test.each(['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr'])(
+    'covers the union key set with matching interpolation in %s',
+    async (language) => {
+      const english = flattenLeaves(await Bun.file('src/i18n/locales/en.json').json());
+      const korean = flattenLeaves(await Bun.file(`src/i18n/locales/${language}.json`).json());
+      const missing = Object.keys(english).filter((key) => !(key in korean));
+      const mismatches = Object.keys(english)
+        .filter((key) => key in korean)
+        .filter(
+          (key) =>
+            interpolationTokens(english[key]).sort().join('|') !==
+            interpolationTokens(korean[key]).sort().join('|')
+        );
 
-    expect(missing).toEqual([]);
-    expect(mismatches).toEqual([]);
-  });
+      expect(Object.keys(korean).sort()).toEqual(Object.keys(english).sort());
+      expect(missing).toEqual([]);
+      expect(mismatches).toEqual([]);
+    }
+  );
 });

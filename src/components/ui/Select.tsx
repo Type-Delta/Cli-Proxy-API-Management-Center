@@ -29,6 +29,8 @@ interface CommonSelectProps {
   options: ReadonlyArray<SelectOption>;
   placeholder?: string;
   className?: string;
+  /** Class applied to the dropdown portal. */
+  dropdownClassName?: string;
   disabled?: boolean;
   ariaLabel?: string;
   ariaLabelledBy?: string;
@@ -89,7 +91,7 @@ const resolveDropdownStyle = (
   const preferredWidth = Math.max(rect.width, multiple ? 340 : 0, minWidth);
   const width = Math.min(preferredWidth, Math.max(0, viewportWidth - VIEWPORT_MARGIN * 2));
   const left = clamp(
-    rect.left,
+    rect.left + width > viewportWidth - VIEWPORT_MARGIN ? rect.right - width : rect.left,
     VIEWPORT_MARGIN,
     Math.max(VIEWPORT_MARGIN, viewportWidth - width - VIEWPORT_MARGIN)
   );
@@ -127,6 +129,7 @@ export function Select(props: SelectProps) {
     options,
     placeholder,
     className,
+    dropdownClassName,
     disabled = false,
     ariaLabel,
     ariaLabelledBy,
@@ -301,17 +304,7 @@ export function Select(props: SelectProps) {
         } else close(true);
       } else if (event.key === 'Tab' && isOpen) close();
     },
-    [
-      close,
-      commit,
-      isDisabled,
-      isOpen,
-      move,
-      optionCount,
-      query,
-      resolvedIndex,
-      searchable,
-    ]
+    [close, commit, isDisabled, isOpen, move, optionCount, query, resolvedIndex, searchable]
   );
 
   const selectedOptions = multiple
@@ -415,7 +408,7 @@ export function Select(props: SelectProps) {
     isOpen && dropdownStyle ? (
       <div
         ref={dropdownRef}
-        className={`${styles.dropdown} ${multiple ? styles.dropdownMultiple : ''}`.trim()}
+        className={`${styles.dropdown} ${multiple ? styles.dropdownMultiple : ''} ${dropdownClassName ?? ''}`.trim()}
         style={dropdownStyle}
       >
         {multiple && props.error ? (

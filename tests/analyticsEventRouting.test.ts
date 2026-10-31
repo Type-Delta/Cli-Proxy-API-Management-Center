@@ -705,7 +705,7 @@ describe('routing decision gate icons', () => {
 describe('routing gate reason coverage', () => {
   test('every gate reason has event and dry-run copy in all locales', async () => {
     const reasons = Object.keys(ROUTING_GATE_ICONS);
-    for (const locale of ['en', 'zh-CN', 'zh-TW', 'ko', 'ru', 'vi']) {
+    for (const locale of ['en', 'zh-CN', 'zh-TW', 'ko', 'ru', 'vi', 'tr']) {
       const json = (await Bun.file(`src/i18n/locales/${locale}.json`).json()) as {
         analytics: { routing_decision: { reason: Record<string, string> } };
         config_management: { visual: { routing_trace: Record<string, string> } };

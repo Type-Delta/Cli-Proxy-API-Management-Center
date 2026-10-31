@@ -821,7 +821,7 @@ test('estimates never fabricate a timing bar or output window', () => {
 });
 
 test('speed rankings describe measured windows only in every locale', async () => {
-  for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko']) {
+  for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr']) {
     const document = (await Bun.file(`src/i18n/locales/${locale}.json`).json()) as {
       analytics?: { leaderboard?: { award_speed_description?: string } };
     };

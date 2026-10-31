@@ -64,7 +64,7 @@ describe('legacy analytics import health', () => {
     expect(failed).toContain('bad log');
   });
   test('provides status and retention copy in every locale', () => {
-    for (const language of ['en', 'ko', 'ru', 'vi', 'zh-CN', 'zh-TW']) {
+    for (const language of ['en', 'ko', 'ru', 'vi', 'zh-CN', 'zh-TW', 'tr']) {
       const translations = i18n.cloneInstance({ lng: language });
       for (const key of ['analytics.maintenance.legacy_import', 'analytics.maintenance.legacy_request_log_import', 'analytics.maintenance.legacy_import_counts.imported', 'analytics.maintenance.legacy_import_states.done', 'analytics.maintenance.legacy_import_states.failed', 'analytics.maintenance.legacy_import_states.abandoned', 'analytics.maintenance.legacy_import_counts.events', 'config_management.visual.sections.analytics.clickhouse_retention_days_hint']) {
         expect(translations.getResource(language, 'translation', key)).toBeString();

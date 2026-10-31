@@ -1,40 +1,27 @@
 import { normalizePlanType } from './parsers';
 
-/**
- * Codex 套餐档位 → 徽章样式的纯映射。
- *
- * - elite   → 液态铂金徽章（Pro 200，plan=pro）
- * - premium → 金卡徽章（Pro 100；Antigravity ultra / xAI paid 亦复用金卡类名）
- * - plain   → 普通文字徽章（plus/team/free/未知）
- */
+/** Codex badge tiers. Only Pro 500 is platinum; Pro 200 and Pro 100 are gold. */
 export type CodexPlanTier = 'elite' | 'premium' | 'plain';
 
-export const PREMIUM_CODEX_PLAN_TYPES = new Set([
-  'pro',
-  'prolite',
-  'pro-lite',
-  'pro_lite',
-  'self_serve_business_prolite',
-]);
+/** Recognized Pro 500 spellings. */
+export const PRO_MAX_CODEX_PLAN_TYPES = new Set(['promax', 'pro-max', 'pro_max']);
 
-// Pro 200（plan=pro）在金色 premium 之上再进一档：液态铂金徽章，
-// 见 QuotaPage.module.scss 的 .elitePlanValue。
-export const ELITE_CODEX_PLAN_TYPE = 'pro';
+/** Recognized Pro 100 spellings. */
+export const PRO_LITE_CODEX_PLAN_TYPES = new Set(['prolite', 'pro-lite', 'pro_lite']);
 
-/** Pro 500 spellings; it shares the elite badge with Pro 200. */
-export const PRO_MAX_CODEX_PLAN_TYPES = new Set(['pro max', 'pro_max', 'pro-max', 'promax']);
+/** Pro 200. */
+export const PRO_CODEX_PLAN_TYPE = 'pro';
 
-/**
- * 顺序敏感：'pro' 同时命中 PREMIUM_CODEX_PLAN_TYPES，elite 判断必须在最前，
- * 否则 Pro 200 会静默退回金卡。契约由 tests/quotaPlanTier.test.ts 守护。
- */
+/** Business Premium shares the plain tier with Plus. */
+export const BUSINESS_PREMIUM_CODEX_PLAN_TYPE = 'self_serve_business_prolite';
+
 export function resolvePlanTier(planType: string | null | undefined): CodexPlanTier {
   const normalized = normalizePlanType(planType);
   if (!normalized) return 'plain';
-  if (normalized === ELITE_CODEX_PLAN_TYPE || PRO_MAX_CODEX_PLAN_TYPES.has(normalized)) {
-    return 'elite';
+  if (PRO_MAX_CODEX_PLAN_TYPES.has(normalized)) return 'elite';
+  if (normalized === PRO_CODEX_PLAN_TYPE || PRO_LITE_CODEX_PLAN_TYPES.has(normalized)) {
+    return 'premium';
   }
-  if (PREMIUM_CODEX_PLAN_TYPES.has(normalized)) return 'premium';
   return 'plain';
 }
 
@@ -46,9 +33,11 @@ export function codexPlanLabelKey(planType: string | null | undefined): string |
   const normalized = normalizePlanType(planType);
   if (!normalized) return null;
   if (normalized === 'self_serve_business_prolite') return 'codex_quota.plan_business_premium';
-  if (normalized === ELITE_CODEX_PLAN_TYPE) return 'codex_quota.plan_pro';
-  if (PRO_MAX_CODEX_PLAN_TYPES.has(normalized)) return 'codex_quota.plan_promax';
-  if (PREMIUM_CODEX_PLAN_TYPES.has(normalized)) return 'codex_quota.plan_prolite';
+  if (normalized === PRO_CODEX_PLAN_TYPE) return 'codex_quota.plan_pro';
+  if (normalized === 'pro max' || PRO_MAX_CODEX_PLAN_TYPES.has(normalized)) {
+    return 'codex_quota.plan_promax';
+  }
+  if (PRO_LITE_CODEX_PLAN_TYPES.has(normalized)) return 'codex_quota.plan_prolite';
   if (normalized === 'plus' || normalized === 'team' || normalized === 'free') {
     return `codex_quota.plan_${normalized}`;
   }

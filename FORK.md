@@ -910,7 +910,7 @@ servers that publish no field, and the event diagnostics tests render the publis
 Provider forms accept an optional `label` on every API-key entry (Claude, Codex, Gemini,
 Interactions, xAI, Vertex, and OpenAI-compatible key entries). The OpenAI-compatible form adds a
 searchable `Pricing catalog` select populated from the persisted models.dev provider list served by
-`GET /v0/management/analytics/pricing/catalog-providers`, cached once per session so no request is
+`GET /v8/management/analytics/pricing/catalog-providers`, cached once per session so no request is
 made per keystroke, and a `Usage probe` select (None or Z.ai). Provider tables and detail views show
 the label next to the masked key.
 
@@ -926,15 +926,13 @@ The Quota page gains a Z.AI tab. Auth-file entries with `usage_probe: zai` are p
 `display_name` as their title. Auth Files cards lead with a user-set label and the details sheet
 offers a "Rename / set label" action that patches the auth file `label`.
 
-**Implementation evidence:** `src/features/providers/sheets/forms/{BaseProviderForm.tsx,ApiKeyEntriesEditor.tsx}`, `src/features/providers/pricingCatalogCache.ts`, `src/features/providers/components/ProviderResourceTable.tsx`, `src/features/analytics/views/Providers.tsx`, `src/features/quota/providers/zai/{ZaiQuotaBody.tsx,data.ts}`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`; tests: `tests/providerFormCapabilities.test.ts`, `tests/zaiQuota.test.ts`.
+The upstream Routing board also leads with a custom credential label, using `display_name` when supplied and retaining the raw file name for writes. Email, project and file-name fallbacks remain; secret-bearing account fields are never displayed.
 
-**Recorded validation:** `bun run verify` passes 731 tests, lint (one pre-existing warning), TypeScript, and the
-production build. The built bundle was served by a local CPA at 1360x900 through isolated Chrome CDP
-contexts: provider edit sheet with the catalog dropdown, Z.AI quota card with live windows, analytics
-credential rows with per-window meters, and an auth-file rename round trip, all without browser
-errors or horizontal overflow.
+**Implementation evidence:** `src/features/providers/sheets/forms/{BaseProviderForm.tsx,ApiKeyEntriesEditor.tsx}`, `src/features/providers/pricingCatalogCache.ts`, `src/features/providers/components/ProviderResourceTable.tsx`, `src/features/analytics/views/Providers.tsx`, `src/features/quota/providers/zai/{ZaiQuotaBody.tsx,data.ts}`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`; `src/services/api/routing.ts`; tests: `tests/providerFormCapabilities.test.ts`, `tests/zaiQuota.test.ts`, `tests/routingBoard.test.ts`.
 
-**Last updated:** 2026-09-16
+**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript compilation, and the single-file production build. Sixteen isolated Chrome CDP checks cover quota, OAuth, both routing screens, desktop/mobile widths, and light/dark themes without overflow or runtime exceptions. The pre-merge baseline passes 2,320 tests. Turkish strings are machine-translated pending native review; live integration remains pending against the merged CPA.
+
+**Last updated:** 2026-10-31
 
 ### DL044 — Provider selectors and OpenCode Go usage
 
@@ -1083,7 +1081,7 @@ The configuration page's Routing Strategy dropdown now includes the backend's
 `greedy-soonest-recovery` strategy, labeled "Greedy Soonest Recovery (GSR)".
 The visual config parser accepts the canonical value and `gsr` aliases, writes
 the canonical backend value, includes the strategy in search, and shows the same
-label on the dashboard. All six locales include the option label.
+label on the dashboard. All seven locales include the option label.
 Scheduling weight help in auth-file details, card tooltips, and provider forms
 explains both weighted round robin and GSR. GSR adds the configured weight after
 its recovery and plan-tier calculation; non-positive values add nothing. Weighted
@@ -1091,143 +1089,29 @@ round robin continues to exclude credentials with non-positive weights. The
 auth-file hint links to routing settings for either strategy. Credential cards
 use the strategy-neutral label "Weight".
 
-**Implementation evidence:** `src/features/config/components/sections/SectionRouting.tsx`, `src/hooks/useVisualConfig.ts`, `src/features/config/searchIndex.ts`, `src/features/dashboard/DashboardPage.tsx`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`, `src/features/providers/sheets/forms/BaseProviderForm.tsx`, `src/types/visualConfig.ts`, `src/i18n/locales/**`; tests: `tests/visualConfigRoutingStrategy.test.ts`, `tests/authFileCard.test.ts`.
+The upstream Routing board reads GSR and its aliases without coercing them to round-robin. It keeps the strategy during unrelated settings writes, exposes GSR in its policy controls, explains its weight behavior, and leaves traffic shares unspecified because its selection is dynamic.
 
-**Recorded validation:** Focused routing strategy tests, TypeScript type-check, production
-build, and the canonical CPA management bundle build pass. Scheduling-weight
-copy validation passes focused auth-file, routing, and localization tests, lint,
-TypeScript, and the production build. An initial `bun run verify` passed 2,150
-tests; later full runs fail while importing the unchanged analytics SCSS module,
-which also reproduces at the pinned CPAMC baseline. Desktop and mobile CDP checks
-confirm the auth-file help wraps without horizontal overflow and retains its
-routing-settings link.
+**Implementation evidence:** `src/features/config/components/sections/SectionRouting.tsx`, `src/hooks/useVisualConfig.ts`, `src/features/config/searchIndex.ts`, `src/features/dashboard/DashboardPage.tsx`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`, `src/features/providers/sheets/forms/BaseProviderForm.tsx`, `src/types/visualConfig.ts`, `src/types/routing.ts`, `src/services/api/routing.ts`, `src/features/routing/{logic.ts,components/WeightDialog.tsx}`, `src/i18n/locales/**`; tests: `tests/visualConfigRoutingStrategy.test.ts`, `tests/authFileCard.test.ts`, `tests/routingBoard.test.ts`.
 
-**Last updated:** 2026-10-28
+**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript compilation, and the single-file production build. Sixteen isolated Chrome CDP checks cover quota, OAuth, both routing screens, desktop/mobile widths, and light/dark themes without overflow or runtime exceptions. The pre-merge baseline passes 2,320 tests. Turkish strings are machine-translated pending native review; live integration remains pending against the merged CPA.
+
+**Last updated:** 2026-10-31
 
 ### DL053 — Quota summary and credential-aware quota tooltips
 
-The Quota Management page keeps its existing title, refresh controls, provider tabs, search,
-sorting, credential list, and candy-striped unavailable allowance treatment while adding a compact
-provider summary row above the list. Summary percentages normalize each credential against the
-largest available plan tier, show aggregate capacity, select Claude's lower-remaining weekly pool
-with Fable as the tie-breaker, and use explicit longest-recovery windows for other providers
-(OpenCode Go uses monthly). Claude's secondary weekly pool can be expanded in place.
+Quota Management keeps provider tabs, search, sorting, refresh controls, a capacity-weighted summary strip, and full-width credential rows. The summary wraps into even grid rows, counts only credentials with a successful reading, and normalizes each credential against the largest plan present. Claude uses its lower-remaining weekly pool with Fable as the tie-breaker and exposes the second weekly pool separately; other providers use explicit longest-recovery windows. Unknown paid-health allowances stay unknown. When every credential is blocked or errored, the summary shows the soonest unblock countdown, respecting gated versus independent windows.
 
-Summary and detailed quota rows use the shared TooltipProvider title path. Hover details include the
-credential, exact remaining percentage, reset instant and countdown, and plan/tier; disabled rows
-retain their remaining amount and use the existing candy-wrap fill in both views. All five locales
-include the new summary copy.
+Capacity uses reported allowances for Kiro and Kimi, otherwise `PLAN_VALUE` in `quotaSummary.ts`. Codex is measured in Plus units: Business and Team 1, Pro 100 5, Pro 200 10, Pro 500 25. Claude uses Pro 1, Max/Max 5x 5, Max 20x 20, Team 5, Free 0. Profile `rate_limit_tier` distinguishes `plan_max5`, displayed as Max, and `plan_max20`, displayed as Pro Max, with active Team taking precedence. Z.AI uses 5-hour credit allowances of Lite 2,000, Pro 12,000 and Max 28,000. Providers without known ratios count credentials equally and show a shared plan name only when all agree.
 
-**Implementation evidence:** `src/features/quota/{QuotaPage.tsx,quotaSummary.ts}`, `src/features/quota/components/{QuotaSummary.tsx,QuotaCard.tsx,QuotaMeter.tsx,QuotaResetLabel.tsx}`, `src/utils/quota/resetInstants.ts`, `src/components/ui/Tooltip.tsx`; tests: `tests/quotaSummary.test.ts`, `tests/quotaRowTitle.test.ts`, `tests/quotaResetInstants.test.ts`, `tests/tooltipProvider.test.ts`, `tests/quotaPageLogic.test.ts`.
+Credential bodies split into a content-sized `planMeta*` column and a quota area with meters at a 200px minimum and a 960px cap. Metadata moves above the meters when needed; mobile actions share the identity line. The summary, list and controls share the glass surface, with rounded outer corners. Provider tabs without credentials are hidden unless selected, and loading skeletons match credential rows. These fork layouts and the gold/liquid-platinum badge artwork remain in place alongside upstream quota data. Codex badge classification follows upstream: only Pro 500 spellings `promax`, `pro-max` and `pro_max` are elite; Pro 200 and Pro 100 are premium gold. `codexPlanLabelKey` remains shared by rows and summary and still recognizes the legacy spaced `pro max` label.
 
-**Recorded validation:** Quota summary and tooltip tests pass, the full CPAMC type-check and lint pass, and the
-single-file production build passes. The full suite has one unrelated pre-existing legacy-backend
-probe failure on this branch.
+Summary segments and quota meters share reserve stripes and credential-aware tooltips with exact remaining quota, plan, absolute reset, countdown and localized weekday. Reset labels group the instant and countdown and use weekday/time within six local calendar days. Codex manual resets collapse into a focusable stack with one tooltip line per credit rather than a duplicate count. Tooltip conversion survives keyed row reordering and focus rings remain visible outside transitions. Claude stale snapshots, extra usage and reset-grant details stay in the meta column; dollar balances, xAI breakdowns and plugin groups remain quota-area rows. Upstream host plan/content slots are supported using the fork metadata names. Known `iguana_necktie` balances display the localized Cloud session credits label. Routine Claude reads respect the shared cache/cooldown, while spending a reset performs fresh preflights and honors upstream backoff.
 
-The summary follow-up replaces the initial card grid with the reference-style horizontal provider
-strip. Provider tabs remain above the strip, each credential is represented by a capacity-weighted
-segment, Claude's totals use plan-weighted remaining units, and unknown paid-health limits remain
-unknown. The strip keeps keyboard-accessible tooltip targets and the expandable secondary Claude
-weekly meter.
+**Implementation evidence:** `src/features/quota/{QuotaPage.tsx,quotaSummary.ts,types.ts}`, `src/features/quota/components/{QuotaSummary.tsx,QuotaCard.tsx,QuotaMeter.tsx,QuotaResetLabel.tsx}`, `src/features/quota/providers/{claude/ClaudeQuotaBody.tsx,kimi/KimiQuotaBody.tsx}`, `src/utils/quota/{planTier.ts,resetInstants.ts}`, `src/components/ui/Tooltip.tsx`; tests: `tests/{quotaSummary,quotaRowTitle,quotaResetInstants,tooltipProvider,quotaPageLogic,quotaPlanTier,quotaBodyRendering,claudeOAuthUsage,kimiPlan}.test.ts`.
 
-The follow-up also replaces the quota credential tile grid with full-width list rows. Each row
-keeps provider quota columns and actions aligned while the search and sort controls use the same
-glass card surface as the quota rows and summary strip.
+**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript compilation, and the single-file production build. Sixteen isolated Chrome CDP checks cover quota, OAuth, both routing screens, desktop/mobile widths, and light/dark themes without overflow or runtime exceptions. The pre-merge baseline passes 2,320 tests. Turkish strings are machine-translated pending native review; live integration remains pending against the merged CPA.
 
-Row polish: sorting is wired to the list, quota rows fill the available width with actions in their
-own column, plan chips form a content-sized flex group, reset instant and countdown wrap as one
-group, and multiple Codex manual-reset credits collapse into one focusable stacked row whose tooltip
-lists every credit. Row tooltips include the reset weekday in the active app language. The summary
-strip wraps into even grid rows instead of scrolling, and on mobile the actions share the identity
-line. The shared TooltipProvider keeps converted tooltips when React reorders keyed rows; a
-happy-dom regression test covers that path.
-
-Layout pass: the shared provider meta strip is renamed from `codexPlan*` to `planMeta*` because
-every provider uses it. Each row body splits into a content-sized meta column (label/value pairs
-stacked one per line, plus the Codex manual-reset stack) and a quota area whose meters fill the
-remaining width at a 200px minimum; the meta drops above the meters only when the provider's meter
-line cannot fit beside it. The reset-credit stack paints its offset cards behind the top card, and
-its tooltip lists one line per credit under a credential/plan header. Mobile action buttons stay
-inline. `.page-transition` clips overflow only while animating, so focus rings at page edges are no
-longer cut off. A viewport sweep from 1920 to 320px in 20-40px steps checks row width, label
-splits, meta placement, fill, overlap and overflow.
-
-Reset instants share one format: resets within six local calendar days read as weekday and time
-(`Mon, 10:32`), later or past instants keep `MM/DD, HH:mm`. The summary reset line reuses the shared
-reset label, so it reads absolute time first and countdown second like the rows.
-
-List polish: the first and last quota rows take the summary grid's 14px
-corners, so the hover wash reads as one rounded list. The quota area is capped at 960px; once a row
-is wide enough that the capped body cannot reach under the actions, the actions centre vertically
-on the whole row instead of the identity line. Codex rows drop the "Manual resets" count because the
-reset-credit stack already shows it. `QuotaMeter` takes an optional `label` and carries the meter
-role itself, so Kiro, Meta, and Devin no longer wrap the bar in a div that collapsed it to zero
-width. Provider tabs without credentials are hidden, except a persisted selection.
-The list-loading skeleton draws one placeholder per credential row with the row's own layout:
-icon and name, two action pills, a meta column, and three label, bar, and reset meters that wrap at
-the same 200px basis as real meters on narrow screens.
-Validation: CDP checks at 1900, 1300, and 390px against a mock backend with Kiro credit data, plus
-the full test suite, lint, type-check, and build. The test suite still has the legacy-backend probe
-failure, and also fails `tooltipProvider` when `happy-dom` is missing from local dependencies.
-
-Summary and windows follow-up: the Quota windows chart now draws Z.AI lanes from their reported
-window lengths and OpenCode Go lanes from the fixed rolling (5h), weekly, and monthly windows. Both
-get their own lane colours, and both have official LobeHub marks (light and dark) in the shared
-provider icon table. Every provider's summary now weights credentials by plan size the way Claude
-does: 100% is the largest plan present, which the tier names (`of 110% Pro 200` for Pro 200 + Plus),
-and bar widths follow each plan's share. Sizes come from the window's own allowance where the
-provider reports one (Kiro credits, Kimi requests), else from `PLAN_VALUE` in `quotaSummary.ts`:
-Codex in multiples of Plus (Business 1×, Pro 100 5×, Pro 200 10×, Pro 500 `pro max` 25×; OpenAI
-publishes no Pro multipliers) and Z.AI by 5-hour credits (Lite 2,000, Pro 12,000, Max 28,000 per
-docs.z.ai). Providers without published sizes count each credential equally and name a plan only
-when they all share it. Only credentials with a reading count, so errored ones no longer inflate
-the capacity. OpenCode Go's basis reads `Go`, and Codex Pro 500 gets its own name and the elite
-badge. The summary grid wears the card surface itself, with outline dividers per card, so a partial
-last row no longer shows the divider colour in its empty cells. Codex plan names come from one
-shared helper. When no credential of a
-provider can be used (each is errored, or spent with no unblocked window left), the summary card
-shows `Unblock in <countdown>` right-aligned on the reset line. Its tooltip holds the absolute time
-and countdown. Gated windows wait for their last reset; independent buckets free the credential at
-the first one.
-
-Upstream quota data added in the 2026-10-19 sync renders inside this shell rather than upstream's
-linear rows: Claude stale-snapshot notice, extra-usage state and amounts, and reset-grant expiry
-details join the meta column; Claude dollar balances, xAI product-usage breakdown, and plugin quota
-groups render as quota-area rows with credential tooltips and soonest-reset ranking. Meta windows use
-hour labels when the duration is a whole number of hours.
-
-Claude plan and credit-label follow-up: personal Max subscriptions use the
-profile's `rate_limit_tier` to distinguish Max 5x, displayed as Max, from Max 20x,
-displayed as Pro Max. Cards and summary use the same localized plan labels. Usage
-capacity is weighted by the 5x and 20x allowances rather than subscription price;
-one account of each tier totals 125% of Pro Max. Known dollar-credit pool
-`iguana_necktie` uses the existing Cloud session credits translation in the row
-and tooltip, while its raw key remains unchanged in normalized quota data.
-
-76 focused tests cover reported plan tiers, Team precedence,
-card/summary consistency, allowance-weighted remaining quota, and all six credit
-label translations. Lint, TypeScript, production build, and canonical Docker
-bundle build pass. A browser using production account data confirms Max and
-Pro Max card labels, 125% Pro Max total capacity, 25:100 segment weights, and
-localized credit row/tooltip text at desktop and mobile widths. The full suite
-records 2,113 passes and the existing analytics SCSS import failure.
-
-Claude refresh protection: routine reset-grant card reads allow CPA's shared quota
-cache and credential cooldown. Grant-spending preflights explicitly request fresh
-grant and organization data while respecting upstream backoff. The stale-snapshot
-notice in all six locales now states only the last successful check time; the
-separate error strip explains refresh failures, and the loading label describes
-an in-progress refresh. This avoids presenting a retained snapshot as a new error
-on navigation or while retrying.
-
-Focused Claude quota and reset-grant tests, lint, TypeScript, and the
-production build pass. The full frontend suite records 2,102 passes and an
-unrelated SCSS import failure in `tests/analyticsAnalysis.test.ts`; the same error
-reproduces on the unchanged parent commit. Browser checks with the updated CPA
-backend and live Claude quota verify shared usage/profile/grant responses;
-simulated error, loading, and recovery checks cover desktop and mobile.
-
-**Last updated:** 2026-10-27
+**Last updated:** 2026-10-31
 
 ### DL054 — OAuth rule editors skip API-key credentials
 
@@ -1337,7 +1221,7 @@ fork's analytics workspace:
 
 - `src/components/ui/Button.tsx` — optional `icon` prop rendered before the label (hidden while loading).
 - `src/components/ui/Card.tsx` — optional `ref` forwarded to the root `div` (React 19 ref-as-prop) so scroll reveals need no wrapper.
-- `src/components/ui/Select.tsx` / `Select.module.scss` — optional `icon` on `SelectOption`, rendered in the trigger and option rows.
+- `src/components/ui/Select.tsx` / `Select.module.scss` — optional `icon` on `SelectOption`, rendered in the trigger and option rows; searchable single and multiple selection, option descriptions and minimum dropdown widths remain. Upstream portal classes and right-edge alignment compose with the fork viewport bounds and multi-select sizing.
 - `src/components/ui/Table/Table.module.scss` — a 12px top margin on the table frame. The sticky trailing action column is analytics-owned (`.stickyAction` in `src/features/analytics/Analytics.module.scss`).
 - `src/styles/components.scss` — `.btn-icon` sizing for the Button icon slot.
 - `src/components/layout/MainLayout.tsx` — sidebar selection scoped to the analytics parent page.
@@ -1347,9 +1231,9 @@ No upstream behaviour changes; every addition is opt-in through a new prop or cl
 
 **Implementation evidence:** `src/components/ui/{Button.tsx,Card.tsx,Select.tsx,Select.module.scss}`, `src/styles/components.scss`, `src/components/layout/MainLayout.tsx`, `src/features/providers/components/{ProviderCategoryList.tsx,ProviderLogo.tsx}`.
 
-**Recorded validation:** None recorded.
+**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript compilation, and the single-file production build. Sixteen isolated Chrome CDP checks cover quota, OAuth, both routing screens, desktop/mobile widths, and light/dark themes without overflow or runtime exceptions. The pre-merge baseline passes 2,320 tests. Turkish strings are machine-translated pending native review; live integration remains pending against the merged CPA.
 
-**Last updated:** 2026-10-30
+**Last updated:** 2026-10-31
 
 ### DL058 — Remote development access
 
@@ -1399,18 +1283,15 @@ horizontal overflow.
 
 **Last updated:** 2026-10-19
 
-### DL061 — Korean coverage for fork-only strings
+### DL061 — Complete fork translations across seven locales
 
-Upstream ships a Korean locale that covers only upstream keys. The fork adds Korean text for every
-fork-only key (analytics, structured API keys, quota reserves and summaries, Kiro, Z.AI, OpenCode Go,
-and related config), so `tests/koreanLocale.test.ts` holds for the whole English key set with matching
-interpolation tokens instead of falling back to Simplified Chinese.
+English, Simplified Chinese, Traditional Chinese, Russian, Vietnamese, Korean and Turkish share one union of upstream and fork keys. Fork-only analytics, structured API keys, quota reserves/summaries/history, Kiro, Z.AI, OpenCode Go, storage and routing text exists in every locale rather than falling back to Simplified Chinese. Locale tests enumerate all seven languages and require equal key sets and matching interpolation tokens. Turkish fork strings are machine-translated and still need native-language review.
 
-**Implementation evidence:** `src/i18n/locales/{ko.json,en.json}`; tests: `tests/koreanLocale.test.ts`.
+**Implementation evidence:** `src/i18n/{index.ts,locales/*.json}`, `src/utils/{constants.ts,language.ts}`; tests: `tests/{koreanLocale,turkishLocale,quotaPlanTier,analyticsEventRouting,analyticsOverview,oauthPage}.test.ts`.
 
-**Recorded validation:** On 2026-10-19: the Korean locale test passes; key sets and `{{…}}` tokens match English.
+**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript compilation, and the single-file production build. Sixteen isolated Chrome CDP checks cover quota, OAuth, both routing screens, desktop/mobile widths, and light/dark themes without overflow or runtime exceptions. The pre-merge baseline passes 2,320 tests. Turkish strings are machine-translated pending native review; live integration remains pending against the merged CPA.
 
-**Last updated:** 2026-10-19
+**Last updated:** 2026-10-31
 
 ### DL062 — Analytics filter restoration
 
@@ -1591,11 +1472,13 @@ The event detail sheet shows the recorded pricing as a component, tokens, rate, 
 
 On a provider tab, a quota history chart replaces the summary card. Its header carries only the title and the "N% of M% tier" figure, both at the Quota windows heading size. CPAMC posts per-credential window samples to CPA after each refresh, once per fetched reading, so revisiting the page does not re-post cached readings as new ones. It rebuilds the hourly total with the same aggregation as the live summary. A credential's last sample carries forward until an unobserved reset, and a credential with no reading for 24 hours (disabled, removed, or failing to fetch) leaves the total instead of blanking it. Samples without a plan, such as CPA's hourly Claude samples, reuse the credential's last recorded plan. The chart spans the Quota windows weekly range with a current-time marker, and its plot stretches to the heading's edges. It scales to the visible capacity on round ticks, with a capacity line that stays out of the tooltip. The remaining line is lightly smoothed, and the remaining and projected lines carry translucent fills in the provider's Quota windows color. A legend footer names the charted window and explains the total and projection. The dashed projection starts from the credentials behind the live summary and falls back to stored samples only without live readings, so a disabled or failing credential does not suppress it. Each credential drains at its net drop per reset cycle over the last week, so fluctuating or stale readings do not inflate the rate, and refills at the live reset times. The All tab is unchanged, and the chart is hidden when analytics is unavailable.
 
-**Implementation evidence:** `src/features/quota/**`, `src/services/api/quotaHistory.ts`, `src/i18n/locales/**`.
+The shared Quota windows timeline adopts upstream calendar-boundary cells with elapsed-time widths across DST changes. Used fills are measured against the full window before clipping; projected windows do not reuse stale usage. Claude anchors on the reported weekly limit. Fork Z.AI/OpenCode Go lanes, localized window labels and percentage formatting remain alongside these fixes.
 
-**Recorded validation:** `bun run verify` passes 2,203 tests, lint, TypeScript and production build. Tests cover aggregation, gaps, first-visit rendering, capacity changes, throttled-sample resets, and projection cases. CDP checks with mocked quota responses cover desktop and mobile in both themes. Later fixes add regression tests for disabled and failing credentials, silent credentials, stale and fluctuating readings, and missing plans. They were checked through CDP against a live CPA's real Codex and Claude history, with the panel's history writes intercepted, including a page revisit that posts nothing new.
+**Implementation evidence:** `src/features/quota/**`, `src/services/api/quotaHistory.ts`, `src/i18n/locales/**`; tests: `tests/{quotaHistory,quotaTimeline,quotaTimelineDst}.test.ts`.
 
-**Last updated:** 2026-10-30
+**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript compilation, and the single-file production build. Sixteen isolated Chrome CDP checks cover quota, OAuth, both routing screens, desktop/mobile widths, and light/dark themes without overflow or runtime exceptions. The pre-merge baseline passes 2,320 tests. Turkish strings are machine-translated pending native review; live integration remains pending against the merged CPA.
+
+**Last updated:** 2026-10-31
 
 ### DL072 — ClickHouse server mode in storage, settings, and analytics health
 
@@ -1613,28 +1496,43 @@ Analytics health shows the legacy analytics import and the legacy request-log im
 
 ### DL073 — Config Routing tab, rule-based routing dry run, and event routing decisions
 
-A new Config tab `routing` (03, labeled "Routing") sits between Network and Logging, renumbering the sections to 01–07. Routing strategy, session affinity, its TTL, subagent inheritance and force-model-prefix move there from Network, and the previously UI-less `routing.session-affinity-rebind-on` gains an `any`/`quota` select that passes unknown values through. The tab renders the precedence stack weakest-first: custom rules, routing strategy, session affinity, then the read-only routing gate (disabled, cooling down, quota, quota reserve, model not supported, model prefix, retry round, weight, pinned/policy). The section description explains the stack, a one-line legend under it bolds the three rules of thumb (only the base-rule note keeps a lock icon), all-caps CUSTOM RULES and BASE RULES labels head the two groups, base rules sit on a diagonal-stripe background mixed from the theme's text color and carry a locked BASE pill, and each gate chip carries the same icon the event matrix uses for that reason. Custom rules use a client-id draft list. A dashed placeholder adds a rule: it is the empty state, then sits under the last rule and appears only while every rule is valid, so drafts are finished one at a time. Each rule has an inline name, enable switch, duplicate/delete, keyboard move up/down plus native drag reordering, a WHEN → ROUTE TO summary, and a recursive ALL/ANY/NOT condition builder over model, api-key, client and header with the server's operator set and limits. The field and operator menus open at least 300px wide and describe every option (for example, "is" is an exact case-insensitive value, "matches" a `*`/`?` wildcard, "regex" a case-sensitive regular expression); `Select` gained an optional `dropdownMinWidth` for this, and its trigger text now fills the space after an option icon. Condition selects, inputs and the `in` token box share one 36px height. Model, API key, client and header carry an icon in the field menu, its trigger, the rule summary and the event condition line; one splitter places the icons in both panel-rendered and CPA-rendered condition text, skipping quoted values, list values and header names. `routing.rules` is written with an AST-preserving writer that reuses baseline nodes, so untouched rules stay byte-identical and edits, reorders and deletions only rewrite the affected nodes (the server rejects unknown rule fields, so none reach the editor from a valid config). Comments outside the rules list are kept; comments inside the list, on or between rule items, are lost when a save applies the JSON PATCH, exactly as with the existing payload rule lists. The null `routing` section is normalized on first write, rebases re-align editor ids, and saves guard the list with `assertConfigListsUnchanged(['routing','rules'])`. Client validation mirrors the server's structure rules (one operator, non-empty values, regex length, non-empty route-to, depth/node/target/rule limits counted on the serialized tree) plus a conservative RE2 check (inline flags and `(?P<name>` are rewritten before a JS parse; lookarounds and backreferences are rejected) that flags only patterns Go would reject, so the server's save error stays the final word, and blocks saving with an inline message per rule. Route targets are picked from `GET /routing/credentials`, show label, provider and a disabled badge, and unknown ids render as removable missing chips; Home mode shows a notice that custom rules are ignored. The side panel posts the current draft rules to `POST /routing/dry-run` (debounced, side-effect free) and renders the trace as the winner card plus one row per layer in stack order, including rule statuses, tier pool and pick (or "not predictable"), affinity state, and blocked candidates with reasons; a rejected draft shows the endpoint's message and path inline. All six locales carry the new copy.
+The Config tab `routing` (03, labeled "Routing") sits between Network and Logging, renumbering the sections to 01–07. Routing strategy, session affinity, its TTL, subagent inheritance and force-model-prefix move there from Network, and the previously UI-less `routing.session-affinity-rebind-on` gains an `any`/`quota` select that passes unknown values through. The tab renders the precedence stack weakest-first: custom rules, routing strategy, session affinity, then the read-only routing gate (disabled, cooling down, quota, quota reserve, model not supported, model prefix, retry round, weight, pinned/policy). The section description explains the stack, a one-line legend under it bolds the three rules of thumb (only the base-rule note keeps a lock icon), all-caps CUSTOM RULES and BASE RULES labels head the two groups, base rules sit on a diagonal-stripe background mixed from the theme's text color and carry a locked BASE pill, and each gate chip carries the same icon the event matrix uses for that reason. Custom rules use a client-id draft list. A dashed placeholder adds a rule: it is the empty state, then sits under the last rule and appears only while every rule is valid, so drafts are finished one at a time. Each rule has an inline name, enable switch, duplicate/delete, keyboard move up/down plus native drag reordering, a WHEN → ROUTE TO summary, and a recursive ALL/ANY/NOT condition builder over model, api-key, client and header with the server's operator set and limits. The field and operator menus open at least 300px wide and describe every option (for example, "is" is an exact case-insensitive value, "matches" a `*`/`?` wildcard, "regex" a case-sensitive regular expression); `Select` gained an optional `dropdownMinWidth` for this, and its trigger text now fills the space after an option icon. Condition selects, inputs and the `in` token box share one 36px height. Model, API key, client and header carry an icon in the field menu, its trigger, the rule summary and the event condition line; one splitter places the icons in both panel-rendered and CPA-rendered condition text, skipping quoted values, list values and header names. `routing.rules` is written with an AST-preserving writer that reuses baseline nodes, so untouched rules stay byte-identical and edits, reorders and deletions only rewrite the affected nodes (the server rejects unknown rule fields, so none reach the editor from a valid config). Comments outside the rules list are kept; comments inside the list, on or between rule items, are lost when a save applies the JSON PATCH, exactly as with the existing payload rule lists. The null `routing` section is normalized on first write, rebases re-align editor ids, and saves guard the list with `assertConfigListsUnchanged(['routing','rules'])`. Client validation mirrors the server's structure rules (one operator, non-empty values, regex length, non-empty route-to, depth/node/target/rule limits counted on the serialized tree) plus a conservative RE2 check (inline flags and `(?P<name>` are rewritten before a JS parse; lookarounds and backreferences are rejected) that flags only patterns Go would reject, so the server's save error stays the final word, and blocks saving with an inline message per rule. Route targets are picked from `GET /routing/credentials`, show label, provider and a disabled badge, and unknown ids render as removable missing chips; Home mode shows a notice that custom rules are ignored. The side panel posts the current draft rules to `POST /routing/dry-run` (debounced, side-effect free) and renders the trace as the winner card plus one row per layer in stack order, including rule statuses, tier pool and pick (or "not predictable"), affinity state, and blocked candidates with reasons; a rejected draft shows the endpoint's message and path inline. All seven locales carry the new copy.
 
 Usage → Events → Event details gains a "Routing decision" section directly after "Request path", fed by the event-detail `routing_trace`. A verdict line shows the routed credential and how it was chosen (strategy, session binding, pin, plugin, paid credits, or Home) with the applied rule; the applied rule's rendered condition sits on its own muted line, with a fell-through marker when a matching rule could not be used. A compact dot matrix has one row per layer in stack order (custom rules, strategy, session affinity, routing gate) and one column per candidate, aligned with CSS subgrid; glyphs show wanted, overridden, bound, kept, broken, held, gate-passed and blocked states, with each blocked cell drawing its gate reason's icon in red (a piggy bank for a quota-reserve hold, a snowflake for cooldown, and so on), the deciding row carries a crown chip, and the routed column has an accent band. Every cell, row and the verdict explain themselves in tooltips on hover and keyboard focus. More than 16 candidates collapse untargeted blocked credentials into one "+N blocked" cell. Traces are normalized at read time (null arrays become empty, malformed traces hide the section), and events without a trace omit the section.
 
+The Config rule editor and its `/routing/credentials` and `/routing/dry-run` adapters coexist with upstream's separate Routing board, which reads and patches `/config` for priorities, weights and policy. Their API and type modules contain both contracts. The board does not replace the Config rules editor or the analytics decision matrix.
+
 **Implementation evidence:** `src/features/config/**`, `src/features/analytics/views/events/**`, `src/components/ui/{icons,Select,RoutingConditionText}.tsx`, `src/components/ui/routingIcons.ts`, `src/hooks/useVisualConfig.ts`, `src/types/{visualConfig,routing}.ts`, `src/services/api/routing.ts`, `src/i18n/locales/**`, `tests/{routingSection,visualConfigRoutingRules,configFieldParity,configUiState,configSettingLayout,configOAuthBehaviorUi,configServerUi,analyticsEventRouting}.test.ts`.
 
-**Recorded validation:** `bun run verify` passes 2,286 tests, lint, TypeScript and the production build. Three QA rounds against a live CPA (two Z.ai credentials, real upstream traffic, hot-reloaded rules) and an isolated Chrome CDP context covered the Routing tab (nested ALL/ANY/NOT rules built, reordered and saved; untouched rules byte-identical; comma, padded and empty `in` values kept; the Trace a request panel against the live dry run, including predicted, unpredictable and rejected drafts) and the event Routing decision section (rule applied, overridden, fell through, session binding kept/held/agreeing, absent targets, events without a trace) at 1440px and 390px in both themes, with matrix columns aligned to 0px and no horizontal overflow. A follow-up restored the approved mockup's Routing tab styling, added gate icons and option descriptions, and verified them with `bun run verify` (2,313 tests) and a live CPA with a Z.ai credential held by a 99% weekly quota reserve, whose event showed the red reserve icon and "Held back by its quota reserve. Resets in 6.9 days." at 1440px and 390px in both themes. The dry-run panel names the reserve too, and its reset times include the date when they fall after today. Option descriptions were checked for fit in English, Russian, Vietnamese, Korean and Chinese menus. A second follow-up added the add-rule placeholder, field icons, the locked BASE pill, matched condition control heights and the inline RE2 check; before it, an invalid regex such as `(glm` reached the save dialog and failed with a 422. Against the live CPA it now shows the inline error, a rule built and saved in the editor with `(?i)^glm-` was accepted by the server, and its live Z.ai events show the model icon on the condition line. Eighteen patterns, including RE2-only syntax, got the same verdict from the panel check and Go `regexp.Compile`.
+**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript compilation, and the single-file production build. Sixteen isolated Chrome CDP checks cover quota, OAuth, both routing screens, desktop/mobile widths, and light/dark themes without overflow or runtime exceptions. The pre-merge baseline passes 2,320 tests. Turkish strings are machine-translated pending native review; live integration remains pending against the merged CPA.
 
-**Last updated:** 2026-10-29
+**Last updated:** 2026-10-31
 
 ## Sync Checklist
 
 Project-specific checks every upstream sync runs, in addition to the full test suite, lint, typecheck, builds, and a smoke test of upstream and fork features.
 
 - Install with the exact Bun version from `packageManager` in `package.json` and `--frozen-lockfile`, then run `bun run verify`.
-- Keep the six locale files on one key set: take the union of both sides' keys and translate fork-only strings in every locale.
+- Keep the seven locale files on one key set: take the union of both sides' keys and translate fork-only strings in every locale.
 - Check the pages that fork entries touch against a CPA built from the matching CPA fork commit, in a browser at desktop (1440px) and mobile (390px) widths, in light and dark themes.
 - Push `main` before advancing CPA's `web/management-center` gitlink, then rebuild CPA's panel bundle.
 
 ## Merge History
 
 This is an append-only decision record, newest first, with one entry per upstream sync. It explains past integrations but does not by itself establish a current divergence; use the Divergence Log for that. Sync with upstream only when the user explicitly asks. Do not edit past entries.
+
+### 2026-10-31 - Merge upstream `main` at `4e4aeff`
+
+Target: `upstream/main` at `4e4aeff23f9f82b3ccdbe48b2e774d5dc918234e`.
+Parents: fork `653310f95f2805ec74aa2711b7e8edca6634a330` and upstream `4e4aeff23f9f82b3ccdbe48b2e774d5dc918234e`. Merged 41 upstream commits without rebasing or squashing.
+
+User decision: Codex badges follow upstream: elite liquid platinum is Pro 500 only; Pro 200 and Pro 100 use premium gold. This merge preserves the fork's quota-summary capacity values and Claude plan labels for a separate follow-up.
+
+Other decisions: retain the fork quota list, summary, reserve stripes, tooltips, history and badge artwork; combine Kiro setup with upstream SIWC, login transitions and storage changes. Keep the Config rule editor and dry run alongside upstream's Routing board. Preserve analytics palettes and merge the locale key union, including Turkish. Use upstream dependency versions plus required fork dependencies and regenerate `bun.lock` with Bun 1.4.3.
+
+Integration repairs: preserve GSR and credential labels in the Routing board, avoid fabricated fixed GSR traffic shares, combine routing APIs/types, retain query/hash redirects and client connection/cache hooks, support Kimi plan display and Claude host slots in the fork layout, and adopt timeline DST/clipped-fill fixes. Locale-enumerating tests now include all seven languages.
+
+Validation: Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript and production build. Baseline: 2,320 tests pass with no failures. Final focused Claude checks pass 58 tests; routing/locale/plan checks pass 56 tests. Sixteen isolated Chrome CDP checks exercise quota, OAuth, upstream Routing and Config Routing at 1440px/390px in light/dark themes, including the dry-run endpoint, with no overflow or runtime exceptions. Turkish strings are machine-translated pending native review. Live CPA integration remains pending and will be checked against the merged CPA.
 
 ### 2026-10-19 - Merge upstream `main` at `fe29633` (`v1.26.5`)
 

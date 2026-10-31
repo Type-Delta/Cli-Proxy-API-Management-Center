@@ -43,7 +43,7 @@ addressed relative to the same v8 base; the public analytics viewer keeps `/v0/a
 - `src/styles/`: global styles and theme tokens. Component-specific SCSS Modules stay beside their component.
 - `src/assets/`: bundled assets, including provider icons in `icons/`.
 - `src/router/`: application routes.
-- `src/i18n/locales/`: English, Simplified Chinese, Traditional Chinese, Russian, Vietnamese, and Korean locale files, registered in `src/i18n/index.ts`.
+- `src/i18n/locales/`: English, Simplified Chinese, Traditional Chinese, Russian, Vietnamese, Korean, and Turkish locale files, registered in `src/i18n/index.ts`.
 - `tests/`: Bun tests.
 - `dist/index.html`: the single-file production artifact.
 
@@ -52,7 +52,7 @@ CPAMC must not inspect CPA's SQLite files or infer backend configuration structs
 
 ## Commands
 
-Use the Bun version declared by `packageManager` in `package.json`, currently Bun 1.3.14. CI uses
+Use the Bun version declared by `packageManager` in `package.json`, currently `bun@1.4.3`. CI uses
 Node.js 24. Keep dependency changes consistent with `bun.lock`; do not introduce another package
 manager's lockfile.
 
@@ -106,7 +106,7 @@ falling back to `dev`.
 - Keep API modules grouped by domain. Place SCSS Modules beside the component or page that owns them.
 - Reuse shared components and existing theme tokens before adding new primitives or hard-coded colors. Vite injects `src/styles/variables.scss` into SCSS modules.
 - For motion, reuse the timing tokens in `src/styles/themes.scss` and the helpers in `src/hooks/motion.ts` instead of ad hoc durations and easings.
-- Keep user-facing text in i18n and update all six locales, including accessible labels, when adding translation keys.
+- Keep user-facing text in i18n and update all seven locales, including accessible labels, when adding translation keys.
 - Preserve keyboard interaction, accessible names, focus behavior, and reduced-motion handling when modifying interactive UI.
 - Preserve unknown backend fields when reading and writing configuration.
 - Do not put raw API keys, management keys, viewer credentials, or full key IDs in URLs, logs, browser storage, error reports, or console output. Keep raw API keys concealed until an administrator explicitly reveals or copies one.

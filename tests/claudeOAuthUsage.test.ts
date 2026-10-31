@@ -429,7 +429,7 @@ describe('Claude quota usage reads', () => {
 });
 
 describe('Claude usage snapshot rendering and retention', () => {
-  test.each(['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko'])(
+  test.each(['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr'])(
     'localizes cloud session credits in %s without leaking the upstream key',
     (language) => {
       const localized = translations.cloneInstance({ lng: language });
@@ -494,6 +494,55 @@ describe('Claude usage snapshot rendering and retention', () => {
     } finally {
       now.mockRestore();
     }
+  });
+
+  test('keeps extra usage in meta and localized dollar balances in the quota area', () => {
+    const markup = render({ ...quota, planType: 'plan_max' });
+    expect(markup).toContain('<span class="planMetaLabel">Extra Usage</span>');
+    expect(markup).toContain('<span class="planMetaValue">Enabled</span>');
+    expect(markup).toContain('25% used');
+    expect(markup).toContain(
+      '<span class="quotaModel" title="Cloud session credits">Cloud session credits</span><div class="quotaMeta"><span class="quotaPercent">$94.96 remaining</span>'
+    );
+    expect(markup).not.toContain('iguana_necktie');
+    expect(markup).toContain('quotaResetLabel');
+    expect(markup).toContain('<span class="planMetaItem"><span class="planMetaLabel">Plan</span>');
+  });
+
+  test('host chips join the plan row and host content follows it', () => {
+    const markup = renderToStaticMarkup(
+      createElement(
+        I18nextProvider,
+        { i18n: translations },
+        createElement(ClaudeQuotaBody, {
+          quota: { ...quota, planType: 'plan_max' },
+          classes,
+          planItems: createElement('span', { 'data-slot': 'chip' }),
+          afterPlan: createElement('div', { 'data-slot': 'after' }),
+        })
+      )
+    );
+    const plan = markup.indexOf('class="planMeta"');
+    const chip = markup.indexOf('data-slot="chip"');
+    const after = markup.indexOf('data-slot="after"');
+    const extra = markup.indexOf('Extra Usage');
+    expect(plan).toBeGreaterThanOrEqual(0);
+    expect(chip).toBeGreaterThan(plan);
+    expect(after).toBeGreaterThan(chip);
+    expect(extra).toBeGreaterThan(after);
+    // Without a plan type the host chips still get a plan row.
+    const chipOnly = renderToStaticMarkup(
+      createElement(
+        I18nextProvider,
+        { i18n: translations },
+        createElement(ClaudeQuotaBody, {
+          quota,
+          classes,
+          planItems: createElement('span', { 'data-slot': 'chip' }),
+        })
+      )
+    );
+    expect(chipOnly).toContain('<div class="planMeta"><span data-slot="chip"></span></div>');
   });
 
   test('renders disabled extra usage, reasons, and zero amounts', () => {

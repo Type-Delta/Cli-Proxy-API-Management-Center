@@ -260,7 +260,7 @@ describe('cooldown section rendering', () => {
     const keys = Object.keys(reference).filter(
       (key) => key.startsWith('cooldown_') || key.startsWith('card_')
     );
-    for (const lng of ['en', 'zh-CN', 'zh-TW', 'ru']) {
+    for (const lng of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr']) {
       const local = i18n.getResource(lng, 'translation', 'auth_files') as Record<string, string>;
       for (const key of keys) {
         // Inspect the locale itself so Chinese fallback cannot hide a missing translation.

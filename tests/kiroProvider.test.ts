@@ -30,7 +30,7 @@ import { classifyModels } from '@/utils/models';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses } from '@/features/quota/types';
 import type { KiroQuotaState } from '@/types';
 
-const LOCALES = ['en', 'zh-CN', 'zh-TW', 'ru', 'vi'] as const;
+const LOCALES = ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr'] as const;
 const KIRO_QUOTA_KEYS = [
   'title',
   'empty_title',

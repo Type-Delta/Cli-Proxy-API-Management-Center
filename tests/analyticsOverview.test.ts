@@ -344,7 +344,7 @@ describe('analytics overview model', () => {
       expect(comparison.tooltipDefault).toContain(year);
       expect(comparison.tooltipDefault).toContain(price);
 
-      for (const lng of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko']) {
+      for (const lng of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr']) {
         expect(i18n.exists(comparison.phraseKey, { lng, fallbackLng: false })).toBe(true);
         expect(i18n.exists(comparison.tooltipKey, { lng, fallbackLng: false })).toBe(true);
         expect(i18n.t(comparison.phraseKey, { lng, value: figure })).toContain(name);
@@ -421,7 +421,7 @@ describe('analytics overview model', () => {
       expect(comparison.formula).toBe(formula);
       expect(comparison.figure).toBe(figure);
 
-      for (const lng of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko']) {
+      for (const lng of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr']) {
         expect(i18n.exists(comparison.phraseKey, { lng, fallbackLng: false })).toBe(true);
         expect(i18n.exists(comparison.tooltipKey, { lng, fallbackLng: false })).toBe(true);
         expect(i18n.t(comparison.tooltipKey, { lng })).toContain(days);

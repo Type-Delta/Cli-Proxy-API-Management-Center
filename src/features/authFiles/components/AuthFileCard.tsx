@@ -16,7 +16,7 @@ import {
 import { ProviderStatusBar } from '@/components/providers/ProviderStatusBar';
 import type { AuthFileItem } from '@/types';
 import { statusBarDataFromRecentRequests } from '@/utils/recentRequests';
-import { formatFileSize } from '@/utils/format';
+import { formatDateTimeValue, formatFileSize } from '@/utils/format';
 import {
   formatModified,
   getAuthFileStatusMessage,
@@ -35,6 +35,8 @@ import type { AuthFileStatusBarData } from '@/features/authFiles/hooks/useAuthFi
 import { AuthFileQuotaSection } from '@/features/authFiles/components/AuthFileQuotaSection';
 import { quotaReserveBadgeTitle } from '@/features/quota/quotaReserve';
 import { AuthFileCooldownSection } from './AuthFileCooldownSection';
+import { getSiwcBindingStatus, supportsSiwcBinding } from '@/features/oauth/siwcBinding';
+import { SiwcStatusBadge } from '@/features/oauth/components/SiwcStatusBadge';
 import styles from './AuthFileCard.module.scss';
 
 export type AuthFileCardProps = {
@@ -49,7 +51,7 @@ export type AuthFileCardProps = {
   cooldownResetting: Record<string, boolean>;
   quotaFilterType: AuthFileQuotaFilter;
   statusBarCache: Map<string, AuthFileStatusBarData>;
-  /** 首屏一次性级联入场的延迟；null/undefined 表示不做入场动画。 */
+  /** One-time entrance delay; null/undefined disables entrance motion. */
   entranceDelayMs?: number | null;
   onShowModels: (file: AuthFileItem) => void;
   onDownload: (name: string) => void;
@@ -112,8 +114,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
   const priorityValue = Number.isSafeInteger(file.priority) ? file.priority : undefined;
   const weightValue = Number.isSafeInteger(file.weight) ? file.weight : undefined;
   const noteValue = typeof file.note === 'string' ? file.note.trim() : '';
-  // 主行显示账号（email/项目 ID），文件名降为满卡宽的 mono 副行；
-  // 用户设置了标签时，标签（后端 display_name）领衔主行，文件名退居副行。
+  // A custom display label leads the account identity; the file name stays secondary.
   const baseIdentity = deriveAuthFileIdentity(file);
   const credentialLabel = typeof file.label === 'string' ? file.label.trim() : '';
   const identity = credentialLabel
@@ -124,8 +125,11 @@ export function AuthFileCard(props: AuthFileCardProps) {
         fullName: baseIdentity.fullName,
       }
     : baseIdentity;
+  const siwcExpires = file.siwcExpiresAt
+    ? formatDateTimeValue(file.siwcExpiresAt, i18n.language)
+    : '';
 
-  // 挂载时捕获一次入场延迟：父级随后传 null 也不会中断已开始的动画
+  // Capture the entrance delay once so subsequent updates do not interrupt it.
   const [mountEntranceDelayMs] = useState<number | null>(entranceDelayMs ?? null);
   const cardClasses = [
     styles.card,
@@ -265,6 +269,17 @@ export function AuthFileCard(props: AuthFileCardProps) {
           </>
         )}
       </div>
+
+      {supportsSiwcBinding(file) && (
+        <div className={styles.siwcRow}>
+          <SiwcStatusBadge status={getSiwcBindingStatus(file)} />
+          {siwcExpires && (
+            <span className={styles.siwcExpires} title={file.siwcExpiresAt}>
+              {t('siwc.expires', { date: siwcExpires })}
+            </span>
+          )}
+        </div>
+      )}
 
       {showQuotaLayout && quotaType && (
         <AuthFileQuotaSection file={file} quotaType={quotaType} disableControls={disableControls} />

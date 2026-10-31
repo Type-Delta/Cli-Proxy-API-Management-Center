@@ -129,6 +129,9 @@ export interface QuotaBodyProps<TState> {
    * first item of their meta column so every meta line stays in one stack.
    */
   leadingMeta?: ReactNode;
+  /** Host chips inside the plan row and content immediately after it. */
+  planItems?: ReactNode;
+  afterPlan?: ReactNode;
   /** Minimum remaining percent keyed by provider bar ID. */
   quotaReserves?: Record<string, number>;
   /** Reserve hits keyed by the same bar IDs. */

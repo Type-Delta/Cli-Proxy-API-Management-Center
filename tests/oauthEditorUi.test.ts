@@ -1,3 +1,4 @@
+import tr from '@/i18n/locales/tr.json';
 import { describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -101,7 +102,7 @@ describe('OAuth editor UI', () => {
   });
 
   test('all four locales include editor guidance and accessible row labels', () => {
-    for (const locale of [en, zhCN, zhTW, ru]) {
+    for (const locale of [en, zhCN, zhTW, ru, tr]) {
       expect(locale.oauth_excluded.editor_description.length).toBeGreaterThan(0);
       expect(locale.oauth_excluded.models_hint.length).toBeGreaterThan(0);
       expect(locale.oauth_model_alias.editor_description.length).toBeGreaterThan(0);

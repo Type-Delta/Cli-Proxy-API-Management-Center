@@ -1,3 +1,4 @@
+import tr from '@/i18n/locales/tr.json';
 import { describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -96,7 +97,7 @@ describe('error-rule editor UI', () => {
     expect(html).toContain('aria-label="Action"');
   });
   test('every locale contains complete row labels, errors, actions and no stale JSON guidance', () => {
-    for (const messages of [en, zhCN, zhTW, ru]) {
+    for (const messages of [en, zhCN, zhTW, ru, tr]) {
       const section = messages.providersPage.errorRules;
       expect(Object.keys(section).sort()).toEqual(Object.keys(en.providersPage.errorRules).sort());
       expect(Object.keys(section.actions).sort()).toEqual([

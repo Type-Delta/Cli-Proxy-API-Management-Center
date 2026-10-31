@@ -1,3 +1,4 @@
+import tr from '@/i18n/locales/tr.json';
 import { describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -110,7 +111,7 @@ describe('credential policy structured forms', () => {
   });
 
   test('all locales describe structured fields without asking users for JSON', () => {
-    for (const messages of [en, zhCN, zhTW, ru]) {
+    for (const messages of [en, zhCN, zhTW, ru, tr]) {
       for (const [key, value] of Object.entries(messages.auth_files)) {
         if (!key.startsWith('policy_')) continue;
         expect(value.trim().length).toBeGreaterThan(0);

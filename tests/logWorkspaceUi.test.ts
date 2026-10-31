@@ -88,7 +88,7 @@ describe('log workspace layout contract', () => {
   });
 
   test('all supported locales describe both filtering and display settings', () => {
-    for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru']) {
+    for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr']) {
       const messages = JSON.parse(readSource(`src/i18n/locales/${locale}.json`));
       expect(messages.logs.filter_panel_title).toBeTruthy();
       expect(messages.logs.show_raw_logs).toBeTruthy();
