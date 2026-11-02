@@ -79,14 +79,18 @@ describe('v8 visual config contract', () => {
         payloadDefaultRules: [{ ...rule, params: [{ ...rule.params[0], value: '1' }] }],
       },
     ]);
-    const latest = baseline.replace('future-rule: keep', 'future-rule: server-update');
+    const latest = baseline.replace(
+      'future-section:',
+      'concurrent-section: {enabled: true}\n    future-section:'
+    );
     const outputText = config.applyVisualChangesToYaml(latest);
     const output = parseYaml(outputText);
     expect(output.routing.retry['request-retry']).toBe(0);
     expect(output.oauth.providers.aistudio['ws-auth']).toBe(false);
     expect(output.requests.payload['future-section']).toEqual({ enabled: false });
+    expect(output.requests.payload['concurrent-section']).toEqual({ enabled: true });
     expect(output.requests.payload.default[0]).toMatchObject({
-      'future-rule': 'server-update',
+      'future-rule': 'keep',
       params: { temperature: 1 },
       models: [{ name: 'fixture-model', 'future-model': 'keep' }],
     });

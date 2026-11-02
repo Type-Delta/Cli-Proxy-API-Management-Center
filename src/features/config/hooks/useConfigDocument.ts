@@ -446,6 +446,7 @@ export function useConfigDocument({
   }, []);
 
   const handleReload = useCallback(() => {
+    if (saving) return;
     if (!isDirty) {
       void loadConfig();
       return;
@@ -461,7 +462,7 @@ export function useConfigDocument({
         await loadConfig();
       },
     });
-  }, [isDirty, loadConfig, showConfirmation, t]);
+  }, [isDirty, saving, loadConfig, showConfirmation, t]);
 
   /** Restore the last successfully loaded server YAML without another request. */
   const handleDiscard = useCallback(() => {

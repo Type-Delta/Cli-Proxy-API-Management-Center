@@ -487,7 +487,8 @@ export function getVisualConfigValidationErrors(
     ),
     clickhouseDsn: undefined,
     clickhouseDatabase:
-      values.clickhouseDsn.trim() || values.clickhouseDatabase !== DEFAULT_VISUAL_VALUES.clickhouseDatabase
+      values.clickhouseDsn.trim() ||
+      values.clickhouseDatabase !== DEFAULT_VISUAL_VALUES.clickhouseDatabase
         ? getClickHouseDatabaseError(values.clickhouseDatabase)
         : undefined,
     clickhouseTelemetryRetentionDays: getPositiveIntegerError(
@@ -2791,18 +2792,26 @@ export function useVisualConfig() {
         }
 
         const draftYaml = doc.toString({ indent: 2, lineWidth: 120, minContentWidth: 0 });
-        if (target === 'server' && rebasedPayload && hasPayloadDirtyFields(dirtyFields)) {
-          // The retained AST preserves local lineage, but must never silently replace a
-          // list another client changed after recovery (including unknown model fields).
+        if (target === 'server' && hasPayloadDirtyFields(dirtyFields)) {
+          // Guard every save against the loaded or recovered server baseline, including
+          // confirmation retries and concurrent changes to unknown model fields.
           const paths = PAYLOAD_DIRTY_FIELDS.flatMap((field, index) =>
             dirtyFields.has(field) ? [['requests', 'payload', PAYLOAD_SECTIONS[index]]] : []
           );
-          assertConfigListsUnchanged(rebasedPayload.serverYaml, draftYaml, currentYaml, paths);
+          assertConfigListsUnchanged(
+            rebasedPayload?.serverYaml ?? baselineYaml,
+            draftYaml,
+            currentYaml,
+            paths
+          );
         }
-        if (target === 'server' && rebasedPayload && dirtyFields.has('routingRules')) {
-          assertConfigListsUnchanged(rebasedPayload.serverYaml, draftYaml, currentYaml, [
-            ['routing', 'rules'],
-          ]);
+        if (target === 'server' && dirtyFields.has('routingRules')) {
+          assertConfigListsUnchanged(
+            rebasedPayload?.serverYaml ?? baselineYaml,
+            draftYaml,
+            currentYaml,
+            [['routing', 'rules']]
+          );
         }
         return draftYaml;
       } catch (error) {

@@ -123,6 +123,33 @@ describe('visual config rebase', () => {
     ['override-raw', 'payloadOverrideRawRules'],
     ['filter', 'payloadFilterRules'],
   ] as const) {
+    test(`${section}: initial saves reject concurrent list appends`, () => {
+      const params =
+        section === 'filter' ? ['secret'] : { temperature: section.endsWith('-raw') ? '1' : 1 };
+      const original = { ...rule('a', 1), params };
+      const saved = stringify({ requests: { payload: { [section]: [original] } } });
+      const latest = stringify({
+        requests: {
+          payload: { [section]: [original, { ...original, 'future-rule': 'concurrent' }] },
+        },
+      });
+      runSteps(
+        (v) => {
+          v.loadVisualValuesFromYaml(saved);
+        },
+        (v) => {
+          v.setVisualValues({ [field]: [] });
+        },
+        (v) => {
+          expect(() => v.applyVisualChangesToYaml(latest)).toThrow(ConfigDraftConflictError);
+          expect(() => v.applyVisualChangesToYaml(latest, 'draft')).not.toThrow();
+          const desired = v.applyVisualChangesToYaml(saved);
+          // A retry after an already-applied write may adopt its own desired list.
+          expect(() => v.applyVisualChangesToYaml(desired)).not.toThrow();
+        }
+      );
+    });
+
     test(`${section}: recovery does not replay old list indexes after a successful PATCH`, () => {
       const rules = [rule('a', 1), rule('b', 2), rule('c', 3)].map((entry) => ({
         ...entry,
