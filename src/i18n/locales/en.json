@@ -2953,8 +2953,6 @@
           "disable_image_generation_passthrough": "passthrough (preserve the client tool list)",
           "gpt_image_2_base_model": "GPT Image 2 Base Model",
           "gpt_image_2_base_model_hint": "Mainline model used when proxying gpt-image-2 image requests; backend uses its default when empty or invalid",
-          "routing_strategy": "Routing Strategy",
-          "routing_strategy_hint": "Select credential selection strategy",
           "strategy_round_robin": "Round Robin",
           "strategy_weighted_round_robin": "Weighted Round Robin",
           "strategy_fill_first": "Fill First",
@@ -2997,20 +2995,18 @@
         },
         "routing": {
           "title": "Routing",
-          "description": "Each request passes through the rules from top to bottom. When two rules disagree, the lower one wins.",
+          "description": "Lower layers override higher layers when they conflict.",
           "home_mode_notice": "Home mode is on. Custom rules are ignored and the local model is always used.",
-          "legend_order": "<b>Top → bottom:</b> evaluation order",
           "legend_lower_wins": "<b>Lower wins</b> on conflict",
-          "legend_locked": "<b>Base rules</b> cannot be moved",
+          "legend_locked": "<b>Fixed layers</b> cannot be moved",
           "stack_weaker": "weaker",
           "stack_stronger": "stronger",
           "rules_title": "Custom rules",
-          "rules_description": "Each request passes through the rules from top to bottom. When two rules disagree, the lower one wins.",
-          "base_layers": "Base rules",
+          "rules_description": "Custom rules narrow the pool to their route-to credentials across all priority tiers.",
           "credentials_unavailable": "Credential list unavailable. Route-to names may be missing.",
           "strategy_title": "Routing strategy",
-          "strategy_description": "Credentials that fail the routing gate are removed first; the strategy then picks one from the rest.",
-          "strategy_note": "Credential priority applies first, unless an existing session binding takes over.",
+          "strategy_description": "Chooses among otherwise equal credentials in the same priority tier, unless a rule or session binding overrides it. A usable higher tier always wins over a fallback tier.",
+          "strategy_note": "Rules and session bindings take precedence over priority and strategy.",
           "base_lock": "Base",
           "affinity_title": "Session affinity",
           "affinity_description": "Keeps a session on the credential it first used. While the bound credential is still routable, this overrides the custom rules above.",
@@ -3030,7 +3026,15 @@
           "gate_retry": "Retry round",
           "gate_weight": "Weight ≤ 0 (weighted RR only)",
           "gate_pinned": "Pinned / policy",
-          "strategy_pick_label": "Pick between remaining credentials"
+          "strategy_pick_label": "Pick between remaining credentials",
+          "priority_title": "Priority tiers",
+          "priority_description": "Higher numbers win. Only the highest tier with a usable credential serves. Custom rules can select credentials across all tiers.",
+          "priority_label": "Priority {{priority}}",
+          "preferred": "Preferred",
+          "fallback": "Fallback {{count}}",
+          "edit_tiers": "Edit tiers",
+          "credential_error": "Error",
+          "credential_usable": "Usable"
         }
       },
       "api_keys": {
@@ -4200,7 +4204,9 @@
     "duration_minutes": "{{count}}m",
     "duration_hours": "{{count}}h",
     "strategy_greedy_soonest_recovery": "Greedy Soonest Recovery (GSR)",
-    "strategy_greedy_soonest_recovery_desc": "Chooses by recovery time and plan tier, then configured weight; traffic shares are dynamic."
+    "strategy_greedy_soonest_recovery_desc": "Chooses by recovery time and plan tier, then configured weight; traffic shares are dynamic.",
+    "tab_credentials": "Priority tiers",
+    "tab_rules": "Rules"
   },
   "siwc": {
     "title": "Bind SIWC",

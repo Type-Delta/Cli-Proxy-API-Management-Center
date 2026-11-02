@@ -41,7 +41,9 @@ describe('added configuration field localization', () => {
   for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr']) {
     test(`${locale} includes searchable labels, help, and accessible ICE actions`, async () => {
       const messages: unknown = await Bun.file(`src/i18n/locales/${locale}.json`).json();
-      for (const fieldId of addedFieldIds) {
+      for (const fieldId of addedFieldIds.filter(
+        (id) => id !== 'routingSessionAffinitySubagents'
+      )) {
         const entry = CONFIG_FIELD_SEARCH_INDEX.find((item) => item.fieldId === fieldId);
         expect(entry).toBeDefined();
         expect(entry?.labelKey).toBe(`config_management.visual.additions.${fieldId}.label`);
@@ -49,6 +51,34 @@ describe('added configuration field localization', () => {
         expect(resolveKey(messages, entry!.labelKey)).toBeString();
         expect(resolveKey(messages, entry!.hintKey!)).toBeString();
       }
+      for (const suffix of ['label', 'hint']) {
+        expect(
+          resolveKey(
+            messages,
+            `config_management.visual.additions.routingSessionAffinitySubagents.${suffix}`
+          )
+        ).toBeString();
+      }
+      for (const key of [
+        'priority_title',
+        'priority_description',
+        'priority_label',
+        'preferred',
+        'fallback',
+        'edit_tiers',
+        'strategy_description',
+        'rules_description',
+      ]) {
+        expect(
+          resolveKey(messages, `config_management.visual.sections.routing.${key}`)
+        ).toBeString();
+      }
+      for (const tab of ['tab_credentials', 'tab_rules']) {
+        expect(resolveKey(messages, `routing.${tab}`)).toBeString();
+      }
+      expect(
+        resolveKey(messages, 'config_management.visual.sections.routing.legend_order')
+      ).toBeUndefined();
       for (const key of [
         'oauthTitle',
         'oauthHint',

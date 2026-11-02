@@ -122,7 +122,9 @@ export function RoutingTracePanel({
   );
   const pickLabel = trace && trace.pick >= 0 ? labelOf(trace.candidates[trace.pick]) : '';
   const outcome = trace ? routingTraceOutcome(trace) : null;
-  const unpredictedPool = (trace?.tier?.pool ?? []).map((index) => labelOf(trace?.candidates[index]));
+  const unpredictedPool = (trace?.tier?.pool ?? []).map((index) =>
+    labelOf(trace?.candidates[index])
+  );
   const pickWasPredicted = trace?.pick_predicted !== false;
 
   const keyOptions = [

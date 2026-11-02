@@ -1,13 +1,17 @@
 import { describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup as renderMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
+import type { ReactNode } from 'react';
+const renderToStaticMarkup = (node: ReactNode) =>
+  renderMarkup(createElement(MemoryRouter, null, node));
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 import { DEFAULT_VISUAL_VALUES } from '@/types/visualConfig';
 import { SectionAdvanced } from '@/features/config/components/sections/SectionAdvanced';
 import { SectionNetwork } from '@/features/config/components/sections/SectionNetwork';
 import { SectionOAuthBehavior } from '@/features/config/components/sections/SectionOAuthBehavior';
-import { SectionRouting } from '@/features/config/components/sections/SectionRouting';
+import { SectionRouting } from '@/features/routing/rules/SectionRouting';
 import { CodexLiveICEServersEditor } from '@/features/config/components/blocks/CodexLiveICEServersEditor';
 import { CONFIG_SECTION_IDS } from '@/features/config/constants';
 import { CONFIG_FIELD_SEARCH_INDEX } from '@/features/config/searchIndex';
@@ -29,8 +33,8 @@ const server = {
 };
 
 describe('OAuth behavior configuration UI', () => {
-  test('keeps seven canonical tabs and places every addition in its designated section', () => {
-    expect(CONFIG_SECTION_IDS).toHaveLength(7);
+  test('keeps six canonical tabs and places every addition in its designated section', () => {
+    expect(CONFIG_SECTION_IDS).toHaveLength(6);
     const sections = {
       network: render(createElement(SectionNetwork, props)),
       routing: render(createElement(SectionRouting, props)),
@@ -39,7 +43,7 @@ describe('OAuth behavior configuration UI', () => {
     const additions = CONFIG_FIELD_SEARCH_INDEX.filter((entry) =>
       entry.labelKey.includes('.additions.')
     );
-    expect(additions).toHaveLength(26);
+    expect(additions).toHaveLength(25);
     for (const entry of additions) {
       const own = sections[entry.sectionId as keyof typeof sections];
       const other = Object.entries(sections)

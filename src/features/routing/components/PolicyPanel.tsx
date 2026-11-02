@@ -15,16 +15,42 @@ export interface PolicyPanelProps {
   onChange: (next: RoutingSettings) => void;
 }
 
+// GSR: an exponential recovery curve rising across the weighted dots.
+const GSR_CURVE =
+  'M0.5 9 L1.56 8.92 L2.63 8.83 L3.69 8.72 L4.75 8.58 L5.81 8.42 L6.88 8.21 L7.94 7.96 ' +
+  'L9 7.66 L10.06 7.28 L11.13 6.83 L12.19 6.27 L13.25 5.59 L14.31 4.76 L15.38 3.75 ' +
+  'L16.44 2.51 L17.5 1';
+
 function StrategyMark({ strategy }: { strategy: RoutingStrategy }) {
-  // Three dots: even (round-robin), graded (weighted), first one filled (fill-first).
+  // Three dots: even (round-robin), graded (weighted and GSR), first one filled (fill-first).
+  const gradientId = `gsr-area-${useId().replace(/[^\w-]/g, '')}`;
+  const gsr = strategy === 'greedy-soonest-recovery';
   const opacities =
     strategy === 'round-robin'
       ? [1, 1, 1]
-      : strategy === 'weighted-round-robin'
+      : strategy === 'weighted-round-robin' || gsr
         ? [1, 0.6, 0.3]
         : [1, 0.25, 0.25];
   return (
     <svg width="18" height="10" viewBox="0 0 18 10" aria-hidden="true" focusable="false">
+      {gsr ? (
+        <>
+          <defs>
+            <linearGradient
+              id={gradientId}
+              x1="0"
+              y1="1"
+              x2="0"
+              y2="10"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0" stopColor="currentColor" stopOpacity={0.38} />
+              <stop offset="1" stopColor="currentColor" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <path d={`${GSR_CURVE} L17.5 10 L0.5 10 Z`} fill={`url(#${gradientId})`} />
+        </>
+      ) : null}
       {opacities.map((opacity, index) => (
         <circle
           key={index}
@@ -35,6 +61,16 @@ function StrategyMark({ strategy }: { strategy: RoutingStrategy }) {
           opacity={opacity}
         />
       ))}
+      {gsr ? (
+        <path
+          d={GSR_CURVE}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.1}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : null}
     </svg>
   );
 }

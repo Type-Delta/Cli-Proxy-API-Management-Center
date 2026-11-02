@@ -2953,8 +2953,6 @@
           "disable_image_generation_passthrough": "passthrough (giữ danh sách tool của client)",
           "gpt_image_2_base_model": "Model gốc GPT Image 2",
           "gpt_image_2_base_model_hint": "Model chính dùng khi proxy yêu cầu ảnh gpt-image-2; backend dùng mặc định nếu trống hoặc không hợp lệ",
-          "routing_strategy": "Chiến lược định tuyến",
-          "routing_strategy_hint": "Chọn chiến lược lựa chọn credential",
           "strategy_round_robin": "Round Robin",
           "strategy_weighted_round_robin": "Weighted Round Robin",
           "strategy_fill_first": "Fill First",
@@ -2997,20 +2995,18 @@
         },
         "routing": {
           "title": "Định tuyến",
-          "description": "Mỗi yêu cầu đi qua các quy tắc từ trên xuống dưới. Khi hai quy tắc mâu thuẫn, quy tắc ở dưới thắng.",
+          "description": "Khi xung đột, lớp dưới ghi đè lớp trên.",
           "home_mode_notice": "Đang bật chế độ Home. Quy tắc tùy chỉnh bị bỏ qua và luôn dùng mô hình cục bộ.",
-          "legend_order": "<b>Trên → dưới:</b> thứ tự đánh giá",
           "legend_lower_wins": "Khi xung đột, <b>quy tắc dưới thắng</b>",
-          "legend_locked": "<b>Quy tắc nền</b> không thể di chuyển",
+          "legend_locked": "<b>Lớp cố định</b> không thể di chuyển",
           "stack_weaker": "yếu hơn",
           "stack_stronger": "mạnh hơn",
           "rules_title": "Quy tắc tùy chỉnh",
-          "rules_description": "Mỗi yêu cầu đi qua các quy tắc từ trên xuống dưới. Khi hai quy tắc mâu thuẫn, quy tắc ở dưới thắng.",
-          "base_layers": "Quy tắc nền",
+          "rules_description": "Quy tắc thu hẹp nhóm vào các thông tin xác thực route-to trên mọi mức ưu tiên.",
           "credentials_unavailable": "Không lấy được danh sách thông tin xác thực. Tên đích có thể bị thiếu.",
           "strategy_title": "Chiến lược định tuyến",
-          "strategy_description": "Thông tin xác thực không qua cổng định tuyến sẽ bị loại trước, sau đó chiến lược chọn một trong số còn lại.",
-          "strategy_note": "Ưu tiên của thông tin xác thực được áp dụng trước, trừ khi phiên đã được gắn.",
+          "strategy_description": "Chọn giữa các thông tin xác thực tương đương trong cùng mức ưu tiên, trừ khi quy tắc hoặc liên kết phiên ghi đè. Không chọn mức dự phòng khi mức cao hơn còn khả dụng.",
+          "strategy_note": "Quy tắc và liên kết phiên được ưu tiên hơn mức ưu tiên và chiến lược.",
           "base_lock": "nền",
           "affinity_title": "Gắn kết phiên",
           "affinity_description": "Giữ phiên trên thông tin xác thực đã dùng đầu tiên. Khi thông tin đã gắn vẫn định tuyến được, tầng này ghi đè các quy tắc tùy chỉnh ở trên.",
@@ -3030,7 +3026,15 @@
           "gate_retry": "Vòng thử lại",
           "gate_weight": "Trọng số ≤ 0 (chỉ RR có trọng số)",
           "gate_pinned": "Đã ghim / chính sách",
-          "strategy_pick_label": "Chọn trong số thông tin còn lại"
+          "strategy_pick_label": "Chọn trong số thông tin còn lại",
+          "priority_title": "Các mức ưu tiên",
+          "priority_description": "Số lớn hơn được ưu tiên. Chỉ mức cao nhất có thông tin xác thực khả dụng phục vụ yêu cầu. Quy tắc có thể chọn trên mọi mức.",
+          "priority_label": "Ưu tiên {{priority}}",
+          "preferred": "Ưu tiên chính",
+          "fallback": "Dự phòng {{count}}",
+          "edit_tiers": "Sửa các cấp",
+          "credential_error": "Lỗi",
+          "credential_usable": "Có thể dùng"
         }
       },
       "api_keys": {
@@ -4200,7 +4204,9 @@
     "duration_minutes": "{{count}} phút",
     "duration_hours": "{{count}} giờ",
     "strategy_greedy_soonest_recovery": "Ưu tiên phục hồi sớm nhất (GSR)",
-    "strategy_greedy_soonest_recovery_desc": "Chọn theo thời gian phục hồi và cấp gói, sau đó tính trọng số đã đặt; tỷ lệ lưu lượng thay đổi linh hoạt."
+    "strategy_greedy_soonest_recovery_desc": "Chọn theo thời gian phục hồi và cấp gói, sau đó tính trọng số đã đặt; tỷ lệ lưu lượng thay đổi linh hoạt.",
+    "tab_credentials": "Cấp ưu tiên",
+    "tab_rules": "Quy tắc"
   },
   "siwc": {
     "title": "Liên kết SIWC",

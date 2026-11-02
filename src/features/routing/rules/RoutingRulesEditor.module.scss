@@ -1,4 +1,4 @@
-@use '../../../../styles/mixins' as *;
+@use '../../../styles/mixins' as *;
 
 /* Custom routing rules: precedence list, rule cards and the recursive condition builder.
    Every color comes from a theme token so both themes work without overrides. */

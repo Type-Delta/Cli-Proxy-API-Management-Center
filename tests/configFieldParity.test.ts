@@ -20,6 +20,7 @@ import {
   searchConfigFields,
 } from '@/features/config/searchIndex';
 import { getVisualConfigValidationErrors } from '@/hooks/useVisualConfig';
+import { ROUTING_RULE_FIELDS } from '@/features/routing/rules/logic';
 import { DEFAULT_VISUAL_VALUES } from '@/types/visualConfig';
 
 const INDEX_FIELD_IDS = CONFIG_FIELD_SEARCH_INDEX.map((entry) => entry.fieldId);
@@ -48,16 +49,9 @@ describe('search index integrity', () => {
     }
   });
 
-  test('resolves the routing strategy deep-link target', () => {
-    expect(findConfigFieldById('routingStrategy')).toMatchObject({
-      fieldId: 'routingStrategy',
-      sectionId: 'routing',
-    });
-    expect(findConfigFieldById('routingRules')).toMatchObject({
-      fieldId: 'routingRules',
-      sectionId: 'routing',
-    });
-    expect(findConfigFieldById('unknown')).toBeUndefined();
+  test('routing-only fields are absent from the section-only search', () => {
+    for (const field of ROUTING_RULE_FIELDS) expect(findConfigFieldById(field)).toBeUndefined();
+    expect(findConfigFieldById('requestRetry')?.sectionId).toBe('network');
   });
 
   test('label / qualifier / hint keys resolve to strings in en.json', async () => {
@@ -81,10 +75,16 @@ describe('value-key coverage (index ↔ VisualConfigValues)', () => {
     expect(sorted(Object.keys(FIELD_VALUE_KEYS))).toEqual(sorted(INDEX_FIELD_ID_SET));
   });
 
-  test('the union of mapped value keys is exactly the VisualConfigValues leaf keys', () => {
+  test('mapped keys cover every Config Panel value; standalone Routing owns the remainder', () => {
     const mapped = new Set(Object.values(FIELD_VALUE_KEYS).flat());
     // 双向：漏映射的表单键 / 指向不存在键的映射，都在这里现形
-    expect(sorted(mapped)).toEqual(sorted(LEAF_VALUE_KEYS));
+    expect(sorted(mapped)).toEqual(
+      sorted(
+        [...LEAF_VALUE_KEYS].filter(
+          (key) => !ROUTING_RULE_FIELDS.includes(key as (typeof ROUTING_RULE_FIELDS)[number])
+        )
+      )
+    );
   });
 });
 
@@ -121,8 +121,10 @@ describe('registry consistency', () => {
     expect([...CONFIG_TAB_IDS]).toEqual(['common', ...CONFIG_SECTION_IDS]);
   });
 
-  test('every validation field path lives in exactly one section bucket', () => {
-    const allPaths = Object.keys(getVisualConfigValidationErrors(DEFAULT_VISUAL_VALUES)).sort();
+  test('every Config Panel validation field lives in exactly one section bucket', () => {
+    const allPaths = Object.keys(getVisualConfigValidationErrors(DEFAULT_VISUAL_VALUES))
+      .filter((path) => path !== 'routingRules')
+      .sort();
     const bucketed = Object.values(SECTION_VALIDATION_FIELDS).flat();
     expect(new Set(bucketed).size).toBe(bucketed.length); // 不允许一个字段进两个桶
     expect(sorted(bucketed)).toEqual(allPaths);
@@ -154,7 +156,6 @@ describe('v8 YAML search paths', () => {
     ['apiKeys', 'access.api-keys'],
     ['commercialMode', 'server.commercial-mode'],
     ['requestRetry', 'routing.retry.request-retry'],
-    ['routingStrategy', 'routing.strategy'],
     ['quotaAntigravityCredits', 'oauth.providers.antigravity.antigravity-credits'],
     ['wsAuth', 'oauth.providers.aistudio.ws-auth'],
     ['codexHeaderUserAgent', 'oauth.providers.codex.header-defaults.user-agent'],

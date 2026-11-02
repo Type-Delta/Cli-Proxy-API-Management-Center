@@ -157,6 +157,9 @@ describe('routing board rendering', () => {
     expect(html).toContain('role="radiogroup"');
     expect(html).toMatch(/role="radio" aria-checked="true" tabindex="0"[^>]*>.*Weighted/);
     expect(html).toContain('Requests are split across the tier by weight.');
+    // Only GSR draws the recovery curve; its gradient id must be a valid url() fragment.
+    expect(html.match(/<linearGradient id="gsr-area-[\w-]+"/g)).toHaveLength(1);
+    expect(html).toMatch(/fill="url\(#gsr-area-[\w-]+\)"/);
   });
 
   test('styles respect reduced motion and the route is registered behind navigation', () => {
@@ -166,12 +169,20 @@ describe('routing board rendering', () => {
     expect(page).toContain('@media (prefers-reduced-motion: reduce)');
     expect(card).toContain('@media (prefers-reduced-motion: reduce)');
     expect(bar).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(readFileSync('src/router/MainRoutes.tsx', 'utf8')).toContain(
-      "{ path: '/routing', element: <RoutingPage /> }"
+    const routes = readFileSync('src/router/MainRoutes.tsx', 'utf8');
+    expect(routes).toContain(
+      "  { path: '/routing', element: <Navigate to=\"/routing/tiers\" replace /> },"
     );
-    expect(readFileSync('src/components/layout/MainLayout.tsx', 'utf8')).toContain(
-      "labelKey: 'nav.routing'"
+    expect(routes).toContain(
+      "  { path: '/routing/tiers', element: <RoutingPage /> },"
     );
+    expect(routes).toContain(
+      "  { path: '/routing/rules', element: <RulesPage /> },"
+    );
+    const layout = readFileSync('src/components/layout/MainLayout.tsx', 'utf8');
+    expect(layout).toContain("labelKey: 'nav.routing'");
+    expect(layout).toContain("item.path === '/routing' &&");
+    expect(layout).toContain("location.pathname.startsWith('/routing/')");
   });
 });
 

@@ -113,8 +113,8 @@ describe('routing decision matrix', () => {
 
     expect(matrix.columns).toEqual([0, 1, 2, 3, 4, 5, 6]);
     expect(matrix.winner).toBe(0);
-    expect(matrix.rows.map((row) => row.id)).toEqual(['rules', 'strategy', 'affinity', 'gate']);
-    expect(matrix.rows.map((row) => row.deciding)).toEqual([false, true, false, false]);
+    expect(matrix.rows.map((row) => row.id)).toEqual(['strategy', 'rules', 'affinity', 'gate']);
+    expect(matrix.rows.map((row) => row.deciding)).toEqual([true, false, false, false]);
     expect(glyphs(baseTrace, 'rules')).toEqual({
       0: 'wanted',
       1: 'wanted',
@@ -158,7 +158,7 @@ describe('routing decision matrix', () => {
     };
 
     expect(glyphs(trace, 'rules')).toMatchObject({ 0: 'lost', 1: 'lost', 2: 'lost' });
-    expect(buildRoutingMatrix(trace)!.rows[1].status).toEqual({ kind: 'none', code: 'skipped' });
+    expect(buildRoutingMatrix(trace)!.rows[0].status).toEqual({ kind: 'none', code: 'skipped' });
     expect(glyphs(trace, 'affinity')).toMatchObject({ 3: 'kept' });
     expect(summarizeRoutingDecision(trace)).toMatchObject({
       winner: 3,
@@ -206,7 +206,7 @@ describe('routing decision matrix', () => {
 
     expect(glyphs(trace, 'rules')).toMatchObject({ 0: 'lost', 1: 'lost', 2: 'lost' });
     expect(glyphs(trace, 'strategy')).toMatchObject({ 3: 'wanted', 5: 'routed' });
-    expect(buildRoutingMatrix(trace)!.rows[0].status).toEqual({
+    expect(buildRoutingMatrix(trace)!.rows[1].status).toEqual({
       kind: 'rule',
       index: 1,
       name: 'Opus to Max accounts',
@@ -363,7 +363,7 @@ describe('routing trace wire compatibility', () => {
     };
 
     expect(glyphs(trace, 'rules')).toMatchObject({ 0: 'lost', 3: 'wanted' });
-    expect(buildRoutingMatrix(trace)!.rows[0].status).toMatchObject({ index: 2, kind: 'rule' });
+    expect(buildRoutingMatrix(trace)!.rows[1].status).toMatchObject({ index: 2, kind: 'rule' });
     expect(glyphs(trace, 'strategy')).toMatchObject({ 3: 'routed' });
   });
 
@@ -419,7 +419,7 @@ describe('routing decision QA regressions', () => {
     const matrix = buildRoutingMatrix(trace)!;
 
     expect(glyphs(trace, 'rules')).toEqual({ 0: 'lost', 1: 'wanted' });
-    expect(matrix.rows[0].status).toEqual({
+    expect(matrix.rows[1].status).toEqual({
       kind: 'rule',
       index: 1,
       name: 'R2 target',

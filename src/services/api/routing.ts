@@ -10,7 +10,7 @@
 import { apiClient } from './client';
 import { authFilesApi } from './authFiles';
 import { guardConfigConnection } from './configValue';
-import type { AuthFileItem } from '@/types/authFile';
+import type { AuthFileCooldown, AuthFileItem } from '@/types/authFile';
 import {
   ROUTING_COMPAT_FAMILY,
   ROUTING_KEY_FAMILIES,
@@ -504,17 +504,51 @@ import type {
   RoutingDryRunResponse,
 } from '@/types/routing';
 
+const normalizeCooldown = (raw: unknown): AuthFileCooldown | null => {
+  if (
+    !isRecord(raw) ||
+    (raw.scope !== 'credential' && raw.scope !== 'model') ||
+    typeof raw.reason !== 'string' ||
+    typeof raw.retry_at !== 'string' ||
+    typeof raw.remaining_seconds !== 'number'
+  ) {
+    return null;
+  }
+  return {
+    scope: raw.scope,
+    ...(typeof raw.modelKey === 'string' ? { modelKey: raw.modelKey } : {}),
+    reason: raw.reason,
+    retryAt: raw.retry_at,
+    remainingSeconds: raw.remaining_seconds,
+    ...(typeof raw.backoffLevel === 'number' ? { backoffLevel: raw.backoffLevel } : {}),
+    ...(typeof raw.httpStatus === 'number' ? { httpStatus: raw.httpStatus } : {}),
+  };
+};
+
 const normalizeCredential = (raw: unknown): RoutingCredential | null => {
   if (!isRecord(raw) || typeof raw.id !== 'string' || !raw.id) return null;
+  const fallbackLabel = typeof raw.label === 'string' && raw.label ? raw.label : raw.id;
+  const name = typeof raw.name === 'string' ? raw.name.trim() : '';
+  const status = readText(raw.status);
+  const cooldowns = Array.isArray(raw.cooldowns)
+    ? raw.cooldowns.flatMap((entry) => {
+        const cooldown = normalizeCooldown(entry);
+        return cooldown ? [cooldown] : [];
+      })
+    : [];
   return {
     id: raw.id,
-    label: typeof raw.label === 'string' && raw.label ? raw.label : raw.id,
+    // The configured API-key entry name is the credential label everywhere in the Rules tab.
+    label: name || fallbackLabel,
+    ...(name ? { name } : {}),
+    ...(status ? { status } : {}),
     provider: typeof raw.provider === 'string' ? raw.provider : '',
     kind: raw.kind === 'api-key' ? 'api-key' : 'oauth',
     priority: typeof raw.priority === 'number' ? raw.priority : 0,
     weight: typeof raw.weight === 'number' ? raw.weight : 0,
     disabled: raw.disabled === true,
     ...(typeof raw.prefix === 'string' && raw.prefix ? { prefix: raw.prefix } : {}),
+    ...(cooldowns.length ? { cooldowns } : {}),
   };
 };
 

@@ -206,6 +206,17 @@ export function buildRoutingMatrix(
 
   const rows: RoutingMatrixRow[] = [
     {
+      id: 'strategy',
+      deciding: decidingRow === 'strategy',
+      status:
+        trace.decided_by === 'strategy'
+          ? { kind: 'strategy', strategy: trace.strategy }
+          : strategyPool.size > 0
+            ? { kind: 'strategy', strategy: trace.strategy }
+            : { kind: 'none', code: 'skipped' },
+      cells: strategyCells,
+    },
+    {
       id: 'rules',
       deciding: false,
       status: applied
@@ -219,17 +230,6 @@ export function buildRoutingMatrix(
             }
           : { kind: 'none', code: 'not_matched' },
       cells: rulesCells,
-    },
-    {
-      id: 'strategy',
-      deciding: decidingRow === 'strategy',
-      status:
-        trace.decided_by === 'strategy'
-          ? { kind: 'strategy', strategy: trace.strategy }
-          : strategyPool.size > 0
-            ? { kind: 'strategy', strategy: trace.strategy }
-            : { kind: 'none', code: 'skipped' },
-      cells: strategyCells,
     },
     {
       id: 'affinity',

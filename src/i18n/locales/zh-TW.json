@@ -2953,8 +2953,6 @@
           "disable_image_generation_passthrough": "passthrough（保留客戶端工具清單）",
           "gpt_image_2_base_model": "GPT Image 2 基礎模型",
           "gpt_image_2_base_model_hint": "代理 gpt-image-2 圖片請求時使用的主線模型；留空或非法時後端使用預設值",
-          "routing_strategy": "路由策略",
-          "routing_strategy_hint": "選擇憑證選擇策略",
           "strategy_round_robin": "輪詢（Round Robin）",
           "strategy_weighted_round_robin": "加權輪詢（Weighted Round Robin）",
           "strategy_fill_first": "填充優先（Fill First）",
@@ -2997,20 +2995,18 @@
         },
         "routing": {
           "title": "路由",
-          "description": "每個請求由上而下依序經過這些規則。兩條規則衝突時，以靠下的一條為準。",
+          "description": "發生衝突時，下層優先於上層。",
           "home_mode_notice": "已啟用 Home 模式。自訂規則會被忽略，一律使用本機模型。",
-          "legend_order": "<b>由上到下：</b>判定順序",
           "legend_lower_wins": "衝突時<b>以下方為準</b>",
-          "legend_locked": "<b>基礎規則</b>不可移動",
+          "legend_locked": "<b>固定層</b>無法移動",
           "stack_weaker": "較弱",
           "stack_stronger": "較強",
           "rules_title": "自訂規則",
-          "rules_description": "每個請求由上而下依序經過這些規則。兩條規則衝突時，以靠下的一條為準。",
-          "base_layers": "基礎規則",
+          "rules_description": "自訂規則將候選範圍縮小為 route-to 指定的憑證，可跨越所有優先層。",
           "credentials_unavailable": "無法取得憑證清單，目標憑證名稱可能缺失。",
           "strategy_title": "路由策略",
-          "strategy_description": "先剔除未通過路由閘門的憑證，再由策略從其餘憑證中挑選一個。",
-          "strategy_note": "先依憑證優先級篩選，既有的工作階段綁定除外。",
+          "strategy_description": "在同一優先順序中條件相同的憑證之間選擇，除非規則或工作階段綁定覆寫此選擇。高優先層有可用憑證時，絕不選擇備援層。",
+          "strategy_note": "規則與工作階段綁定優先於優先順序和策略。",
           "base_lock": "基礎",
           "affinity_title": "工作階段親和",
           "affinity_description": "讓工作階段停留在首次使用的憑證。綁定憑證仍可路由時，這一層會覆蓋上方的自訂規則。",
@@ -3030,7 +3026,15 @@
           "gate_retry": "重試輪次",
           "gate_weight": "權重 ≤ 0（僅加權輪詢）",
           "gate_pinned": "固定 / 策略",
-          "strategy_pick_label": "在剩餘憑證中選擇"
+          "strategy_pick_label": "在剩餘憑證中選擇",
+          "priority_title": "優先層級",
+          "priority_description": "數值越大越優先。只有具有可用憑證的最高層處理請求。自訂規則可跨層選擇憑證。",
+          "priority_label": "優先順序 {{priority}}",
+          "preferred": "首選",
+          "fallback": "備援 {{count}}",
+          "edit_tiers": "編輯層級",
+          "credential_error": "錯誤",
+          "credential_usable": "可用"
         }
       },
       "api_keys": {
@@ -4200,7 +4204,9 @@
     "duration_minutes": "{{count}} 分鐘",
     "duration_hours": "{{count}} 小時",
     "strategy_greedy_soonest_recovery": "最早恢復優先 (GSR)",
-    "strategy_greedy_soonest_recovery_desc": "依恢復時間與方案等級選擇，再計入設定權重；流量比例動態變化。"
+    "strategy_greedy_soonest_recovery_desc": "依恢復時間與方案等級選擇，再計入設定權重；流量比例動態變化。",
+    "tab_credentials": "優先層級",
+    "tab_rules": "規則"
   },
   "siwc": {
     "title": "綁定 SIWC",

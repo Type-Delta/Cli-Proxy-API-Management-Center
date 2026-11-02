@@ -1,28 +1,28 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { IconAlertTriangle, IconLock, IconTag } from '@/components/ui/icons';
+import { IconAlertTriangle, IconListTree, IconLock, IconTag } from '@/components/ui/icons';
 import { ROUTING_GATE_ICONS } from '@/components/ui/routingIcons';
 import { apiKeysApi } from '@/services/api/apiKeys';
 import { routingApi } from '@/services/api/routing';
 import type { RoutingCredential } from '@/types/routing';
 import type { VisualConfigValues } from '@/types/visualConfig';
 import type { RoutingRuleDraft } from '@/features/config/routingRules';
-import { CONFIG_TAB_ICONS, SECTION_INDEX_LABELS } from '../../constants';
-import type { ConfigSectionProps } from '../../types';
-import { SectionCard } from '../SectionCard';
+import type { ConfigSectionProps } from '@/features/config/types';
+import { SectionCard } from '@/features/config/components/SectionCard';
 import {
   FieldAnchor,
   SelectSetting,
   SettingList,
   TextSetting,
   ToggleSetting,
-} from '../fields/FieldPrimitives';
-import { getValidationMessage } from '../blocks/shared';
-import { RoutingRulesEditor } from '../blocks/RoutingRulesEditor';
-import { RoutingTracePanel } from '../blocks/RoutingTracePanel';
+} from '@/features/config/components/fields/FieldPrimitives';
+import { getValidationMessage } from '@/features/config/components/blocks/shared';
+import { PriorityTiers } from './PriorityTiers';
+import { RoutingRulesEditor } from './RoutingRulesEditor';
+import { RoutingTracePanel } from './RoutingTracePanel';
 import styles from './SectionRouting.module.scss';
 
-const Icon = CONFIG_TAB_ICONS.routing;
+const Icon = IconListTree;
 
 type Strategy = VisualConfigValues['routingStrategy'];
 
@@ -39,7 +39,7 @@ const GATE_CHIPS = [
   ['gate_pinned', ROUTING_GATE_ICONS.pinned],
 ] as const;
 
-const LEGEND = ['legend_order', 'legend_lower_wins', 'legend_locked'] as const;
+const LEGEND = ['legend_lower_wins', 'legend_locked'] as const;
 
 type CredentialsState = {
   loading: boolean;
@@ -57,10 +57,7 @@ const INITIAL_CREDENTIALS: CredentialsState = {
   clientTypes: [],
 };
 
-/**
- * 03 Routing: the precedence stack (custom rules, then the three base layers) plus the
- * dry-run panel. Strategy and session-affinity controls moved here from Network.
- */
+/** Routing precedence stack and dry-run panel. */
 export function SectionRouting({
   values,
   validationErrors,
@@ -163,7 +160,6 @@ export function SectionRouting({
     <div className={styles.layout}>
       <div className={styles.main}>
         <SectionCard
-          indexLabel={SECTION_INDEX_LABELS.routing}
           icon={<Icon size={16} />}
           title={t('config_management.visual.sections.routing.title')}
           description={t('config_management.visual.sections.routing.description')}
@@ -172,7 +168,6 @@ export function SectionRouting({
           <p className={styles.legend}>
             {LEGEND.map((key) => (
               <span key={key} className={styles.legendItem}>
-                {/* Only the base-rule note keeps its icon; three icons crowd the line. */}
                 {key === 'legend_locked' ? <IconLock size={13} /> : null}
                 <span>
                   <Trans
@@ -208,37 +203,6 @@ export function SectionRouting({
                 </p>
               ) : null}
 
-              <FieldAnchor fieldId="routingRules">
-                <div
-                  className={styles.rulesGroup}
-                  role="group"
-                  aria-labelledby={rulesLabelId}
-                  aria-describedby={rulesError ? rulesErrorId : undefined}
-                  aria-invalid={rulesError ? true : undefined}
-                >
-                  <div id={rulesLabelId} className={styles.groupLabel}>
-                    {t('config_management.visual.sections.routing.rules_title')}
-                  </div>
-                  {rulesError ? (
-                    <p id={rulesErrorId} className={styles.error}>
-                      {rulesError}
-                    </p>
-                  ) : null}
-                  <RoutingRulesEditor
-                    value={values.routingRules}
-                    disabled={disabled}
-                    credentials={credentials.credentials}
-                    apiKeyLabels={apiKeyLabels}
-                    clientTypes={credentials.clientTypes}
-                    onChange={handleRulesChange}
-                  />
-                </div>
-              </FieldAnchor>
-
-              <div className={`${styles.groupLabel} ${styles.groupLabelSpaced}`}>
-                {t('config_management.visual.sections.routing.base_layers')}
-              </div>
-
               <section className={styles.baseLayer}>
                 <header className={styles.baseHead}>
                   <h3 className={styles.baseTitle}>
@@ -264,6 +228,42 @@ export function SectionRouting({
                   />
                 </SettingList>
               </section>
+
+              <PriorityTiers
+                credentials={credentials.credentials}
+                loading={credentials.loading}
+                error={credentials.error}
+              />
+
+              <FieldAnchor fieldId="routingRules">
+                <div
+                  className={styles.rulesGroup}
+                  role="group"
+                  aria-labelledby={rulesLabelId}
+                  aria-describedby={rulesError ? rulesErrorId : undefined}
+                  aria-invalid={rulesError ? true : undefined}
+                >
+                  <div id={rulesLabelId} className={styles.groupLabel}>
+                    {t('config_management.visual.sections.routing.rules_title')}
+                  </div>
+                  <p className={styles.baseDescription}>
+                    {t('config_management.visual.sections.routing.rules_description')}
+                  </p>
+                  {rulesError ? (
+                    <p id={rulesErrorId} className={styles.error}>
+                      {rulesError}
+                    </p>
+                  ) : null}
+                  <RoutingRulesEditor
+                    value={values.routingRules}
+                    disabled={disabled}
+                    credentials={credentials.credentials}
+                    apiKeyLabels={apiKeyLabels}
+                    clientTypes={credentials.clientTypes}
+                    onChange={handleRulesChange}
+                  />
+                </div>
+              </FieldAnchor>
 
               <section className={styles.baseLayer}>
                 <header className={styles.baseHead}>

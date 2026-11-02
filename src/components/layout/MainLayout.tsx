@@ -975,13 +975,16 @@ export function MainLayout() {
       analyticsPagePath !== null &&
       isAnalyticsPathname(location.pathname) &&
       analyticsPageFromPathname(location.pathname) === analyticsPagePath;
+    const isRoutingGroupActive =
+      item.path === '/routing' &&
+      (location.pathname === '/routing' || location.pathname.startsWith('/routing/'));
 
     return (
       <NavLink
         key={item.path}
         to={item.path}
         className={({ isActive }) =>
-          `${className} ${isActive || isAnalyticsPageActive ? 'active' : ''}`
+          `${className} ${isActive || isAnalyticsPageActive || isRoutingGroupActive ? 'active' : ''}`
         }
         onClick={() => {
           focusedRailItemRef.current = null;

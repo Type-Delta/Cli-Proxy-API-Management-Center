@@ -1,7 +1,11 @@
 import { describe, expect, mock, test } from 'bun:test';
 import { join } from 'node:path';
 import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup as renderMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
+import type { ReactNode } from 'react';
+const renderToStaticMarkup = (node: ReactNode) =>
+  renderMarkup(createElement(MemoryRouter, null, node));
 import { DEFAULT_VISUAL_VALUES } from '@/types/visualConfig';
 import { makeRoutingCondition, makeRoutingGroup } from '@/features/config/routingRules';
 import type { RoutingRuleDraft } from '@/features/config/routingRules';
@@ -9,9 +13,9 @@ import type { RoutingRuleDraft } from '@/features/config/routingRules';
 // bun resolves CSS modules to a path string; echo class names so assertions can see markup.
 for (const file of [
   'src/features/config/components/fields/Field.module.scss',
-  'src/features/config/components/sections/SectionRouting.module.scss',
-  'src/features/config/components/blocks/RoutingRulesEditor.module.scss',
-  'src/features/config/components/blocks/RoutingTracePanel.module.scss',
+  'src/features/routing/rules/SectionRouting.module.scss',
+  'src/features/routing/rules/RoutingRulesEditor.module.scss',
+  'src/features/routing/rules/RoutingTracePanel.module.scss',
 ]) {
   mock.module(join(import.meta.dir, '..', file), () => ({
     default: new Proxy({}, { get: (_, key) => (typeof key === 'string' ? key : undefined) }),
@@ -20,9 +24,9 @@ for (const file of [
 
 const { I18nextProvider } = await import('react-i18next');
 const { default: i18n } = await import('@/i18n');
-const { SectionRouting } = await import('@/features/config/components/sections/SectionRouting');
+const { SectionRouting } = await import('@/features/routing/rules/SectionRouting');
 const { buildRoutingTraceSteps, routingTraceOutcome } =
-  await import('@/features/config/components/blocks/routingTraceSteps');
+  await import('@/features/routing/rules/routingTraceSteps');
 
 const translations = i18n.cloneInstance({ lng: 'en' });
 
@@ -57,7 +61,7 @@ const renderSection = (routingRules: RoutingRuleDraft[]) =>
     )
   );
 
-describe('Routing config section', () => {
+describe('Routing Rules tab', () => {
   test('renders the precedence stack with the moved controls and read-only gate chips', () => {
     const markup = renderSection([opusRule]);
 
@@ -75,10 +79,16 @@ describe('Routing config section', () => {
     }
     // base layers are listed weakest (top) to strongest (bottom)
     const strategyAt = markup.indexOf('Routing strategy');
+    const tiersAt = markup.indexOf('Priority tiers');
+    const rulesAt = markup.indexOf('Custom rules');
     const affinityAt = markup.indexOf('Session affinity');
     const gateAt = markup.indexOf('Routing gate');
     expect(strategyAt).toBeGreaterThan(-1);
-    expect(affinityAt).toBeGreaterThan(strategyAt);
+    expect(tiersAt).toBeGreaterThan(strategyAt);
+    expect(rulesAt).toBeGreaterThan(tiersAt);
+    expect(affinityAt).toBeGreaterThan(rulesAt);
+    expect(markup).not.toContain('evaluation order');
+    expect(markup).not.toContain('Base rules');
     expect(gateAt).toBeGreaterThan(affinityAt);
     expect(markup).toContain('Weight ≤ 0 (weighted RR only)');
     expect(markup).toContain('Pinned / policy');

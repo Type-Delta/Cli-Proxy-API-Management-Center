@@ -2953,8 +2953,6 @@
           "disable_image_generation_passthrough": "passthrough (클라이언트 도구 목록 유지)",
           "gpt_image_2_base_model": "GPT Image 2 기본 모델",
           "gpt_image_2_base_model_hint": "gpt-image-2 이미지 요청을 프록시할 때 사용하는 메인라인 모델입니다. 비어 있거나 유효하지 않으면 백엔드 기본값을 사용합니다.",
-          "routing_strategy": "라우팅 전략",
-          "routing_strategy_hint": "자격 증명 선택 전략을 선택하세요",
           "strategy_round_robin": "라운드 로빈",
           "strategy_weighted_round_robin": "가중 라운드 로빈",
           "strategy_fill_first": "채우기 우선",
@@ -2997,20 +2995,18 @@
         },
         "routing": {
           "title": "라우팅",
-          "description": "각 요청은 규칙을 위에서 아래로 거칩니다. 두 규칙이 충돌하면 아래쪽 규칙이 이깁니다.",
+          "description": "충돌 시 아래 계층이 위 계층보다 우선합니다.",
           "home_mode_notice": "Home 모드가 켜져 있습니다. 사용자 지정 규칙은 무시되고 항상 로컬 모델을 사용합니다.",
-          "legend_order": "<b>위 → 아래:</b> 평가 순서",
           "legend_lower_wins": "충돌 시 <b>아래쪽이 우선</b>",
-          "legend_locked": "<b>기본 규칙</b>은 이동할 수 없음",
+          "legend_locked": "<b>고정 계층</b>은 이동할 수 없습니다",
           "stack_weaker": "약함",
           "stack_stronger": "강함",
           "rules_title": "사용자 지정 규칙",
-          "rules_description": "각 요청은 규칙을 위에서 아래로 거칩니다. 두 규칙이 충돌하면 아래쪽 규칙이 이깁니다.",
-          "base_layers": "기본 규칙",
+          "rules_description": "사용자 지정 규칙은 모든 우선순위 계층에서 route-to에 지정된 자격 증명으로 후보를 좁힙니다.",
           "credentials_unavailable": "자격 증명 목록을 가져오지 못했습니다. 라우팅 대상 이름이 없을 수 있습니다.",
           "strategy_title": "라우팅 전략",
-          "strategy_description": "라우팅 게이트를 통과하지 못한 자격 증명을 먼저 제외한 뒤, 전략이 남은 것 중 하나를 고릅니다.",
-          "strategy_note": "기존 세션 바인딩이 아니라면 자격 증명 우선순위가 먼저 적용됩니다.",
+          "strategy_description": "규칙이나 세션 바인딩이 재정의하지 않는 한, 같은 우선순위 계층의 동등한 자격 증명 중에서 선택합니다. 상위 계층에 사용 가능한 자격 증명이 있으면 대체 계층을 선택하지 않습니다.",
+          "strategy_note": "규칙과 세션 바인딩이 우선순위 및 전략보다 우선합니다.",
           "base_lock": "기본",
           "affinity_title": "세션 고정",
           "affinity_description": "세션이 처음 사용한 자격 증명에 머무르게 합니다. 바인딩된 자격 증명이 아직 라우팅 가능하면 이 계층이 위의 사용자 지정 규칙을 덮어씁니다.",
@@ -3030,7 +3026,15 @@
           "gate_retry": "재시도 회차",
           "gate_weight": "가중치 ≤ 0 (가중 RR 전용)",
           "gate_pinned": "고정 / 정책",
-          "strategy_pick_label": "남은 자격 증명 중 선택"
+          "strategy_pick_label": "남은 자격 증명 중 선택",
+          "priority_title": "우선순위 계층",
+          "priority_description": "숫자가 클수록 우선합니다. 사용 가능한 자격 증명이 있는 최상위 계층만 요청을 처리합니다. 사용자 지정 규칙은 모든 계층에서 선택할 수 있습니다.",
+          "priority_label": "우선순위 {{priority}}",
+          "preferred": "기본",
+          "fallback": "대체 {{count}}",
+          "edit_tiers": "계층 편집",
+          "credential_error": "오류",
+          "credential_usable": "사용 가능"
         }
       },
       "api_keys": {
@@ -4200,7 +4204,9 @@
     "duration_minutes": "{{count}}분",
     "duration_hours": "{{count}}시간",
     "strategy_greedy_soonest_recovery": "가장 빠른 복구 우선 (GSR)",
-    "strategy_greedy_soonest_recovery_desc": "복구 시간과 요금제 등급에 따라 선택한 뒤 설정된 가중치를 반영합니다. 트래픽 비율은 동적으로 바뀝니다."
+    "strategy_greedy_soonest_recovery_desc": "복구 시간과 요금제 등급에 따라 선택한 뒤 설정된 가중치를 반영합니다. 트래픽 비율은 동적으로 바뀝니다.",
+    "tab_credentials": "우선 순위 계층",
+    "tab_rules": "규칙"
   },
   "siwc": {
     "title": "SIWC 바인딩",

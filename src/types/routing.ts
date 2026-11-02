@@ -6,7 +6,7 @@
  * that order made explicit for every config API key, OpenAI-compatible provider and credential.
  */
 
-import type { AuthFileCooldownSnapshot } from './authFile';
+import type { AuthFileCooldown, AuthFileCooldownSnapshot } from './authFile';
 import type { RoutingStrategy } from './visualConfig';
 
 export type { RoutingStrategy };
@@ -276,12 +276,18 @@ export type RoutingTrace = {
 export type RoutingCredential = {
   id: string;
   label: string;
+  /** Configured API-key entry name; absent on OAuth credentials and older servers. */
+  name?: string;
+  /** Non-secret auth lifecycle status; absent on older servers. */
+  status?: string;
   provider: string;
   kind: 'oauth' | 'api-key';
   priority: number;
   weight: number;
   disabled: boolean;
   prefix?: string;
+  /** Unexpired cooldown timers from the live registry; empty means none are active. */
+  cooldowns?: AuthFileCooldown[];
 };
 
 export type RoutingCredentialsResponse = {

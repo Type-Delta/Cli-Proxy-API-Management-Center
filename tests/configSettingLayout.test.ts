@@ -5,7 +5,11 @@
 import { describe, expect, mock, test } from 'bun:test';
 import { join } from 'node:path';
 import { createElement, type ComponentType } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup as renderMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
+import type { ReactNode } from 'react';
+const renderToStaticMarkup = (node: ReactNode) =>
+  renderMarkup(createElement(MemoryRouter, null, node));
 import { DEFAULT_VISUAL_VALUES } from '@/types/visualConfig';
 import { resolveRowSpans } from '@/features/config/components/fields/rowSpans';
 
@@ -24,7 +28,7 @@ const sections = {
   connectivity: (await import('@/features/config/components/sections/SectionConnectivity'))
     .SectionConnectivity,
   network: (await import('@/features/config/components/sections/SectionNetwork')).SectionNetwork,
-  routing: (await import('@/features/config/components/sections/SectionRouting')).SectionRouting,
+  routing: (await import('@/features/routing/rules/SectionRouting')).SectionRouting,
   logging: (await import('@/features/config/components/sections/SectionLogging')).SectionLogging,
   streaming: (await import('@/features/config/components/sections/SectionStreaming'))
     .SectionStreaming,

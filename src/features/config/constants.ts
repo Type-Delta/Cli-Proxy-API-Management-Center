@@ -2,7 +2,6 @@ import type { ComponentType } from 'react';
 import {
   IconCode,
   IconKey,
-  IconListTree,
   IconNetwork,
   IconSatellite,
   IconScrollText,
@@ -22,7 +21,6 @@ export type ConfigTabId = 'common' | VisualSectionId;
 export const CONFIG_SECTION_IDS = [
   'connectivity',
   'network',
-  'routing',
   'logging',
   'streaming',
   'advanced',
@@ -31,22 +29,20 @@ export const CONFIG_SECTION_IDS = [
 
 export const CONFIG_TAB_IDS: readonly ConfigTabId[] = ['common', ...CONFIG_SECTION_IDS];
 
-/** Section numbers 01 through 07. Common is an alias view and has no number. */
+/** Section numbers 01 through 06. Common is an alias view and has no number. */
 export const SECTION_INDEX_LABELS: Record<VisualSectionId, string> = {
   connectivity: '01',
   network: '02',
-  routing: '03',
-  logging: '04',
-  streaming: '05',
-  advanced: '06',
-  payload: '07',
+  logging: '03',
+  streaming: '04',
+  advanced: '05',
+  payload: '06',
 };
 
 export const CONFIG_TAB_ICONS: Record<ConfigTabId, ComponentType<IconProps>> = {
   common: IconSlidersHorizontal,
   connectivity: IconKey,
   network: IconNetwork,
-  routing: IconListTree,
   logging: IconScrollText,
   streaming: IconSatellite,
   advanced: IconShield,
@@ -98,7 +94,6 @@ export const SECTION_VALIDATION_FIELDS: Record<VisualSectionId, readonly VisualC
       'transientErrorCooldownSeconds',
       'videoResultAuthCacheTTL',
     ],
-    routing: ['routingRules'],
     logging: [
       'errorLogsMaxFiles',
       'logsMaxTotalSizeMb',
@@ -145,7 +140,6 @@ export const SECTION_VALIDATION_FIELDS: Record<VisualSectionId, readonly VisualC
  * tests/configFieldParity.test.ts keeps this map, the search index, and rendered JSX in sync.
  */
 export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
-  routingSessionAffinitySubagents: ['routingSessionAffinitySubagents'],
   saveCooldownStatus: ['saveCooldownStatus'],
   transientErrorCooldownSeconds: ['transientErrorCooldownSeconds'],
   videoResultAuthCacheTTL: ['videoResultAuthCacheTTL'],
@@ -201,16 +195,10 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   maxRetryCredentials: ['maxRetryCredentials'],
   maxRetryInterval: ['maxRetryInterval'],
   authAutoRefreshWorkers: ['authAutoRefreshWorkers'],
-  routingStrategy: ['routingStrategy'],
   disableImageGeneration: ['disableImageGeneration'],
   gptImage2BaseModel: ['gptImage2BaseModel'],
-  routingSessionAffinityTTL: ['routingSessionAffinityTTL'],
-  sessionAffinityRebindOn: ['sessionAffinityRebindOn'],
-  routingRules: ['routingRules'],
-  forceModelPrefix: ['forceModelPrefix'],
   passthroughHeaders: ['passthroughHeaders'],
   disableCooling: ['disableCooling'],
-  routingSessionAffinity: ['routingSessionAffinity'],
   wsAuth: ['wsAuth'],
   // ── logging ───────────────────────────────────────────────────────────────
   debug: ['debug'],

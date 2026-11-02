@@ -18,7 +18,7 @@ import {
   IconWeight,
 } from './icons';
 
-/** Routing gate reasons as icons, shared by the Config Routing tab and event routing decisions. */
+/** Routing gate reasons as icons, shared by the Routing Rules tab and event routing decisions. */
 export const ROUTING_GATE_ICONS: Record<RoutingGateReason, typeof IconBan> = {
   disabled: IconBan,
   cooldown: IconSnowflake,

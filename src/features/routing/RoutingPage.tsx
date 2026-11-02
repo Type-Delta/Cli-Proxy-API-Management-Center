@@ -52,6 +52,7 @@ import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer'
 import { TierLadder } from './components/TierLadder';
 import { WeightDialog } from './components/WeightDialog';
 import styles from './RoutingPage.module.scss';
+import { RoutingTabs } from './RoutingTabs';
 
 // Cooldown chips count down coarsely; one shared timer for the whole board.
 const cooldownClock = createSharedClock({ intervalMs: 5_000 });
@@ -386,6 +387,8 @@ export function RoutingPage() {
           {t('routing.title')}
         </h1>
       </header>
+
+      <RoutingTabs value="credentials" />
 
       {renderBody()}
 
