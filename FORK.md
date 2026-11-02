@@ -22,6 +22,8 @@ The rules:
 
 CPAMC reads legacy string keys and structured key objects without coercing objects to strings. Row edits preserve unknown entry and limit fields, use the configuration index plus revision on supported CPA versions, and block structured limit writes on older versions. Raw keys remain available to administrators but start concealed. Reveal and raw-copy actions are per row, revealed state clears when the route or authenticated connection changes, and full SHA-256 key IDs remain internal until the administrator explicitly copies one. The visible identity uses the shortest collision-safe even-length prefix starting at 12 characters. The existing configuration page now shows request and token caps, reset cadence, current consumption, and confirmed counter reset.
 
+The API-key revision applies only to `/api-keys` routes. Whole-document source-mode saves send the `ETag` of a fresh `/config.yaml` read as `If-Match`, and only when that read still matches the reviewed baseline. CPA compares `If-Match` on v8 `/config.yaml` against the config file hash, so sending the API-key revision there returned `412 precondition_failed` on every source save.
+
 Compatibility tests cover legacy and structured fixtures, unknown-field preservation, duplicate full IDs, and colliding display prefixes.
 
 **Implementation evidence:** `src/types/apiKeys.ts`, `src/services/api/apiKeys.ts`, `src/services/api/capabilities.ts`, `src/services/api/transformers.ts`, `src/hooks/useVisualConfig.ts`, `src/features/config/components/blocks/ApiKeysCardEditor.tsx`.

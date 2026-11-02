@@ -328,7 +328,25 @@ describe('v8 management API contracts', () => {
     expect(form.mock.calls.at(-1)?.[0]).toBe('/oauth/import?provider=vertex');
     expect(await configFileApi.fetchConfigYaml()).toBe('config: yaml');
     expect(raw.mock.calls.at(-1)?.[0]).toBe('/config.yaml');
-    await configFileApi.saveConfigYaml('config: yaml');
+    await configFileApi.saveConfigYaml('config: yaml', 'config: yaml');
     expect(put.mock.calls.at(-1)?.slice(0, 2)).toEqual(['/config.yaml', 'config: yaml']);
+  });
+
+  test('source YAML saves are fenced by the /config.yaml ETag, not the API-key revision', async () => {
+    const get = mock('get', { config_revision: 'rev-api-keys' });
+    const put = mock('put');
+    mock('getRaw', { data: 'a: 1\n', headers: { etag: '"disk-hash"' } });
+    await configFileApi.saveConfigYaml('a: 2\n', 'a: 1\n');
+    expect(get).not.toHaveBeenCalled();
+    expect(put).toHaveBeenLastCalledWith('/config.yaml', 'a: 2\n', {
+      headers: {
+        'Content-Type': 'application/yaml',
+        Accept: 'application/json, text/plain, */*',
+        'If-Match': '"disk-hash"',
+      },
+    });
+    // A server document that moved past the reviewed baseline is never written.
+    await expect(configFileApi.saveConfigYaml('a: 2\n', 'a: 0\n')).rejects.toThrow();
+    expect(put).toHaveBeenCalledTimes(1);
   });
 });

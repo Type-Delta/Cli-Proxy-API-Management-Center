@@ -226,7 +226,7 @@ export function useConfigDocument({
       if (previewMode === 'visual' && previewPlan) {
         await applyConfigPatch(previewPlan, operation.revision);
       } else {
-        await configFileApi.saveConfigYaml(mergedYaml);
+        await configFileApi.saveConfigYaml(mergedYaml, latestServerYaml);
       }
       if (!operation.isCurrent()) return;
       useConfigStore.getState().clearCache();
