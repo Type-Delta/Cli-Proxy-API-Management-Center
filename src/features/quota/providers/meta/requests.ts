@@ -6,6 +6,7 @@ import { normalizeAuthIndex } from '@/utils/authIndex';
 export const META_MUSE_QUOTA_URL = 'https://api.meta.ai/muse-code/key';
 
 export type MetaQuotaErrorCode =
+  | 'read_only_unavailable'
   | 'missing_auth_index'
   | 'missing_file'
   | 'missing_dca_token'
@@ -29,6 +30,7 @@ export class MetaQuotaError extends Error {
 }
 
 interface MetaQuotaDependencies {
+  isReadOnly?: () => boolean;
   request: (payload: ApiCallRequest) => Promise<ApiCallResult>;
   downloadText: (name: string) => Promise<string>;
   captureCurrent: (name: string) => () => boolean;
@@ -54,6 +56,8 @@ const readDcaToken = (text: string): string => {
 /** Secrets remain request-local, never in quota state, errors, or browser storage. */
 export function createMetaQuotaFetcher(deps: MetaQuotaDependencies) {
   return async (file: AuthFileItem): Promise<MetaQuotaData> => {
+    // This endpoint mints an API key. Read-only sessions must never enter this flow.
+    if (deps.isReadOnly?.()) throw new MetaQuotaError('read_only_unavailable');
     const authIndex = normalizeAuthIndex(file.authIndex ?? file.auth_index);
     if (!authIndex) throw new MetaQuotaError('missing_auth_index');
     if (
@@ -77,6 +81,7 @@ export function createMetaQuotaFetcher(deps: MetaQuotaDependencies) {
       throw new MetaQuotaError('download_failed');
     }
     assertCurrent();
+    if (deps.isReadOnly?.()) throw new MetaQuotaError('read_only_unavailable');
     const dcaToken = readDcaToken(authText);
 
     let response: ApiCallResult;

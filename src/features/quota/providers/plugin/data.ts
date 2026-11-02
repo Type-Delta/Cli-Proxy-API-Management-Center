@@ -1,4 +1,5 @@
 import type { TFunction } from 'i18next';
+import { useAuthStore } from '@/stores/useAuthStore';
 import type {
   AntigravityQuotaSubscription,
   AntigravityQuotaSummaryPayload,
@@ -121,7 +122,11 @@ export const fetchPluginQuota = async (
   const provider = String(file.quotaProvider ?? file['quota_provider'] ?? '').trim();
   // New v8 credentials carry the host's authoritative selection, including multi-provider
   // plugins and healthy alternatives. Do not re-resolve it against a stale plugin list.
-  let pluginId = file.quotaPluginId;
+  const selectedPlugin = file.quotaPluginId ?? file['quota_plugin_id'];
+  let pluginId = typeof selectedPlugin === 'string' ? selectedPlugin : undefined;
+  if (!pluginId && useAuthStore.getState().scope === 'read-only') {
+    throw new Error(t('plugin_quota.plugin_not_found', { provider }));
+  }
   if (!pluginId) {
     // Older v8 servers may advertise declarative probes, which have no v8 quota route.
     if (!provider) throw new Error(t('plugin_quota.probe_unsupported'));

@@ -14,12 +14,15 @@ import { PluginStorePage } from '@/features/plugins/PluginStorePage';
 import { ConfigPage } from '@/features/config/ConfigPage';
 import { LogsPage } from '@/features/logs/LogsPage';
 import { SystemPage } from '@/pages/SystemPage';
+import { ManagementKeysPage } from '@/features/managementKeys/ManagementKeysPage';
 import { useAuthStore } from '@/stores';
 import { AnalyticsErrorBoundary } from '@/features/analytics/AnalyticsErrorBoundary';
 import { AnalyticsSkeleton } from '@/features/analytics/AnalyticsSkeleton';
 import { AnalyticsContentPortal } from '@/features/analytics/AnalyticsShell';
 import { ANALYTICS_PAGES, analyticsPageRedirectTarget } from '@/features/analytics/navigation';
 import { leaderboardRedirectTarget } from '@/features/analytics/query';
+import type { ManagementScope } from '@/types';
+import { isPathAllowedForScope, READ_ONLY_HOME } from './sessionAccess';
 
 const analyticsPage = (kind: import('@/features/analytics/AnalyticsPage').AnalyticsPageKind) =>
   lazy(() =>
@@ -110,10 +113,23 @@ const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/config', element: <ConfigPage /> },
   { path: '/logs', element: <LogsPage /> },
   { path: '/system', element: <SystemPage /> },
+  { path: '/management-keys', element: <ManagementKeysPage /> },
   { path: '*', element: <Navigate to="/" replace /> },
 ];
 
+/** Read-only sessions keep only allowlisted routes; everything else lands on the read-only home. */
+const createScopedRoutes = (supportsPlugin: boolean, scope: ManagementScope | null) =>
+  scope === 'read-only'
+    ? [
+        ...createMainRoutes(false).filter(
+          (route) => route.path !== '*' && isPathAllowedForScope(route.path, scope)
+        ),
+        { path: '*', element: <Navigate to={READ_ONLY_HOME} replace /> },
+      ]
+    : createMainRoutes(supportsPlugin);
+
 export function MainRoutes({ location }: { location?: Location }) {
   const supportsPlugin = useAuthStore((state) => state.supportsPlugin);
-  return useRoutes(createMainRoutes(supportsPlugin), location);
+  const scope = useAuthStore((state) => state.scope);
+  return useRoutes(createScopedRoutes(supportsPlugin, scope), location);
 }

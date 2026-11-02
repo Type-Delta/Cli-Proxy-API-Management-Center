@@ -10,6 +10,16 @@ export interface LoginCredentials {
   rememberPassword?: boolean;
 }
 
+/** Backend-authoritative scope of the management key used by this session. */
+export type ManagementScope = 'full-access' | 'read-only';
+
+/** Management key metadata; the backend never returns the secret itself. */
+export interface ManagementKeyMetadata {
+  id: string;
+  name: string;
+  scope: ManagementScope;
+}
+
 // 认证状态
 export interface AuthState {
   isAuthenticated: boolean;
@@ -19,6 +29,8 @@ export interface AuthState {
   serverVersion: string | null;
   serverBuildDate: string | null;
   supportsPlugin: boolean;
+  /** Scope of the current session; null until `/session` answers and after logout. */
+  scope: ManagementScope | null;
 }
 
 // 连接状态

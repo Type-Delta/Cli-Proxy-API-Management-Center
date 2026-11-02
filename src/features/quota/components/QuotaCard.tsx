@@ -39,6 +39,8 @@ export type QuotaCardProps = {
   quota?: QuotaCardState;
   resolvedTheme: ResolvedTheme;
   canRefresh: boolean;
+  /** Read-only sessions keep refresh but hide actions that spend or reset quota. */
+  readOnly?: boolean;
   resetting: boolean;
   /** Initial cascade delay; null disables entrance motion for later mounts. */
   entranceDelayMs?: number | null;
@@ -52,6 +54,7 @@ export function QuotaCard(props: QuotaCardProps) {
     quota,
     resolvedTheme,
     canRefresh,
+    readOnly = false,
     resetting,
     entranceDelayMs,
     onRefresh,
@@ -95,6 +98,7 @@ export function QuotaCard(props: QuotaCardProps) {
     quota?.error || t('common.unknown_error')
   );
   const showReset =
+    !readOnly &&
     status === 'success' &&
     Boolean(adapter.resetQuota) &&
     quota !== undefined &&
@@ -193,7 +197,7 @@ export function QuotaCard(props: QuotaCardProps) {
 
       {status !== 'idle' && (
         <footer className={styles.actionRow}>
-          {entry.type === 'claude' && (
+          {entry.type === 'claude' && !readOnly && (
             <button
               type="button"
               className={styles.actionPill}

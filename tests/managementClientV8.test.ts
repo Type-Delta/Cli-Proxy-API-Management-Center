@@ -89,3 +89,38 @@ test('captured SIWC transport keeps original credentials and suppresses stale ev
   await expect(captured.delete('/oauth/session', { adapter: unauthorized })).rejects.toThrow();
   expect(events).toEqual([]);
 });
+
+test.each([200, 401])(
+  'shared transport suppresses stale response events after ABA (%i)',
+  async (status) => {
+    const events: string[] = [];
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: { dispatchEvent: (event: Event) => events.push(event.type) },
+    });
+    apiClient.setConfig({ apiBase: 'https://original.invalid', managementKey: 'original-fixture' });
+    let release!: () => void;
+    let started!: () => void;
+    const ready = new Promise<void>((resolve) => (started = resolve));
+    const adapter: AxiosAdapter = async (config) => {
+      started();
+      await new Promise<void>((resolve) => (release = resolve));
+      const response = {
+        data: {},
+        status,
+        statusText: 'Fixture response',
+        config,
+        headers: { 'x-cpa-version': 'old', 'x-cpa-support-plugin': 'true' },
+      };
+      if (status === 401) throw { isAxiosError: true, message: 'Unauthorized', config, response };
+      return response;
+    };
+    const pending = apiClient.get('/config', { adapter }).catch(() => {});
+    apiClient.setConfig({ apiBase: 'https://new.invalid', managementKey: 'new-fixture' });
+    apiClient.setConfig({ apiBase: 'https://original.invalid', managementKey: 'original-fixture' });
+  await ready;
+    release();
+    await pending;
+    expect(events).toEqual([]);
+  }
+);

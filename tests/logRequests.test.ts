@@ -186,13 +186,14 @@ describe('logs controller lifecycle wiring', () => {
         'unsubscribeAuth();\n      unsubscribeConfig();\n      invalidateSession();'
       );
     }
-    expect(source).toContain('next.config?.loggingToFile !== previous.config?.loggingToFile');
-    expect(page).toContain('next.config?.requestLog !== previous.config?.requestLog');
+    // Flags come from the full config or, for read-only sessions, the overview summary.
+    expect(source).toContain("subscribeRuntimeFlag('loggingToFile', resetLogs)");
+    expect(page).toContain("subscribeRuntimeFlag('requestLog', resetErrors)");
   });
 
   test('queued reloads read current stores and delayed confirmations check their session', () => {
     expect(source).toContain("useAuthStore.getState().connectionStatus !== 'connected'");
-    expect(source).toContain('!useConfigStore.getState().config?.loggingToFile');
+    expect(source).toContain('!readRuntime()?.loggingToFile');
     expect(source).toContain('if (!requests.session.isCurrent(session)) return;');
     expect(source).toContain('requests.logs.startClear()');
     expect(source).toContain('requests.logs.finish(request, clearFailed)');

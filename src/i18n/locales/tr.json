@@ -117,7 +117,8 @@
     "analytics_usage": "Kullanım",
     "analytics_management": "Analitik Yönetimi",
     "analytics_leaderboard": "Model Skor Tablosu",
-    "routing": "Yönlendirme"
+    "routing": "Yönlendirme",
+    "management_keys": "Yönetim Anahtarları"
   },
   "nav_groups": {
     "operate": "İşlet",
@@ -143,7 +144,8 @@
     "analytics_management": "Fiyatlandırma, sağlayıcılar ve bakım",
     "analytics_leaderboard": "Haftanın öne çıkan modelleri",
     "analytics_model-leaderboard": "Tüm sağlayıcılar ve kimlik bilgileri genelinde haftanın en iyi modelleri.",
-    "routing": "Öncelik katmanları ve yük devretme"
+    "routing": "Öncelik katmanları ve yük devretme",
+    "management_keys": "Kapsamlı yönetici erişimi"
   },
   "analytics": {
     "events_pagination": "Geçmişi sayfalandırmayı deneyin",
@@ -1946,6 +1948,7 @@
     "empty_desc": "Kotayı Sormak için Bir Devin Kimlik Dosyası Yükle veya Arka Uç CLI ile Giriş Yap."
   },
   "meta_quota": {
+    "read_only_unavailable": "Meta kota yenilemesi API anahtarı oluşturmayı gerektirir ve salt okunur oturumlarda kullanılamaz.",
     "title": "Muse (Meta) Kotası",
     "empty_title": "Muse Kimlik Bilgisi Yok",
     "empty_desc": "Kotayı Sormak için Muse OAuth ile Giriş Yap veya Bir Meta Kimlik Dosyası Yükle.",
@@ -4232,5 +4235,42 @@
     "error": "Bağlama Başarısız Oldu. Lütfen Yeniden Başla.",
     "unsupported": "Bu Arka Uç SIWC Bağlamayı Desteklemiyor.",
     "expired": "Bağlama Oturumunun Süresi Doldu. Lütfen Yeniden Başla."
+  },
+  "session_scope": {
+    "read_only": "Salt okunur",
+    "read_only_hint": "Bu oturum salt okunur bir yönetim anahtarı kullanıyor. Panoya, günlüklere, sistem bilgilerine, analizlere ve kotaya göz atabilirsiniz ancak hiçbir şeyi değiştiremezsiniz.",
+    "models_unavailable": "Model listesi salt okunur oturumlarda kullanılamaz."
+  },
+  "management_keys": {
+    "title": "Yönetim Anahtarları",
+    "description": "Bu yönetim merkezine giriş yapan anahtarlar. Tam erişimli anahtarlar her şeyi yönetir; salt okunur anahtarlar panoya, günlüklere, sistem bilgilerine, analizlere ve kotaya göz atabilir ancak ayarları değiştiremez.",
+    "add": "Anahtar ekle",
+    "load_failed": "Yönetim anahtarları yüklenemedi",
+    "empty_title": "Henüz kapsamlı yönetim anahtarı yok",
+    "empty_desc": "Birine tam veya salt okunur erişim vermek için bir anahtar ekleyin.",
+    "name": "Ad",
+    "name_placeholder": "Örneğin, finans panosu",
+    "key": "Anahtar",
+    "new_key": "Yeni anahtar",
+    "key_hint": "Sunucuda saklanır ve bir daha gösterilmez. Güvenli bir kanaldan paylaşın.",
+    "scope": "Erişim",
+    "scope_full_access": "Tam erişim",
+    "scope_read_only": "Salt okunur",
+    "scope_full_access_desc": "Bu anahtarlar dahil tüm ayarları değiştirebilir.",
+    "scope_read_only_desc": "Analizlere ve kotaya göz atabilir. Ekleme, düzenleme veya silme yapamaz.",
+    "unnamed": "Adsız anahtar",
+    "edit": "Düzenle",
+    "rotate": "Yenile",
+    "delete": "Sil",
+    "edit_title": "{{name}} düzenle",
+    "rotate_title": "{{name}} yenile",
+    "rotate_hint": "Kaydettiğiniz anda mevcut anahtar çalışmayı bırakır. Bu anahtarla açılan oturumlar yeni anahtarla yeniden giriş yapmalıdır.",
+    "delete_title": "Yönetim anahtarını sil",
+    "delete_message": "\"{{name}}\" silinsin mi? Bu anahtarı kullanan herkes erişimini hemen kaybeder.",
+    "deleted": "Yönetim anahtarı silindi",
+    "saved": "Yönetim anahtarı kaydedildi",
+    "save_failed": "Yönetim anahtarı kaydedilemedi",
+    "name_required": "Bir ad girin.",
+    "key_required": "Bir anahtar girin."
   }
 }

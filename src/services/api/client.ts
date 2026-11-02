@@ -36,6 +36,7 @@ class ApiClient {
   private apiBase: string = '';
   private managementKey: string = '';
   private connectionRevision = 0;
+  private requestRevisions = new WeakMap<object, number>();
   private connectionListeners = new Set<(revision: number) => void>();
 
   constructor(private readonly emitEvents: () => boolean = () => true) {
@@ -100,6 +101,14 @@ class ApiClient {
     return client;
   }
 
+  private canEmitFor(config: object | undefined): boolean {
+    return (
+      config !== undefined &&
+      this.requestRevisions.get(config) === this.connectionRevision &&
+      this.emitEvents()
+    );
+  }
+
   private readHeader(headers: Record<string, unknown> | undefined, keys: string[]): string | null {
     if (!headers) return null;
 
@@ -158,6 +167,7 @@ class ApiClient {
     // Request interceptor
     this.instance.interceptors.request.use(
       (config) => {
+        this.requestRevisions.set(config, this.connectionRevision);
         // Base URL
         config.baseURL = this.apiBase;
 
@@ -168,7 +178,10 @@ class ApiClient {
 
         return config;
       },
-      (error) => Promise.reject(this.handleError(error))
+      (error) => {
+        throw this.handleError(error);
+      },
+      { synchronous: true }
     );
 
     // Response interceptor
@@ -182,14 +195,14 @@ class ApiClient {
         const supportsPlugin = this.readBooleanHeader(headers, CPA_SUPPORT_PLUGIN_HEADER_KEYS);
 
         // Dispatch version updates for store consumers
-        if (this.emitEvents() && (version || buildDate)) {
+        if (this.canEmitFor(response.config) && (version || buildDate)) {
           window.dispatchEvent(
             new CustomEvent('server-version-update', {
               detail: { version: version || null, buildDate: buildDate || null },
             })
           );
         }
-        if (this.emitEvents() && supportsPlugin !== null) {
+        if (this.canEmitFor(response.config) && supportsPlugin !== null) {
           window.dispatchEvent(
             new CustomEvent('server-plugin-support-update', {
               detail: { supportsPlugin },
@@ -226,7 +239,7 @@ class ApiClient {
       apiError.data = responseData;
 
       // Dispatch logout for unauthorized responses
-      if (this.emitEvents() && error.response?.status === 401) {
+      if (this.canEmitFor(error.config) && error.response?.status === 401) {
         window.dispatchEvent(new Event('unauthorized'));
       }
 

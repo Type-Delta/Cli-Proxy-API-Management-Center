@@ -117,7 +117,8 @@
     "analytics_usage": "用量",
     "analytics_management": "分析管理",
     "analytics_leaderboard": "模型排行榜",
-    "routing": "路由编排"
+    "routing": "路由编排",
+    "management_keys": "管理密钥"
   },
   "nav_groups": {
     "operate": "运行",
@@ -143,7 +144,8 @@
     "analytics_management": "定价、供应商与维护",
     "analytics_leaderboard": "每周最佳模型",
     "analytics_model-leaderboard": "本周跨所有提供商与凭证的最佳模型。",
-    "routing": "优先级分层与故障转移"
+    "routing": "优先级分层与故障转移",
+    "management_keys": "分级管理访问"
   },
   "analytics": {
     "events_pagination": "尝试记录分页",
@@ -1946,6 +1948,7 @@
     "empty_desc": "上传 Devin 凭据文件或通过后端 CLI 登录后，即可查询额度。"
   },
   "meta_quota": {
+    "read_only_unavailable": "刷新 Meta 配额需要签发 API 密钥，只读会话无法使用。",
     "title": "Muse (Meta) 额度",
     "empty_title": "暂无 Muse 凭据",
     "empty_desc": "使用 Muse OAuth 登录或上传 Meta 认证文件以查询额度。",
@@ -4232,5 +4235,42 @@
     "error": "绑定失败，请重新开始。",
     "unsupported": "当前后端不支持 SIWC 绑定。",
     "expired": "绑定会话已过期，请重新开始。"
+  },
+  "session_scope": {
+    "read_only": "只读",
+    "read_only_hint": "当前会话使用只读管理密钥。你可以浏览仪表盘、日志、系统信息、分析和配额，但不能修改任何内容。",
+    "models_unavailable": "只读会话无法查看模型列表。"
+  },
+  "management_keys": {
+    "title": "管理密钥",
+    "description": "用于登录此管理中心的密钥。完全访问密钥可以管理所有内容；只读密钥可以浏览仪表盘、日志、系统信息、分析和配额，但不能修改设置。",
+    "add": "添加密钥",
+    "load_failed": "无法加载管理密钥",
+    "empty_title": "还没有分级管理密钥",
+    "empty_desc": "添加密钥，为他人提供此管理中心的完全或只读访问权限。",
+    "name": "名称",
+    "name_placeholder": "例如：财务看板",
+    "key": "密钥",
+    "new_key": "新密钥",
+    "key_hint": "由服务器保存，之后不会再次显示。请通过安全渠道分享。",
+    "scope": "访问权限",
+    "scope_full_access": "完全访问",
+    "scope_read_only": "只读",
+    "scope_full_access_desc": "可以修改所有设置，包括这些密钥。",
+    "scope_read_only_desc": "可以浏览分析和配额，不能添加、编辑或删除任何内容。",
+    "unnamed": "未命名密钥",
+    "edit": "编辑",
+    "rotate": "轮换",
+    "delete": "删除",
+    "edit_title": "编辑 {{name}}",
+    "rotate_title": "轮换 {{name}}",
+    "rotate_hint": "保存后当前密钥立即失效。使用它登录的会话需要用新密钥重新登录。",
+    "delete_title": "删除管理密钥",
+    "delete_message": "删除“{{name}}”？使用此密钥的人将立即失去访问权限。",
+    "deleted": "管理密钥已删除",
+    "saved": "管理密钥已保存",
+    "save_failed": "无法保存管理密钥",
+    "name_required": "请输入名称。",
+    "key_required": "请输入密钥。"
   }
 }

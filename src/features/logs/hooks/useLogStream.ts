@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
+import { useAuthStore, useNotificationStore } from '@/stores';
+import { readRuntime, subscribeRuntimeFlag, useRuntime } from '@/stores/sessionRuntime';
+import { isReadOnlyScope } from '@/router/sessionAccess';
 import { logsApi } from '@/services/api/logs';
 import { getErrorMessage } from '@/utils/helpers';
 import {
@@ -51,7 +53,9 @@ export function useLogStream({ active, isFollowing, onFollow }: LogStreamOptions
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
   const apiBase = useAuthStore((state) => state.apiBase);
   const managementKey = useAuthStore((state) => state.managementKey);
-  const loggingToFileEnabled = useConfigStore((state) => state.config?.loggingToFile ?? false);
+  const loggingToFileEnabled = useRuntime()?.loggingToFile ?? false;
+  // Clearing deletes server log files, so read-only sessions keep only local actions.
+  const canClearLogs = !isReadOnlyScope(useAuthStore((state) => state.scope));
   const cpaNeedsFileLogging = !loggingToFileEnabled;
   const [fileLoggingRequired, setFileLoggingRequired] = useState(false);
   const showFileLoggingRequired = cpaNeedsFileLogging || fileLoggingRequired;
@@ -94,7 +98,7 @@ export function useLogStream({ active, isFollowing, onFollow }: LogStreamOptions
       return;
     }
 
-    if (!useConfigStore.getState().config?.loggingToFile) {
+    if (!readRuntime()?.loggingToFile) {
       if (!incremental) {
         resetLogPosition();
         setFileLoggingRequired(false);
@@ -156,6 +160,7 @@ export function useLogStream({ active, isFollowing, onFollow }: LogStreamOptions
   }
 
   const clearLogs = async () => {
+    if (!canClearLogs) return;
     if (cpaNeedsFileLogging) {
       showNotification(t('logs.cpa_file_logging_required'), 'warning');
       return;
@@ -173,7 +178,8 @@ export function useLogStream({ active, isFollowing, onFollow }: LogStreamOptions
       onConfirm: async () => {
         if (!requests.session.isCurrent(session)) return;
         if (useAuthStore.getState().connectionStatus !== 'connected') return;
-        if (!useConfigStore.getState().config?.loggingToFile) return;
+        if (!readRuntime()?.loggingToFile) return;
+        if (isReadOnlyScope(useAuthStore.getState().scope)) return;
         const request = requests.logs.startClear();
         if (request === null) return;
         setClearingLogs(true);
@@ -230,9 +236,7 @@ export function useLogStream({ active, isFollowing, onFollow }: LogStreamOptions
       invalidateSession();
       resetLogs();
     });
-    const unsubscribeConfig = useConfigStore.subscribe((next, previous) => {
-      if (next.config?.loggingToFile !== previous.config?.loggingToFile) resetLogs();
-    });
+    const unsubscribeConfig = subscribeRuntimeFlag('loggingToFile', resetLogs);
     return () => {
       unsubscribeAuth();
       unsubscribeConfig();
@@ -276,6 +280,7 @@ export function useLogStream({ active, isFollowing, onFollow }: LogStreamOptions
     cpaNeedsFileLogging,
     showFileLoggingRequired,
     loadLogs,
+    canClearLogs,
     clearLogs,
   };
 }

@@ -1,9 +1,10 @@
 /**
- * Antigravity 额度数据层：分组配额 + 订阅信息 + 服务器时钟偏移。
- * React-free / SCSS-free。
+ * Antigravity quota groups, subscription, and server clock offset.
+ * React-free / SCSS-free.
  */
 
 import type { TFunction } from 'i18next';
+import { useAuthStore } from '@/stores/useAuthStore';
 import type {
   AntigravityQuotaGroup,
   AntigravityQuotaSubscription,
@@ -61,6 +62,8 @@ const resolveAntigravityProjectId = async (file: AuthFileItem): Promise<string> 
       )
     : null;
   if (attributesProjectId) return attributesProjectId;
+
+  if (useAuthStore.getState().scope === 'read-only') return '';
 
   try {
     const text = await authFilesApi.downloadText(file.name);

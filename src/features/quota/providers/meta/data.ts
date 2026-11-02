@@ -1,4 +1,5 @@
 import type { TFunction } from 'i18next';
+import { useAuthStore } from '@/stores/useAuthStore';
 import type { MetaQuotaData, MetaQuotaState } from '@/types';
 import { apiCallApi } from '@/services/api/apiCall';
 import { authFilesApi } from '@/services/api/authFiles';
@@ -8,6 +9,7 @@ import type { QuotaProviderData } from '../types';
 import { createMetaQuotaFetcher, MetaQuotaError } from './requests';
 
 const fetchMetaQuota = createMetaQuotaFetcher({
+  isReadOnly: () => useAuthStore.getState().scope === 'read-only',
   request: (payload) => apiCallApi.request(payload),
   downloadText: (name) => authFilesApi.downloadText(name),
   captureCurrent: (name) => {

@@ -117,7 +117,8 @@
     "analytics_usage": "사용량",
     "analytics_management": "분석 관리",
     "analytics_leaderboard": "모델 리더보드",
-    "routing": "라우팅"
+    "routing": "라우팅",
+    "management_keys": "관리 키"
   },
   "nav_groups": {
     "operate": "운영",
@@ -143,7 +144,8 @@
     "analytics_management": "가격, 공급자, 유지 관리",
     "analytics_leaderboard": "이번 주 최고 모델",
     "analytics_model-leaderboard": "모든 공급자와 자격 증명에서 이번 주 최고 모델.",
-    "routing": "우선순위 계층과 장애 조치"
+    "routing": "우선순위 계층과 장애 조치",
+    "management_keys": "범위가 지정된 관리 접근"
   },
   "analytics": {
     "events_pagination": "시도 기록 페이지 매김",
@@ -1946,6 +1948,7 @@
     "empty_desc": "Devin 자격 증명 파일을 업로드하거나 백엔드 CLI로 로그인하여 할당량을 조회하세요."
   },
   "meta_quota": {
+    "read_only_unavailable": "Meta 할당량 새로고침에는 API 키 발급이 필요하므로 읽기 전용 세션에서는 사용할 수 없습니다.",
     "title": "Muse (Meta) 할당량",
     "empty_title": "Muse 자격 증명 없음",
     "empty_desc": "Muse OAuth로 로그인하거나 Meta 자격 증명 파일을 업로드하여 할당량을 조회하세요.",
@@ -4232,5 +4235,42 @@
     "error": "바인딩에 실패했습니다. 다시 시작하세요.",
     "unsupported": "이 서버는 SIWC 바인딩을 지원하지 않습니다.",
     "expired": "바인딩 세션이 만료되었습니다. 다시 시작하세요."
+  },
+  "session_scope": {
+    "read_only": "읽기 전용",
+    "read_only_hint": "이 세션은 읽기 전용 관리 키를 사용합니다. 대시보드, 로그, 시스템 정보, 분석, 할당량은 볼 수 있지만 아무것도 변경할 수 없습니다.",
+    "models_unavailable": "읽기 전용 세션에서는 모델 목록을 볼 수 없습니다."
+  },
+  "management_keys": {
+    "title": "관리 키",
+    "description": "이 관리 센터에 로그인하는 키입니다. 전체 접근 키는 모든 것을 관리하고, 읽기 전용 키는 대시보드, 로그, 시스템 정보, 분석, 할당량을 볼 수 있지만 설정을 변경할 수 없습니다.",
+    "add": "키 추가",
+    "load_failed": "관리 키를 불러올 수 없습니다",
+    "empty_title": "범위가 지정된 관리 키가 없습니다",
+    "empty_desc": "키를 추가해 다른 사람에게 전체 또는 읽기 전용 접근 권한을 부여하세요.",
+    "name": "이름",
+    "name_placeholder": "예: 재무 대시보드",
+    "key": "키",
+    "new_key": "새 키",
+    "key_hint": "서버에 저장되며 다시 표시되지 않습니다. 안전한 경로로 공유하세요.",
+    "scope": "접근 권한",
+    "scope_full_access": "전체 접근",
+    "scope_read_only": "읽기 전용",
+    "scope_full_access_desc": "이 키를 포함한 모든 설정을 변경할 수 있습니다.",
+    "scope_read_only_desc": "분석과 할당량을 볼 수 있습니다. 추가, 편집, 삭제는 할 수 없습니다.",
+    "unnamed": "이름 없는 키",
+    "edit": "편집",
+    "rotate": "교체",
+    "delete": "삭제",
+    "edit_title": "{{name}} 편집",
+    "rotate_title": "{{name}} 교체",
+    "rotate_hint": "저장하는 즉시 현재 키가 작동을 멈춥니다. 이 키로 로그인한 세션은 새 키로 다시 로그인해야 합니다.",
+    "delete_title": "관리 키 삭제",
+    "delete_message": "\"{{name}}\"을(를) 삭제할까요? 이 키를 사용하는 사람은 즉시 접근 권한을 잃습니다.",
+    "deleted": "관리 키를 삭제했습니다",
+    "saved": "관리 키를 저장했습니다",
+    "save_failed": "관리 키를 저장할 수 없습니다",
+    "name_required": "이름을 입력하세요.",
+    "key_required": "키를 입력하세요."
   }
 }

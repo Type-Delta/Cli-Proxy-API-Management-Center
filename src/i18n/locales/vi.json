@@ -117,7 +117,8 @@
     "analytics_usage": "Usage",
     "analytics_management": "Analytics Management",
     "analytics_leaderboard": "Bảng xếp hạng mô hình",
-    "routing": "Định tuyến"
+    "routing": "Định tuyến",
+    "management_keys": "Khóa quản lý"
   },
   "nav_groups": {
     "operate": "Vận hành",
@@ -143,7 +144,8 @@
     "analytics_management": "Pricing, providers, and maintenance",
     "analytics_leaderboard": "Các mô hình hàng đầu trong tuần",
     "analytics_model-leaderboard": "Các mô hình hàng đầu trong tuần trên mọi nhà cung cấp và thông tin xác thực.",
-    "routing": "Tầng ưu tiên và chuyển đổi dự phòng"
+    "routing": "Tầng ưu tiên và chuyển đổi dự phòng",
+    "management_keys": "Quyền quản trị theo phạm vi"
   },
   "analytics": {
     "events_pagination": "Attempt history pagination",
@@ -1946,6 +1948,7 @@
     "empty_desc": "Tải lên file credential Devin hoặc đăng nhập bằng CLI backend để truy vấn quota."
   },
   "meta_quota": {
+    "read_only_unavailable": "Làm mới hạn mức Meta yêu cầu tạo khóa API và không khả dụng trong phiên chỉ đọc.",
     "title": "Quota Muse (Meta)",
     "empty_title": "Không có credential Muse",
     "empty_desc": "Đăng nhập bằng Muse OAuth hoặc tải lên file credential Meta để truy vấn quota.",
@@ -4232,5 +4235,42 @@
     "error": "Liên kết thất bại. Hãy bắt đầu lại.",
     "unsupported": "Máy chủ này không hỗ trợ liên kết SIWC.",
     "expired": "Phiên liên kết đã hết hạn. Hãy bắt đầu lại."
+  },
+  "session_scope": {
+    "read_only": "Chỉ đọc",
+    "read_only_hint": "Phiên này dùng khóa quản lý chỉ đọc. Bạn có thể xem bảng điều khiển, nhật ký, thông tin hệ thống, phân tích và hạn mức nhưng không thể thay đổi gì.",
+    "models_unavailable": "Danh sách mô hình không khả dụng trong phiên chỉ đọc."
+  },
+  "management_keys": {
+    "title": "Khóa quản lý",
+    "description": "Các khóa dùng để đăng nhập trung tâm quản lý này. Khóa toàn quyền quản lý mọi thứ; khóa chỉ đọc có thể xem bảng điều khiển, nhật ký, thông tin hệ thống, phân tích và hạn mức nhưng không thể đổi cài đặt.",
+    "add": "Thêm khóa",
+    "load_failed": "Không thể tải khóa quản lý",
+    "empty_title": "Chưa có khóa quản lý theo phạm vi",
+    "empty_desc": "Thêm khóa để cấp cho người khác quyền đầy đủ hoặc chỉ đọc.",
+    "name": "Tên",
+    "name_placeholder": "Ví dụ: bảng điều khiển tài chính",
+    "key": "Khóa",
+    "new_key": "Khóa mới",
+    "key_hint": "Được máy chủ lưu và không hiển thị lại. Hãy chia sẻ qua kênh an toàn.",
+    "scope": "Quyền truy cập",
+    "scope_full_access": "Toàn quyền",
+    "scope_read_only": "Chỉ đọc",
+    "scope_full_access_desc": "Có thể thay đổi mọi cài đặt, kể cả các khóa này.",
+    "scope_read_only_desc": "Có thể xem phân tích và hạn mức. Không thể thêm, sửa hoặc xóa.",
+    "unnamed": "Khóa chưa đặt tên",
+    "edit": "Sửa",
+    "rotate": "Xoay khóa",
+    "delete": "Xóa",
+    "edit_title": "Sửa {{name}}",
+    "rotate_title": "Xoay khóa {{name}}",
+    "rotate_hint": "Khóa hiện tại ngừng hoạt động ngay khi lưu. Các phiên đăng nhập bằng khóa này phải đăng nhập lại bằng khóa mới.",
+    "delete_title": "Xóa khóa quản lý",
+    "delete_message": "Xóa \"{{name}}\"? Mọi người dùng khóa này sẽ mất quyền truy cập ngay lập tức.",
+    "deleted": "Đã xóa khóa quản lý",
+    "saved": "Đã lưu khóa quản lý",
+    "save_failed": "Không thể lưu khóa quản lý",
+    "name_required": "Hãy nhập tên.",
+    "key_required": "Hãy nhập khóa."
   }
 }

@@ -117,7 +117,8 @@
     "analytics_usage": "用量",
     "analytics_management": "分析管理",
     "analytics_leaderboard": "模型排行榜",
-    "routing": "路由編排"
+    "routing": "路由編排",
+    "management_keys": "管理金鑰"
   },
   "nav_groups": {
     "operate": "運行",
@@ -143,7 +144,8 @@
     "analytics_management": "定價、供應商與維護",
     "analytics_leaderboard": "每週最佳模型",
     "analytics_model-leaderboard": "本週跨所有供應商與憑證的最佳模型。",
-    "routing": "優先級分層與故障轉移"
+    "routing": "優先級分層與故障轉移",
+    "management_keys": "分級管理存取"
   },
   "analytics": {
     "events_pagination": "嘗試記錄分頁",
@@ -1946,6 +1948,7 @@
     "empty_desc": "上傳 Devin 憑證檔案或透過後端 CLI 登入後，即可查詢額度。"
   },
   "meta_quota": {
+    "read_only_unavailable": "重新整理 Meta 配額需要簽發 API 金鑰，唯讀工作階段無法使用。",
     "title": "Muse (Meta) 額度",
     "empty_title": "暫無 Muse 憑證",
     "empty_desc": "使用 Muse OAuth 登入或上傳 Meta 驗證檔案以查詢額度。",
@@ -4232,5 +4235,42 @@
     "error": "綁定失敗，請重新開始。",
     "unsupported": "目前後端不支援 SIWC 綁定。",
     "expired": "綁定工作階段已過期，請重新開始。"
+  },
+  "session_scope": {
+    "read_only": "唯讀",
+    "read_only_hint": "目前工作階段使用唯讀管理金鑰。你可以瀏覽儀表板、日誌、系統資訊、分析和配額，但無法修改任何內容。",
+    "models_unavailable": "唯讀工作階段無法查看模型清單。"
+  },
+  "management_keys": {
+    "title": "管理金鑰",
+    "description": "用於登入此管理中心的金鑰。完整存取金鑰可以管理所有內容；唯讀金鑰可以瀏覽儀表板、日誌、系統資訊、分析和配額，但無法修改設定。",
+    "add": "新增金鑰",
+    "load_failed": "無法載入管理金鑰",
+    "empty_title": "尚無分級管理金鑰",
+    "empty_desc": "新增金鑰，為他人提供此管理中心的完整或唯讀存取權限。",
+    "name": "名稱",
+    "name_placeholder": "例如：財務看板",
+    "key": "金鑰",
+    "new_key": "新金鑰",
+    "key_hint": "由伺服器保存，之後不會再次顯示。請透過安全管道分享。",
+    "scope": "存取權限",
+    "scope_full_access": "完整存取",
+    "scope_read_only": "唯讀",
+    "scope_full_access_desc": "可以修改所有設定，包括這些金鑰。",
+    "scope_read_only_desc": "可以瀏覽分析和配額，無法新增、編輯或刪除任何內容。",
+    "unnamed": "未命名金鑰",
+    "edit": "編輯",
+    "rotate": "輪替",
+    "delete": "刪除",
+    "edit_title": "編輯 {{name}}",
+    "rotate_title": "輪替 {{name}}",
+    "rotate_hint": "儲存後目前金鑰立即失效。使用它登入的工作階段需要以新金鑰重新登入。",
+    "delete_title": "刪除管理金鑰",
+    "delete_message": "刪除「{{name}}」？使用此金鑰的人將立即失去存取權限。",
+    "deleted": "管理金鑰已刪除",
+    "saved": "管理金鑰已儲存",
+    "save_failed": "無法儲存管理金鑰",
+    "name_required": "請輸入名稱。",
+    "key_required": "請輸入金鑰。"
   }
 }

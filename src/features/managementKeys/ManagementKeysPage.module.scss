@@ -1,0 +1,101 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $spacing-md;
+}
+
+.headerText {
+  min-width: 0;
+  max-width: 68ch;
+}
+
+.pageTitle {
+  margin: 0 0 $spacing-xs;
+  color: var(--text-primary);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.description {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.keyName {
+  display: inline-block;
+  max-width: 32ch;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.scopeBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-full;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &[data-scope='full-access'] {
+    border-color: var(--primary-30);
+    background: var(--primary-10);
+    color: var(--text-primary);
+  }
+}
+
+.actionsHead {
+  text-align: right;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.fieldLabel {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: $breakpoint-mobile) {
+  .pageTitle {
+    font-size: 24px;
+  }
+
+  .header > :global(.btn) {
+    width: 100%;
+  }
+}

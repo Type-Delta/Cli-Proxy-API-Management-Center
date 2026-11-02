@@ -117,7 +117,8 @@
     "analytics_usage": "Usage",
     "analytics_management": "Analytics Management",
     "analytics_leaderboard": "Model Leaderboard",
-    "routing": "Routing"
+    "routing": "Routing",
+    "management_keys": "Management Keys"
   },
   "nav_groups": {
     "operate": "Operate",
@@ -143,7 +144,8 @@
     "analytics_management": "Pricing, providers, and maintenance",
     "analytics_leaderboard": "Top models of the week",
     "analytics_model-leaderboard": "Top models of the week, across every provider and credential.",
-    "routing": "Priority tiers and failover"
+    "routing": "Priority tiers and failover",
+    "management_keys": "Scoped admin access"
   },
   "analytics": {
     "events_pagination": "Attempt history pagination",
@@ -1946,6 +1948,7 @@
     "empty_desc": "Upload a Devin credential file or sign in using the backend CLI to query quota."
   },
   "meta_quota": {
+    "read_only_unavailable": "Meta quota refresh requires minting an API key and is unavailable in read-only sessions.",
     "title": "Muse (Meta) Quota",
     "empty_title": "No Muse credentials",
     "empty_desc": "Sign in with Muse OAuth or upload a Meta credential file to query quota.",
@@ -4232,5 +4235,42 @@
     "error": "Binding failed. Please start over.",
     "unsupported": "This backend does not support SIWC binding.",
     "expired": "The binding session expired. Please start over."
+  },
+  "session_scope": {
+    "read_only": "Read-only",
+    "read_only_hint": "This session uses a read-only management key. You can browse the dashboard, logs, system info, analytics, and quota but cannot change anything.",
+    "models_unavailable": "Model list is unavailable in read-only sessions."
+  },
+  "management_keys": {
+    "title": "Management Keys",
+    "description": "Keys that sign in to this management center. Full-access keys manage everything; read-only keys can browse the dashboard, logs, system info, analytics, and quota but cannot change settings.",
+    "add": "Add key",
+    "load_failed": "Could not load management keys",
+    "empty_title": "No scoped management keys yet",
+    "empty_desc": "Add a key to give someone full or read-only access to this management center.",
+    "name": "Name",
+    "name_placeholder": "For example, finance dashboard",
+    "key": "Key",
+    "new_key": "New key",
+    "key_hint": "Stored by the server and never shown again. Share it through a secure channel.",
+    "scope": "Access",
+    "scope_full_access": "Full access",
+    "scope_read_only": "Read-only",
+    "scope_full_access_desc": "Can change every setting, including these keys.",
+    "scope_read_only_desc": "Can browse analytics and quota. Cannot add, edit, or delete anything.",
+    "unnamed": "Unnamed key",
+    "edit": "Edit",
+    "rotate": "Rotate",
+    "delete": "Delete",
+    "edit_title": "Edit {{name}}",
+    "rotate_title": "Rotate {{name}}",
+    "rotate_hint": "The current key stops working as soon as you save. Sessions signed in with it must sign in again with the new key.",
+    "delete_title": "Delete management key",
+    "delete_message": "Delete \"{{name}}\"? Anyone using this key loses access immediately.",
+    "deleted": "Management key deleted",
+    "saved": "Management key saved",
+    "save_failed": "Could not save the management key",
+    "name_required": "Enter a name.",
+    "key_required": "Enter a key."
   }
 }

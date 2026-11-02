@@ -16,9 +16,12 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { PageTransition } from '@/components/common/PageTransition';
 import { MainRoutes } from '@/router/MainRoutes';
+import { isPathAllowedForScope, isReadOnlyScope } from '@/router/sessionAccess';
 import { authFilesApi, capabilitiesApi, pluginsApi } from '@/services/api';
 import {
   IconChevronDown,
+  IconEye,
+  IconKeyRound,
   IconNotebookPen,
   IconSidebarAuthFiles,
   IconSidebarConfig,
@@ -39,6 +42,7 @@ import {
   useAuthStore,
   useLoginTransitionStore,
   useConfigStore,
+  useOverviewStore,
   useLanguageStore,
   useNotificationStore,
   useThemeStore,
@@ -80,6 +84,7 @@ const sidebarIcons: Record<string, ReactNode> = {
   analytics: <ANALYTICS_WORKSPACE_ICON size={18} />,
   analyticsLeaderboard: <IconTrophy size={18} />,
   analyticsManagement: <IconNotebookPen size={18} />,
+  managementKeys: <IconKeyRound size={18} />,
 };
 
 interface SidebarNavLinkItem {
@@ -333,9 +338,12 @@ export function MainLayout() {
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
   const apiBase = useAuthStore((state) => state.apiBase);
   const supportsPlugin = useAuthStore((state) => state.supportsPlugin);
+  const scope = useAuthStore((state) => state.scope);
+  const readOnly = isReadOnlyScope(scope);
 
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
   const clearCache = useConfigStore((state) => state.clearCache);
+  const fetchOverview = useOverviewStore((state) => state.fetchOverview);
   const config = useConfigStore((state) => state.config);
 
   const theme = useThemeStore((state) => state.theme);
@@ -498,14 +506,16 @@ export function MainLayout() {
     [setLanguage]
   );
 
+  // Read-only sessions never request the full config, which carries secrets; they read the
+  // secret-free overview instead.
   useEffect(() => {
-    fetchConfig().catch(() => {
+    (readOnly ? fetchOverview() : fetchConfig()).catch(() => {
       // Ignore the initial failure; the login flow shows the user-facing prompt.
     });
-  }, [fetchConfig]);
+  }, [fetchConfig, fetchOverview, readOnly]);
 
   const loadPluginResources = useCallback(async () => {
-    if (connectionStatus !== 'connected' || !supportsPlugin) {
+    if (connectionStatus !== 'connected' || !supportsPlugin || readOnly) {
       setPluginResources([]);
       return;
     }
@@ -516,11 +526,11 @@ export function MainLayout() {
     } catch {
       setPluginResources([]);
     }
-  }, [connectionStatus, supportsPlugin]);
+  }, [connectionStatus, supportsPlugin, readOnly]);
 
   const loadAuthFilesCount = useCallback(async () => {
     const requestID = ++authFilesCountRequestRef.current;
-    if (connectionStatus !== 'connected') {
+    if (connectionStatus !== 'connected' || readOnly) {
       setAuthFilesCount(null);
       return;
     }
@@ -533,7 +543,7 @@ export function MainLayout() {
       if (requestID !== authFilesCountRequestRef.current) return;
       setAuthFilesCount(null);
     }
-  }, [connectionStatus]);
+  }, [connectionStatus, readOnly]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -631,7 +641,7 @@ export function MainLayout() {
     icon: sidebarIcons.quickStart,
   };
 
-  const navGroups: SidebarNavGroup[] = [
+  const allNavGroups: SidebarNavGroup[] = [
     {
       id: 'operate',
       labelKey: 'nav_groups.operate',
@@ -766,6 +776,12 @@ export function MainLayout() {
           metaKey: 'nav_meta.system_info',
           icon: sidebarIcons.system,
         },
+        {
+          path: '/management-keys',
+          labelKey: 'nav.management_keys',
+          metaKey: 'nav_meta.management_keys',
+          icon: sidebarIcons.managementKeys,
+        },
       ],
     },
     ...(pluginPageNavItems.length > 0
@@ -778,6 +794,16 @@ export function MainLayout() {
         ]
       : []),
   ];
+  const navGroups = readOnly
+    ? allNavGroups
+        .map((group) => ({
+          ...group,
+          items: group.items.filter(
+            (item) => item.kind !== 'drawer' && isPathAllowedForScope(item.path, scope)
+          ),
+        }))
+        .filter((group) => group.items.length > 0)
+    : allNavGroups;
   const navItems = navGroups.flatMap((group) => flattenNavItems(group.items));
   const navOrder = navItems.map((item) => item.path);
   const getRouteOrder = (pathname: string) => {
@@ -827,7 +853,7 @@ export function MainLayout() {
   const handleRefreshAll = async () => {
     clearCache();
     const results = await Promise.allSettled([
-      fetchConfig(true),
+      readOnly ? fetchOverview(true) : fetchConfig(true),
       loadPluginResources(),
       loadAuthFilesCount(),
       triggerHeaderRefresh(),
@@ -1113,6 +1139,16 @@ export function MainLayout() {
         </div>
 
         <div className="header-actions floating-actions">
+          {readOnly && (
+            <span
+              className="session-scope-badge"
+              role="status"
+              title={t('session_scope.read_only_hint')}
+            >
+              <IconEye size={14} aria-hidden="true" />
+              <span>{t('session_scope.read_only')}</span>
+            </span>
+          )}
           <Button
             variant="ghost"
             size="sm"

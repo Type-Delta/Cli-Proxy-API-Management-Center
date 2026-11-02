@@ -1,10 +1,23 @@
-import { afterEach, describe, expect, spyOn, test } from 'bun:test';
+import { afterAll, beforeAll, afterEach, describe, expect, spyOn, test } from 'bun:test';
 import i18n from '@/i18n';
 import { KIMI_CONFIG } from '@/features/quota/providers/kimi/data';
 import { apiCallApi, authFilesApi } from '@/services/api';
 import { parseKimiQuotaUrl } from '@/services/api/kimiQuota';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useQuotaStore } from '@/stores/useQuotaStore';
 import { KIMI_AI_USAGE_URL, KIMI_USAGE_URL } from '@/utils/quota';
+
+const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+beforeAll(() => {
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
+  });
+});
+afterAll(() => {
+  if (originalStorage) Object.defineProperty(globalThis, 'localStorage', originalStorage);
+  else Reflect.deleteProperty(globalThis, 'localStorage');
+});
 
 const file = { name: 'kimi-ai-fixture.json', provider: 'kimi-ai', authIndex: 'fixture-index' };
 const response = { statusCode: 200, header: {}, bodyText: '', body: { limits: [] } };
@@ -44,6 +57,23 @@ describe('Kimi effective quota domain', () => {
       expect(() => parseKimiQuotaUrl(text, file)).toThrow('Invalid Kimi credential');
     }
   );
+
+  test('read-only fetches allowlisted quota and profile without downloading credentials', async () => {
+    useAuthStore.setState({ scope: 'read-only' });
+    const download = spyOn(authFilesApi, 'downloadText');
+    const request = spyOn(apiCallApi, 'request').mockResolvedValue(response);
+    try {
+      await KIMI_CONFIG.fetchQuota(file, i18n.t);
+      expect(download).not.toHaveBeenCalled();
+      expect(request.mock.calls.map(([payload]) => payload.url)).toEqual([
+        KIMI_AI_USAGE_URL, KIMI_AI_USAGE_URL.replace('/usages', '/me'),
+      ]);
+    } finally {
+      useAuthStore.setState({ scope: null });
+      download.mockRestore();
+      request.mockRestore();
+    }
+  });
 
   test('downloads the credential and honors its domain instead of its provider', async () => {
     const download = spyOn(authFilesApi, 'downloadText').mockResolvedValue(

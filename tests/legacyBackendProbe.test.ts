@@ -1,7 +1,8 @@
-import { afterAll, afterEach, beforeAll, describe, expect, spyOn, test } from 'bun:test';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import axios from 'axios';
 import { apiClient } from '@/services/api/client';
 import { LegacyBackendError } from '@/services/api/legacyBackendProbe';
+import { managementSessionApi } from '@/services/api/managementKeys';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useConfigStore } from '@/stores/useConfigStore';
 
@@ -23,6 +24,10 @@ beforeAll(() => {
     configurable: true,
     value: { location: { host: 'proxy.invalid' } },
   });
+});
+beforeEach(() => {
+  // Backends without scoped keys report a full-access session (see managementKeys.test.ts).
+  spies.push(spyOn(managementSessionApi, 'getScope').mockResolvedValue('full-access'));
 });
 afterAll(() => {
   if (originalStorage) Object.defineProperty(globalThis, 'localStorage', originalStorage);

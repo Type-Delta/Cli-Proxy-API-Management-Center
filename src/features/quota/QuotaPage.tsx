@@ -22,6 +22,7 @@ import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { useNow } from '@/hooks/useNow';
 import { useRevealGroup } from '@/hooks/motion';
 import { useAuthStore, useQuotaStore, useThemeStore } from '@/stores';
+import { isReadOnlyScope } from '@/router/sessionAccess';
 import type { AuthFileItem, ResolvedTheme } from '@/types';
 import { getQuotaCacheKey } from '@/utils/quota/identity';
 import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
@@ -73,6 +74,7 @@ const recordedQuotaStates = new WeakSet<QuotaCardState>();
 export function QuotaPage() {
   const { t } = useTranslation();
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
+  const readOnly = useAuthStore((state) => isReadOnlyScope(state.scope));
   const resolvedTheme: ResolvedTheme = useThemeStore((state) => state.resolvedTheme);
 
   const [files, setFiles] = useState<AuthFileItem[]>([]);
@@ -349,8 +351,10 @@ export function QuotaPage() {
     };
   }, [disableControls, sessionGeneration]);
 
+  // Recording history samples is a write; read-only sessions only chart what exists.
   useEffect(() => {
     if (
+      readOnly ||
       !historyAvailable ||
       batchLoading ||
       loading ||
@@ -389,6 +393,7 @@ export function QuotaPage() {
     historyAvailable,
     filesGeneration,
     sessionGeneration,
+    readOnly,
   ]);
 
   const activeSummary = useMemo(
@@ -574,6 +579,7 @@ export function QuotaPage() {
                 quota={getQuota(entry)}
                 resolvedTheme={resolvedTheme}
                 canRefresh={canUseActions && !entry.file.disabled}
+                readOnly={readOnly}
                 resetting={resettingQuotaName === getQuotaCacheKey(entry.file)}
                 entranceDelayMs={cardEntranceDelay(index)}
                 onRefresh={() => void refreshQuota(entry.file, QUOTA_ADAPTERS[entry.type])}

@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { authFilesApi } from '@/services/api';
-import { useAuthStore, useConfigStore, useModelsStore } from '@/stores';
+import { useAuthStore, useConfigStore, useModelsStore, useOverviewStore } from '@/stores';
+import { useRuntime } from '@/stores/sessionRuntime';
+import { isReadOnlyScope } from '@/router/sessionAccess';
+import type { ManagementOverview } from '@/services/api/overview';
 import { useApiKeysForModels } from '@/hooks/useApiKeysForModels';
-import { useProviderRecentRequests } from '@/components/providers/hooks/useProviderRecentRequests';
+import {
+  useProviderRecentRequests,
+  type ProviderRecentRequests,
+} from '@/components/providers/hooks/useProviderRecentRequests';
 import {
   mergeRecentRequestBucketGroups,
   normalizeRecentRequestUsageEntry,
@@ -91,6 +97,17 @@ const createAccumulator = (): ProviderAccumulator => ({
   bucketGroups: [],
 });
 
+/** Read-only counts come from the overview; the model list needs a client key, so it is unknown. */
+export const readOnlyDashboardCounts = (
+  overview: ManagementOverview | null,
+  authFiles: AuthFileItem[] | null
+): DashboardCounts => ({
+  managementKeys: overview ? overview.counts.apiKeys : null,
+  providerKeys: overview ? overview.counts.providerKeys : null,
+  credentials: authFiles ? authFiles.length : null,
+  models: null,
+});
+
 export const getProviderKeyCounts = (config: Config) => ({
   gemini: config.geminiApiKeys?.length ?? 0,
   interactions: config.interactionsApiKeys?.length ?? 0,
@@ -103,6 +120,88 @@ export const getProviderKeyCounts = (config: Config) => ({
 });
 
 /**
+ * Merges api-key-usage (inline API-key credentials) and credential-list traffic per provider.
+ * Both sources report API-key credentials, so those are counted from api-key-usage only.
+ */
+export function aggregateDashboardTraffic(
+  usageByProvider: ProviderRecentRequests,
+  authFiles: AuthFileItem[] | null,
+  readOnly: boolean
+): { traffic: TrafficWindow; providers: ProviderTraffic[] } {
+  const accumulators = new Map<string, ProviderAccumulator>();
+  const allBucketGroups: RecentRequestBucket[][] = [];
+  const apiKeysFromUsage = new Set<string>();
+
+  const accumulatorFor = (providerId: string): ProviderAccumulator => {
+    const existing = accumulators.get(providerId);
+    if (existing) return existing;
+    const created = createAccumulator();
+    accumulators.set(providerId, created);
+    return created;
+  };
+
+  usageByProvider.forEach((entriesByKey, providerId) => {
+    const accumulator = accumulatorFor(providerId);
+    entriesByKey.forEach((entry, compositeKey) => {
+      // Read-only identities are opaque numbered keys, not `<baseUrl>|<apiKey>` composites.
+      const apiKey = readOnly ? '' : apiKeyFromCompositeKey(compositeKey);
+      if (apiKey) {
+        apiKeysFromUsage.add(apiKey);
+      }
+      accumulator.credentials += 1;
+      accumulator.success += entry.success;
+      accumulator.failure += entry.failed;
+      if (entry.recentRequests.length > 0) {
+        accumulator.bucketGroups.push(entry.recentRequests);
+        allBucketGroups.push(entry.recentRequests);
+      }
+    });
+  });
+
+  (authFiles ?? []).forEach((file) => {
+    const accountType = String(file.account_type ?? '')
+      .trim()
+      .toLowerCase();
+    const account = String(file.account ?? '').trim();
+    // Skip credentials already counted by api-key-usage, which reports every API-key credential.
+    // Read-only listings omit `account` for API keys, so they cannot be matched individually.
+    if (accountType === 'api_key' && (readOnly || (account && apiKeysFromUsage.has(account)))) {
+      return;
+    }
+
+    const accumulator = accumulatorFor(providerIdOfAuthFile(file));
+    const entry = normalizeRecentRequestUsageEntry(file);
+    accumulator.credentials += 1;
+    accumulator.success += entry.success;
+    accumulator.failure += entry.failed;
+    if (entry.recentRequests.length > 0) {
+      accumulator.bucketGroups.push(entry.recentRequests);
+      allBucketGroups.push(entry.recentRequests);
+    }
+  });
+
+  const providerRows: ProviderTraffic[] = Array.from(accumulators.entries())
+    .map(([id, accumulator]) => {
+      const total = accumulator.success + accumulator.failure;
+      return {
+        id,
+        credentials: accumulator.credentials,
+        success: accumulator.success,
+        failure: accumulator.failure,
+        total,
+        successRate: total > 0 ? (accumulator.success / total) * 100 : null,
+        buckets: mergeRecentRequestBucketGroups(accumulator.bucketGroups),
+      };
+    })
+    .sort((a, b) => b.total - a.total || b.credentials - a.credentials || a.id.localeCompare(b.id));
+
+  return {
+    traffic: buildTrafficWindow(allBucketGroups),
+    providers: providerRows,
+  };
+}
+
+/**
  * 汇总仪表盘所需的全部数据。
  *
  * 流量数据有两个互不重叠的来源：`api-key-usage`（配置内联的 API Key 凭证）
@@ -112,8 +211,14 @@ export const getProviderKeyCounts = (config: Config) => ({
 export function useDashboardOverview() {
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
   const apiBase = useAuthStore((state) => state.apiBase);
+  const readOnly = isReadOnlyScope(useAuthStore((state) => state.scope));
   const config = useConfigStore((state) => state.config);
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
+  const overview = useOverviewStore((state) => state.overview);
+  const fetchOverview = useOverviewStore((state) => state.fetchOverview);
+  const runtime = useRuntime();
+  // Read-only sessions read the secret-free overview instead of the full config.
+  const fetchSettings = readOnly ? fetchOverview : fetchConfig;
 
   const models = useModelsStore((state) => state.models);
   const modelsLoading = useModelsStore((state) => state.loading);
@@ -139,108 +244,44 @@ export function useDashboardOverview() {
     }
   }, [connected]);
 
+  // `/models` needs a client API key, which read-only sessions cannot read.
   const loadModels = useCallback(async () => {
-    if (!connected || !apiBase) return;
+    if (!connected || !apiBase || readOnly) return;
     try {
       const apiKeys = await resolveApiKeysForModels();
       await fetchModelsFromStore(apiBase, apiKeys[0]);
     } catch {
       // 模型列表失败不应影响仪表盘其余部分
     }
-  }, [connected, apiBase, resolveApiKeysForModels, fetchModelsFromStore]);
+  }, [connected, apiBase, readOnly, resolveApiKeysForModels, fetchModelsFromStore]);
 
   useEffect(() => {
     if (!connected) return;
-    void fetchConfig().catch(() => undefined);
+    void fetchSettings().catch(() => undefined);
     void loadAuthFiles();
     void loadModels();
-  }, [connected, fetchConfig, loadAuthFiles, loadModels]);
+  }, [connected, fetchSettings, loadAuthFiles, loadModels]);
 
   const refresh = useCallback(async () => {
     if (!connected) return;
     await Promise.allSettled([
-      fetchConfig(true),
+      fetchSettings(true),
       loadAuthFiles(),
       loadModels(),
       refreshRecentRequests(),
     ]);
-  }, [connected, fetchConfig, loadAuthFiles, loadModels, refreshRecentRequests]);
+  }, [connected, fetchSettings, loadAuthFiles, loadModels, refreshRecentRequests]);
 
-  const providerKeyCounts = useMemo(() => (config ? getProviderKeyCounts(config) : null), [config]);
+  const providerKeyCounts = useMemo(
+    () =>
+      readOnly ? (overview?.providerKeyCounts ?? null) : config && getProviderKeyCounts(config),
+    [readOnly, overview, config]
+  );
 
-  const { traffic, providers } = useMemo(() => {
-    const accumulators = new Map<string, ProviderAccumulator>();
-    const allBucketGroups: RecentRequestBucket[][] = [];
-    const apiKeysFromUsage = new Set<string>();
-
-    const accumulatorFor = (providerId: string): ProviderAccumulator => {
-      const existing = accumulators.get(providerId);
-      if (existing) return existing;
-      const created = createAccumulator();
-      accumulators.set(providerId, created);
-      return created;
-    };
-
-    usageByProvider.forEach((entriesByKey, providerId) => {
-      const accumulator = accumulatorFor(providerId);
-      entriesByKey.forEach((entry, compositeKey) => {
-        const apiKey = apiKeyFromCompositeKey(compositeKey);
-        if (apiKey) {
-          apiKeysFromUsage.add(apiKey);
-        }
-        accumulator.credentials += 1;
-        accumulator.success += entry.success;
-        accumulator.failure += entry.failed;
-        if (entry.recentRequests.length > 0) {
-          accumulator.bucketGroups.push(entry.recentRequests);
-          allBucketGroups.push(entry.recentRequests);
-        }
-      });
-    });
-
-    (authFiles ?? []).forEach((file) => {
-      const accountType = String(file.account_type ?? '')
-        .trim()
-        .toLowerCase();
-      const account = String(file.account ?? '').trim();
-      // 已经由 api-key-usage 统计过的凭证不再重复计入
-      if (accountType === 'api_key' && account && apiKeysFromUsage.has(account)) {
-        return;
-      }
-
-      const accumulator = accumulatorFor(providerIdOfAuthFile(file));
-      const entry = normalizeRecentRequestUsageEntry(file);
-      accumulator.credentials += 1;
-      accumulator.success += entry.success;
-      accumulator.failure += entry.failed;
-      if (entry.recentRequests.length > 0) {
-        accumulator.bucketGroups.push(entry.recentRequests);
-        allBucketGroups.push(entry.recentRequests);
-      }
-    });
-
-    const providerRows: ProviderTraffic[] = Array.from(accumulators.entries())
-      .map(([id, accumulator]) => {
-        const total = accumulator.success + accumulator.failure;
-        return {
-          id,
-          credentials: accumulator.credentials,
-          success: accumulator.success,
-          failure: accumulator.failure,
-          total,
-          successRate: total > 0 ? (accumulator.success / total) * 100 : null,
-          buckets: mergeRecentRequestBucketGroups(accumulator.bucketGroups),
-        };
-      })
-      .sort(
-        (a, b) => b.total - a.total || b.credentials - a.credentials || a.id.localeCompare(b.id)
-      );
-
-    return {
-      traffic: buildTrafficWindow(allBucketGroups),
-      providers: providerRows,
-    };
-  }, [usageByProvider, authFiles]);
+  const { traffic, providers } = useMemo(
+    () => aggregateDashboardTraffic(usageByProvider, authFiles, readOnly),
+    [usageByProvider, authFiles, readOnly]
+  );
 
   const credentials = useMemo<CredentialHealth | null>(() => {
     if (!authFiles) return null;
@@ -271,21 +312,34 @@ export function useDashboardOverview() {
   }, [authFiles]);
 
   const counts = useMemo<DashboardCounts>(
-    () => ({
-      managementKeys: config ? (config.apiKeys?.length ?? 0) : null,
-      providerKeys: providerKeyCounts
-        ? Object.values(providerKeyCounts).reduce((sum, count) => sum + count, 0)
-        : null,
-      credentials: authFiles ? authFiles.length : null,
-      models: modelsLoading || modelsError ? null : models.length,
-    }),
-    [config, providerKeyCounts, authFiles, models.length, modelsLoading, modelsError]
+    () =>
+      readOnly
+        ? readOnlyDashboardCounts(overview, authFiles)
+        : {
+            managementKeys: config ? (config.apiKeys?.length ?? 0) : null,
+            providerKeys: providerKeyCounts
+              ? Object.values(providerKeyCounts).reduce((sum, count) => sum + count, 0)
+              : null,
+            credentials: authFiles ? authFiles.length : null,
+            models: modelsLoading || modelsError ? null : models.length,
+          },
+    [
+      readOnly,
+      overview,
+      config,
+      providerKeyCounts,
+      authFiles,
+      models.length,
+      modelsLoading,
+      modelsError,
+    ]
   );
 
   return {
     connectionStatus,
     connected,
-    config,
+    readOnly,
+    runtime,
     counts,
     providerKeyCounts,
     traffic,

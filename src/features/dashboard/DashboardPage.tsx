@@ -10,6 +10,7 @@ import {
   IconSidebarSystem,
 } from '@/components/ui/icons';
 import { useAuthStore } from '@/stores';
+import { isPathAllowedForScope } from '@/router/sessionAccess';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { formatCompactNumber, formatDateValue, formatPercent } from '@/utils/format';
 import { useDashboardOverview } from './hooks/useDashboardOverview';
@@ -40,8 +41,20 @@ export function DashboardPage() {
   const serverVersion = useAuthStore((state) => state.serverVersion);
   const serverBuildDate = useAuthStore((state) => state.serverBuildDate);
 
-  const { connectionStatus, connected, config, counts, traffic, providers, credentials, refresh } =
-    useDashboardOverview();
+  const scope = useAuthStore((state) => state.scope);
+  const {
+    connectionStatus,
+    connected,
+    readOnly,
+    runtime,
+    counts,
+    traffic,
+    providers,
+    credentials,
+    refresh,
+  } = useDashboardOverview();
+  // Read-only sessions only see links to pages they may open.
+  const canOpen = (path: string) => isPathAllowedForScope(path, scope);
 
   useHeaderRefresh(refresh, connected);
 
@@ -69,7 +82,7 @@ export function DashboardPage() {
   );
 
   const routingStrategy = useMemo(() => {
-    const raw = config?.routingStrategy?.trim() ?? '';
+    const raw = runtime?.routingStrategy.trim() ?? '';
     if (!raw) return DASH;
     if (raw === 'round-robin') return t('basic_settings.routing_strategy_round_robin');
     if (raw === 'weighted-round-robin') {
@@ -80,7 +93,7 @@ export function DashboardPage() {
       return t('basic_settings.routing_strategy_greedy_soonest_recovery');
     }
     return raw;
-  }, [config?.routingStrategy, t]);
+  }, [runtime?.routingStrategy, t]);
 
   const unknownProviderLabel = t('dashboard.provider_unknown');
   const successRateTone = toneForSuccessRate(traffic.successRate);
@@ -154,7 +167,7 @@ export function DashboardPage() {
       key: 'models',
       label: t('dashboard.stat_models'),
       value: counts.models === null ? DASH : counts.models.toLocaleString(),
-      hint: t('dashboard.stat_models_hint'),
+      hint: t(readOnly ? 'session_scope.models_unavailable' : 'dashboard.stat_models_hint'),
       meter: null,
       tone: undefined,
     },
@@ -162,7 +175,7 @@ export function DashboardPage() {
 
   const runtimeRows: Array<{ label: string; value: string; mono?: boolean }> = [
     { label: t('dashboard.runtime_routing'), value: routingStrategy },
-    { label: t('dashboard.runtime_retry'), value: String(config?.requestRetry ?? 0) },
+    { label: t('dashboard.runtime_retry'), value: String(runtime?.requestRetry ?? 0) },
     {
       label: t('dashboard.runtime_management_keys'),
       value: counts.managementKeys === null ? DASH : String(counts.managementKeys),
@@ -172,17 +185,18 @@ export function DashboardPage() {
       label: t('dashboard.runtime_build'),
       value: formatDateValue(serverBuildDate, i18n.language) || DASH,
     },
-    { label: t('dashboard.runtime_proxy'), value: config?.proxyUrl?.trim() || DASH, mono: true },
+    { label: t('dashboard.runtime_proxy'), value: runtime?.proxyUrl.trim() || DASH, mono: true },
   ];
 
-  const runtimeToggles = config
+  // The read-only overview omits WebSocket auth and model-prefix settings; hide those toggles.
+  const runtimeToggles = runtime
     ? [
-        { label: t('dashboard.runtime_debug'), on: Boolean(config.debug) },
-        { label: t('dashboard.runtime_file_logging'), on: Boolean(config.loggingToFile) },
-        { label: t('dashboard.runtime_request_log'), on: Boolean(config.requestLog) },
-        { label: t('dashboard.runtime_ws_auth'), on: Boolean(config.wsAuth) },
-        { label: t('dashboard.runtime_model_prefix'), on: Boolean(config.forceModelPrefix) },
-      ]
+        { label: t('dashboard.runtime_debug'), on: runtime.debug },
+        { label: t('dashboard.runtime_file_logging'), on: runtime.loggingToFile },
+        { label: t('dashboard.runtime_request_log'), on: runtime.requestLog },
+        { label: t('dashboard.runtime_ws_auth'), on: runtime.wsAuth },
+        { label: t('dashboard.runtime_model_prefix'), on: runtime.forceModelPrefix },
+      ].filter((toggle): toggle is { label: string; on: boolean } => toggle.on !== undefined)
     : [];
 
   const ctaCards = [
@@ -222,7 +236,7 @@ export function DashboardPage() {
       title: t('nav.system_info'),
       description: t('dashboard.cta_system_desc'),
     },
-  ];
+  ].filter((card) => canOpen(card.to));
 
   return (
     <div className={styles.page}>
@@ -247,15 +261,19 @@ export function DashboardPage() {
             {heroMetaLine}
           </p>
           <div className={styles.heroActions} data-reveal>
-            <Link to="/ai-providers" className={styles.primaryAction}>
-              {t('dashboard.cta_manage_providers')}
-            </Link>
-            <Link to="/logs" className={styles.ghostAction}>
-              {t('dashboard.cta_inspect_logs')}{' '}
-              <span className={styles.linkArrow} aria-hidden="true">
-                →
-              </span>
-            </Link>
+            {canOpen('/ai-providers') && (
+              <Link to="/ai-providers" className={styles.primaryAction}>
+                {t('dashboard.cta_manage_providers')}
+              </Link>
+            )}
+            {canOpen('/logs') && (
+              <Link to="/logs" className={styles.ghostAction}>
+                {t('dashboard.cta_inspect_logs')}{' '}
+                <span className={styles.linkArrow} aria-hidden="true">
+                  →
+                </span>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -473,12 +491,14 @@ export function DashboardPage() {
                   ))}
                 </ul>
               </div>
-              <Link to="/auth-files" className={styles.panelLink}>
-                {t('dashboard.health_link')}{' '}
-                <span className={styles.linkArrow} aria-hidden="true">
-                  →
-                </span>
-              </Link>
+              {canOpen('/auth-files') && (
+                <Link to="/auth-files" className={styles.panelLink}>
+                  {t('dashboard.health_link')}{' '}
+                  <span className={styles.linkArrow} aria-hidden="true">
+                    →
+                  </span>
+                </Link>
+              )}
             </>
           )}
         </div>
@@ -511,12 +531,14 @@ export function DashboardPage() {
               ))}
             </ul>
           )}
-          <Link to="/config" className={styles.panelLink}>
-            {t('dashboard.runtime_link')}{' '}
-            <span className={styles.linkArrow} aria-hidden="true">
-              →
-            </span>
-          </Link>
+          {canOpen('/config') && (
+            <Link to="/config" className={styles.panelLink}>
+              {t('dashboard.runtime_link')}{' '}
+              <span className={styles.linkArrow} aria-hidden="true">
+                →
+              </span>
+            </Link>
+          )}
         </div>
       </section>
 

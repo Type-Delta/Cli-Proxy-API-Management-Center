@@ -206,6 +206,23 @@
     flex-shrink: 0;
   }
 
+  // Persistent marker for read-only management sessions.
+  .session-scope-badge {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    height: var(--floating-control-size);
+    padding: 0 10px;
+    border: 1px solid var(--primary-30);
+    border-radius: 11px;
+    background: var(--primary-10);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
   .language-menu,
   .theme-menu {
     position: relative;
@@ -859,6 +876,10 @@
   .main-header {
     .sidebar-toggle-floating {
       display: none;
+    }
+
+    .session-scope-badge {
+      padding: 0 8px;
     }
 
     .header-actions {

@@ -25,7 +25,8 @@ import {
 } from '@/components/ui/icons';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
+import { useAuthStore, useNotificationStore } from '@/stores';
+import { subscribeRuntimeFlag, useRuntime } from '@/stores/sessionRuntime';
 import { logsApi, responseDataToText, type ErrorLogFile } from '@/services/api/logs';
 import { INITIAL_VISIBLE_LINES } from './model/logBuffer';
 import { useLogStream } from './hooks/useLogStream';
@@ -58,8 +59,7 @@ export function LogsPage() {
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
   const apiBase = useAuthStore((state) => state.apiBase);
   const managementKey = useAuthStore((state) => state.managementKey);
-  const config = useConfigStore((state) => state.config);
-  const requestLogEnabled = config?.requestLog ?? false;
+  const requestLogEnabled = useRuntime()?.requestLog ?? false;
 
   const [activeTab, setActiveTab] = useState<TabType>('logs');
   const [searchQuery, setSearchQuery] = useState('');
@@ -103,6 +103,7 @@ export function LogsPage() {
     cpaNeedsFileLogging,
     showFileLoggingRequired,
     loadLogs,
+    canClearLogs,
     clearLogs,
   } = useLogStream({
     active: activeTab === 'logs',
@@ -247,9 +248,7 @@ export function LogsPage() {
       setViewerRequestId(null);
       setRequestLogDownloading(false);
     });
-    const unsubscribeConfig = useConfigStore.subscribe((next, previous) => {
-      if (next.config?.requestLog !== previous.config?.requestLog) resetErrors();
-    });
+    const unsubscribeConfig = subscribeRuntimeFlag('requestLog', resetErrors);
     return () => {
       unsubscribeAuth();
       unsubscribeConfig();
@@ -720,17 +719,19 @@ export function LogsPage() {
                 >
                   <IconDownload size={16} />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearLogs}
-                  disabled={clearDisabled}
-                  className={styles.actionButton}
-                  title={t('logs.clear_button')}
-                  aria-label={t('logs.clear_button')}
-                >
-                  <IconTrash2 size={16} />
-                </Button>
+                {canClearLogs && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearLogs}
+                    disabled={clearDisabled}
+                    className={styles.actionButton}
+                    title={t('logs.clear_button')}
+                    aria-label={t('logs.clear_button')}
+                  >
+                    <IconTrash2 size={16} />
+                  </Button>
+                )}
                 <Button
                   variant="secondary"
                   size="sm"

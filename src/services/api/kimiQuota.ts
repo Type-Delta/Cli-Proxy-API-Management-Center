@@ -1,4 +1,5 @@
 import type { AuthFileItem } from '@/types';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { KIMI_AI_USAGE_URL, KIMI_USAGE_URL } from '@/utils/quota/constants';
 import { authFilesApi } from './authFiles';
 import { apiCallApi } from './apiCall';
@@ -112,6 +113,10 @@ export function parseKimiQuotaUrl(text: string, file: AuthFileItem): string {
 
 /** Read only for this request; never retain the downloaded credential in a cache/store. */
 export async function resolveKimiQuotaUrl(file: AuthFileItem): Promise<string> {
+  if (useAuthStore.getState().scope === 'read-only') {
+    // Sanitized listings need no credential download; only official hosts are selected.
+    return parseKimiQuotaUrl('{}', file);
+  }
   if (
     !file.name?.trim() ||
     [file.runtimeOnly, file.runtime_only].some((value) => value === true || value === 'true')

@@ -33,6 +33,18 @@ const expectMetaError = async (promise: Promise<unknown>, code: string, status?:
 };
 
 describe('Meta Muse DCA quota request', () => {
+  test('read-only rejects before credential download or key minting', async () => {
+    let calls = 0;
+    const fetchQuota = createMetaQuotaFetcher({
+      ...defaults,
+      isReadOnly: () => true,
+      downloadText: async () => { calls++; return defaults.downloadText(); },
+      request: async () => { calls++; return defaults.request(); },
+    });
+    await expectMetaError(fetchQuota(file('1')), 'read_only_unavailable');
+    expect(calls).toBe(0);
+  });
+
   test('downloads the named auth file and sends its DCA through api-call, not $TOKEN$', async () => {
     const requests: ApiCallRequest[] = [];
     const names: string[] = [];

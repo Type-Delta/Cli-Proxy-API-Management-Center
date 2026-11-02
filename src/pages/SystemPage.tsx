@@ -14,6 +14,8 @@ import {
 } from '@/stores';
 import { configApi, versionApi } from '@/services/api';
 import { useApiKeysForModels } from '@/hooks/useApiKeysForModels';
+import { isReadOnlyScope } from '@/router/sessionAccess';
+import { useRuntime } from '@/stores/sessionRuntime';
 import { formatDateTimeValue } from '@/utils/format';
 import { classifyModels } from '@/utils/models';
 import { STORAGE_KEY_AUTH } from '@/utils/constants';
@@ -87,7 +89,9 @@ export function SystemPage() {
   const { showNotification, showConfirmation } = useNotificationStore();
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const auth = useAuthStore();
-  const config = useConfigStore((state) => state.config);
+  const runtime = useRuntime();
+  // Read-only sessions cannot change server settings or reach client API keys for `/models`.
+  const readOnly = isReadOnlyScope(auth.scope);
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
   const clearCache = useConfigStore((state) => state.clearCache);
   const updateConfigValue = useConfigStore((state) => state.updateConfigValue);
@@ -115,9 +119,9 @@ export function SystemPage() {
     [i18n.language]
   );
   const groupedModels = useMemo(() => classifyModels(models, { otherLabel }), [models, otherLabel]);
-  const requestLogEnabled = config?.requestLog ?? false;
+  const requestLogEnabled = runtime?.requestLog ?? false;
   const requestLogDirty = requestLogDraft !== requestLogEnabled;
-  const canEditRequestLog = auth.connectionStatus === 'connected' && Boolean(config);
+  const canEditRequestLog = auth.connectionStatus === 'connected' && Boolean(runtime) && !readOnly;
 
   const appVersion = __APP_VERSION__ || t('system_info.version_unknown');
   const apiVersion = auth.serverVersion || t('system_info.version_unknown');
@@ -134,6 +138,7 @@ export function SystemPage() {
   const resolveApiKeysForModels = useApiKeysForModels();
 
   const fetchModels = async ({ forceRefresh = false }: { forceRefresh?: boolean } = {}) => {
+    if (readOnly) return;
     if (auth.connectionStatus !== 'connected') {
       setModelStatus({
         type: 'warning',
@@ -190,6 +195,7 @@ export function SystemPage() {
   }, [requestLogEnabled]);
 
   const handleInfoVersionTap = useCallback(() => {
+    if (readOnly) return;
     versionTapCount.current += 1;
     if (versionTapTimer.current) {
       clearTimeout(versionTapTimer.current);
@@ -206,7 +212,7 @@ export function SystemPage() {
       versionTapCount.current = 0;
       versionTapTimer.current = null;
     }, 1500);
-  }, [openRequestLogModal]);
+  }, [openRequestLogModal, readOnly]);
 
   const handleRequestLogClose = useCallback(() => {
     setRequestLogModalOpen(false);
@@ -276,10 +282,11 @@ export function SystemPage() {
   }, [auth.serverVersion, showNotification, t]);
 
   useEffect(() => {
+    if (readOnly) return;
     fetchConfig().catch(() => {
       // ignore
     });
-  }, [fetchConfig]);
+  }, [fetchConfig, readOnly]);
 
   useEffect(() => {
     if (requestLogModalOpen && !requestLogTouched) {
@@ -298,7 +305,7 @@ export function SystemPage() {
   useEffect(() => {
     fetchModels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auth.connectionStatus, auth.apiBase]);
+  }, [auth.connectionStatus, auth.apiBase, readOnly]);
 
   return (
     <div className={styles.container}>
@@ -416,14 +423,16 @@ export function SystemPage() {
         <Card
           title={t('system_info.models_title')}
           extra={
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => fetchModels({ forceRefresh: true })}
-              loading={modelsLoading}
-            >
-              {t('common.refresh')}
-            </Button>
+            readOnly ? undefined : (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => fetchModels({ forceRefresh: true })}
+                loading={modelsLoading}
+              >
+                {t('common.refresh')}
+              </Button>
+            )
           }
         >
           <p className={styles.sectionDescription}>{t('system_info.models_desc')}</p>
@@ -431,7 +440,9 @@ export function SystemPage() {
             <div className={`status-badge ${modelStatus.type}`}>{modelStatus.message}</div>
           )}
           {modelsError && <div className="error-box">{modelsError}</div>}
-          {modelsLoading ? (
+          {readOnly ? (
+            <div className="hint">{t('session_scope.models_unavailable')}</div>
+          ) : modelsLoading ? (
             <div className="hint">{t('common.loading')}</div>
           ) : models.length === 0 ? (
             <div className="hint">{t('system_info.models_empty')}</div>
