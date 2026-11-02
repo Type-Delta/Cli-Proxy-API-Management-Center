@@ -140,7 +140,11 @@ export function normalizeStorageUsage(value: unknown): StorageUsage {
     measuredAt: value.measured_at,
     partial: value.partial,
     volumes: value.volumes.map((volume: unknown) => {
-      if (!isRecord(volume) || typeof volume.path !== 'string' || !Array.isArray(volume.locations)) {
+      if (
+        !isRecord(volume) ||
+        typeof volume.path !== 'string' ||
+        !Array.isArray(volume.locations)
+      ) {
         throw new Error('Invalid storage usage response');
       }
       const result = {

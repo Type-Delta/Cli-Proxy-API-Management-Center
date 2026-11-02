@@ -222,8 +222,7 @@ export function TopModelsChart({
             })
           : metric === 'cost'
             ? t('analytics.analysis.top_models_cost_description', {
-                defaultValue:
-                  'Estimated cost over time, synchronized with the ranking.',
+                defaultValue: 'Estimated cost over time, synchronized with the ranking.',
               })
             : t('analytics.analysis.top_models_description', {
                 defaultValue: 'Model metric over time, synchronized with the ranking.',

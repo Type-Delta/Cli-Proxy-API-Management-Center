@@ -1,8 +1,7 @@
 import type { Location } from 'react-router-dom';
 
-export const pageTransitionLayerKey = (
-  location: Pick<Location, 'key' | 'pathname'>
-) => `${location.key}\0${location.pathname}`;
+export const pageTransitionLayerKey = (location: Pick<Location, 'key' | 'pathname'>) =>
+  `${location.key}\0${location.pathname}`;
 
 export const isSamePageLocationUpdate = (
   current: Pick<Location, 'key' | 'pathname' | 'search' | 'hash'>,

@@ -6,14 +6,8 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { IconSearch, IconSlidersHorizontal, IconTrash2 } from '@/components/ui/icons';
-import {
-  MAX_CARD_PAGE_SIZE,
-  MIN_CARD_PAGE_SIZE,
-} from '@/features/authFiles/constants';
-import type {
-  AuthFilesSortMode,
-  AuthFilesStatusFilterMode,
-} from '@/features/authFiles/uiState';
+import { MAX_CARD_PAGE_SIZE, MIN_CARD_PAGE_SIZE } from '@/features/authFiles/constants';
+import type { AuthFilesSortMode, AuthFilesStatusFilterMode } from '@/features/authFiles/uiState';
 import styles from './AuthFilesToolbar.module.scss';
 
 export type AuthFilesToolbarProps = {

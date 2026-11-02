@@ -35,7 +35,11 @@ export type ManagementCapabilities = {
   api_keys: import('./apiKeys').ApiKeyCapabilities;
 };
 
-export type LegacyImportStatus = { state: string; counts?: Record<string, number>; reason?: string };
+export type LegacyImportStatus = {
+  state: string;
+  counts?: Record<string, number>;
+  reason?: string;
+};
 
 export type TelemetryHealth = {
   legacy_import?: LegacyImportStatus;

@@ -38,9 +38,6 @@ export async function loadMaintenanceHealth(
   analytics: () => Promise<AnalyticsHealth>,
   telemetry: () => Promise<TelemetryHealth>
 ) {
-  const [health, telemetryHealth] = await Promise.all([
-    analytics(),
-    telemetry().catch(() => null),
-  ]);
+  const [health, telemetryHealth] = await Promise.all([analytics(), telemetry().catch(() => null)]);
   return { analytics: health, telemetry: telemetryHealth };
 }

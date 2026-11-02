@@ -35,7 +35,11 @@ export const SERVER_FIELDS = [
     path: ['clickhouse', 'telemetry-retention-days'],
     kind: 'number',
   },
-  { key: 'clickhouseAgentQueryEnabled', path: ['clickhouse', 'agent-query', 'enabled'], kind: 'boolean' },
+  {
+    key: 'clickhouseAgentQueryEnabled',
+    path: ['clickhouse', 'agent-query', 'enabled'],
+    kind: 'boolean',
+  },
   {
     key: 'clickhouseAgentQueryMaxExecutionTime',
     path: ['clickhouse', 'agent-query', 'max-execution-time'],
@@ -134,7 +138,11 @@ export function writeVisualServer(
       parents(doc, path);
       const old = doc.getIn(path, true);
       const desired =
-        kind === 'number' && typeof value === 'string' ? Number(value.trim()) : typeof value === 'string' ? value.trim() : value;
+        kind === 'number' && typeof value === 'string'
+          ? Number(value.trim())
+          : typeof value === 'string'
+            ? value.trim()
+            : value;
       if (isScalar(old)) old.value = desired;
       else doc.setIn(path, desired);
     }

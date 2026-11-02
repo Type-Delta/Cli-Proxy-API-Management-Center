@@ -36,7 +36,11 @@ export function Button({
   return (
     <button className={classes} disabled={disabled || loading} {...rest}>
       {loading && <span className="loading-spinner" aria-hidden="true" />}
-      {icon && !loading && <span className="btn-icon" aria-hidden="true">{icon}</span>}
+      {icon && !loading && (
+        <span className="btn-icon" aria-hidden="true">
+          {icon}
+        </span>
+      )}
       {hasChildren && <span>{children}</span>}
     </button>
   );

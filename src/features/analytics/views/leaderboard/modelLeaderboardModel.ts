@@ -31,8 +31,7 @@ export function awardsByMetric(
 }
 
 export type PodiumSlot =
-  | { kind: 'rank'; row: AnalyticsModelLeaderboardRow }
-  | { kind: 'placeholder'; rank: number };
+  { kind: 'rank'; row: AnalyticsModelLeaderboardRow } | { kind: 'placeholder'; rank: number };
 
 /**
  * Podium positions in display order (2nd, 1st, 3rd). Unfilled ranks stay in the layout as
@@ -47,7 +46,9 @@ export function podiumSlots(rows: AnalyticsModelLeaderboardRow[]): PodiumSlot[] 
 }
 
 /** Ranks 4-6; an award with fewer than four rows has none. */
-export function runnersUpRows(rows: AnalyticsModelLeaderboardRow[]): AnalyticsModelLeaderboardRow[] {
+export function runnersUpRows(
+  rows: AnalyticsModelLeaderboardRow[]
+): AnalyticsModelLeaderboardRow[] {
   return rows.filter((row) => row.rank >= 4);
 }
 
@@ -90,4 +91,3 @@ export function formatLeaderboardRange(start: string, end: string, locale = 'en'
     ? short.format(startDate) + ' \u2013 ' + full.format(endDate)
     : full.format(startDate) + ' \u2013 ' + full.format(endDate);
 }
-

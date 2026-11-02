@@ -6,7 +6,10 @@ import styles from './SortableTableHead.module.scss';
 export type SortDirection = 'asc' | 'desc';
 export type SortIcon = 'up' | 'down' | 'neutral';
 
-function getAriaSort(active: boolean, direction: SortDirection): 'ascending' | 'descending' | 'none' {
+function getAriaSort(
+  active: boolean,
+  direction: SortDirection
+): 'ascending' | 'descending' | 'none' {
   return active ? (direction === 'asc' ? 'ascending' : 'descending') : 'none';
 }
 
@@ -49,12 +52,7 @@ export function SortableTableHead({
       data-sort-align={alignRight ? 'right' : 'left'}
       title={description}
     >
-      <button
-        type="button"
-        className={buttonClassName}
-        onClick={onClick}
-        aria-label={ariaLabel}
-      >
+      <button type="button" className={buttonClassName} onClick={onClick} aria-label={ariaLabel}>
         <span>{children}</span>
         <span className={active ? styles.iconActive : styles.icon} aria-hidden="true">
           {icon === 'up' ? (

@@ -46,7 +46,7 @@ function targetAtPoint(event: PointerEvent): TooltipTarget | null {
   if (typeof document.elementFromPoint !== 'function') return null;
   const element = document.elementFromPoint(event.clientX, event.clientY);
   return isTooltipTarget(element?.closest(TOOLTIP_SELECTOR) ?? null)
-    ? element?.closest(TOOLTIP_SELECTOR) ?? null
+    ? (element?.closest(TOOLTIP_SELECTOR) ?? null)
     : null;
 }
 
@@ -108,35 +108,32 @@ export function TooltipProvider({ children }: PropsWithChildren) {
     setActive(null);
   }, []);
 
-  const showTooltip = useCallback(
-    (target: TooltipTarget, describedTarget: Element = target) => {
-      const content = target.getAttribute(TOOLTIP_ATTRIBUTE)?.trim();
-      if (!content || !target.isConnected) return;
-      const current = activeRef.current;
-      if (current?.target === target && current.describedTarget === describedTarget) {
-        if (current.content !== content) {
-          const next = { ...current, content };
-          activeRef.current = next;
-          setActive(next);
-        }
-        return;
+  const showTooltip = useCallback((target: TooltipTarget, describedTarget: Element = target) => {
+    const content = target.getAttribute(TOOLTIP_ATTRIBUTE)?.trim();
+    if (!content || !target.isConnected) return;
+    const current = activeRef.current;
+    if (current?.target === target && current.describedTarget === describedTarget) {
+      if (current.content !== content) {
+        const next = { ...current, content };
+        activeRef.current = next;
+        setActive(next);
       }
-      if (current) {
-        removeDescribedBy(current.describedTarget, current.id, current.describedByBefore);
-      }
-      const id = `cpamc-tooltip-${nextTooltipId++}`;
-      const next: ActiveTooltip = {
-        target,
-        content,
-        id,
-        describedTarget,
-        describedByBefore: appendDescribedBy(describedTarget, id),
-      };
-      activeRef.current = next;
-      setActive(next);
-    },
-    []
-  );
+      return;
+    }
+    if (current) {
+      removeDescribedBy(current.describedTarget, current.id, current.describedByBefore);
+    }
+    const id = `cpamc-tooltip-${nextTooltipId++}`;
+    const next: ActiveTooltip = {
+      target,
+      content,
+      id,
+      describedTarget,
+      describedByBefore: appendDescribedBy(describedTarget, id),
+    };
+    activeRef.current = next;
+    setActive(next);
+  }, []);
 
   const positionTooltip = useCallback(() => {
     const current = activeRef.current;

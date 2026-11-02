@@ -107,9 +107,7 @@ export function PageTransition({
     if (isAnimating) return;
     if (currentLayerLocation && isSamePageLocationUpdate(currentLayerLocation, location)) {
       setLayers((previous) =>
-        previous.map((layer) =>
-          layer.status === 'current' ? { ...layer, location } : layer
-        )
+        previous.map((layer) => (layer.status === 'current' ? { ...layer, location } : layer))
       );
       return;
     }

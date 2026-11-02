@@ -25,9 +25,7 @@ export const apiKeysApi = {
   async list(): Promise<ApiKeysResponse> {
     const data = await apiClient.get<Record<string, unknown>>('/api-keys');
     const rawEntries = data['api-keys'] ?? data.apiKeys;
-    const entries = Array.isArray(rawEntries)
-      ? rawEntries.map(normalizeEntry)
-      : [];
+    const entries = Array.isArray(rawEntries) ? rawEntries.map(normalizeEntry) : [];
     return {
       entries,
       identities: Array.isArray(data['key-identities'])

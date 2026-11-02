@@ -208,7 +208,10 @@ function StorageUsageSession({ revision }: { revision: number }) {
                     <ul className={styles.legend}>
                       {segments.map((segment) => (
                         <li key={segment.key}>
-                          <span className={`${styles.dot} ${styles[segment.key]}`} aria-hidden="true" />
+                          <span
+                            className={`${styles.dot} ${styles[segment.key]}`}
+                            aria-hidden="true"
+                          />
                           <span>{t(S(segment.key))}</span>
                           <span className={styles.amount}>{bytes(segment.bytes)}</span>
                           <span className={styles.percent}>{percent(segment.percent)}</span>

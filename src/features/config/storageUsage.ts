@@ -7,13 +7,7 @@ export type StorageSegment = {
 };
 
 export type ClickHouseSegment = {
-  key:
-    | 'analytics'
-    | 'request_logs'
-    | 'cpa_other'
-    | 'clickhouse_other'
-    | 'other'
-    | 'available';
+  key: 'analytics' | 'request_logs' | 'cpa_other' | 'clickhouse_other' | 'other' | 'available';
   bytes: number;
   percent: number;
 };
