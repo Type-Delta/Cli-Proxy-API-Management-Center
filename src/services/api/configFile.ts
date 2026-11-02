@@ -30,7 +30,11 @@ export const configFileApi = {
   async saveConfigYaml(content: string, baseline: string): Promise<void> {
     const current = await readConfigYaml();
     if (current.yaml !== baseline) {
-      throw new Error('The configuration changed on the server. Reload it before saving.');
+      // Same code as CPA's 412, so callers explain both races the same way.
+      throw Object.assign(new Error('precondition_failed'), {
+        name: 'ApiError',
+        apiCode: 'precondition_failed',
+      });
     }
     await apiClient.put('/config.yaml', content, {
       headers: {

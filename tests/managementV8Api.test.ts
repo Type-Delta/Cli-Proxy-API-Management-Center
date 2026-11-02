@@ -346,7 +346,9 @@ describe('v8 management API contracts', () => {
       },
     });
     // A server document that moved past the reviewed baseline is never written.
-    await expect(configFileApi.saveConfigYaml('a: 2\n', 'a: 0\n')).rejects.toThrow();
+    await expect(configFileApi.saveConfigYaml('a: 2\n', 'a: 0\n')).rejects.toMatchObject({
+      apiCode: 'precondition_failed',
+    });
     expect(put).toHaveBeenCalledTimes(1);
   });
 });

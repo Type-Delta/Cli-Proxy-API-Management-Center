@@ -2542,6 +2542,8 @@
     "source_changes_before_visual": "Görsel Moda Geçmeden Önce Kaydedilmemiş Kaynak Düzenlemelerini Kaydet veya At.",
     "precise_save_incomplete": "Kesin Kayıt Bitmedi. Bazı Değişiklikler Uygulanmış Olabilir. Taslağın Korundu. Kalan Sunucu Farklarını Görmek için Yeniden Kaydet.",
     "concurrent_list_conflict": "Taslak Tabanından Sonra Sunucu Listesi {{path}} Değişti. Bu Değişikliklerin Üzerine Yazmamak için Kayıt Engellendi. Taslağın Korundu. Düzenlemelerini Not Et, Sonra Yapılandırmayı Yeniden Yükle ve Uzlaştır.",
+    "server_changed_on_save": "Yapılandırma, siz incelediktan sonra sunucuda değişti; bu yüzden hiçbir şey kaydedilmedi. En güncel farkları incelemek için Kaydı Onayla'yı yeniden seçin.",
+    "read_only_field": "{{field}} sunucu tarafından yönetilir ve düzenlenemez. Özgün değerini geri yükleyip yeniden kaydedin.",
     "precise_save_recovery_required": "Kayıt Sonucu Geri Okunamadı. Düzenleme Duraklatıldı. Taslak Tabanını Kurtarmak için Yeniden Kaydet veya Yapılandırmayı Yeniden Yükle.",
     "visual_mode_latest_yaml_invalid": "En Son Sunucu Yapılandırması Geçersiz YAML İçeriyor. Görsel Değişiklikleri Kaydetmeden Önce Kaynak Modda İncele: {{message}}",
     "editor_placeholder": "key: value",

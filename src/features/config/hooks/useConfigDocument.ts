@@ -2,11 +2,13 @@
 // Visual mode submits only v8 field differences; source mode saves the whole YAML document.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { parse as parseYaml, parseDocument } from 'yaml';
 import { useConfigStore, useNotificationStore } from '@/stores';
 import { configFileApi } from '@/services/api/configFile';
 import { normalizeYamlLineEndings } from '@/utils/yaml';
 import { apiClient } from '@/services/api/client';
+import { isRecord } from '@/utils/helpers';
 import {
   applyConfigPatch,
   buildConfigPatch,
@@ -16,6 +18,23 @@ import {
   type ConfigPatchPlan,
 } from '@/services/api/configPatch';
 import type { ConfigEditorMode } from '../constants';
+
+/**
+ * Turns a failed config save into toast text. Known Management API codes get a translated
+ * explanation; anything else shows the server's message (e.g. the YAML parser error and line).
+ */
+export function configSaveErrorMessage(err: unknown, t: TFunction): string {
+  if (err instanceof ConfigDraftConflictError) {
+    return t('config_management.concurrent_list_conflict', { path: err.path.join('.') });
+  }
+  const apiCode = isRecord(err) ? err.apiCode : undefined;
+  if (apiCode === 'precondition_failed') return t('config_management.server_changed_on_save');
+  const field = isRecord(err) && isRecord(err.details) ? err.details.field : undefined;
+  if (apiCode === 'read_only_field' && typeof field === 'string') {
+    return t('config_management.read_only_field', { field: field.split('/').join('.') });
+  }
+  return err instanceof Error ? err.message : '';
+}
 
 export function readCommercialModeFromYaml(yamlContent: string): boolean {
   try {
@@ -269,12 +288,7 @@ export function useConfigDocument({
       }
     } catch (err: unknown) {
       if (!operation.isCurrent()) return;
-      const message =
-        err instanceof ConfigDraftConflictError
-          ? t('config_management.concurrent_list_conflict', { path: err.path.join('.') })
-          : err instanceof Error
-            ? err.message
-            : '';
+      const message = configSaveErrorMessage(err, t);
       if (writeAttempted && previewMode === 'visual') {
         // v8 field mutations are not a transaction. Never roll back with a full document.
         // Re-read immediately so changing an already-applied value back remains a dirty edit.
@@ -408,12 +422,7 @@ export function useConfigDocument({
       setDiffModalOpen(true);
     } catch (err: unknown) {
       if (!operation.isCurrent()) return;
-      const message =
-        err instanceof ConfigDraftConflictError
-          ? t('config_management.concurrent_list_conflict', { path: err.path.join('.') })
-          : err instanceof Error
-            ? err.message
-            : '';
+      const message = configSaveErrorMessage(err, t);
       showNotification(`${t('notification.save_failed')}: ${message}`, 'error');
     } finally {
       if (operation.isCurrent()) setSaving(false);
