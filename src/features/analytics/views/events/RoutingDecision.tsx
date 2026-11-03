@@ -5,7 +5,7 @@ import {
   IconBan,
   IconInfo,
   IconListTree,
-  IconRefreshCw,
+  IconRoute,
   IconShare2,
   IconShield,
 } from '@/components/ui/icons';
@@ -31,7 +31,7 @@ import styles from './RoutingDecision.module.scss';
 
 const layerIcons: Record<RoutingLayerId, typeof IconShield> = {
   rules: IconListTree,
-  strategy: IconRefreshCw,
+  strategy: IconRoute,
   affinity: IconShare2,
   gate: IconShield,
 };
