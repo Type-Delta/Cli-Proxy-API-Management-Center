@@ -460,7 +460,6 @@
 
 @media (max-width: 768px) {
   .metricGrid,
-  .dailyGrid,
   .summaryHighlights {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -478,14 +477,14 @@
     min-height: 200px;
   }
 
+  // The three daily averages stay side by side on phones; tighter gutters and a smaller figure
+  // keep every value on one line at 360px.
   .dailyMetric {
-    padding: 12px 0;
-    border-block-start: 1px solid var(--border-color);
-    border-inline-start: 0;
+    justify-content: space-between;
+    padding: 4px 10px;
 
-    &:first-child {
-      padding-block-start: 0;
-      border-block-start: 0;
+    strong {
+      font-size: 18px;
     }
   }
 

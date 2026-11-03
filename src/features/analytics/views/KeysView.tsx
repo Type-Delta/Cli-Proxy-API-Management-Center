@@ -372,31 +372,44 @@ export function KeysView({ keys, range }: { keys: AnalyticsKey[]; range: Analyti
                   ? t('analytics.unknown_value', { defaultValue: 'Unknown' })
                   : formatAccumulatedDuration(row.generation_time_ms, i18n.resolvedLanguage);
               const unpriced = formatCompactTokens(row.unpriced_tokens, i18n.resolvedLanguage);
-              const share = formatPercent(row.percent_of_total, i18n.resolvedLanguage);
+              const share = Math.max(0, Math.min(100, Number(row.percent_of_total) || 0));
               return (
                 <Card key={row.key_id} className={styles.keyCard}>
                   <div className={styles.keyCardHead}>
-                    <span title={row.short_key_id}>{analyticsKeyIdentity(row)}</span>
+                    {row.rank !== null && row.rank !== undefined && (
+                      <span
+                        className={styles.keyCardRank}
+                        aria-label={`${t('analytics.rank', { defaultValue: 'Rank' })} ${row.rank}`}
+                      >
+                        #{row.rank}
+                      </span>
+                    )}
+                    <span className={styles.keyCardName}>{row.label || row.short_key_id}</span>
                     <KeyStatus row={row} />
                   </div>
-                  <dl className={styles.keyCardMetrics}>
-                    <div>
-                      <dt>{t('analytics.rank', { defaultValue: 'Rank' })}</dt>
-                      <dd>{row.rank ?? '—'}</dd>
-                    </div>
-                    <div>
-                      <dt>{t('analytics.total_requests', { defaultValue: 'Total requests' })}</dt>
-                      <dd>{formatNumber(row.requests, i18n.resolvedLanguage)}</dd>
-                    </div>
+                  <dl className={styles.keyCardHero}>
                     <div>
                       <dt>{t('analytics.total_tokens', { defaultValue: 'Total tokens' })}</dt>
                       <dd title={tokens.title}>{tokens.text}</dd>
                     </div>
                     <div>
-                      <dt>{t('analytics.top_model', { defaultValue: 'Top model' })}</dt>
-                      <dd>
-                        <TopModelValue row={row} rankBy={sort} />
-                      </dd>
+                      <dt>{t('analytics.known_cost', { defaultValue: 'Estimated cost' })}</dt>
+                      <dd title={cost.title}>{cost.text}</dd>
+                    </div>
+                  </dl>
+                  <div className={styles.keyCardShare}>
+                    <span className={styles.shareTrack} aria-hidden="true">
+                      <span style={{ '--share-width': `${share}%` } as CSSProperties} />
+                    </span>
+                    <span>
+                      {t('analytics.share', { defaultValue: 'Share' })}{' '}
+                      <strong>{formatPercent(row.percent_of_total, i18n.resolvedLanguage)}</strong>
+                    </span>
+                  </div>
+                  <dl className={styles.keyCardStats}>
+                    <div>
+                      <dt>{t('analytics.overview.requests', { defaultValue: 'Requests' })}</dt>
+                      <dd>{formatNumber(row.requests, i18n.resolvedLanguage)}</dd>
                     </div>
                     <div>
                       <dt>{t('analytics.generation_time', { defaultValue: 'Output window' })}</dt>
@@ -410,21 +423,19 @@ export function KeysView({ keys, range }: { keys: AnalyticsKey[]; range: Analyti
                         {generation}
                       </dd>
                     </div>
+                  </dl>
+                  <dl className={styles.keyCardRows}>
+                    {row.label && (
+                      <div>
+                        <dt>{t('analytics.key', { defaultValue: 'Key' })}</dt>
+                        <dd>{row.short_key_id}</dd>
+                      </div>
+                    )}
                     <div>
-                      <dt>{t('analytics.unpriced_tokens', { defaultValue: 'Unpriced tokens' })}</dt>
-                      <dd title={unpriced.title}>{unpriced.text}</dd>
-                    </div>
-                    <div>
-                      <dt>{t('analytics.share', { defaultValue: 'Share' })}</dt>
-                      <dd>{share}</dd>
-                    </div>
-                    <div>
-                      <dt>
-                        {t('analytics.known_cost', {
-                          defaultValue: 'Estimated cost',
-                        })}
-                      </dt>
-                      <dd title={cost.title}>{cost.text}</dd>
+                      <dt>{t('analytics.top_model', { defaultValue: 'Top model' })}</dt>
+                      <dd>
+                        <TopModelValue row={row} rankBy={sort} />
+                      </dd>
                     </div>
                     <div>
                       <dt>{t('analytics.config_indexes', { defaultValue: 'Config indexes' })}</dt>
@@ -436,6 +447,12 @@ export function KeysView({ keys, range }: { keys: AnalyticsKey[]; range: Analyti
                           : '—'}
                       </dd>
                     </div>
+                    <div>
+                      <dt>{t('analytics.unpriced_tokens', { defaultValue: 'Unpriced tokens' })}</dt>
+                      <dd title={unpriced.title}>{unpriced.text}</dd>
+                    </div>
+                  </dl>
+                  <dl className={styles.keyCardActivity}>
                     <div>
                       <dt>{t('analytics.last_activity', { defaultValue: 'Last activity' })}</dt>
                       <dd>

@@ -89,35 +89,44 @@
   gap: 12px;
 }
 
+// Phone cards read top-down: who the key is, the two numbers it is ranked by, how much of the
+// range it owns, then the smaller counters and the slow-changing facts as label/value rows.
 .keyCard {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .keyCardHead {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
-.keyCardMetrics {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+.keyCardRank {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.keyCardName {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.keyCardHero,
+.keyCardStats,
+.keyCardRows,
+.keyCardActivity {
   margin: 0;
-
-  .stackedValue {
-    min-width: 0;
-
-    small {
-      white-space: normal;
-    }
-  }
 
   dt {
     color: var(--text-secondary);
@@ -125,15 +134,118 @@
   }
 
   dd {
-    margin: 3px 0 0;
+    margin: 0;
     color: var(--text-primary);
     font-variant-numeric: tabular-nums;
   }
 }
 
-@media (max-width: 420px) {
-  .keyCardMetrics {
-    grid-template-columns: 1fr;
+.keyCardHero {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+
+  dd {
+    margin-top: 2px;
+    font-size: 22px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+}
+
+.keyCardShare {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: -4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+
+  strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+}
+
+.keyCardStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--muted-bg);
+
+  dd {
+    margin-top: 2px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+}
+
+.keyCardRows {
+  display: flex;
+  flex-direction: column;
+
+  > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border-color);
+  }
+
+  dt {
+    flex: none;
+    font-size: 12px;
+  }
+
+  dd {
+    min-width: 0;
+    font-size: 13px;
+    text-align: end;
+  }
+
+  .topModelValue {
+    min-width: 0;
+    align-items: flex-end;
+    gap: 1px;
+
+    small {
+      white-space: normal;
+    }
+  }
+}
+
+// Last and first activity sit side by side: the relative age is the headline, the full timestamp
+// wraps underneath it.
+.keyCardActivity {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+  margin-top: -14px;
+
+  dt {
+    font-size: 12px;
+  }
+
+  dd {
+    margin-top: 2px;
+    font-size: 13px;
+  }
+
+  .stackedValue {
+    min-width: 0;
+    gap: 1px;
+
+    small {
+      font-size: 11px;
+      white-space: normal;
+    }
   }
 }
 

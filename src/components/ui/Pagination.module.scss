@@ -16,3 +16,16 @@
   font-size: 13px;
   text-align: center;
 }
+
+// Phones give the row the full card width so Previous, the page label, and Next share one line.
+@media (max-width: 768px) {
+  .pagination {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .pageLabel {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+}

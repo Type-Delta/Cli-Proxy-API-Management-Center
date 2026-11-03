@@ -63,6 +63,7 @@ import {
 import { AnalyticsFilterProvider } from '@/features/analytics/AnalyticsFilterProvider';
 import { AnalyticsShell } from '@/features/analytics/AnalyticsShell';
 import { triggerHeaderRefresh } from '@/hooks/useHeaderRefresh';
+import { HeaderActionSlotContext } from './headerActionSlot';
 import { LANGUAGE_LABEL_KEYS, LANGUAGE_ORDER } from '@/utils/constants';
 import { isSupportedLanguage } from '@/utils/language';
 import { getSidebarShortcutLabel, isSidebarToggleShortcut } from '@/utils/sidebarShortcut';
@@ -375,6 +376,7 @@ export function MainLayout() {
   const languageMenuRef = useRef<HTMLDivElement | null>(null);
   const themeMenuRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
+  const [headerActionSlot, setHeaderActionSlot] = useState<HTMLElement | null>(null);
 
   const fullBrandName = 'CLI Proxy API Management Center';
   const abbrBrandName = t('title.abbr');
@@ -1097,262 +1099,272 @@ export function MainLayout() {
   const sidebarToggleLabel = sidebarCollapsed ? t('sidebar.expand') : t('sidebar.collapse');
 
   return (
-    <div
-      className={`app-shell ${sidebarCollapsed ? 'sidebar-is-collapsed' : ''} ${
-        isPluginResourcePage ? 'plugin-resource-shell' : ''
-      } ${arrivingFromLogin ? 'app-shell--arriving' : ''}`}
-    >
-      <div className="top-gradient-blur" aria-hidden="true" />
+    <HeaderActionSlotContext.Provider value={headerActionSlot}>
+      <div
+        className={`app-shell ${sidebarCollapsed ? 'sidebar-is-collapsed' : ''} ${
+          isPluginResourcePage ? 'plugin-resource-shell' : ''
+        } ${arrivingFromLogin ? 'app-shell--arriving' : ''}`}
+      >
+        <div className="top-gradient-blur" aria-hidden="true" />
 
-      <header className="main-header" ref={headerRef}>
-        <button
-          type="button"
-          className="sidebar-toggle-floating"
-          onClick={() => {
-            hideRailTooltip();
-            setSidebarCollapsed((prev) => !prev);
-          }}
-          onMouseEnter={(event) =>
-            handleRailTooltipMouseEnter(event, 'sidebar-toggle', sidebarToggleLabel, shortcutText)
-          }
-          onMouseLeave={handleRailTooltipMouseLeave}
-          onFocus={(event) =>
-            handleRailTooltipFocus(event, 'sidebar-toggle', sidebarToggleLabel, shortcutText)
-          }
-          onBlur={(event) =>
-            handleRailTooltipBlur(event, 'sidebar-toggle', sidebarToggleLabel, shortcutText)
-          }
-          aria-label={`${sidebarToggleLabel} (${shortcutText})`}
-          aria-describedby={railTooltip?.targetID === 'sidebar-toggle' ? NAV_TOOLTIP_ID : undefined}
-        >
-          {sidebarCollapsed ? headerIcons.chevronRight : headerIcons.chevronLeft}
-        </button>
-
-        <div className="mobile-sidebar-actions">
-          <Button
-            className="mobile-menu-btn"
-            variant="ghost"
-            size="sm"
-            onClick={() => setSidebarOpen((prev) => !prev)}
-            title={mobileSidebarToggleLabel}
-            aria-label={mobileSidebarToggleLabel}
+        <header className="main-header" ref={headerRef}>
+          <button
+            type="button"
+            className="sidebar-toggle-floating"
+            onClick={() => {
+              hideRailTooltip();
+              setSidebarCollapsed((prev) => !prev);
+            }}
+            onMouseEnter={(event) =>
+              handleRailTooltipMouseEnter(event, 'sidebar-toggle', sidebarToggleLabel, shortcutText)
+            }
+            onMouseLeave={handleRailTooltipMouseLeave}
+            onFocus={(event) =>
+              handleRailTooltipFocus(event, 'sidebar-toggle', sidebarToggleLabel, shortcutText)
+            }
+            onBlur={(event) =>
+              handleRailTooltipBlur(event, 'sidebar-toggle', sidebarToggleLabel, shortcutText)
+            }
+            aria-label={`${sidebarToggleLabel} (${shortcutText})`}
+            aria-describedby={
+              railTooltip?.targetID === 'sidebar-toggle' ? NAV_TOOLTIP_ID : undefined
+            }
           >
-            {sidebarOpen ? headerIcons.close : headerIcons.menu}
-          </Button>
-        </div>
+            {sidebarCollapsed ? headerIcons.chevronRight : headerIcons.chevronLeft}
+          </button>
 
-        <div className="header-actions floating-actions">
-          {readOnly && (
-            <span
-              className="session-scope-badge"
-              role="status"
-              title={t('session_scope.read_only_hint')}
+          <div className="mobile-sidebar-actions">
+            <Button
+              className="mobile-menu-btn"
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarOpen((prev) => !prev)}
+              title={mobileSidebarToggleLabel}
+              aria-label={mobileSidebarToggleLabel}
             >
-              <IconEye size={14} aria-hidden="true" />
-              <span>{t('session_scope.read_only')}</span>
-            </span>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRefreshAll}
-            title={t('header.refresh_all')}
-          >
-            {headerIcons.refresh}
-          </Button>
-          <div className={`language-menu ${languageMenuOpen ? 'open' : ''}`} ref={languageMenuRef}>
+              {sidebarOpen ? headerIcons.close : headerIcons.menu}
+            </Button>
+          </div>
+
+          <div className="header-actions floating-actions">
+            <div className="header-action-slot" ref={setHeaderActionSlot} />
+            {readOnly && (
+              <span
+                className="session-scope-badge"
+                role="status"
+                title={t('session_scope.read_only_hint')}
+              >
+                <IconEye size={14} aria-hidden="true" />
+                <span>{t('session_scope.read_only')}</span>
+              </span>
+            )}
             <Button
               variant="ghost"
               size="sm"
-              onClick={toggleLanguageMenu}
-              title={t('language.switch')}
-              aria-label={t('language.switch')}
-              aria-haspopup="menu"
-              aria-expanded={languageMenuOpen}
+              onClick={handleRefreshAll}
+              title={t('header.refresh_all')}
             >
-              {headerIcons.language}
+              {headerIcons.refresh}
             </Button>
-            {languageMenuOpen && (
-              <div
-                className="notification entering language-menu-popover"
-                role="menu"
+            <div
+              className={`language-menu ${languageMenuOpen ? 'open' : ''}`}
+              ref={languageMenuRef}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleLanguageMenu}
+                title={t('language.switch')}
                 aria-label={t('language.switch')}
+                aria-haspopup="menu"
+                aria-expanded={languageMenuOpen}
               >
-                {LANGUAGE_ORDER.map((lang) => (
-                  <button
-                    key={lang}
-                    type="button"
-                    className={`language-menu-option ${language === lang ? 'active' : ''}`}
-                    onClick={() => handleLanguageSelect(lang)}
-                    role="menuitemradio"
-                    aria-checked={language === lang}
-                  >
-                    <span>{t(LANGUAGE_LABEL_KEYS[lang])}</span>
-                    {language === lang ? <span className="language-menu-check">✓</span> : null}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className={`theme-menu ${themeMenuOpen ? 'open' : ''}`} ref={themeMenuRef}>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleThemeMenu}
-              title={t('theme.switch')}
-              aria-label={t('theme.switch')}
-              aria-haspopup="menu"
-              aria-expanded={themeMenuOpen}
-            >
-              {theme === 'auto'
-                ? headerIcons.autoTheme
-                : theme === 'dark'
-                  ? headerIcons.moon
-                  : theme === 'white'
-                    ? headerIcons.whiteTheme
-                    : headerIcons.sun}
-            </Button>
-            {themeMenuOpen && (
-              <div
-                className="notification entering theme-menu-popover"
-                role="menu"
-                aria-label={t('theme.switch')}
-              >
-                {THEME_CARDS.map((tc) => (
-                  <button
-                    key={tc.key}
-                    type="button"
-                    className={`theme-card ${theme === tc.key ? 'active' : ''}`}
-                    onClick={() => handleThemeSelect(tc.key)}
-                    role="menuitemradio"
-                    aria-checked={theme === tc.key}
-                  >
-                    <div
-                      className="theme-card-preview"
-                      style={{
-                        background: tc.colors.bg,
-                        border: `1px solid ${tc.colors.border}`,
-                      }}
+                {headerIcons.language}
+              </Button>
+              {languageMenuOpen && (
+                <div
+                  className="notification entering language-menu-popover"
+                  role="menu"
+                  aria-label={t('language.switch')}
+                >
+                  {LANGUAGE_ORDER.map((lang) => (
+                    <button
+                      key={lang}
+                      type="button"
+                      className={`language-menu-option ${language === lang ? 'active' : ''}`}
+                      onClick={() => handleLanguageSelect(lang)}
+                      role="menuitemradio"
+                      aria-checked={language === lang}
                     >
-                      <div
-                        className="theme-card-header"
-                        style={{
-                          background: tc.colors.card,
-                          borderBottom: `1px solid ${tc.colors.border}`,
-                        }}
-                      />
-                      <div className="theme-card-body">
-                        <div
-                          className="theme-card-sidebar"
-                          style={{
-                            background: tc.colors.card,
-                            borderRight: `1px solid ${tc.colors.border}`,
-                          }}
-                        />
-                        <div className="theme-card-content" style={{ background: tc.colors.bg }}>
-                          <div
-                            className="theme-card-line"
-                            style={{ background: tc.colors.textMuted }}
-                          />
-                          <div
-                            className="theme-card-line short"
-                            style={{ background: tc.colors.textMuted }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <span className="theme-card-label">{t(tc.labelKey)}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <Button variant="ghost" size="sm" onClick={logout} title={t('header.logout')}>
-            {headerIcons.logout}
-          </Button>
-        </div>
-      </header>
-
-      <div className="main-body">
-        <button
-          type="button"
-          className={`sidebar-backdrop ${sidebarOpen ? 'visible' : ''}`}
-          onClick={() => setSidebarOpen(false)}
-          aria-label={t('common.close')}
-          aria-hidden={!sidebarOpen}
-          tabIndex={sidebarOpen ? 0 : -1}
-        />
-
-        <aside
-          className={`sidebar ${sidebarOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}
-        >
-          <div className="sidebar-header">
-            <div className="sidebar-brand" title={fullBrandName}>
-              <img src={INLINE_LOGO_JPEG} alt="CPAMC logo" className="sidebar-brand-logo" />
-              {showSidebarLabels && (
-                <span className="sidebar-brand-text">
-                  <span className="sidebar-brand-title">{abbrBrandName}</span>
-                  <span className="sidebar-brand-subtitle">{t('sidebar.subtitle')}</span>
-                </span>
+                      <span>{t(LANGUAGE_LABEL_KEYS[lang])}</span>
+                      {language === lang ? <span className="language-menu-check">✓</span> : null}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
+            <div className={`theme-menu ${themeMenuOpen ? 'open' : ''}`} ref={themeMenuRef}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleThemeMenu}
+                title={t('theme.switch')}
+                aria-label={t('theme.switch')}
+                aria-haspopup="menu"
+                aria-expanded={themeMenuOpen}
+              >
+                {theme === 'auto'
+                  ? headerIcons.autoTheme
+                  : theme === 'dark'
+                    ? headerIcons.moon
+                    : theme === 'white'
+                      ? headerIcons.whiteTheme
+                      : headerIcons.sun}
+              </Button>
+              {themeMenuOpen && (
+                <div
+                  className="notification entering theme-menu-popover"
+                  role="menu"
+                  aria-label={t('theme.switch')}
+                >
+                  {THEME_CARDS.map((tc) => (
+                    <button
+                      key={tc.key}
+                      type="button"
+                      className={`theme-card ${theme === tc.key ? 'active' : ''}`}
+                      onClick={() => handleThemeSelect(tc.key)}
+                      role="menuitemradio"
+                      aria-checked={theme === tc.key}
+                    >
+                      <div
+                        className="theme-card-preview"
+                        style={{
+                          background: tc.colors.bg,
+                          border: `1px solid ${tc.colors.border}`,
+                        }}
+                      >
+                        <div
+                          className="theme-card-header"
+                          style={{
+                            background: tc.colors.card,
+                            borderBottom: `1px solid ${tc.colors.border}`,
+                          }}
+                        />
+                        <div className="theme-card-body">
+                          <div
+                            className="theme-card-sidebar"
+                            style={{
+                              background: tc.colors.card,
+                              borderRight: `1px solid ${tc.colors.border}`,
+                            }}
+                          />
+                          <div className="theme-card-content" style={{ background: tc.colors.bg }}>
+                            <div
+                              className="theme-card-line"
+                              style={{ background: tc.colors.textMuted }}
+                            />
+                            <div
+                              className="theme-card-line short"
+                              style={{ background: tc.colors.textMuted }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <span className="theme-card-label">{t(tc.labelKey)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Button variant="ghost" size="sm" onClick={logout} title={t('header.logout')}>
+              {headerIcons.logout}
+            </Button>
           </div>
+        </header>
 
-          <div className="nav-section">
-            {navGroups.map((group, idx) => (
-              <div className="nav-group" key={group.id}>
-                {showSidebarLabels ? (
-                  <div className="nav-group-label">
-                    {t(group.labelKey, { defaultValue: group.labelDefault })}
-                  </div>
-                ) : (
-                  idx > 0 && <div className="nav-group-divider" aria-hidden="true" />
+        <div className="main-body">
+          <button
+            type="button"
+            className={`sidebar-backdrop ${sidebarOpen ? 'visible' : ''}`}
+            onClick={() => setSidebarOpen(false)}
+            aria-label={t('common.close')}
+            aria-hidden={!sidebarOpen}
+            tabIndex={sidebarOpen ? 0 : -1}
+          />
+
+          <aside
+            className={`sidebar ${sidebarOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}
+          >
+            <div className="sidebar-header">
+              <div className="sidebar-brand" title={fullBrandName}>
+                <img src={INLINE_LOGO_JPEG} alt="CPAMC logo" className="sidebar-brand-logo" />
+                {showSidebarLabels && (
+                  <span className="sidebar-brand-text">
+                    <span className="sidebar-brand-title">{abbrBrandName}</span>
+                    <span className="sidebar-brand-subtitle">{t('sidebar.subtitle')}</span>
+                  </span>
                 )}
-                {group.items.map((item) => renderNavItem(item))}
               </div>
-            ))}
-          </div>
-        </aside>
+            </div>
 
-        {railTooltip && (
+            <div className="nav-section">
+              {navGroups.map((group, idx) => (
+                <div className="nav-group" key={group.id}>
+                  {showSidebarLabels ? (
+                    <div className="nav-group-label">
+                      {t(group.labelKey, { defaultValue: group.labelDefault })}
+                    </div>
+                  ) : (
+                    idx > 0 && <div className="nav-group-divider" aria-hidden="true" />
+                  )}
+                  {group.items.map((item) => renderNavItem(item))}
+                </div>
+              ))}
+            </div>
+          </aside>
+
+          {railTooltip && (
+            <div
+              ref={railTooltipRef}
+              id={NAV_TOOLTIP_ID}
+              className="nav-tooltip"
+              role="tooltip"
+              style={{ top: railTooltip.top }}
+            >
+              <span className="nav-tooltip-label" aria-hidden="true">
+                {railTooltip.label}
+              </span>
+              {railTooltip.meta ? (
+                <span className="nav-tooltip-meta">{railTooltip.meta}</span>
+              ) : null}
+            </div>
+          )}
+
           <div
-            ref={railTooltipRef}
-            id={NAV_TOOLTIP_ID}
-            className="nav-tooltip"
-            role="tooltip"
-            style={{ top: railTooltip.top }}
-          >
-            <span className="nav-tooltip-label" aria-hidden="true">
-              {railTooltip.label}
-            </span>
-            {railTooltip.meta ? <span className="nav-tooltip-meta">{railTooltip.meta}</span> : null}
-          </div>
-        )}
-
-        <div
-          className={`content${isLogsPage ? ' content-logs' : ''}${
-            isPluginResourcePage ? ' content-plugin-resource' : ''
-          }`}
-          ref={contentRef}
-        >
-          <main
-            className={`main-content${isLogsPage ? ' main-content-logs' : ''}${
-              isPluginResourcePage ? ' main-content-plugin-resource' : ''
+            className={`content${isLogsPage ? ' content-logs' : ''}${
+              isPluginResourcePage ? ' content-plugin-resource' : ''
             }`}
+            ref={contentRef}
           >
-            <AnalyticsFilterProvider>
-              <AnalyticsShell pathname={location.pathname}>
-                <PageTransition
-                  render={(routeLocation) => <MainRoutes location={routeLocation} />}
-                  getRouteOrder={getRouteOrder}
-                  getTransitionVariant={getTransitionVariant}
-                  scrollContainerRef={contentRef}
-                />
-              </AnalyticsShell>
-            </AnalyticsFilterProvider>
-          </main>
+            <main
+              className={`main-content${isLogsPage ? ' main-content-logs' : ''}${
+                isPluginResourcePage ? ' main-content-plugin-resource' : ''
+              }`}
+            >
+              <AnalyticsFilterProvider>
+                <AnalyticsShell pathname={location.pathname}>
+                  <PageTransition
+                    render={(routeLocation) => <MainRoutes location={routeLocation} />}
+                    getRouteOrder={getRouteOrder}
+                    getTransitionVariant={getTransitionVariant}
+                    scrollContainerRef={contentRef}
+                  />
+                </AnalyticsShell>
+              </AnalyticsFilterProvider>
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+    </HeaderActionSlotContext.Provider>
   );
 }

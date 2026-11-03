@@ -325,6 +325,19 @@ export function DateRangePicker({
     value.preset === 'custom'
       ? formatAnalyticsCustomRange(value, activeLocale)
       : analyticsRangeLabel(t, value);
+  // The tooltip spells out the resolved bounds in the range's own zone; the raw ISO
+  // nanosecond strings were unreadable.
+  const resolvedTitle = useMemo(() => {
+    const format = new Intl.DateTimeFormat(activeLocale, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: value.timeZone,
+    });
+    const start = new Date(resolvedBounds.start);
+    const end = new Date(resolvedBounds.end);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return undefined;
+    return `${format.format(start)} → ${format.format(end)}`;
+  }, [activeLocale, resolvedBounds.end, resolvedBounds.start, value.timeZone]);
   const isOpen = open && !disabled;
 
   const close = useCallback((restoreFocus = false) => {
@@ -791,7 +804,7 @@ export function DateRangePicker({
             isOpen && pane === 'presets' ? `date-range-option-${resolvedIndex}` : undefined
           }
           aria-label={triggerLabel}
-          title={`${resolvedBounds.start} → ${resolvedBounds.end}`}
+          title={resolvedTitle}
           disabled={disabled}
         >
           <span className={styles.triggerText}>{displayLabel}</span>

@@ -128,7 +128,7 @@ describe('analytics date range picker contracts', () => {
     expect(valid).toMatchObject({ error: null, startIso: '2026-07-31T17:00:00.000Z' });
   });
 
-  test('renders preset and custom trigger labels with the exact bounds title', () => {
+  test('renders preset and custom trigger labels with a readable bounds title', () => {
     const custom = range('custom') as Extract<AnalyticsRange, { preset: 'custom' }>;
     expect(formatAnalyticsCustomRange(custom, 'en')).toBe('Aug 1 – Aug 8, 2026');
     expect(analyticsRangeLabel(i18n.getFixedT('en'), range('last_n_days'))).toBe('Past 7 days');
@@ -142,7 +142,8 @@ describe('analytics date range picker contracts', () => {
       })
     );
     expect(markup).toContain('Aug 1 – Aug 8, 2026');
-    expect(markup).toContain('title="2026-08-01T00:00:00.000Z → 2026-08-08T00:00:00.000Z"');
+    // The tooltip spells the resolved bounds out in the range's zone (Asia/Bangkok here).
+    expect(markup).toMatch(/title="Aug 1, 2026, 7:00\sAM → Aug 8, 2026, 7:00\sAM"/);
     expect(markup).not.toContain('rangeBounds');
   });
 

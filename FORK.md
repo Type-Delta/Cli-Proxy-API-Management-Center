@@ -1543,6 +1543,49 @@ The Config Panel's Advanced & Experimental section exposes CPA's fork-only `upst
 
 **Last updated:** 2026-11-03
 
+### DL076 — Usage page spacing and mobile layout refinements
+
+The Usage workspace keeps its layout but tightens the details that read as defects. On phones the
+shell header keeps the same "Ready" status pill as desktop followed by the "Updated" time instead
+of hiding the label behind a bare status dot, and the tab strip hides its scrollbar track on coarse pointers because the edge
+chevrons and fades already signal hidden tabs. The filter card sizes the API-key and Rank-by fields
+with an explicit width so single-key selections fit and both fields stay on one row until the card
+wraps them under the range picker; the time-range trigger tooltip spells out the resolved bounds in
+the range's time zone instead of raw ISO nanosecond strings. Overview's daily averages become
+label/value rows on mobile, and the Model Cost Efficiency table keeps model names and the
+partial-data badge on one line. Keys catalog cards on phones read top-down instead of as a
+two-column grid of eleven equal metrics: rank, label, and status in the head; total tokens and
+estimated cost as the two large numbers with the share bar under them; requests and output window
+in a muted strip; key ID (only for labelled keys), top model, config indexes, and unpriced tokens
+as label/value rows; and last and first activity side by side at the foot of the card.
+
+On phones every filter lives in one sheet instead of cards above the content. `MainLayout` exposes
+a `HeaderActionSlotContext` node (`src/components/layout/headerActionSlot.ts`, rendered as
+`.header-action-slot` with `display: contents` inside `.header-actions`) and `AnalyticsShell`
+portals a sliders icon into it on filterable Usage tabs at or below 768px, with a count bubble for
+active filters (a key selection counts once; views report their own count through
+`setViewFilterCount` on the shell context). The icon opens a `Sheet` holding the shared range, key,
+and rank-by controls plus a host element (`filterSheetHost`) that `Events.tsx` portals its Event
+filters card into; the cards inside the sheet drop their chrome (`.filterSheet` in
+`Analytics.module.scss`). Desktop keeps the inline filter cards and never renders the icon.
+
+Events on phones lists attempts as two-line rows (`.eventList`/`.eventRowButton` in
+`Events.module.scss`) instead of a card nested in a card per attempt: an outcome dot (emerald
+succeeded, coral failed, amber canceled) and the model on the first line, the time and the key's
+label (short id only when unlabeled) on the second, the whole row as the tap target with the
+table's row label as its accessible name, and a trailing chevron. The Columns button is desktop
+only because column preferences drive the table, not the row list or the export, and the Export
+select collapses to its download icon on phones (`.exportSelect` mobile rule; the trigger shows the
+option icon on every width). `Pagination` spans the full width on phones with a shrinkable page
+label so Previous, the label, and Next share one line, and uses the new `IconChevronRight`. The
+Overview daily averages keep three inline columns on phones with bottom-aligned figures.
+
+**Implementation evidence:** `src/features/analytics/{Analytics.module.scss,AnalyticsTabs.module.scss,AnalyticsShell.tsx,AnalyticsShellContext.ts}`, `src/features/analytics/views/overview/Overview.module.scss`, `src/features/analytics/views/keys/KeysView.module.scss`, `src/features/analytics/views/analysis/{Analysis.module.scss,ModelCostModal.module.scss}`, `src/features/analytics/views/Events.tsx`, `src/features/analytics/views/events/Events.module.scss`, `src/components/layout/{MainLayout.tsx,headerActionSlot.ts}`, `src/styles/layout.scss`, `src/components/ui/{DateRangePicker/index.tsx,Pagination.tsx,Pagination.module.scss,icons.tsx}`; tests: `tests/analyticsRange.test.ts`.
+
+**Recorded validation:** On 2026-11-03, `bun run verify` passes tests, lint, TypeScript, and the production build. Against a local CPA in ClickHouse server mode seeded with 37 days of synthetic traffic across five labeled keys and seven models, isolated Chrome CDP checks of Overview, Analysis, Keys, and Events at 1440px and 390px in light and dark themes found no document or main-area horizontal overflow and no console errors; the Keys filter bar was also checked at 1180px and 1024px. The phone pass also confirmed the header filter icon appears only on phones, that the sheet shows the shared controls plus Event filters on the Events tab and Rank by on the Keys tab, that choosing an outcome in the sheet filters the list and shows a count bubble on the icon, that tapping a row opens the event detail sheet, that the pagination row fits one line at 390px, and that the desktop filter cards, table, and Columns control are unchanged.
+
+**Last updated:** 2026-11-03
+
 ## Sync Checklist
 
 Project-specific checks every upstream sync runs, in addition to the full test suite, lint, typecheck, builds, and a smoke test of upstream and fork features.

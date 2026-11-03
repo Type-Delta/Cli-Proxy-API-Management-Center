@@ -171,6 +171,11 @@
     right: var(--shell-gutter);
   }
 
+  // Page-provided controls portal into this node; `contents` keeps an empty slot out of the gap.
+  .header-actions .header-action-slot {
+    display: contents;
+  }
+
   .mobile-sidebar-actions .btn,
   .header-actions .btn {
     width: var(--floating-control-size);

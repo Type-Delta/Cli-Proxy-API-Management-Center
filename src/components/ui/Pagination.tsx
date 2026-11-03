@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Button } from './Button';
-import { IconChevronLeft } from './icons';
+import { IconChevronLeft, IconChevronRight } from './icons';
 import styles from './Pagination.module.scss';
 
 export interface PaginationProps {
@@ -49,7 +49,7 @@ export function Pagination({
       <Button
         variant="secondary"
         size="sm"
-        icon={<IconChevronLeft size={16} style={{ transform: 'rotate(180deg)' }} />}
+        icon={<IconChevronRight size={16} />}
         aria-label={nextLabel}
         disabled={nextDisabled || page >= pageCount}
         loading={nextLoading}

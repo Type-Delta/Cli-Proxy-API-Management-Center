@@ -144,6 +144,23 @@
   }
 }
 
+// Touch devices get no persistent scrollbar track under the strip: the edge chevrons and fades
+// already signal hidden tabs, and the 5px track read as a stray rule under the tab labels.
+@media (pointer: coarse) {
+  .scroller {
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .tabs::before,
+  .tabs::after {
+    bottom: 0;
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .tab:hover {
     color: var(--text-primary);

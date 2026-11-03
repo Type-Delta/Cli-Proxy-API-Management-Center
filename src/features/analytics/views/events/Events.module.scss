@@ -86,14 +86,6 @@
   caption-side: top;
 }
 
-.mobileFilterSummary {
-  display: none;
-}
-
-.filterTarget {
-  scroll-margin-top: 8px;
-}
-
 .stackedCell {
   display: flex;
   flex-direction: column;
@@ -125,11 +117,6 @@
     outline: 2px solid var(--primary-color);
     outline-offset: -2px;
   }
-}
-
-.detailButton {
-  min-width: 40px;
-  min-height: 40px;
 }
 
 .canceledBadge,
@@ -230,61 +217,120 @@
   }
 }
 
-.cardList {
+// Phones list attempts as hairline-separated rows instead of nested cards: the whole row is the
+// tap target, so there is no per-row button and no second layer of card chrome.
+.eventList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
+  margin: 0;
+  padding: 0;
+  list-style: none;
 
-.eventCard {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  button {
-    align-self: flex-start;
+  li + li {
+    border-top: 1px solid var(--border-color);
   }
 }
 
-.eventCardHead {
+.eventRowButton {
   display: flex;
+  width: 100%;
+  min-height: 44px;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: var(--text-secondary);
-  font-size: 12px;
+  gap: 12px;
+  padding: 12px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active {
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+    border-radius: var(--radius-md);
+  }
 }
 
-.eventCardModel {
+.eventRowBody {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.eventRowModel,
+.eventRowMeta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eventRowModel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
 }
 
-.eventCardKey {
+// Outcome reads as a dot: emerald success, coral failure, amber cancel. The row's accessible name
+// still spells the result out.
+.eventRowDot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  // Centering lands the dot on the cap height; a nudge puts it on the x-height of the model name.
+  margin-top: 2px;
+  border-radius: 50%;
+  background: var(--success-color);
+
+  &[data-outcome='failed'] {
+    background: var(--error-color);
+  }
+
+  &[data-outcome='canceled'] {
+    background: var(--amber-color);
+  }
+}
+
+.eventRowMeta {
+  padding-inline-start: 16px;
   color: var(--text-secondary);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
+
+  > span + span::before {
+    content: ' · ';
+  }
+}
+
+.eventRowChevron {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
 }
 
 @media (max-width: 768px) {
-  .mobileFilterSummary {
-    position: sticky;
-    z-index: 2;
-    top: 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    min-height: 44px;
-    padding: 6px 0;
-    background: var(--bg-primary);
-    color: var(--text-secondary);
-    font-size: 12px;
-  }
+  // Phones keep the export control but shrink it to its download icon.
+  .exportSelect {
+    min-width: 0;
 
-  .tableActions {
-    width: 100%;
-    justify-content: flex-start;
+    button {
+      width: 40px;
+      padding: 0;
+      justify-content: center;
+
+      > span {
+        display: none;
+      }
+    }
   }
 
   .controlGrid {

@@ -8,6 +8,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import antigravityLogo from '@/assets/icons/antigravity.svg';
@@ -25,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/Table';
-import { IconEye, IconSettings } from '@/components/ui/icons';
+import { IconChevronRight, IconDownload, IconSettings } from '@/components/ui/icons';
 import { PROVIDER_LOGOS } from '@/features/providers/brandLogos';
 import { ProviderLogo } from '@/features/providers/components/ProviderLogo';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -33,6 +34,7 @@ import { analyticsApi } from '@/services/api';
 import type { AnalyticsEvent, AnalyticsEventPage, AnalyticsFilters, AnalyticsKey } from '@/types';
 import { useAnalyticsFilters } from '../AnalyticsFilterContext';
 import { analyticsKeyIdentity } from '../analyticsKeyFilterModel';
+import { useAnalyticsFilterSheet } from '../AnalyticsShellContext';
 import { AsyncState } from '../components/AnalyticsShared';
 import {
   formatAnalyticsEnum,
@@ -137,8 +139,8 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
   const [selectedAttemptId, setSelectedAttemptId] = useState('');
   const [activeRow, setActiveRow] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const filterCardRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const { filterSheetHost, setViewFilterCount } = useAnalyticsFilterSheet();
 
   const dimensionRequest = (dimension: string) =>
     buildAnalyticsQuery('dimensions', range, keyIds, { dimension, page_size: 500 });
@@ -184,6 +186,11 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     [filters]
   );
   const hasFilters = Object.keys(requestFilters).length > 0;
+  const activeFilterCount = Object.keys(requestFilters).length;
+  useEffect(() => {
+    setViewFilterCount(activeFilterCount);
+    return () => setViewFilterCount(0);
+  }, [activeFilterCount, setViewFilterCount]);
   const request = useMemo(
     () =>
       buildAnalyticsQuery('events', range, keyIds, {
@@ -442,6 +449,13 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
       ? analyticsKeyIdentity(key)
       : t('analytics.unknown_key', { defaultValue: 'Unknown key' });
   };
+  // Phone rows show the key's label alone; the short id only stands in when there is no label.
+  const keyLabel = (event: AnalyticsEvent) => {
+    const key = keyById.get(event.key_id);
+    return key
+      ? key.label || key.short_key_id
+      : t('analytics.unknown_key', { defaultValue: 'Unknown key' });
+  };
 
   const renderCell = (column: EventColumnId, event: AnalyticsEvent): ReactNode => {
     const tokens = formatCompactTokens(event.tokens.total, i18n.resolvedLanguage);
@@ -638,151 +652,139 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     (rows?.[next] as HTMLTableRowElement | undefined)?.focus();
   };
 
+  // Phones hand this card to the shell's filter sheet; desktop keeps it inline above the list.
+  const filterCard = (
+    <div id="analytics-events-filters">
+      <Card title={t('analytics.event_filters', { defaultValue: 'Event filters' })}>
+        <div className={styles.controlGrid}>
+          <label className={styles.control}>
+            <span>{t('analytics.provider')}</span>
+            <Select
+              value={filters.provider}
+              onChange={(value) => updateFilter('provider', value)}
+              options={providerOptions}
+              ariaLabel={t('analytics.provider')}
+            />
+          </label>
+          <label className={styles.control}>
+            <span>{t('analytics.model')}</span>
+            <Select
+              value={filters.model}
+              onChange={(value) => updateFilter('model', value)}
+              options={modelOptions}
+              ariaLabel={t('analytics.model')}
+            />
+          </label>
+          <label className={styles.control}>
+            <span>{t('analytics.source', { defaultValue: 'Source' })}</span>
+            <Select
+              value={filters.source}
+              onChange={(value) => updateFilter('source', value)}
+              options={sourceOptions}
+              ariaLabel={t('analytics.source', { defaultValue: 'Source' })}
+            />
+          </label>
+          <label className={styles.control}>
+            <span>{t('analytics.events.outcome')}</span>
+            <Select
+              value={filters.outcome}
+              onChange={(value) =>
+                updateFilter('outcome', value as AnalyticsEventFilters['outcome'])
+              }
+              options={[
+                { value: '', label: t('analytics.all_results') },
+                { value: 'succeeded', label: t('common.success') },
+                { value: 'failed', label: t('common.failure') },
+                { value: 'canceled', label: t('analytics.events.canceled') },
+              ]}
+              ariaLabel={t('analytics.events.outcome')}
+            />
+          </label>
+          <label className={styles.control}>
+            <span>{t('analytics.error_class', { defaultValue: 'Error class' })}</span>
+            <Select
+              value={filters.errorClass}
+              onChange={(value) => updateFilter('errorClass', value)}
+              options={errorOptions}
+              ariaLabel={t('analytics.error_class', { defaultValue: 'Error class' })}
+            />
+          </label>
+        </div>
+        <div className={styles.sessionFilterRow}>
+          <label className={styles.control}>
+            <span>{t('analytics.event_detail.session_id', { defaultValue: 'Session ID' })}</span>
+            <Input
+              className={styles.sessionInput}
+              spellCheck={false}
+              autoComplete="off"
+              aria-label={t('analytics.event_detail.session_id', { defaultValue: 'Session ID' })}
+              value={sessionDraft}
+              maxLength={256}
+              onFocus={() => {
+                sessionFocused.current = true;
+              }}
+              onChange={(event) => setSessionDraft(event.target.value)}
+              onBlur={() => {
+                sessionFocused.current = false;
+                commitSession(sessionDraft);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') commitSession(sessionDraft);
+              }}
+              placeholder={t('analytics.event_detail.session_id_exact', {
+                defaultValue: 'Exact session ID',
+              })}
+            />
+          </label>
+          <Button
+            variant="secondary"
+            size="sm"
+            className={styles.clearFilters}
+            disabled={!hasFilters}
+            onClick={() => {
+              setSessionDraft('');
+              setFilters(DEFAULT_ANALYTICS_EVENT_FILTERS);
+            }}
+          >
+            {t('analytics.clear_filters', { defaultValue: 'Clear filters' })}
+          </Button>
+        </div>
+        <div className={styles.filterFooter}>
+          {sourceDimensions.error && (
+            <span className={styles.sourceNotice}>
+              {t('analytics.source_loaded_fallback', {
+                defaultValue:
+                  'CPA did not return Source options; this control uses values from loaded events.',
+              })}
+            </span>
+          )}
+        </div>
+        {[
+          [providerDimensions.error, providerDimensions.refresh],
+          [modelDimensions.error, modelDimensions.refresh],
+          [sourceDimensions.error, sourceDimensions.refresh],
+          [failureDimensions.error, failureDimensions.refresh],
+        ]
+          .filter(([error]) => Boolean(error))
+          .map(([error, retry], index) => (
+            <div className="error-box" role="alert" key={`${index}:${String(error)}`}>
+              <span>{String(error)}</span>
+              <Button
+                variant="secondary"
+                onClick={() => void (retry as () => Promise<unknown>)()}
+                disabled={retryIn > 0}
+              >
+                {retryLabel}
+              </Button>
+            </div>
+          ))}
+      </Card>
+    </div>
+  );
+
   return (
     <>
-      <div className={styles.mobileFilterSummary}>
-        <span>
-          {t('analytics.events_filter_summary', {
-            count: Object.keys(requestFilters).length,
-            defaultValue: '{{count}} active filters',
-          })}
-        </span>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() =>
-            filterCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
-        >
-          {t('analytics.events_filter_button', { defaultValue: 'Filters' })}
-        </Button>
-      </div>
-      <div ref={filterCardRef} id="analytics-events-filters" className={styles.filterTarget}>
-        <Card title={t('analytics.event_filters', { defaultValue: 'Event filters' })}>
-          <div className={styles.controlGrid}>
-            <label className={styles.control}>
-              <span>{t('analytics.provider')}</span>
-              <Select
-                value={filters.provider}
-                onChange={(value) => updateFilter('provider', value)}
-                options={providerOptions}
-                ariaLabel={t('analytics.provider')}
-              />
-            </label>
-            <label className={styles.control}>
-              <span>{t('analytics.model')}</span>
-              <Select
-                value={filters.model}
-                onChange={(value) => updateFilter('model', value)}
-                options={modelOptions}
-                ariaLabel={t('analytics.model')}
-              />
-            </label>
-            <label className={styles.control}>
-              <span>{t('analytics.source', { defaultValue: 'Source' })}</span>
-              <Select
-                value={filters.source}
-                onChange={(value) => updateFilter('source', value)}
-                options={sourceOptions}
-                ariaLabel={t('analytics.source', { defaultValue: 'Source' })}
-              />
-            </label>
-            <label className={styles.control}>
-              <span>{t('analytics.events.outcome')}</span>
-              <Select
-                value={filters.outcome}
-                onChange={(value) =>
-                  updateFilter('outcome', value as AnalyticsEventFilters['outcome'])
-                }
-                options={[
-                  { value: '', label: t('analytics.all_results') },
-                  { value: 'succeeded', label: t('common.success') },
-                  { value: 'failed', label: t('common.failure') },
-                  { value: 'canceled', label: t('analytics.events.canceled') },
-                ]}
-                ariaLabel={t('analytics.events.outcome')}
-              />
-            </label>
-            <label className={styles.control}>
-              <span>{t('analytics.error_class', { defaultValue: 'Error class' })}</span>
-              <Select
-                value={filters.errorClass}
-                onChange={(value) => updateFilter('errorClass', value)}
-                options={errorOptions}
-                ariaLabel={t('analytics.error_class', { defaultValue: 'Error class' })}
-              />
-            </label>
-          </div>
-          <div className={styles.sessionFilterRow}>
-            <label className={styles.control}>
-              <span>{t('analytics.event_detail.session_id', { defaultValue: 'Session ID' })}</span>
-              <Input
-                className={styles.sessionInput}
-                spellCheck={false}
-                autoComplete="off"
-                aria-label={t('analytics.event_detail.session_id', { defaultValue: 'Session ID' })}
-                value={sessionDraft}
-                maxLength={256}
-                onFocus={() => {
-                  sessionFocused.current = true;
-                }}
-                onChange={(event) => setSessionDraft(event.target.value)}
-                onBlur={() => {
-                  sessionFocused.current = false;
-                  commitSession(sessionDraft);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') commitSession(sessionDraft);
-                }}
-                placeholder={t('analytics.event_detail.session_id_exact', {
-                  defaultValue: 'Exact session ID',
-                })}
-              />
-            </label>
-            <Button
-              variant="secondary"
-              size="sm"
-              className={styles.clearFilters}
-              disabled={!hasFilters}
-              onClick={() => {
-                setSessionDraft('');
-                setFilters(DEFAULT_ANALYTICS_EVENT_FILTERS);
-              }}
-            >
-              {t('analytics.clear_filters', { defaultValue: 'Clear filters' })}
-            </Button>
-          </div>
-          <div className={styles.filterFooter}>
-            {sourceDimensions.error && (
-              <span className={styles.sourceNotice}>
-                {t('analytics.source_loaded_fallback', {
-                  defaultValue:
-                    'CPA did not return Source options; this control uses values from loaded events.',
-                })}
-              </span>
-            )}
-          </div>
-          {[
-            [providerDimensions.error, providerDimensions.refresh],
-            [modelDimensions.error, modelDimensions.refresh],
-            [sourceDimensions.error, sourceDimensions.refresh],
-            [failureDimensions.error, failureDimensions.refresh],
-          ]
-            .filter(([error]) => Boolean(error))
-            .map(([error, retry], index) => (
-              <div className="error-box" role="alert" key={`${index}:${String(error)}`}>
-                <span>{String(error)}</span>
-                <Button
-                  variant="secondary"
-                  onClick={() => void (retry as () => Promise<unknown>)()}
-                  disabled={retryIn > 0}
-                >
-                  {retryLabel}
-                </Button>
-              </div>
-            ))}
-        </Card>
-      </div>
+      {isMobile ? filterSheetHost && createPortal(filterCard, filterSheetHost) : filterCard}
 
       {result.error && effectivePages.length === 0 ? (
         <Card>
@@ -814,14 +816,16 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
               title={t('analytics.events')}
               extra={
                 <div className={styles.tableActions}>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={<IconSettings size={16} />}
-                    onClick={() => setColumnSettingsOpen(true)}
-                  >
-                    {t('analytics.columns', { defaultValue: 'Columns' })}
-                  </Button>
+                  {!isMobile && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<IconSettings size={16} />}
+                      onClick={() => setColumnSettingsOpen(true)}
+                    >
+                      {t('analytics.columns', { defaultValue: 'Columns' })}
+                    </Button>
+                  )}
                   <Select
                     value={exportChoice}
                     onChange={(value) => {
@@ -831,6 +835,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                       {
                         value: '',
                         label: t('analytics.export_menu', { defaultValue: 'Export' }),
+                        icon: <IconDownload size={16} aria-hidden="true" />,
                       },
                       {
                         value: 'csv',
@@ -880,34 +885,32 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
                   }
                 />
               ) : isMobile ? (
-                <div className={styles.cardList}>
+                <ul className={styles.eventList}>
                   {visibleEvents.map((event) => (
-                    <Card key={event.attempt_id} className={styles.eventCard}>
-                      <div className={styles.eventCardHead}>
-                        <span title={event.requested_at}>
-                          {formatDateTime(event.requested_at, i18n.resolvedLanguage)}
-                        </span>
-                        {renderCell('result', event)}
-                      </div>
-                      <div className={styles.eventCardModel}>{event.model || '—'}</div>
-                      <div className={styles.eventCardKey} title={shortIdentifier(event.key_id)}>
-                        {keyIdentity(event)}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={styles.detailButton}
-                        aria-label={t('analytics.view_event', {
-                          defaultValue: 'View event details',
-                        })}
+                    <li key={event.attempt_id}>
+                      <button
+                        type="button"
+                        className={styles.eventRowButton}
+                        aria-label={rowLabel(event)}
                         onClick={() => setSelectedAttemptId(event.attempt_id)}
                       >
-                        <IconEye size={16} />
-                        {t('analytics.view_event', { defaultValue: 'View event details' })}
-                      </Button>
-                    </Card>
+                        <span className={styles.eventRowBody}>
+                          <span className={styles.eventRowModel}>
+                            <i className={styles.eventRowDot} data-outcome={eventOutcome(event)} />
+                            {event.model || '—'}
+                          </span>
+                          <span className={styles.eventRowMeta}>
+                            <span title={event.requested_at}>
+                              {formatDateTime(event.requested_at, i18n.resolvedLanguage)}
+                            </span>
+                            <span>{keyLabel(event)}</span>
+                          </span>
+                        </span>
+                        <IconChevronRight size={18} className={styles.eventRowChevron} />
+                      </button>
+                    </li>
                   ))}
-                </div>
+                </ul>
               ) : (
                 <Table
                   role="grid"

@@ -191,18 +191,24 @@
   gap: 6px;
   margin: 0 auto 0 0;
 }
+// Sized to its content so sibling fields (keys, rank-by) stay on one row until the card itself
+// has to wrap them under the range picker.
 .filterFields {
   display: flex;
+  flex: 0 0 auto;
   flex-direction: row;
   flex-wrap: wrap;
   gap: inherit;
 }
+// An explicit width (not a flex basis) so the field group measures 260px per field when the
+// card decides what fits on a row; a basis alone would size the group from the select's content.
 .filterField {
   display: flex;
-  flex: 0 1 340px;
+  flex: 0 1 auto;
+  width: 260px;
   flex-direction: column;
   gap: 6px;
-  min-width: 150px;
+  min-width: 180px;
 
   > span:first-child {
     color: var(--text-primary);
@@ -211,8 +217,11 @@
     line-height: 1.35;
   }
 }
-.filterField {
-  flex: none;
+// The range picker owns its own flex basis above; its inner field just fills it.
+.rangeFilter .filterField {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
 }
 .filterFieldDisabled {
   cursor: not-allowed;
@@ -624,31 +633,57 @@ tbody tr:hover .stickyAction {
 }
 
 @media (max-width: 639px) {
-  .ready,
-  .degraded {
-    padding: 0;
-    border-color: transparent;
-    background: transparent;
-  }
-
-  .statusLabel {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+  // The status row sits under the subtitle on phones and keeps the same pill as desktop.
+  .headerActions {
+    min-height: 0;
+    gap: 10px;
   }
 
   .statusPlaceholder {
-    height: 40px;
+    height: 23px;
+  }
+}
+
+// Phones move every filter into a sheet opened from the floating header: the icon carries a count
+// of active filters, and the cards inside the sheet drop their chrome to read as sections.
+.headerFilterButton {
+  position: relative;
+}
+
+.headerFilterCount {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: inline-flex;
+  min-width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--primary-color);
+  color: var(--primary-contrast, #fff);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.filterSheet {
+  :global(.card) {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
-  .statusSkeleton,
-  .updated {
-    display: none;
+  :global(.card-header .title) {
+    font-size: 14px;
+  }
+
+  [data-analytics-filter-sheet-host]:not(:empty) {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
   }
 }

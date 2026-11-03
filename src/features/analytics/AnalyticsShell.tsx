@@ -10,9 +10,14 @@ import {
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
+import { useHeaderActionSlot } from '@/components/layout/headerActionSlot';
+import { Button } from '@/components/ui/Button';
+import { IconSlidersHorizontal } from '@/components/ui/icons';
+import { Sheet } from '@/components/ui/Sheet';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { capabilitiesApi } from '@/services/api';
 import type { ManagementCapabilities } from '@/types';
 import { useAnalyticsFilters } from './AnalyticsFilterContext';
@@ -57,6 +62,12 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
   const refreshingRef = useRef(false);
   const [manualRefreshing, setManualRefreshing] = useState(false);
   const setContentHostRef = useCallback((node: HTMLDivElement | null) => setContentHost(node), []);
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const headerActionSlot = useHeaderActionSlot();
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [filterSheetHost, setFilterSheetHost] = useState<HTMLElement | null>(null);
+  const [viewFilterCount, setViewFilterCount] = useState(0);
+  const closeFilterSheet = useCallback(() => setFilterSheetOpen(false), []);
   const setPortalPayloadPresent = useCallback((token: symbol, present: boolean) => {
     if (present) portalPayloadsRef.current.add(token);
     else portalPayloadsRef.current.delete(token);
@@ -114,8 +125,15 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
     return registerAnalyticsAutoRefreshOwner(() => refreshPage(false));
   }, [isAnalyticsPath, refreshPage]);
   const value = useMemo(
-    () => ({ capabilities, contentHost, shellKind: kind, setPortalPayloadPresent }),
-    [capabilities, contentHost, kind, setPortalPayloadPresent]
+    () => ({
+      capabilities,
+      contentHost,
+      shellKind: kind,
+      setPortalPayloadPresent,
+      filterSheetHost,
+      setViewFilterCount,
+    }),
+    [capabilities, contentHost, filterSheetHost, kind, setPortalPayloadPresent]
   );
   const analytics = capabilities.data?.analytics;
   const state = analytics?.state;
@@ -126,6 +144,27 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
     : t('analytics.state_labels.unavailable');
   const filterable = ['overview', 'analysis', 'keys', 'events'].includes(kind);
   const updatedAt = updatedByKind[kind];
+  const mobileFilters = isAnalyticsPath && filterable && isMobile;
+  const activeFilterCount = (filters.selectedKeyIds.length > 0 ? 1 : 0) + viewFilterCount;
+  const filtersLabel = t('analytics.filters');
+  const filterControls = filterable && (
+    <Filters
+      range={filters.range}
+      setRange={filters.setRange}
+      resolvedRange={filters.resolvedRange}
+      keys={filters.keys}
+      selected={filters.selectedKeyIds}
+      setSelected={filters.setSelectedKeyIds}
+      keysLoading={filters.keysLoading}
+      keysError={filters.keysError}
+      retryKeys={() => void filters.refreshKeys()}
+      sort={filters.sort}
+      setSort={filters.setSort}
+      showSort={kind === 'keys'}
+      // The Keys catalog always ranks every key, so a key selection would do nothing there.
+      keysDisabled={kind === 'keys'}
+    />
+  );
 
   return (
     <AnalyticsRefreshContext.Provider value={refreshCoordinator}>
@@ -157,21 +196,19 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
                 {manualRefreshing || (capabilities.loading && Boolean(capabilities.data)) ? (
                   <span className={styles.ready} role="status" aria-live="polite">
                     <LoadingSpinner size={14} />
-                    <span className={styles.statusLabel}>
-                      {t('analytics.refreshing', { defaultValue: 'Refreshing' })}
-                    </span>
+                    <span>{t('analytics.refreshing', { defaultValue: 'Refreshing' })}</span>
                   </span>
                 ) : capabilities.loading ? (
                   <span className={styles.statusPlaceholder} aria-hidden="true">
                     <i className={styles.readyDot} />
-                    <span className={styles.statusSkeleton}>
+                    <span>
                       <Skeleton width={72} height={23} rounded={999} />
                     </span>
                   </span>
                 ) : (
                   <span className={isReady ? styles.ready : styles.degraded} role="status">
                     <i className={styles.readyDot} aria-hidden="true" />
-                    <span className={styles.statusLabel}>{stateLabel}</span>
+                    <span>{stateLabel}</span>
                   </span>
                 )}
                 <span className={styles.updated} aria-live="polite">
@@ -184,24 +221,7 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
               </div>
             </header>
             <AnalyticsTabs active={kind} />
-            {filterable && (
-              <Filters
-                range={filters.range}
-                setRange={filters.setRange}
-                resolvedRange={filters.resolvedRange}
-                keys={filters.keys}
-                selected={filters.selectedKeyIds}
-                setSelected={filters.setSelectedKeyIds}
-                keysLoading={filters.keysLoading}
-                keysError={filters.keysError}
-                retryKeys={() => void filters.refreshKeys()}
-                sort={filters.sort}
-                setSort={filters.setSort}
-                showSort={kind === 'keys'}
-                // The Keys catalog always ranks every key, so a key selection would do nothing there.
-                keysDisabled={kind === 'keys'}
-              />
-            )}
+            {!mobileFilters && filterControls}
             <div className={styles.contentHost} data-analytics-content-host>
               <div className={styles.contentBody} ref={setContentHostRef} data-analytics-content>
                 {!hasPortalPayload && <AnalyticsSkeleton />}
@@ -215,6 +235,41 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
         >
           {children}
         </div>
+        {mobileFilters &&
+          headerActionSlot &&
+          createPortal(
+            <Button
+              variant="ghost"
+              size="sm"
+              className={styles.headerFilterButton}
+              title={filtersLabel}
+              aria-label={
+                activeFilterCount > 0 ? `${filtersLabel} (${activeFilterCount})` : filtersLabel
+              }
+              aria-haspopup="dialog"
+              aria-expanded={filterSheetOpen}
+              onClick={() => setFilterSheetOpen(true)}
+            >
+              <IconSlidersHorizontal size={18} />
+              {activeFilterCount > 0 && (
+                <span className={styles.headerFilterCount} aria-hidden="true">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>,
+            headerActionSlot
+          )}
+        {mobileFilters && (
+          <Sheet
+            open={filterSheetOpen}
+            onClose={closeFilterSheet}
+            title={filtersLabel}
+            className={styles.filterSheet}
+          >
+            {filterControls}
+            <div ref={setFilterSheetHost} data-analytics-filter-sheet-host />
+          </Sheet>
+        )}
       </AnalyticsShellContext.Provider>
     </AnalyticsRefreshContext.Provider>
   );
