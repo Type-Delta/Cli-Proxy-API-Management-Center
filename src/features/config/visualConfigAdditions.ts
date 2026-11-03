@@ -87,6 +87,11 @@ export const ADDITION_FIELDS = [
     kind: 'boolean',
   },
   {
+    key: 'codexAssumeRequestedServiceTier',
+    path: 'upstream.codex.assume-requested-service-tier'.split('.'),
+    kind: 'boolean',
+  },
+  {
     key: 'antigravityConnectionPoolEnabled',
     path: 'oauth.providers.antigravity.connection-pool.enabled'.split('.'),
     kind: 'boolean',

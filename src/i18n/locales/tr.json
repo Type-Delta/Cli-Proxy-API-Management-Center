@@ -2673,6 +2673,10 @@
           "label": "Yanıt Yönlendirme",
           "hint": "Deneysel Tam Çift Yönlü Codex Responses WebSocket Bağlantıları. Her Soket Bir Yukarı Akış Hesabına ve Modele Bağlı Kalır. Kabul Edilen Girdi Yeniden Oynatılmaz. Varsayılan Kapalı."
         },
+        "codexAssumeRequestedServiceTier": {
+          "label": "İstenen Hizmet Katmanını Varsay",
+          "hint": "Codex Farklı Bir Katman Bildirse Bile Codex Kullanımını Yukarı Akışa Gönderilen Hizmet Katmanından Fiyatlandır (priority İsteklerinde default Döndürebilir). Bu Yalnızca Bir Fiyatlandırma Varsayımıdır, Yukarı Akış Zamanlamasının Onayı Değildir. Döndürülen Katman Kullanım Kaydında Kalır. Yalnızca Yeni Kullanıma Uygulanır. Varsayılan Kapalı."
+        },
         "antigravityConnectionPoolEnabled": {
           "label": "Bağlantı Havuzunu Etkinleştir",
           "hint": "Yukarı Akış HTTP/1.1 Bağlantılarını Yeniden Kullan. Varsayılan: false (Kısa Ömürlü Bağlantılar)."

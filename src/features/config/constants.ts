@@ -154,6 +154,7 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   codexOptimizeMultiAgentV2: ['codexOptimizeMultiAgentV2'],
   codexOrphanDelegationCompatibility: ['codexOrphanDelegationCompatibility'],
   codexResponseSteering: ['codexResponseSteering'],
+  codexAssumeRequestedServiceTier: ['codexAssumeRequestedServiceTier'],
   antigravityConnectionPoolEnabled: ['antigravityConnectionPoolEnabled'],
   antigravityConnectionPoolIdleTimeout: ['antigravityConnectionPoolIdleTimeout'],
   antigravityConnectionPoolMaxIdleConnsPerHost: ['antigravityConnectionPoolMaxIdleConnsPerHost'],

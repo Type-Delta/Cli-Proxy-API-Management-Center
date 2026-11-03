@@ -175,6 +175,7 @@ export type VisualConfigValues = {
   codexOptimizeMultiAgentV2: boolean;
   codexOrphanDelegationCompatibility: boolean;
   codexResponseSteering: boolean;
+  codexAssumeRequestedServiceTier: boolean;
   antigravityConnectionPoolEnabled: boolean;
   antigravityConnectionPoolIdleTimeout: string;
   antigravityConnectionPoolMaxIdleConnsPerHost: string;
@@ -304,6 +305,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   codexOptimizeMultiAgentV2: false,
   codexOrphanDelegationCompatibility: false,
   codexResponseSteering: false,
+  codexAssumeRequestedServiceTier: false,
   antigravityConnectionPoolEnabled: false,
   antigravityConnectionPoolIdleTimeout: '',
   antigravityConnectionPoolMaxIdleConnsPerHost: '',

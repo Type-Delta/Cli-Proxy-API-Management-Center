@@ -2673,6 +2673,10 @@
           "label": "응답 스티어링",
           "hint": "실험적인 전이중 Codex Responses WebSocket입니다. 각 소켓은 하나의 업스트림 계정 및 모델에 바인딩된 상태를 유지하며, 수락된 입력은 재전송되지 않습니다. 기본값은 비활성화입니다."
         },
+        "codexAssumeRequestedServiceTier": {
+          "label": "요청한 서비스 티어로 간주",
+          "hint": "Codex가 다른 티어를 보고하더라도 업스트림으로 보낸 서비스 티어로 Codex 사용량 요금을 계산합니다(priority 요청에 default를 반환할 수 있음). 요금 계산용 가정일 뿐 업스트림 스케줄링을 확인하는 것은 아니며, 반환된 티어는 사용 기록에 그대로 남습니다. 새 사용량에만 적용됩니다. 기본값은 비활성화입니다."
+        },
         "antigravityConnectionPoolEnabled": {
           "label": "연결 풀링 활성화",
           "hint": "업스트림 HTTP/1.1 연결을 재사용합니다. 기본값: false(단기 연결)."

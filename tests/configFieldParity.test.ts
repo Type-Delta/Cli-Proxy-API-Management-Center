@@ -161,6 +161,7 @@ describe('v8 YAML search paths', () => {
     ['codexHeaderUserAgent', 'oauth.providers.codex.header-defaults.user-agent'],
     ['codexOptimizeMultiAgentV2', 'client.codex.optimize-multi-agent-v2'],
     ['codexResponseSteering', 'upstream.codex.response-steering'],
+    ['codexAssumeRequestedServiceTier', 'upstream.codex.assume-requested-service-tier'],
     ['claudeHeaderUserAgent', 'upstream.claude.header-defaults.user-agent'],
     ['xaiInjectXSearch', 'upstream.xai.inject-x-search'],
     ['streamingNonstreamKeepalive', 'requests.nonstream-keepalive-interval'],

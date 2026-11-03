@@ -17,6 +17,7 @@ const addedFieldIds = [
   'codexOptimizeMultiAgentV2',
   'codexOrphanDelegationCompatibility',
   'codexResponseSteering',
+  'codexAssumeRequestedServiceTier',
   'antigravityConnectionPoolEnabled',
   'antigravityConnectionPoolIdleTimeout',
   'antigravityConnectionPoolMaxIdleConnsPerHost',

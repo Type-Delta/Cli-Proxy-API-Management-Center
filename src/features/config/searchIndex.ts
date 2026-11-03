@@ -136,6 +136,13 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     yamlKeys: ['upstream', 'codex', 'response-steering'],
   },
   {
+    fieldId: 'codexAssumeRequestedServiceTier',
+    sectionId: 'advanced',
+    labelKey: L('additions.codexAssumeRequestedServiceTier.label'),
+    hintKey: L('additions.codexAssumeRequestedServiceTier.hint'),
+    yamlKeys: ['upstream', 'codex', 'assume-requested-service-tier'],
+  },
+  {
     fieldId: 'antigravityConnectionPoolEnabled',
     sectionId: 'advanced',
     labelKey: L('additions.antigravityConnectionPoolEnabled.label'),

@@ -2673,6 +2673,10 @@
           "label": "回應引導",
           "hint": "實驗性全雙工 Codex Responses WebSocket。每條連線始終綁定同一上游帳號與模型，已接受的輸入不會重播。預設關閉。"
         },
+        "codexAssumeRequestedServiceTier": {
+          "label": "假定請求的服務層級",
+          "hint": "依送往上游的服務層級為 Codex 用量計價，即使 Codex 回報了不同的層級（priority 請求可能回傳 default）。這只是計價假設，並不代表上游實際排程；回傳的層級仍保留在用量紀錄中。僅對新用量生效。預設關閉。"
+        },
         "antigravityConnectionPoolEnabled": {
           "label": "啟用連線池",
           "hint": "重用上游 HTTP/1.1 連線。預設 false，使用短連線。"

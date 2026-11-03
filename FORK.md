@@ -1533,6 +1533,16 @@ A full-access-only Management Keys page (`/management-keys`, Control group) list
 
 **Last updated:** 2026-11-02
 
+### DL075 — Codex assume-requested-service-tier toggle
+
+The Config Panel's Advanced & Experimental section exposes CPA's fork-only `upstream.codex.assume-requested-service-tier` as a "Assume requested service tier" toggle in the Codex group, beside upstream's Codex toggles. It reads and writes the YAML path through the visual-config additions table, defaults to off, and is searchable by label or YAML key. Upstream CPA has no such option.
+
+**Implementation evidence:** `src/types/visualConfig.ts`, `src/features/config/{visualConfigAdditions.ts,constants.ts,searchIndex.ts}`, `src/features/config/components/sections/SectionOAuthBehavior.tsx`, `src/i18n/locales/*.json`, and `tests/{configAdditionsLocalization,configFieldParity,configOAuthBehaviorUi}.test.ts`.
+
+**Recorded validation:** On 2026-11-03, `bun run verify` passes 2,656 tests, lint, TypeScript, and the production build. Against a local CPA built with this bundle, isolated Chrome found the field by searching its YAML key, toggled it, showed a one-line `assume-requested-service-tier: true` diff in Review Changes, and saved. CPA wrote the key under `upstream.codex` and hot-reloaded, `GET /v8/management/config` reported it, and a fresh page load showed the toggle on. The row was checked at desktop and 390px mobile widths. Non-English strings are machine-translated pending native review.
+
+**Last updated:** 2026-11-03
+
 ## Sync Checklist
 
 Project-specific checks every upstream sync runs, in addition to the full test suite, lint, typecheck, builds, and a smoke test of upstream and fork features.

@@ -2673,6 +2673,10 @@
           "label": "Điều hướng phản hồi (Response steering)",
           "hint": "Tính năng thử nghiệm WebSocket Codex Responses song công toàn phần (full-duplex). Mỗi socket luôn gắn chặt với một tài khoản và model upstream; đầu vào đã được chấp nhận sẽ không bao giờ phát lại. Mặc định tắt."
         },
+        "codexAssumeRequestedServiceTier": {
+          "label": "Giả định cấp dịch vụ đã yêu cầu",
+          "hint": "Tính giá mức sử dụng Codex theo cấp dịch vụ đã gửi lên upstream, kể cả khi Codex báo một cấp khác (yêu cầu priority có thể trả về default). Đây chỉ là giả định để tính giá, không xác nhận cách upstream thực sự xử lý; cấp được trả về vẫn được lưu trong bản ghi sử dụng. Chỉ áp dụng cho mức sử dụng mới. Mặc định tắt."
+        },
         "antigravityConnectionPoolEnabled": {
           "label": "Bật connection pool",
           "hint": "Tái sử dụng các kết nối HTTP/1.1 upstream. Mặc định: false (kết nối ngắn hạn)."

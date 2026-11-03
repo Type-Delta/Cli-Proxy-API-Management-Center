@@ -2673,6 +2673,10 @@
           "label": "响应引导",
           "hint": "实验性全双工 Codex Responses WebSocket。每条连接始终绑定同一上游账号和模型，已接受的输入不会重放。默认关闭。"
         },
+        "codexAssumeRequestedServiceTier": {
+          "label": "假定请求的服务层级",
+          "hint": "按发送给上游的服务层级为 Codex 用量计价，即使 Codex 返回了不同的层级（priority 请求可能返回 default）。这只是计价假设，并不代表上游实际调度；返回的层级仍保留在用量记录中。仅对新用量生效。默认关闭。"
+        },
         "antigravityConnectionPoolEnabled": {
           "label": "启用连接池",
           "hint": "复用上游 HTTP/1.1 连接。默认 false，使用短连接。"

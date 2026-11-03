@@ -121,6 +121,18 @@ export function SectionOAuthBehavior({
             disabled={disabled}
             onChange={(codexResponseSteering) => onChange({ codexResponseSteering })}
           />
+          <ToggleSetting
+            fieldId="codexAssumeRequestedServiceTier"
+            label={t('config_management.visual.additions.codexAssumeRequestedServiceTier.label')}
+            description={t(
+              'config_management.visual.additions.codexAssumeRequestedServiceTier.hint'
+            )}
+            checked={values.codexAssumeRequestedServiceTier}
+            disabled={disabled}
+            onChange={(codexAssumeRequestedServiceTier) =>
+              onChange({ codexAssumeRequestedServiceTier })
+            }
+          />
         </SettingList>
 
         <SettingList title={t('config_management.visual.additions.antigravityTitle')}>

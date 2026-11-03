@@ -2673,6 +2673,10 @@
           "label": "Response steering",
           "hint": "Experimental full-duplex Codex Responses WebSockets. Each socket stays bound to one upstream account and model; accepted input is never replayed. Disabled by default."
         },
+        "codexAssumeRequestedServiceTier": {
+          "label": "Assume requested service tier",
+          "hint": "Price Codex usage at the service tier sent upstream, even when Codex reports a different one (it can return default for priority requests). This is a pricing assumption, not confirmation of upstream scheduling; the returned tier stays in the usage record. Applies to new usage only. Disabled by default."
+        },
         "antigravityConnectionPoolEnabled": {
           "label": "Enable connection pooling",
           "hint": "Reuse upstream HTTP/1.1 connections. Default: false (short-lived connections)."
