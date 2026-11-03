@@ -8,6 +8,8 @@ import {
   quotaHistoryEnabled,
   quotaHistorySeries,
   quotaHistorySpan,
+  quotaHistoryJumps,
+  quotaHistoryStats,
   projectQuota,
 } from '../src/features/quota/quotaHistoryModel';
 import { timelineSpan } from '../src/features/quota/quotaTimelineModel';
@@ -97,7 +99,7 @@ describe('quota history', () => {
     const series = quotaHistorySeries('codex', [newest], start, start + 2 * hour, clock, 65);
     expect(series.actual[series.actual.length - 1]).toEqual([clock + 1000, 65]);
   });
-  test('tracks capacity changes and sets a four-step axis', () => {
+  test('tracks capacity changes and sets a two-step axis', () => {
     const first = sample(start, 70, { reset_at: null });
     const second = sample(start + hour, 60, { credential_id: 'b', reset_at: null });
     const series = quotaHistorySeries(
@@ -115,10 +117,10 @@ describe('quota history', () => {
       [start + hour, 200],
       [start + 2 * hour, 200],
     ]);
-    expect(quotaHistoryAxis(200, series.capacity)).toEqual({ max: 200, interval: 50 });
-    expect(quotaHistoryAxis(100, [])).toEqual({ max: 100, interval: 25 });
-    expect(quotaHistoryAxis(110, [])).toEqual({ max: 125, interval: 25 });
-    expect(quotaHistoryAxis(700, [])).toEqual({ max: 750, interval: 250 });
+    expect(quotaHistoryAxis(200, series.capacity)).toEqual({ max: 200, interval: 100 });
+    expect(quotaHistoryAxis(100, [])).toEqual({ max: 100, interval: 50 });
+    expect(quotaHistoryAxis(110, [])).toEqual({ max: 150, interval: 75 });
+    expect(quotaHistoryAxis(700, [])).toEqual({ max: 700, interval: 350 });
   });
   test('uses the summary tier weighting for each hourly bucket', () => {
     const pro = sample(start, 50);
@@ -299,5 +301,45 @@ describe('quota history', () => {
     const unknown = sample(start, 40, { reset_at: null, period_hours: null });
     expect(quotaDrainRate([unknown], start)).toBe(0);
     expect(projectQuota(unknown, 0, start + hour)).toBe(40);
+  });
+});
+describe('quota history stats', () => {
+  test('reads the empty instant, next refill and observed burn off the series', () => {
+    const now = start + 24 * hour;
+    const actual: [number, number | null][] = [
+      [now - 5 * hour, 100],
+      [now - 3 * hour, 90],
+      [now - 2 * hour, 84],
+      [now - hour, 100],
+      [now, 97],
+    ];
+    const projected: [number, number | null][] = [
+      [now, 90],
+      [now + 10 * hour, 40],
+      [now + 10 * hour, 140],
+      [now + 10 * hour + 120000, 139],
+      [now + 10 * hour + 120000, 239],
+      [now + 20 * hour, 0],
+      [now + 30 * hour, 0],
+      [now + 30 * hour, 100],
+    ];
+    const stats = quotaHistoryStats({ actual, projected }, now, hour);
+    expect(stats.emptyAt).toBe(now + 20 * hour);
+    // Two credentials refilling two minutes apart read as one refill.
+    expect(stats.nextReset).toEqual({ at: now + 10 * hour, delta: 200 });
+    expect(quotaHistoryJumps(projected, hour)).toEqual([
+      { at: now + 10 * hour, delta: 200, index: 4 },
+      { at: now + 30 * hour, delta: 100, index: 7 },
+    ]);
+    // 6% then 3%, one hour each; the reading before the window and the refill do not count.
+    expect(stats.burnPerHour).toBeCloseTo(9 / 2);
+  });
+  test('reports nothing without a projection or recent readings', () => {
+    const stats = quotaHistoryStats(
+      { actual: [[start, 50]], projected: [] },
+      start + 48 * hour,
+      hour
+    );
+    expect(stats).toEqual({ emptyAt: null, nextReset: null, burnPerHour: null });
   });
 });

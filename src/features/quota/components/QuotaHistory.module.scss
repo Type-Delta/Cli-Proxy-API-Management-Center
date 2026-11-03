@@ -18,20 +18,54 @@
   }
 }
 
-.metric {
+.figure {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .value {
-  font-size: 18px;
-  font-weight: 650;
-  margin-right: 6px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
 .capacity {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  dt {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+
+  dd {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+
+    b {
+      font-weight: 700;
+    }
+  }
 }
 
 .plot {
@@ -39,12 +73,13 @@
   min-width: 0;
 }
 
-.dates {
+// Sits on the chart's plot box so percentages map straight onto the time axis.
+.overlay {
   position: absolute;
-  left: 48px;
-  right: 1px;
-  bottom: 4px;
-  height: 28px;
+  left: var(--grid-left);
+  right: var(--grid-right);
+  top: 0;
+  bottom: 0;
   pointer-events: none;
   color: var(--text-tertiary);
   font-size: 10px;
@@ -53,16 +88,39 @@
 
 .day {
   position: absolute;
-  top: 0;
+  bottom: 8px;
   white-space: nowrap;
   transform: translateX(-50%);
+}
 
-  i {
-    display: block;
-    height: 4px;
+.rule {
+  position: absolute;
+  top: var(--grid-top);
+  bottom: var(--grid-bottom);
+  width: 1px;
+  background: var(--border-color);
+  opacity: 0.45;
+}
+
+// Spans label to axis labels, so the marker reads as a cursor on the axis, not a series.
+.now {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  transform: translateX(-50%);
+  color: var(--text-secondary);
+  line-height: 12px;
+  white-space: nowrap;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 14px;
+    bottom: 0;
+    left: 50%;
     width: 1px;
-    margin: 0 auto 2px;
     background: var(--text-tertiary);
+    opacity: 0.8;
   }
 }
 
@@ -86,6 +144,16 @@
 }
 
 @media (max-width: 700px) {
+  .value {
+    font-size: 24px;
+  }
+
+  .stats {
+    width: 100%;
+    gap: 6px 16px;
+    justify-content: space-between;
+  }
+
   .day:nth-child(even) {
     font-size: 0;
   }

@@ -302,11 +302,71 @@ export function quotaHistorySeries(
   return { actual, projected, capacity };
 }
 
-/** Keep the current capacity visible without clipping larger values, on round percent ticks. */
+/** Keep the current capacity visible without clipping larger values, on two round ticks. */
 export function quotaHistoryAxis(capacity: number | null | undefined, points: readonly Point[]) {
   const peak = Math.max(capacity ?? 0, ...points.map(([, value]) => value ?? 0), 100);
-  const interval =
-    [25, 50, 100, 250, 500, 1000, 2500, 5000].find((step) => peak / step <= 5) ??
-    Math.ceil(peak / 5);
-  return { max: Math.ceil(peak / interval) * interval, interval };
+  const max = Math.ceil(peak / 50) * 50;
+  return { max, interval: max / 2 };
+}
+
+/** Hours of recorded history the header's burn rate summarizes. */
+export const BURN_WINDOW_HOURS = 3;
+
+/**
+ * Projected refills, each at the index of the point it lands on. Credentials resetting within
+ * `within` ms of each other read as one refill at the chart's scale, so their jumps merge into
+ * one labeled total.
+ */
+export function quotaHistoryJumps(
+  projected: readonly Point[],
+  within: number
+): { at: number; delta: number; index: number }[] {
+  const jumps: { at: number; delta: number; index: number }[] = [];
+  for (let index = 1; index < projected.length; index++) {
+    const [at, value] = projected[index];
+    const [previousAt, previous] = projected[index - 1];
+    if (at !== previousAt || value == null || previous == null || value <= previous) continue;
+    const last = jumps[jumps.length - 1];
+    if (last && at - last.at < within) {
+      last.delta += value - previous;
+      last.index = index;
+    } else jumps.push({ at, delta: value - previous, index });
+  }
+  return jumps;
+}
+
+/**
+ * Header figures read off the charted series: when the projected total first runs dry, the
+ * next projected refill and its size, and the mean observed drop per hour over the burn window.
+ */
+export function quotaHistoryStats(
+  series: { actual: readonly Point[]; projected: readonly Point[] },
+  now: number,
+  within: number
+): {
+  emptyAt: number | null;
+  nextReset: { at: number; delta: number } | null;
+  burnPerHour: number | null;
+} {
+  const emptyAt = series.projected.find(([at, value]) => at > now && value === 0)?.[0] ?? null;
+  const [nextReset = null] = quotaHistoryJumps(series.projected, within);
+  let spent = 0,
+    hours = 0;
+  const recent = series.actual.filter(
+    ([at, value]) => value !== null && at >= now - BURN_WINDOW_HOURS * HOUR && at <= now
+  );
+  for (let index = 1; index < recent.length; index++) {
+    const [at, value] = recent[index];
+    const [previousAt, previous] = recent[index - 1];
+    // A refill hides whatever was spent in that interval, so it drops out of the mean.
+    if (previous === null || value === null || at - previousAt > MAX_GAP || value > previous)
+      continue;
+    spent += previous - value;
+    hours += (at - previousAt) / HOUR;
+  }
+  return {
+    emptyAt,
+    nextReset: nextReset && { at: nextReset.at, delta: nextReset.delta },
+    burnPerHour: hours > 0 ? spent / hours : null,
+  };
 }

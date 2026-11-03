@@ -97,6 +97,13 @@
   }
 
   /* The stacked Total is separated by a rule, as in the reference. */
+  // One-line panels (quota history): the reading in a sentence, no rows.
+  [data-tt='line'] {
+    color: var(--viz-tooltip-text);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
   [data-tt-total='true'] {
     margin-top: 3px;
     padding-top: 5px;

@@ -195,7 +195,7 @@ const ESCAPES: Record<string, string> = {
   "'": '&#39;',
 };
 /** Series names carry model and key names that originate in proxied traffic. */
-const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => ESCAPES[char]);
+export const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => ESCAPES[char]);
 
 export type AxisTooltipParam = {
   axisValueLabel?: string;

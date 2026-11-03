@@ -34,7 +34,7 @@ import type { QuotaFileEntry } from '../logic';
 import type { QuotaCardState } from '../providers';
 import styles from './QuotaTimeline.module.scss';
 
-const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+export const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 /** Providers whose lane limit labels are i18n keys rather than display text. */
 const KEYED_LIMIT_PROVIDERS = new Set(['meta', 'kiro', 'zai', 'opencode-go']);
 
