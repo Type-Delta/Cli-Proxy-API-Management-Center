@@ -644,7 +644,6 @@ export function EventDetailSheet({
                 }
                 mono={Boolean(clientSessionId(event))}
                 muted={!clientSessionId(event)}
-                wide
                 copyValue={clientSessionId(event)}
               />
               <Fact
