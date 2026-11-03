@@ -97,7 +97,8 @@
   },
   "header": {
     "refresh_all": "Làm mới tất cả",
-    "logout": "Đăng xuất"
+    "logout": "Đăng xuất",
+    "back_to_top": "Về đầu trang"
   },
   "connection": {
     "status": "Trạng thái kết nối:"

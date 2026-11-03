@@ -97,7 +97,8 @@
   },
   "header": {
     "refresh_all": "Обновить всё",
-    "logout": "Выйти"
+    "logout": "Выйти",
+    "back_to_top": "Наверх"
   },
   "connection": {
     "status": "Статус подключения:"

@@ -1586,6 +1586,22 @@ Overview daily averages keep three inline columns on phones with bottom-aligned 
 
 **Last updated:** 2026-11-03
 
+### DL077 — Floating back-to-top control
+
+Every page gets a bottom-right "Back to top" button styled like the floating header cluster
+(`BackToTopButton` in `src/components/layout/BackToTopButton.tsx`, mounted by `MainLayout`; styles
+under `.back-to-top` in `src/styles/layout.scss`). It stays hidden, unfocusable, and out of the
+accessibility tree until the reader is more than two viewport heights down, then fades in and scrolls
+the main area back to the top on click. Desktop scrolls the content column and phones scroll the
+window, so the component watches both and resets both; smooth scrolling yields to the reduced-motion
+preference. The label is `header.back_to_top` in all seven locales.
+
+**Implementation evidence:** `src/components/layout/{BackToTopButton.tsx,MainLayout.tsx}`, `src/styles/layout.scss`, `src/i18n/locales/*.json`.
+
+**Recorded validation:** On 2026-11-03, `bun run verify` passes. Isolated Chrome CDP checks at 1440px and 390px confirmed the button is hidden at the top and at 1.9 viewport heights, visible at 2.5, and hidden again after a click returns the page to the top, with no console errors.
+
+**Last updated:** 2026-11-03
+
 ## Sync Checklist
 
 Project-specific checks every upstream sync runs, in addition to the full test suite, lint, typecheck, builds, and a smoke test of upstream and fork features.

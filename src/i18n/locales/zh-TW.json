@@ -97,7 +97,8 @@
   },
   "header": {
     "refresh_all": "全部重新整理",
-    "logout": "登出"
+    "logout": "登出",
+    "back_to_top": "回到頂部"
   },
   "connection": {
     "status": "連線狀態:"

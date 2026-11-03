@@ -97,7 +97,8 @@
   },
   "header": {
     "refresh_all": "Refresh All",
-    "logout": "Logout"
+    "logout": "Logout",
+    "back_to_top": "Back to top"
   },
   "connection": {
     "status": "Connection Status:"

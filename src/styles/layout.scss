@@ -42,6 +42,59 @@
   }
 }
 
+// Bottom-right twin of the header cluster. Hidden until the reader is two screens down, so it
+// never covers content on short pages; the shell gutter keeps it aligned with the header.
+.back-to-top {
+  position: fixed;
+  right: var(--shell-gutter);
+  bottom: var(--shell-gutter);
+  z-index: $z-dropdown + 1;
+  display: inline-flex;
+  width: calc(var(--floating-control-size) + 12px);
+  height: calc(var(--floating-control-size) + 12px);
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--border-color) 68%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-primary) 68%, transparent);
+  color: var(--text-secondary);
+  box-shadow:
+    0 18px 44px rgb(0 0 0 / 0.17),
+    inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --glass-blur: 16px;
+  backdrop-filter: var(--glass-backdrop-filter);
+  -webkit-backdrop-filter: var(--glass-backdrop-filter);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition:
+    opacity var(--dur-hover) var(--ease-out-strong),
+    transform var(--dur-hover) var(--ease-out-strong),
+    visibility 0s linear var(--dur-hover);
+
+  &.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition-delay: 0s;
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--bg-primary) 88%, var(--text-primary));
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
 .top-gradient-blur {
   position: fixed;
   top: 0;

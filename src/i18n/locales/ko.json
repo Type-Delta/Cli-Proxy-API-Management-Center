@@ -97,7 +97,8 @@
   },
   "header": {
     "refresh_all": "모두 새로 고침",
-    "logout": "로그아웃"
+    "logout": "로그아웃",
+    "back_to_top": "맨 위로"
   },
   "connection": {
     "status": "연결 상태:"

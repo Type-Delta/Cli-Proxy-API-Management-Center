@@ -63,6 +63,7 @@ import {
 import { AnalyticsFilterProvider } from '@/features/analytics/AnalyticsFilterProvider';
 import { AnalyticsShell } from '@/features/analytics/AnalyticsShell';
 import { triggerHeaderRefresh } from '@/hooks/useHeaderRefresh';
+import { BackToTopButton } from './BackToTopButton';
 import { HeaderActionSlotContext } from './headerActionSlot';
 import { LANGUAGE_LABEL_KEYS, LANGUAGE_ORDER } from '@/utils/constants';
 import { isSupportedLanguage } from '@/utils/language';
@@ -1364,6 +1365,7 @@ export function MainLayout() {
             </main>
           </div>
         </div>
+        <BackToTopButton scrollContainerRef={contentRef} />
       </div>
     </HeaderActionSlotContext.Provider>
   );
