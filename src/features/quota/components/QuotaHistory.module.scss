@@ -4,11 +4,10 @@
 
 .head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px 12px;
-  margin-bottom: 8px;
 
   h2 {
     color: var(--text-primary);
@@ -130,6 +129,10 @@
   width: 22px;
   height: 0;
   border-top: 2px solid var(--history-color);
+}
+.historySwatch {
+  width: 18px;
+  border-top-width: 3px;
 }
 .projectedSwatch {
   border-top-style: dashed;
