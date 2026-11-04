@@ -9,16 +9,29 @@ import * as echarts from 'echarts/core';
  * than a hex.
  */
 
-export const ANALYTICS_THEMES = ['light', 'white', 'dark'] as const;
-export type AnalyticsThemeName = (typeof ANALYTICS_THEMES)[number];
+/** The `<html>` attributes a chart theme depends on; observers watch exactly these. */
+export const ANALYTICS_THEME_ATTRIBUTES = ['data-theme', 'data-palette'];
+
+/**
+ * One key per painted theme: the mode in `data-theme` (absent for the warm default), plus the
+ * imported palette, if any, painted on top of it.
+ */
+export function resolveAnalyticsTheme(
+  theme: string | null | undefined,
+  palette?: string | null
+): string {
+  const mode = theme === 'dark' ? 'dark' : theme === 'white' ? 'white' : 'light';
+  return palette ? `${mode}-${palette}` : mode;
+}
 
 /** Registered names are namespaced so they cannot collide with a theme some other page registers. */
-export const analyticsThemeName = (theme: AnalyticsThemeName) => `cpamc-analytics-${theme}`;
+export const analyticsThemeName = (theme: string) => `cpamc-analytics-${theme}`;
 
-/** `data-theme` is absent for the warm default, `white` or `dark` otherwise. */
-export function resolveAnalyticsTheme(attribute: string | null | undefined): AnalyticsThemeName {
-  return attribute === 'dark' ? 'dark' : attribute === 'white' ? 'white' : 'light';
-}
+/** The theme key for whatever `<html>` currently paints. */
+export const currentAnalyticsTheme = () => {
+  const { theme, palette } = document.documentElement.dataset;
+  return resolveAnalyticsTheme(theme, palette);
+};
 
 /** The minimum of `CSSStyleDeclaration` this module needs, so tests can pass a plain map. */
 export type StyleMap = Pick<CSSStyleDeclaration, 'getPropertyValue'>;
@@ -148,31 +161,27 @@ export function buildAnalyticsTheme(palette: AnalyticsPalette, tooltipClassName 
   };
 }
 
-let registered = false;
+const registered = new Set<string>();
 
 /**
- * Registers all three themes once. Called by AnalyticsChart before its first `init`; safe to call
- * again after a `data-theme` change with `force` so the palette is re-read.
+ * Registers the theme `<html>` currently paints, built from its resolved tokens, and returns its
+ * ECharts name. Each theme is read once, on first use; there is nothing to re-read later because a
+ * theme's tokens never change while it is applied.
  */
-export function registerAnalyticsThemes(tooltipClassName = '', force = false) {
-  if (registered && !force) return;
-  if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') return;
-  const root = document.documentElement;
-  const previous = root.getAttribute('data-theme');
-  for (const theme of ANALYTICS_THEMES) {
-    // Each theme's tokens only resolve while that theme is applied, so borrow the attribute for
-    // the duration of the read. This runs synchronously inside one task: nothing can paint
-    // between the swap and the restore.
-    if (theme === 'light') root.removeAttribute('data-theme');
-    else root.setAttribute('data-theme', theme);
+export function registerAnalyticsTheme(tooltipClassName = ''): string {
+  const theme = currentAnalyticsTheme();
+  const name = analyticsThemeName(theme);
+  if (!registered.has(theme)) {
     echarts.registerTheme(
-      analyticsThemeName(theme),
-      buildAnalyticsTheme(readAnalyticsPalette(getComputedStyle(root)), tooltipClassName)
+      name,
+      buildAnalyticsTheme(
+        readAnalyticsPalette(getComputedStyle(document.documentElement)),
+        tooltipClassName
+      )
     );
+    registered.add(theme);
   }
-  if (previous === null) root.removeAttribute('data-theme');
-  else root.setAttribute('data-theme', previous);
-  registered = true;
+  return name;
 }
 
 /** Reads the palette of the theme currently applied to the document. */

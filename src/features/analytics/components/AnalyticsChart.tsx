@@ -24,7 +24,11 @@ import type { EChartsCoreOption, EChartsType } from 'echarts/core';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
-import { analyticsThemeName, registerAnalyticsThemes, resolveAnalyticsTheme } from './chartTheme';
+import {
+  ANALYTICS_THEME_ATTRIBUTES,
+  currentAnalyticsTheme,
+  registerAnalyticsTheme,
+} from './chartTheme';
 import styles from './AnalyticsChart.module.scss';
 
 // Explicit registration only: the console ships as one inlined index.html, so `import * as
@@ -225,10 +229,10 @@ export function AnalyticsChart({
     const create = () => {
       // Themes resolve their colours at init, so a theme change means a fresh instance. That is
       // one re-init per manual theme toggle — not a hot path.
-      registerAnalyticsThemes(styles.tooltip);
-      const theme = resolveAnalyticsTheme(document.documentElement.dataset.theme);
-      themeRef.current = theme;
-      const chart = echarts.init(host, analyticsThemeName(theme), { renderer: 'svg' });
+      themeRef.current = currentAnalyticsTheme();
+      const chart = echarts.init(host, registerAnalyticsTheme(styles.tooltip), {
+        renderer: 'svg',
+      });
       for (const [event, handler] of Object.entries(eventsRef.current ?? {})) {
         chart.on(event, handler);
       }
@@ -259,19 +263,15 @@ export function AnalyticsChart({
       }
     });
     resize.observe(host);
-    // `data-theme` is written by the theme store on <html>; re-read the tokens it just changed.
-    // Registration itself borrows the attribute to resolve each theme's tokens, so compare against
-    // the theme actually in use rather than reacting to every mutation — otherwise a re-register
-    // would re-trigger this observer forever.
+    // The theme store writes `data-theme`/`data-palette` on <html>; a theme change means a fresh
+    // instance. Mode and palette are written one after the other, so compare against the theme in
+    // use rather than re-creating on every attribute mutation.
     const themeWatcher = new MutationObserver(() => {
-      if (resolveAnalyticsTheme(document.documentElement.dataset.theme) === themeRef.current)
-        return;
-      registerAnalyticsThemes(styles.tooltip, true);
-      recreate();
+      if (currentAnalyticsTheme() !== themeRef.current) recreate();
     });
     themeWatcher.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-theme'],
+      attributeFilter: ANALYTICS_THEME_ATTRIBUTES,
     });
     motion?.addEventListener('change', recreate);
 

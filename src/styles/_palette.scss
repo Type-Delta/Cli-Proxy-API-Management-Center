@@ -1,0 +1,220 @@
+@use 'sass:color';
+@use 'sass:list';
+@use 'sass:math';
+
+// Derives the full CPAMC token set from a handful of source colours, so an imported palette
+// (see the `[data-palette]` blocks at the end of themes.scss) only names its own colours. Every
+// foreground is pushed along OKLCH lightness until it clears its WCAG floor against each surface
+// it is painted on, so a palette can keep its character without shipping unreadable text.
+
+// Emits a legacy sRGB colour, which is what ECharts/ZRender can interpolate.
+@function rgb-hex($value) {
+  $rgb: color.to-space(color.to-gamut($value, $space: rgb, $method: local-minde), rgb);
+  @return rgb(
+    math.round(color.channel($rgb, 'red')),
+    math.round(color.channel($rgb, 'green')),
+    math.round(color.channel($rgb, 'blue'))
+  );
+}
+
+@function _linear($channel) {
+  $c: math.div($channel, 255);
+  @if $c <= 0.04045 {
+    @return math.div($c, 12.92);
+  }
+  @return math.pow(math.div($c + 0.055, 1.055), 2.4);
+}
+
+@function luminance($value) {
+  $rgb: color.to-space(color.to-gamut($value, $space: rgb, $method: local-minde), rgb);
+  @return 0.2126 * _linear(color.channel($rgb, 'red')) + 0.7152 *
+    _linear(color.channel($rgb, 'green')) + 0.0722 * _linear(color.channel($rgb, 'blue'));
+}
+
+@function contrast($a, $b) {
+  $la: luminance($a) + 0.05;
+  $lb: luminance($b) + 0.05;
+  @return math.div(math.max($la, $lb), math.min($la, $lb));
+}
+
+@function _lowest-contrast($fg, $surfaces) {
+  $lowest: 21;
+  @each $surface in $surfaces {
+    $lowest: math.min($lowest, contrast($fg, $surface));
+  }
+  @return $lowest;
+}
+
+// Moves `$fg` away from `$surfaces` (darker on light palettes, lighter on dark ones) one OKLCH
+// lightness step at a time until it reaches `$min` against every surface.
+@function ensure-contrast($fg, $surfaces, $min, $mode) {
+  $step: pick($mode == dark, 1%, -1%);
+  @for $i from 0 through 100 {
+    // Measure the colour that will be emitted: 8-bit rounding can cost a few hundredths.
+    @if _lowest-contrast(rgb-hex($fg), $surfaces) >= $min {
+      @return rgb-hex($fg);
+    }
+    $fg: color.adjust($fg, $lightness: $step, $space: oklch);
+  }
+  @error 'ensure-contrast: #{$fg} cannot reach #{$min}:1';
+}
+
+// Sass's own `if()` is deprecated; this picks by palette mode instead.
+@function pick($dark, $when-dark, $when-light) {
+  @if $dark {
+    @return $when-dark;
+  }
+  @return $when-light;
+}
+
+@function shift($value, $amount) {
+  @return rgb-hex(color.adjust($value, $lightness: $amount, $space: oklch));
+}
+
+@function mix($a, $b, $weight) {
+  @return rgb-hex(color.mix($a, $b, $weight, $method: oklab));
+}
+
+// What `color-mix(in srgb, $a $weight, transparent)` paints over `$b`.
+@function tint($a, $b, $weight) {
+  @return rgb-hex(color.mix($a, $b, $weight, $method: srgb));
+}
+
+// Five steps from almost-the-card to `$end`, each a visible step denser than the last.
+@mixin ramp($prefix, $end, $card) {
+  $weights: 20%, 36%, 55%, 76%, 100%;
+  @for $i from 1 through 5 {
+    #{$prefix}#{$i}: mix($end, $card, list.nth($weights, $i));
+  }
+}
+
+// `$bg`, `$sub-alt`, `$main`, `$text` and `$error` are the palette's own colours (Monkeytype's
+// names). Dark palettes paint cards on the lighter of `$bg`/`$sub-alt` and the page on the darker
+// one; light palettes keep CPAMC's paper layout, with cards a `$card-weight` step toward `$sub-alt`.
+@mixin palette(
+  $mode,
+  $bg,
+  $sub-alt,
+  $main,
+  $text,
+  $error,
+  $sub,
+  $card-weight: 45%,
+  $swap-surfaces: false,
+  $sidebar: null
+) {
+  $dark: $mode == dark;
+  $page: $bg;
+  $card: mix($sub-alt, $bg, $card-weight);
+  @if $dark {
+    // Dark pages take the darker colour unless `$swap-surfaces` puts the lighter one there.
+    $page-is-bg: (luminance($bg) < luminance($sub-alt)) != $swap-surfaces;
+    $page: pick($page-is-bg, $bg, $sub-alt);
+    $card: pick($page-is-bg, $sub-alt, $bg);
+  }
+  $tertiary: mix($text, $card, pick($dark, 7%, 6%));
+  $floating: pick($dark, mix($text, $card, 9%), mix(#ffffff, $page, 55%));
+  $surfaces: ($card, $page, $tertiary, $floating);
+  @if $sidebar {
+    $surfaces: list.append($surfaces, $sidebar);
+  }
+
+  $primary: ensure-contrast($main, $surfaces, 4.5, $mode);
+  $error-text: ensure-contrast($error, ($card, $page), 4.5, $mode);
+  $success: ensure-contrast(pick($dark, #34d399, #0f9f72), ($card, $page), 3, $mode);
+  $amber: pick($dark, #f59e0b, #d97706);
+  $count-bg: mix($primary, $card, 18%);
+  $success-bg: mix($success, $card, 16%);
+  $failure-bg: mix($error-text, $card, 14%);
+  $warning-bg: mix($error-text, $card, 12%);
+  $neutral-end: pick($dark, #a8c8e8, #2b4870);
+  $activity-end: pick($dark, #a8c8e8, rgb-hex(oklch(0.48 0.12 235)));
+
+  color-scheme: $mode;
+
+  // Raw palette colours, for previews that paint a palette outside its own tree.
+  --palette-page: #{$page};
+  --palette-card: #{$card};
+  --palette-main: #{$main};
+  --palette-text: #{$text};
+  --palette-sub: #{$sub};
+
+  --bg-secondary: #{$page};
+  --bg-primary: #{$card};
+  @if $sidebar {
+    --sidebar-bg: #{$sidebar};
+  }
+  --bg-tertiary: #{$tertiary};
+  --bg-hover: #{pick($dark, mix($text, $card, 11%), $tertiary)};
+  --bg-quinary: #{mix($page, $card, 50%)};
+  --bg-error-light: #{rgba($error-text, pick($dark, 0.18, 0.1))};
+  --floating-surface: #{$floating};
+
+  --text-primary: #{ensure-contrast($text, $surfaces, 7, $mode)};
+  // Hints and table headers sit on cards, the page, and hover rows at body size, so even the
+  // tertiary tier is held to text contrast; quaternary is for marks that carry no meaning alone.
+  --text-secondary: #{ensure-contrast(mix($text, $card, 80%), $surfaces, 6, $mode)};
+  --text-tertiary: #{ensure-contrast(mix($text, $card, 62%), $surfaces, 4.5, $mode)};
+  --text-quaternary: #{ensure-contrast(mix($text, $card, 40%), ($card, $page), 3, $mode)};
+
+  --border-color: #{mix($text, $card, pick($dark, 13%, 10%))};
+  --border-primary: #{mix($text, $card, pick($dark, 20%, 15%))};
+  --border-hover: #{mix($text, $card, pick($dark, 27%, 20%))};
+
+  --primary-color: #{$primary};
+  --primary-hover: #{shift($primary, pick($dark, 5%, -4%))};
+  --primary-active: #{shift($primary, pick($dark, 9%, -8%))};
+  --primary-contrast: #{pick($dark, $page, #ffffff)};
+
+  --success-color: #{$success};
+  --warning-color: #{$error-text};
+  --error-color: #{$error-text};
+
+  --warning-bg: #{$warning-bg};
+  --warning-border: #{mix($error-text, $card, 40%)};
+  --warning-text: #{ensure-contrast($error-text, ($warning-bg), 4.5, $mode)};
+
+  --success-badge-bg: #{$success-bg};
+  --success-badge-text: #{ensure-contrast($success, ($success-bg), 4.5, $mode)};
+  --success-badge-border: #{mix($success, $card, 45%)};
+
+  --failure-badge-bg: #{$failure-bg};
+  --failure-badge-text: #{ensure-contrast($error-text, ($failure-bg), 4.5, $mode)};
+  --failure-badge-border: #{mix($error-text, $card, 40%)};
+
+  --count-badge-bg: #{$count-bg};
+  --count-badge-text: #{ensure-contrast($primary, ($count-bg), 4.5, $mode)};
+
+  --amber-color: #{$amber};
+  --amber-text: #{ensure-contrast($amber, (tint($amber, $card, 14%)), 4.5, $mode)};
+
+  // Also painted as text (shares, sync state), so held to text contrast on cards and the page.
+  --viz-success: #{ensure-contrast(pick($dark, #55d3a3, #087f5b), ($card, $page), 4.5, $mode)};
+  --viz-failure: #{ensure-contrast(pick($dark, #f07b82, #c84455), ($card, $page), 4.5, $mode)};
+  --viz-cat-other: #{ensure-contrast(mix($text, $card, 50%), ($card), 3, $mode)};
+  --viz-line-cost: #{ensure-contrast(pick($dark, #ff82ad, #b53d68), ($card), 4.5, $mode)};
+  @include ramp('--viz-neutral-', $neutral-end, $card);
+  @include ramp('--viz-activity-', $activity-end, $card);
+  --viz-empty-cell: #{$tertiary};
+
+  @if $dark {
+    $tooltip: mix($text, $card, 14%);
+    --viz-tooltip-bg: #{rgba($tooltip, 0.95)};
+    --viz-tooltip-border: #{rgba($text, 0.16)};
+    --viz-tooltip-text: #{ensure-contrast($text, ($tooltip), 7, $mode)};
+    --viz-tooltip-text-dim: #{ensure-contrast(mix($text, $tooltip, 62%), ($tooltip), 4.5, $mode)};
+  }
+
+  --medal-gold-bg: #{mix(#d4a017, $card, 18%)};
+  --medal-silver-bg: #{mix(#9aa1ab, $card, 18%)};
+  --medal-bronze-bg: #{mix(#b9784a, $card, 18%)};
+  // Rank labels sit on the solid medal colours themselves.
+  --medal-ink: #{ensure-contrast(
+      pick($dark, $page, $text),
+      (#d4a017, #9aa1ab, #b9784a),
+      4.5,
+      light
+    )};
+
+  --plan-accent-text: #{ensure-contrast(pick($dark, #e5c49f, #8a6438), ($card), 4.5, $mode)};
+}

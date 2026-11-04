@@ -3655,7 +3655,10 @@
     "light": "양모 종이",
     "white": "순백",
     "dark": "다크",
-    "auto": "시스템 설정 따름"
+    "auto": "시스템 설정 따름",
+    "group_default": "기본 제공",
+    "group_light": "라이트",
+    "group_dark": "다크"
   },
   "sidebar": {
     "toggle_expand": "사이드바 펼치기",

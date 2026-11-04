@@ -3655,7 +3655,10 @@
     "light": "Giấy len",
     "white": "Trắng tinh",
     "dark": "Tối",
-    "auto": "Theo hệ thống"
+    "auto": "Theo hệ thống",
+    "group_default": "Có sẵn",
+    "group_light": "Sáng",
+    "group_dark": "Tối"
   },
   "sidebar": {
     "toggle_expand": "Mở rộng thanh bên",

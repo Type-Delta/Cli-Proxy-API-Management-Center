@@ -3655,7 +3655,10 @@
     "light": "Yün Kağıt",
     "white": "Saf Beyaz",
     "dark": "Koyu",
-    "auto": "Sistemi İzle"
+    "auto": "Sistemi İzle",
+    "group_default": "Yerleşik",
+    "group_light": "Açık",
+    "group_dark": "Koyu"
   },
   "sidebar": {
     "toggle_expand": "Kenar Çubuğunu Genişlet",

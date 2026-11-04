@@ -130,6 +130,9 @@ describe('analytics chart themes', () => {
     expect(resolveAnalyticsTheme(undefined)).toBe('light');
     expect(resolveAnalyticsTheme('white')).toBe('white');
     expect(resolveAnalyticsTheme('dark')).toBe('dark');
+    // An imported palette is its own theme on top of its mode.
+    expect(resolveAnalyticsTheme('dark', 'nord')).toBe('dark-nord');
+    expect(resolveAnalyticsTheme(undefined, 'solarized-light')).toBe('light-solarized-light');
     expect(analyticsThemeName('dark')).toBe('cpamc-analytics-dark');
   });
 

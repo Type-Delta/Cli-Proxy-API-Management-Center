@@ -28,6 +28,10 @@ html[data-theme='dark'] .login-reveal-veil {
   background: #000000;
 }
 
+html[data-palette] .login-reveal-veil {
+  background: var(--palette-page);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .login-reveal-veil {
     animation-duration: 200ms;

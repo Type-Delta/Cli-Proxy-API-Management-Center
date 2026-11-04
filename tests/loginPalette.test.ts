@@ -98,6 +98,6 @@ describe('login palette', () => {
   test('the dot canvas takes its color from the theme and repaints on theme change', async () => {
     const hero = await Bun.file('src/pages/login/DotMatrixHero.tsx').text();
     expect(hero).toContain("getPropertyValue('--login-dot-color')");
-    expect(hero).toContain("attributeFilter: ['data-theme']");
+    expect(hero).toContain("attributeFilter: ['data-theme', 'data-palette']");
   });
 });

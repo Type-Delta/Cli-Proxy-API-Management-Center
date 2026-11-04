@@ -1602,6 +1602,60 @@ preference. The label is `header.back_to_top` in all seven locales.
 
 **Last updated:** 2026-11-03
 
+### DL078 — Imported colour palettes and grouped theme picker
+
+Besides the four built-in themes, the theme menu offers thirteen palettes from Monkeytype's
+open-source theme catalog: Nord, Iceberg Dark, Catppuccin, Dracula, Gruvbox Dark, Rosé Pine, Mashu,
+and Midnight (dark), and Rosé Pine Dawn, Solarized Light, Gruvbox Light, Iceberg Light, and Lilac
+Mist (light). The theme store keeps `data-theme` as the mode signal (absent, `white`, or `dark`)
+that mode-keyed component rules and `resolvedTheme` consumers already read, and adds `data-palette`
+on top. A persisted id that is no longer in the catalog falls back to `auto`.
+
+Each palette names six source colours in `themes.scss` (Monkeytype's bg, subAlt, main, text, error,
+sub). `src/styles/_palette.scss` derives the full token set from them. Text tiers, the accent,
+status colours, badges, chart success/failure markers, and medal ink are pushed along OKLCH
+lightness at build time until they clear their WCAG floor on every surface they sit on. Dark
+palettes put the darker colour on the page unless `$palette-options` swaps them: Mashu keeps its
+grey page with purple cards, and sets its own darker grey `--sidebar-bg` (the sidebar otherwise uses
+the card colour). Volume ramps are rebuilt from the palette's card colour. Categorical chart colours
+stay on the mode's tuned sets. Candidates whose accent collided with the semantic success or error
+colours (Material, Carbon) or whose card broke the categorical 3:1 floor (Lil Dragon) were dropped.
+
+Analytics charts register one ECharts theme per mode-plus-palette key, lazily, from the tokens the
+document currently paints, and re-create when either attribute changes. The login page and
+transition veil take the palette's page and ink colours. Dark-mode secondary and ghost buttons use
+`--text-primary` instead of a forced `#fff`, so primary buttons keep `--primary-contrast` under a
+light accent. `.status-badge` success/warning/error use the per-theme badge tokens instead of fixed
+Sass colours, which also lifts the built-in Light and Dark badges above 4.5:1.
+
+The picker (`ThemePicker`) groups Built-in, Light, and Dark chips in a two-column grid. Each chip is
+painted in its own palette, shows accent/sub/text dots, and marks the active theme with a ring in
+the current accent. On phones the menu anchors to the header pill, goes opaque, and drops the dots
+below 360px. Group headings are `theme.group_*` in all seven locales.
+
+**Implementation evidence:** `src/styles/{_palette.scss,themes.scss,components.scss,layout.scss}`,
+`src/utils/themeCatalog.ts`, `src/stores/useThemeStore.ts`, `src/types/common.ts`,
+`src/components/layout/{ThemePicker.tsx,MainLayout.tsx}`,
+`src/features/analytics/components/{chartTheme.ts,AnalyticsChart.tsx}`,
+`src/features/analytics/views/analysis/useAnalysisPalette.ts`,
+`src/pages/login/{_palette.scss,DotMatrixHero.tsx}`, `src/components/common/LoginRevealVeil.scss`,
+`src/i18n/locales/*.json`; tests: `tests/themePalettes.test.ts`, `tests/analyticsPalette.test.ts`,
+`tests/analyticsChart.test.ts`, `tests/loginPalette.test.ts`.
+
+**Recorded validation:** On 2026-11-04, `bun run verify` passes 2896 tests, lint, TypeScript, and
+the production build. The token suites compile the real Sass and check every palette for text,
+accent, badge, medal, and chart contrast, and for accent/status/surface separation. Against a local
+CPA with ClickHouse analytics and generated traffic, an isolated Chrome CDP audit measured the
+composited contrast of every visible text run on 23 routes in all ten original palettes and the
+three built-in baselines at 1440px. No palette fails text that its mode's built-in theme passes,
+apart from the intentional half-opacity disabled routing members. Iceberg Dark, Mashu, and Midnight
+were added later the same day and audited the same way against built-in Dark and the earlier dark
+palettes; their only misses are the same faded disabled routing chips and filter fields (Midnight's
+dimmer ink puts them at 3.0-3.8:1 rather than about 4:1). Picker switching re-themes charts live
+without console errors, and the menu fits at 390px and 320px.
+
+**Last updated:** 2026-11-04
+
 ## Sync Checklist
 
 Project-specific checks every upstream sync runs, in addition to the full test suite, lint, typecheck, builds, and a smoke test of upstream and fork features.

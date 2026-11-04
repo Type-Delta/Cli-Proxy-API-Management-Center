@@ -1,8 +1,9 @@
 import { useSyncExternalStore } from 'react';
 import {
+  ANALYTICS_THEME_ATTRIBUTES,
   currentAnalyticsPalette,
+  currentAnalyticsTheme,
   readAnalyticsPalette,
-  resolveAnalyticsTheme,
   type AnalyticsPalette,
 } from '../../components/chartTheme';
 
@@ -17,7 +18,7 @@ let cached: { theme: string; palette: AnalyticsPalette } | null = null;
 
 const snapshot = () => {
   if (typeof document === 'undefined') return UNRESOLVED;
-  const theme = resolveAnalyticsTheme(document.documentElement.dataset.theme);
+  const theme = currentAnalyticsTheme();
   // `useSyncExternalStore` compares snapshots by identity, so the palette object has to be stable
   // for as long as the theme is.
   if (cached?.theme !== theme) cached = { theme, palette: currentAnalyticsPalette() ?? UNRESOLVED };
@@ -25,13 +26,16 @@ const snapshot = () => {
 };
 
 /**
- * Subscribe to `data-theme` on `<html>` — the same signal `AnalyticsChart` re-themes on, rather
+ * Subscribe to the theme attributes on `<html>` — the same signal `AnalyticsChart` re-themes on, rather
  * than the theme store, so a palette can never disagree with the chart painted next to it.
  */
 const subscribe = (onChange: () => void) => {
   if (typeof MutationObserver !== 'function') return () => {};
   const observer = new MutationObserver(onChange);
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ANALYTICS_THEME_ATTRIBUTES,
+  });
   return () => observer.disconnect();
 };
 

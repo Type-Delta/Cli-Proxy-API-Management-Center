@@ -1,5 +1,7 @@
 @use 'sass:color';
+@use 'sass:map';
 @use 'sass:math';
+@use './palette' as palette;
 
 // Author perceptually even colors in OKLCH; emit legacy RGB for ECharts/ZRender interpolation.
 @function viz-color($lightness, $chroma, $hue) {
@@ -405,5 +407,40 @@
     --glass-bg: var(--bg-primary);
     --glass-bg-secondary: var(--bg-secondary);
     --glass-border: var(--border-color);
+  }
+}
+
+// Imported palettes. Colours are Monkeytype's catalog values (bg, subAlt, main, text, error, sub);
+// `_palette.scss` derives every other token and enforces contrast. The theme store pairs each
+// palette with its mode's `data-theme`, so mode-keyed component rules still apply. Declared last
+// so a palette outranks the mode block it sits on.
+$palettes: (
+  // Dark
+  'nord': (dark, #242933, #2e3440, #88c0d0, #d8dee9, #bf616a, #929aaa),
+  'iceberg-dark': (dark, #161821, #232531, #84a0c6, #c6c8d1, #e27878, #595e76),
+  'catppuccin': (dark, #1e1e2e, #181825, #cba6f7, #cdd6f4, #f38ba8, #7f849c),
+  'dracula': (dark, #282a36, #20222c, #bd93f9, #f8f8f2, #ff5555, #6272a4),
+  'gruvbox-dark': (dark, #282828, #212121, #d79921, #ebdbb2, #fb4934, #665c54),
+  'rose-pine': (dark, #1f1d27, #282533, #9ccfd8, #e0def4, #eb6f92, #c4a7e7),
+  'mashu': (dark, #2b2b2c, #27242c, #76689a, #f1e2e4, #d44729, #d8a0a6),
+  'midnight': (dark, #0b0e13, #141a24, #60759f, #9fadc6, #c27070, #394760),
+  // Light
+  'rose-pine-dawn': (light, #fffaf3, #f0e9df, #56949f, #286983, #b4637a, #c4a7e7),
+  'solarized-light': (light, #fdf6e3, #e2d8be, #859900, #181819, #d33682, #2aa198),
+  'gruvbox-light': (light, #fbf1c7, #daceae, #689d6a, #3c3836, #cc241d, #a89984, 30%),
+  'iceberg-light': (light, #e8e9ec, #ccceda, #2d539e, #33374c, #cc517a, #adb1c4),
+  'lilac-mist': (light, #fffbfe, #ecdcee, #b94189, #5c2954, #ff6f69, #e094c2)
+);
+
+// Layout tweaks a palette needs on top of its colours, passed as keyword arguments.
+$palette-options: (
+  // Grey page and purple cards, with a darker grey sidebar.
+  'mashu': (swap-surfaces: true, sidebar: #232324),
+);
+
+@each $name, $colors in $palettes {
+  $options: map.get($palette-options, $name) or (swap-surfaces: false);
+  [data-palette='#{$name}'] {
+    @include palette.palette($colors..., $options...);
   }
 }

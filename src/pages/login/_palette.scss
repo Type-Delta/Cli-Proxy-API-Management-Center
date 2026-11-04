@@ -121,4 +121,13 @@
   :global(html[data-theme='dark']) & {
     @include login-tokens-dark;
   }
+
+  // An imported palette tints the page and ink; the translucent field, border, and hover tokens
+  // above already sit over any background of the palette's mode.
+  :global(html[data-palette]) & {
+    --login-bg: var(--palette-page);
+    --login-dot-color: var(--palette-text);
+    --login-title: var(--palette-text);
+    --login-text: var(--palette-text);
+  }
 }

@@ -81,14 +81,12 @@
   line-height: 0;
 }
 
+// Dark surfaces lift secondary and ghost buttons to full-strength text. Primary keeps
+// --primary-contrast, which a light palette accent needs to stay readable.
 [data-theme='dark'] {
-  .btn {
-    color: #fff;
-  }
-
   .btn.btn-secondary,
   .btn.btn-ghost {
-    color: #fff;
+    color: var(--text-primary);
   }
 }
 
@@ -172,22 +170,23 @@ textarea {
     display: block;
   }
 
+  // Badge tokens are tuned per theme so the label clears text contrast on its own tint.
   &.success {
-    color: $success-color;
-    border-color: rgba($success-color, 0.35);
-    background: rgba($success-color, 0.08);
+    color: var(--success-badge-text);
+    border-color: var(--success-badge-border);
+    background: var(--success-badge-bg);
   }
 
   &.warning {
-    color: $warning-color;
-    border-color: rgba($warning-color, 0.35);
-    background: rgba($warning-color, 0.08);
+    color: var(--warning-text);
+    border-color: var(--warning-border);
+    background: var(--warning-bg);
   }
 
   &.error {
-    color: $error-color;
-    border-color: rgba($error-color, 0.35);
-    background: rgba($error-color, 0.08);
+    color: var(--failure-badge-text);
+    border-color: var(--failure-badge-border);
+    background: var(--failure-badge-bg);
   }
 
   &.muted {

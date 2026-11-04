@@ -6,6 +6,7 @@ import {
   buildTopModelSeries,
 } from '@/features/analytics/views/analysis/analysisModel';
 import type { AnalysisModel, AnalysisModelByTime } from '@/types';
+import { THEME_PALETTES } from '@/utils/themeCatalog';
 
 // Measure the emitted sRGB colors, including the OKLCH-to-RGB Sass boundary.
 const themes = compile(new URL('../src/styles/themes.scss', import.meta.url).pathname).css;
@@ -14,7 +15,9 @@ const themes = compile(new URL('../src/styles/themes.scss', import.meta.url).pat
  * Splits the sheet into its top-level selector blocks. Anchored to the start of a line so a
  * `[data-theme='dark']` mentioned inside a comment cannot be mistaken for the block itself.
  */
-const SELECTORS = Array.from(themes.matchAll(/^(?::root|\[data-theme=['"]?(\w+)['"]?\])\s*\{/gm));
+const SELECTORS = Array.from(
+  themes.matchAll(/^(?::root|\[data-(?:theme|palette)=['"]?([\w-]+)['"]?\])\s*\{/gm)
+);
 const BLOCKS = new Map(
   SELECTORS.map((match, index) => {
     const next = SELECTORS[index + 1];
@@ -23,7 +26,7 @@ const BLOCKS = new Map(
   })
 );
 
-const readToken = (theme: 'root' | 'white' | 'dark', name: string, raw = false): string | null => {
+const readToken = (theme: string, name: string, raw = false): string | null => {
   const match = (BLOCKS.get(theme) ?? '').match(
     new RegExp(`${name}:\\s*(#[0-9a-f]{6}|rgb\\([^;]+\\))`, 'i')
   );
@@ -37,24 +40,39 @@ const readToken = (theme: 'root' | 'white' | 'dark', name: string, raw = false):
   );
 };
 
+type PaletteId = (typeof THEME_PALETTES)[number]['id'];
+type ThemeName = 'light' | 'white' | 'dark' | PaletteId;
+
 /**
- * The three painted themes. `[data-theme='white']` overrides only its own tokens, so any
- * viz token it does not redeclare is inherited from `:root` — resolve it the same way CSS does.
+ * The painted themes. `[data-theme='white']` overrides only its own tokens, so any viz token it
+ * does not redeclare is inherited from `:root` — resolve it the same way CSS does. A palette sits
+ * on its mode's block (`dark`, or `:root` for light palettes) and inherits what it leaves out.
  */
-const resolve = (theme: 'light' | 'white' | 'dark', name: string, raw = false) => {
-  const value =
-    theme === 'dark'
-      ? readToken('dark', name, raw)
+const resolve = (theme: ThemeName, name: string, raw = false) => {
+  const palette = THEME_PALETTES.find((item) => item.id === theme);
+  const chain =
+    theme === 'dark' || palette?.mode === 'dark'
+      ? [theme, 'dark', 'root']
       : theme === 'white'
-        ? readToken('white', name, raw)
-        : null;
-  const token = value ?? readToken('root', name, raw);
-  if (!token) throw new Error(`themes.scss declares no ${name}`);
-  return token;
+        ? ['white', 'root']
+        : [theme, 'root'];
+  for (const block of chain) {
+    const token = readToken(block, name, raw);
+    if (token) return token;
+  }
+  throw new Error(`themes.scss declares no ${name} for ${theme}`);
 };
 
-const BACKGROUNDS = { light: '#f0eee8', white: '#ffffff', dark: '#1d1b18' } as const;
-const THEMES = ['light', 'white', 'dark'] as const;
+const BACKGROUNDS: Record<ThemeName, string> = {
+  light: '#f0eee8',
+  white: '#ffffff',
+  dark: '#1d1b18',
+  ...(Object.fromEntries(
+    THEME_PALETTES.map((palette) => [palette.id, resolve(palette.id, '--bg-primary')])
+  ) as Record<PaletteId, string>),
+};
+const BUILT_IN = ['light', 'white', 'dark'] as const;
+const THEMES: ThemeName[] = [...BUILT_IN, ...THEME_PALETTES.map((palette) => palette.id)];
 
 const channel = (value: number) => {
   const c = value / 255;
@@ -249,11 +267,14 @@ describe('chart tooltip panel', () => {
       )
       .join('')}`;
   };
-  const readRaw = (theme: 'light' | 'white' | 'dark', name: string) => {
-    const block = BLOCKS.get(theme === 'dark' ? 'dark' : 'root') ?? '';
-    const match = block.match(new RegExp(`${name}:\\s*([^;]+);`));
-    if (!match) throw new Error(`themes.scss declares no ${name}`);
-    return match[1].trim();
+  const readRaw = (theme: ThemeName, name: string) => {
+    const dark =
+      theme === 'dark' || THEME_PALETTES.some((p) => p.id === theme && p.mode === 'dark');
+    for (const block of [theme, dark ? 'dark' : 'root', 'root']) {
+      const match = (BLOCKS.get(block) ?? '').match(new RegExp(`${name}:\\s*([^;]+);`));
+      if (match) return match[1].trim();
+    }
+    throw new Error(`themes.scss declares no ${name}`);
   };
 
   // The panel is dark and translucent in every theme (the owner's reference): it is a transient
@@ -291,7 +312,7 @@ describe('palette compatibility and preserved scales', () => {
       '#18d77e',
     ]);
   });
-  test.each(THEMES)('%s: preserves the matrix volume ramp', (theme) => {
+  test.each(BUILT_IN)('%s: preserves the matrix volume ramp', (theme) => {
     expect([1, 2, 3, 4, 5].map((level) => resolve(theme, `--viz-neutral-${level}`))).toEqual(
       theme === 'dark'
         ? ['#1f3350', '#2f4f78', '#4a76a8', '#6f9cca', '#a8c8e8']

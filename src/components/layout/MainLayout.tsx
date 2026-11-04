@@ -64,6 +64,7 @@ import { AnalyticsFilterProvider } from '@/features/analytics/AnalyticsFilterPro
 import { AnalyticsShell } from '@/features/analytics/AnalyticsShell';
 import { triggerHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { BackToTopButton } from './BackToTopButton';
+import { ThemePicker } from './ThemePicker';
 import { HeaderActionSlotContext } from './headerActionSlot';
 import { LANGUAGE_LABEL_KEYS, LANGUAGE_ORDER } from '@/utils/constants';
 import { isSupportedLanguage } from '@/utils/language';
@@ -280,57 +281,6 @@ const headerIcons = {
   ),
 };
 
-const THEME_CARDS: Array<{
-  key: Theme;
-  labelKey: string;
-  colors: { bg: string; card: string; border: string; text: string; textMuted: string };
-}> = [
-  {
-    key: 'auto',
-    labelKey: 'theme.auto',
-    colors: {
-      bg: 'linear-gradient(135deg, #ffffff 0 50%, #111111 50% 100%)',
-      card: 'linear-gradient(135deg, #ffffff 0 50%, #1a1a1a 50% 100%)',
-      border: '#bdbdbd',
-      text: '#2d2a26',
-      textMuted: 'linear-gradient(135deg, #c9c9c9 0 50%, #5a5a5a 50% 100%)',
-    },
-  },
-  {
-    key: 'white',
-    labelKey: 'theme.white',
-    colors: {
-      bg: '#ffffff',
-      card: '#ffffff',
-      border: '#e5e5e5',
-      text: '#2d2a26',
-      textMuted: '#a29c95',
-    },
-  },
-  {
-    key: 'light',
-    labelKey: 'theme.light',
-    colors: {
-      bg: '#faf9f5',
-      card: '#f0eee8',
-      border: '#e3e1db',
-      text: '#2d2a26',
-      textMuted: '#a29c95',
-    },
-  },
-  {
-    key: 'dark',
-    labelKey: 'theme.dark',
-    colors: {
-      bg: '#151412',
-      card: '#1d1b18',
-      border: '#3a3530',
-      text: '#f6f4f1',
-      textMuted: '#9c958d',
-    },
-  },
-];
-
 export function MainLayout() {
   const { t } = useTranslation();
   const { showNotification } = useNotificationStore();
@@ -350,6 +300,7 @@ export function MainLayout() {
 
   const theme = useThemeStore((state) => state.theme);
   const setTheme = useThemeStore((state) => state.setTheme);
+  const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const language = useLanguageStore((state) => state.language);
   const setLanguage = useLanguageStore((state) => state.setLanguage);
 
@@ -1216,7 +1167,7 @@ export function MainLayout() {
               >
                 {theme === 'auto'
                   ? headerIcons.autoTheme
-                  : theme === 'dark'
+                  : resolvedTheme === 'dark'
                     ? headerIcons.moon
                     : theme === 'white'
                       ? headerIcons.whiteTheme
@@ -1228,52 +1179,7 @@ export function MainLayout() {
                   role="menu"
                   aria-label={t('theme.switch')}
                 >
-                  {THEME_CARDS.map((tc) => (
-                    <button
-                      key={tc.key}
-                      type="button"
-                      className={`theme-card ${theme === tc.key ? 'active' : ''}`}
-                      onClick={() => handleThemeSelect(tc.key)}
-                      role="menuitemradio"
-                      aria-checked={theme === tc.key}
-                    >
-                      <div
-                        className="theme-card-preview"
-                        style={{
-                          background: tc.colors.bg,
-                          border: `1px solid ${tc.colors.border}`,
-                        }}
-                      >
-                        <div
-                          className="theme-card-header"
-                          style={{
-                            background: tc.colors.card,
-                            borderBottom: `1px solid ${tc.colors.border}`,
-                          }}
-                        />
-                        <div className="theme-card-body">
-                          <div
-                            className="theme-card-sidebar"
-                            style={{
-                              background: tc.colors.card,
-                              borderRight: `1px solid ${tc.colors.border}`,
-                            }}
-                          />
-                          <div className="theme-card-content" style={{ background: tc.colors.bg }}>
-                            <div
-                              className="theme-card-line"
-                              style={{ background: tc.colors.textMuted }}
-                            />
-                            <div
-                              className="theme-card-line short"
-                              style={{ background: tc.colors.textMuted }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <span className="theme-card-label">{t(tc.labelKey)}</span>
-                    </button>
-                  ))}
+                  <ThemePicker theme={theme} onSelect={handleThemeSelect} />
                 </div>
               )}
             </div>

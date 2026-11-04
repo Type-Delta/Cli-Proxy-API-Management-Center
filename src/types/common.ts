@@ -1,8 +1,11 @@
 /**
- * 通用类型定义
+ * Shared type definitions
  */
 
-export type Theme = 'light' | 'white' | 'dark' | 'auto';
+import type { ThemePaletteId } from '@/utils/themeCatalog';
+
+/** A built-in theme, `auto` (white or dark by system preference), or an imported palette. */
+export type Theme = 'light' | 'white' | 'dark' | 'auto' | ThemePaletteId;
 
 export type Language = 'zh-CN' | 'zh-TW' | 'en' | 'ru' | 'vi' | 'ko' | 'tr';
 

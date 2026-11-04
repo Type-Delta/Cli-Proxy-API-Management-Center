@@ -3655,7 +3655,10 @@
     "light": "羊毛紙",
     "white": "純白",
     "dark": "深色",
-    "auto": "跟隨系統"
+    "auto": "跟隨系統",
+    "group_default": "內建",
+    "group_light": "淺色",
+    "group_dark": "深色"
   },
   "sidebar": {
     "toggle_expand": "展開側邊欄",
