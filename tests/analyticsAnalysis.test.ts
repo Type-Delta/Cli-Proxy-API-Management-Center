@@ -1334,9 +1334,20 @@ describe('analysis ECharts options', () => {
       formatDuration: (value) => `${value}ms`,
     }) as unknown as {
       radar: { indicator: Array<{ max: number }> };
-      series: Array<{ data: unknown[] }>;
+      series: Array<{
+        data: unknown[];
+        lineStyle?: { color: string };
+        itemStyle?: { color: string };
+        areaStyle?: { color: string };
+      }>;
       tooltip: { formatter: (input: unknown) => string };
     };
+    // The polygon takes the radar colour (a palette's accent), not the cost line's.
+    expect(PALETTE.radar).not.toBe(PALETTE.lineCost);
+    const [polygon] = complete.series;
+    for (const style of [polygon.lineStyle, polygon.itemStyle, polygon.areaStyle]) {
+      expect(style?.color).toBe(PALETTE.radar);
+    }
     // Log10 keeps short timings visible beside the slowest one: the shared axis max is the log
     // of the slowest maximum, so 120ms still lands at 88% of the radius instead of a linear 52%.
     expect(complete.radar.indicator.map((indicator) => indicator.max)).toEqual(

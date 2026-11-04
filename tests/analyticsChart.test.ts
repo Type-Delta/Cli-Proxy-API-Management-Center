@@ -107,6 +107,13 @@ describe('analytics chart themes', () => {
     expect(palette.health).toEqual(['#hea001', '#hea002', '#hea003', '#hea004', '#hea005']);
     expect(palette.neutral).toEqual(['#neu001', '#neu002', '#neu003', '#neu004', '#neu005']);
     expect(palette.emptyCell).toBe('#e9e6df');
+    // Built-in themes set no radar colour, so the latency radar keeps the cost line's pink.
+    expect(palette.radar).toBe(palette.lineCost);
+    const accented = readAnalyticsPalette({
+      getPropertyValue: (name) =>
+        name === '--viz-radar' ? ' #fc6e83 ' : style.getPropertyValue(name),
+    });
+    expect(accented.radar).toBe('#fc6e83');
   });
 
   test('paints axes, calendar and tooltip from tokens only', () => {

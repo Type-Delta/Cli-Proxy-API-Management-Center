@@ -434,8 +434,8 @@
 /* 墨色药丸（深色主题自动反相） */
 .primary {
   @extend %pill;
-  background: var(--text-primary);
-  color: var(--bg-secondary);
+  background: $action-bg;
+  color: $action-text;
 }
 
 .secondary {
@@ -455,8 +455,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   .primary:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--text-primary) 86%, var(--bg-secondary));
-    box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--text-primary) 45%, transparent);
+    background: $action-hover;
+    box-shadow: 0 10px 22px -10px color-mix(in srgb, #{$action-bg} 45%, transparent);
   }
 
   .secondary:hover:not(:disabled) {

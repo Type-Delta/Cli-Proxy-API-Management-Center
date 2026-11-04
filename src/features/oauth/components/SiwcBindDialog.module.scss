@@ -88,7 +88,7 @@
     position: absolute;
     inset: 3px;
     border-radius: 50%;
-    background: var(--text-primary);
+    background: $action-bg;
     opacity: 0;
     transform: scale(0.5);
     transition:

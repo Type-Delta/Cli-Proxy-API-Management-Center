@@ -1221,9 +1221,9 @@ export function latencyRadarOption({
         type: 'radar' as const,
         symbol: 'circle',
         symbolSize: 5,
-        lineStyle: { color: palette.lineCost, width: 2 },
-        itemStyle: { color: palette.lineCost },
-        areaStyle: { color: palette.lineCost, opacity: 0.14 },
+        lineStyle: { color: palette.radar, width: 2 },
+        itemStyle: { color: palette.radar },
+        areaStyle: { color: palette.radar, opacity: 0.14 },
         // ECharts treats null radar vertices as zero, which would draw an unavailable measurement
         // at the centre of the chart. Keep the grid and unavailable labels; partial responses draw
         // only known axis spokes and nodes with the custom series below.

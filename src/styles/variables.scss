@@ -51,3 +51,12 @@ $font-family:
 $font-mono:
   ui-monospace, 'SF Mono', 'Cascadia Mono', 'JetBrains Mono', 'Fira Code', Menlo, Consolas,
   'Liberation Mono', monospace;
+
+// Fill and label for primary actions, plus active tab and nav markers. Built-in themes paint them
+// in text ink; imported palettes set `--action-*` to their accent (see `_palette.scss`).
+$action-bg: var(--action-bg, var(--text-primary));
+$action-text: var(--action-text, var(--bg-secondary));
+$action-hover: var(
+  --action-hover,
+  color-mix(in srgb, var(--text-primary) 86%, var(--bg-secondary))
+);

@@ -1621,10 +1621,13 @@ the card colour). The `success-base`, `failure-base`, and `amber-base` options r
 status hue that a palette's accent would absorb: Terra's green accent moves success to teal and its
 yellow error becomes red; Fledgling's pink accent turns failures orange and amber yellow; Lilac
 Mist's chart failures take its own red instead of the default crimson. Fledgling's surfaces are a
-deeper purple than Monkeytype's greys, which would otherwise lighten its accent to a pastel. Volume
-ramps are rebuilt from the palette's card colour. Categorical chart colours stay on the mode's tuned
-sets. Candidates whose accent collided with the semantic success or error colours (Material, Carbon)
-or whose card broke the categorical 3:1 floor (Lil Dragon) were dropped.
+deeper purple than Monkeytype's greys, which would otherwise lighten its accent to a pastel. The
+heatmap ramps (Overview activity, Analysis key-by-model) run from the palette's card colour to its
+accent instead of the built-in blue. The Latency Diagnostics radar reads `--viz-radar`, which
+palettes set to their accent; built-in themes leave it unset and keep the cost line's pink.
+Categorical chart colours stay on the mode's tuned sets. Candidates whose accent collided with the
+semantic success or error colours (Material, Carbon) or whose card broke the categorical 3:1 floor
+(Lil Dragon) were dropped.
 
 Analytics charts register one ECharts theme per mode-plus-palette key, lazily, from the tokens the
 document currently paints, and re-create when either attribute changes. The login page and
@@ -1632,6 +1635,11 @@ transition veil take the palette's page and ink colours. Dark-mode secondary and
 `--text-primary` instead of a forced `#fff`, so primary buttons keep `--primary-contrast` under a
 light accent. `.status-badge` success/warning/error use the per-theme badge tokens instead of fixed
 Sass colours, which also lifts the built-in Light and Dark badges above 4.5:1.
+
+Built-in themes fill primary actions (hero and page-header buttons, save pills, OAuth and search
+buttons) and mark active tabs and nav items with text ink. Those sites read `$action-bg`,
+`$action-text`, and `$action-hover` from `variables.scss`, which fall back to that ink; imported
+palettes set `--action-*` to their accent so the palette's main colour is visible at rest.
 
 The picker (`ThemePicker`) groups Built-in, Light, and Dark chips in a two-column grid. Each chip is
 painted in its own palette, shows accent/sub/text dots, and marks the active theme with a ring in
@@ -1656,9 +1664,12 @@ three built-in baselines at 1440px. No palette fails text that its mode's built-
 apart from the intentional half-opacity disabled routing members. Iceberg Dark, Mashu, Midnight,
 Terra, and Fledgling were added later the same day and audited the same way against built-in Dark
 and the earlier dark palettes; their only misses are the same faded disabled routing chips and
-filter fields (Midnight's dimmer ink puts them at 3.0-3.8:1 rather than about 4:1). Fledgling's
-surfaces were deepened from Monkeytype's greys to purple so its pink accent ships unchanged. Picker
-switching re-themes charts live without console errors, and the menu fits at 390px and 320px.
+filter fields (Midnight's dimmer ink puts them at 3.0-3.8:1 rather than about 4:1). A follow-up scan
+of seven routes with primary actions and tabs in every theme found no new failures after palettes
+took the accent for actions. Fledgling's grey surfaces were then deepened to purple so its pink
+accent ships unchanged instead of lightened; a rescan of those routes flagged only the same
+elements. Picker switching re-themes charts live without console errors, and the menu fits at 390px
+and 320px.
 
 **Last updated:** 2026-11-04
 

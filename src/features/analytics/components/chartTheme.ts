@@ -51,6 +51,7 @@ export type AnalyticsPalette = {
   neutral: string[];
   emptyCell: string;
   lineCost: string;
+  radar: string;
   success: string;
   failure: string;
   textPrimary: string;
@@ -76,6 +77,8 @@ export function readAnalyticsPalette(style: StyleMap): AnalyticsPalette {
     neutral: ramp('--viz-neutral-', 5),
     emptyCell: token('--viz-empty-cell'),
     lineCost: token('--viz-line-cost'),
+    // Imported palettes draw the latency radar in their accent; built-in themes reuse the cost line.
+    radar: token('--viz-radar') || token('--viz-line-cost'),
     success: token('--viz-success'),
     failure: token('--viz-failure'),
     textPrimary: token('--text-primary'),

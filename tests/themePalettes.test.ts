@@ -127,6 +127,10 @@ describe.each(IDS)('%s palette', (id) => {
   });
 
   test('the accent reads as text and as a button fill', () => {
+    // Primary actions and active markers, ink-filled in the built-in themes, take the accent.
+    expect(block(id)).toMatch(/--action-bg:\s*var\(--primary-color\)/);
+    expect(block(id)).toMatch(/--action-text:\s*var\(--primary-contrast\)/);
+    expect(block(id)).toMatch(/--action-hover:\s*var\(--primary-hover\)/);
     const primary = token('--primary-color');
     expect(lowest(primary, surfaces)).toBeGreaterThanOrEqual(4.5);
     for (const fill of ['--primary-color', '--primary-hover', '--primary-active']) {
@@ -134,6 +138,14 @@ describe.each(IDS)('%s palette', (id) => {
     }
     // Primary rings and tints sit at 10-30% over the card; the ring itself must still show.
     expect(contrast(primary, card)).toBeGreaterThanOrEqual(3);
+    // The latency radar is drawn in the accent.
+    expect(token('--viz-radar')).toBe(primary);
+    // Heatmap ramps end on the accent, and each step is denser than the one before.
+    for (const ramp of ['--viz-neutral-', '--viz-activity-']) {
+      expect(token(`${ramp}5`)).toBe(primary);
+      const steps = [1, 2, 3, 4, 5].map((step) => contrast(token(`${ramp}${step}`), card));
+      for (let i = 1; i < steps.length; i++) expect(steps[i]).toBeGreaterThan(steps[i - 1]);
+    }
   });
 
   test('status colours read on cards and inside their own badges', () => {

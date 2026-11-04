@@ -185,9 +185,9 @@
   }
 
   .tile:hover .trail {
-    background: var(--text-primary);
-    border-color: var(--text-primary);
-    color: var(--bg-secondary);
+    background: $action-bg;
+    border-color: $action-bg;
+    color: $action-text;
   }
 
   .tile:active {
