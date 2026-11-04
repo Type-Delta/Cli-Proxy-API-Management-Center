@@ -1604,12 +1604,12 @@ preference. The label is `header.back_to_top` in all seven locales.
 
 ### DL078 — Imported colour palettes and grouped theme picker
 
-Besides the four built-in themes, the theme menu offers thirteen palettes from Monkeytype's
+Besides the four built-in themes, the theme menu offers fifteen palettes from Monkeytype's
 open-source theme catalog: Nord, Iceberg Dark, Catppuccin, Dracula, Gruvbox Dark, Rosé Pine, Mashu,
-and Midnight (dark), and Rosé Pine Dawn, Solarized Light, Gruvbox Light, Iceberg Light, and Lilac
-Mist (light). The theme store keeps `data-theme` as the mode signal (absent, `white`, or `dark`)
-that mode-keyed component rules and `resolvedTheme` consumers already read, and adds `data-palette`
-on top. A persisted id that is no longer in the catalog falls back to `auto`.
+Midnight, Terra, and Fledgling (dark), and Rosé Pine Dawn, Solarized Light, Gruvbox Light, Iceberg
+Light, and Lilac Mist (light). The theme store keeps `data-theme` as the mode signal (absent,
+`white`, or `dark`) that mode-keyed component rules and `resolvedTheme` consumers already read, and
+adds `data-palette` on top. A persisted id that is no longer in the catalog falls back to `auto`.
 
 Each palette names six source colours in `themes.scss` (Monkeytype's bg, subAlt, main, text, error,
 sub). `src/styles/_palette.scss` derives the full token set from them. Text tiers, the accent,
@@ -1617,9 +1617,14 @@ status colours, badges, chart success/failure markers, and medal ink are pushed 
 lightness at build time until they clear their WCAG floor on every surface they sit on. Dark
 palettes put the darker colour on the page unless `$palette-options` swaps them: Mashu keeps its
 grey page with purple cards, and sets its own darker grey `--sidebar-bg` (the sidebar otherwise uses
-the card colour). Volume ramps are rebuilt from the palette's card colour. Categorical chart colours
-stay on the mode's tuned sets. Candidates whose accent collided with the semantic success or error
-colours (Material, Carbon) or whose card broke the categorical 3:1 floor (Lil Dragon) were dropped.
+the card colour). The `success-base`, `failure-base`, and `amber-base` options replace a default
+status hue that a palette's accent would absorb: Terra's green accent moves success to teal and its
+yellow error becomes red; Fledgling's pink accent turns failures orange and amber yellow; Lilac
+Mist's chart failures take its own red instead of the default crimson. Fledgling's surfaces are a
+deeper purple than Monkeytype's greys, which would otherwise lighten its accent to a pastel. Volume
+ramps are rebuilt from the palette's card colour. Categorical chart colours stay on the mode's tuned
+sets. Candidates whose accent collided with the semantic success or error colours (Material, Carbon)
+or whose card broke the categorical 3:1 floor (Lil Dragon) were dropped.
 
 Analytics charts register one ECharts theme per mode-plus-palette key, lazily, from the tokens the
 document currently paints, and re-create when either attribute changes. The login page and
@@ -1642,17 +1647,18 @@ below 360px. Group headings are `theme.group_*` in all seven locales.
 `src/i18n/locales/*.json`; tests: `tests/themePalettes.test.ts`, `tests/analyticsPalette.test.ts`,
 `tests/analyticsChart.test.ts`, `tests/loginPalette.test.ts`.
 
-**Recorded validation:** On 2026-11-04, `bun run verify` passes 2896 tests, lint, TypeScript, and
+**Recorded validation:** On 2026-11-04, `bun run verify` passes 2932 tests, lint, TypeScript, and
 the production build. The token suites compile the real Sass and check every palette for text,
 accent, badge, medal, and chart contrast, and for accent/status/surface separation. Against a local
 CPA with ClickHouse analytics and generated traffic, an isolated Chrome CDP audit measured the
 composited contrast of every visible text run on 23 routes in all ten original palettes and the
 three built-in baselines at 1440px. No palette fails text that its mode's built-in theme passes,
-apart from the intentional half-opacity disabled routing members. Iceberg Dark, Mashu, and Midnight
-were added later the same day and audited the same way against built-in Dark and the earlier dark
-palettes; their only misses are the same faded disabled routing chips and filter fields (Midnight's
-dimmer ink puts them at 3.0-3.8:1 rather than about 4:1). Picker switching re-themes charts live
-without console errors, and the menu fits at 390px and 320px.
+apart from the intentional half-opacity disabled routing members. Iceberg Dark, Mashu, Midnight,
+Terra, and Fledgling were added later the same day and audited the same way against built-in Dark
+and the earlier dark palettes; their only misses are the same faded disabled routing chips and
+filter fields (Midnight's dimmer ink puts them at 3.0-3.8:1 rather than about 4:1). Fledgling's
+surfaces were deepened from Monkeytype's greys to purple so its pink accent ships unchanged. Picker
+switching re-themes charts live without console errors, and the menu fits at 390px and 320px.
 
 **Last updated:** 2026-11-04
 

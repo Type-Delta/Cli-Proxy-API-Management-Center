@@ -101,7 +101,10 @@
   $sub,
   $card-weight: 45%,
   $swap-surfaces: false,
-  $sidebar: null
+  $sidebar: null,
+  $success-base: null,
+  $failure-base: null,
+  $amber-base: null
 ) {
   $dark: $mode == dark;
   $page: $bg;
@@ -121,8 +124,14 @@
 
   $primary: ensure-contrast($main, $surfaces, 4.5, $mode);
   $error-text: ensure-contrast($error, ($card, $page), 4.5, $mode);
-  $success: ensure-contrast(pick($dark, #34d399, #0f9f72), ($card, $page), 3, $mode);
-  $amber: pick($dark, #f59e0b, #d97706);
+  // The `*-base` options replace a default status hue that the palette's accent would absorb.
+  $success: ensure-contrast(
+    $success-base or pick($dark, #34d399, #0f9f72),
+    ($card, $page),
+    3,
+    $mode
+  );
+  $amber: $amber-base or pick($dark, #f59e0b, #d97706);
   $count-bg: mix($primary, $card, 18%);
   $success-bg: mix($success, $card, 16%);
   $failure-bg: mix($error-text, $card, 14%);
@@ -189,8 +198,18 @@
   --amber-text: #{ensure-contrast($amber, (tint($amber, $card, 14%)), 4.5, $mode)};
 
   // Also painted as text (shares, sync state), so held to text contrast on cards and the page.
-  --viz-success: #{ensure-contrast(pick($dark, #55d3a3, #087f5b), ($card, $page), 4.5, $mode)};
-  --viz-failure: #{ensure-contrast(pick($dark, #f07b82, #c84455), ($card, $page), 4.5, $mode)};
+  --viz-success: #{ensure-contrast(
+      $success-base or pick($dark, #55d3a3, #087f5b),
+      ($card, $page),
+      4.5,
+      $mode
+    )};
+  --viz-failure: #{ensure-contrast(
+      $failure-base or pick($dark, #f07b82, #c84455),
+      ($card, $page),
+      4.5,
+      $mode
+    )};
   --viz-cat-other: #{ensure-contrast(mix($text, $card, 50%), ($card), 3, $mode)};
   --viz-line-cost: #{ensure-contrast(pick($dark, #ff82ad, #b53d68), ($card), 4.5, $mode)};
   @include ramp('--viz-neutral-', $neutral-end, $card);

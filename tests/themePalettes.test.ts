@@ -168,6 +168,9 @@ describe.each(IDS)('%s palette', (id) => {
     expect(distance(primary, token('--success-color'))).toBeGreaterThan(0.1);
     expect(distance(primary, token('--error-color'))).toBeGreaterThan(0.1);
     expect(distance(token('--success-color'), token('--error-color'))).toBeGreaterThan(0.15);
+    // Chart failure markers must not pass for the accent, nor failures for amber cautions.
+    expect(distance(primary, token('--viz-failure'))).toBeGreaterThan(0.1);
+    expect(distance(token('--error-color'), token('--amber-color'))).toBeGreaterThan(0.1);
     // Surfaces stay layered: page, card, hover, and borders are each visibly separate.
     expect(contrast(card, page)).toBeGreaterThan(1.03);
     for (const bg of sidebar) expect(contrast(bg, page)).toBeGreaterThan(1.03);

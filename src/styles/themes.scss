@@ -424,6 +424,11 @@ $palettes: (
   'rose-pine': (dark, #1f1d27, #282533, #9ccfd8, #e0def4, #eb6f92, #c4a7e7),
   'mashu': (dark, #2b2b2c, #27242c, #76689a, #f1e2e4, #d44729, #d8a0a6),
   'midnight': (dark, #0b0e13, #141a24, #60759f, #9fadc6, #c27070, #394760),
+  // Terra's own error is yellow (#d3ca78); red keeps failures apart from warnings.
+  'terra': (dark, #0c100e, #0f1d18, #89c559, #f0edd1, #e06c75, #436029),
+  // Fledgling's own error is red (#f52443), which turns as pink as its accent once readable. Its
+  // greys (#3b363f, #332e38) are deepened to purple so the pink accent clears contrast unchanged.
+  'fledgling': (dark, #2b2333, #221b29, #fc6e83, #e6d5d3, #ff7d27, #8e5568),
   // Light
   'rose-pine-dawn': (light, #fffaf3, #f0e9df, #56949f, #286983, #b4637a, #c4a7e7),
   'solarized-light': (light, #fdf6e3, #e2d8be, #859900, #181819, #d33682, #2aa198),
@@ -436,6 +441,12 @@ $palettes: (
 $palette-options: (
   // Grey page and purple cards, with a darker grey sidebar.
   'mashu': (swap-surfaces: true, sidebar: #232324),
+  // Terra's accent is green, so success moves to teal to stay distinct.
+  'terra': (success-base: #2dd4bf),
+  // Fledgling's pink accent is a light red: failures go orange and amber moves to yellow.
+  'fledgling': (failure-base: #ff7d27, amber-base: #facc15),
+  // Lilac Mist's magenta accent sits near the default crimson; chart failures use its coral error.
+  'lilac-mist': (failure-base: #ff6f69),
 );
 
 @each $name, $colors in $palettes {

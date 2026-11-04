@@ -12,6 +12,8 @@ export const THEME_PALETTES = [
   { id: 'rose-pine', label: 'Rosé Pine', mode: 'dark' },
   { id: 'mashu', label: 'Mashu', mode: 'dark' },
   { id: 'midnight', label: 'Midnight', mode: 'dark' },
+  { id: 'terra', label: 'Terra', mode: 'dark' },
+  { id: 'fledgling', label: 'Fledgling', mode: 'dark' },
   { id: 'rose-pine-dawn', label: 'Rosé Pine Dawn', mode: 'light' },
   { id: 'solarized-light', label: 'Solarized Light', mode: 'light' },
   { id: 'gruvbox-light', label: 'Gruvbox Light', mode: 'light' },
