@@ -845,6 +845,7 @@
       "distribution_title": "使用分布",
       "displayed_tokens": "显示的令牌",
       "filter_token_categories": "筛选令牌类别",
+      "filter_chart_series": "筛选图表系列",
       "heatmap_description": "API 密钥和模型的代币集中度。",
       "heatmap_high": "高的",
       "heatmap_low": "低的",

@@ -778,6 +778,8 @@ export type TokenUsageOptionInput = {
   formatTokens: (value: number) => string;
   formatCount: (value: number) => string;
   formatCost: (value: number) => string;
+  /** Series names switched off in the card's HTML legend. */
+  hiddenSeries?: ReadonlySet<string>;
 };
 
 export function tokenUsageOption({
@@ -791,6 +793,7 @@ export function tokenUsageOption({
   formatTokens,
   formatCount,
   formatCost,
+  hiddenSeries,
 }: TokenUsageOptionInput): EChartsCoreOption {
   const stackSize = categories.length;
   const lineMarker = (color: string, dashed: boolean) =>
@@ -804,8 +807,18 @@ export function tokenUsageOption({
     index < stackSize ? formatTokens : index === stackSize ? formatCount : formatCost;
 
   return {
-    grid: { ...ANALYSIS_GRID, containLabel: false },
-    legend: { top: 0, left: 0, itemGap: 16, icon: 'roundRect' },
+    // The legend is HTML above the chart so it can wrap on narrow cards without covering the
+    // plot; the hidden ECharts legend only carries which series are switched on.
+    grid: { ...ANALYSIS_GRID, top: 12, containLabel: false },
+    legend: {
+      show: false,
+      selected: Object.fromEntries(
+        [...categories.map((category) => category.label), requestsLabel, costLabel].map((name) => [
+          name,
+          !hiddenSeries?.has(name),
+        ])
+      ),
+    },
     tooltip: {
       trigger: 'axis',
       axisPointer: snapAxisPointer,
@@ -1300,6 +1313,14 @@ export function latencyOption({
     sample.model,
     sample.requested_at,
   ];
+  // The TTFT label sits flat above the plot; it grows toward the plot's interior so a marker near
+  // either axis end is not clipped by the chart edge.
+  const ttftLabelAlign =
+    selectedTtft != null &&
+    Math.log10(Math.max(ttftAxis.min, selectedTtft) / ttftAxis.min) <
+      Math.log10(ttftAxis.max / ttftAxis.min) / 2
+      ? ('left' as const)
+      : ('right' as const);
   const markLine = {
     silent: true,
     symbol: 'none',
@@ -1319,7 +1340,7 @@ export function latencyOption({
                 position: 'end' as const,
                 rotate: 0,
                 distance: 6,
-                align: 'right' as const,
+                align: ttftLabelAlign,
                 verticalAlign: 'bottom' as const,
               },
             },

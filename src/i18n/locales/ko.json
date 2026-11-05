@@ -845,6 +845,7 @@
       "distribution_title": "사용량 분포",
       "displayed_tokens": "표시된 토큰",
       "filter_token_categories": "토큰 카테고리 필터",
+      "filter_chart_series": "차트 계열 필터",
       "heatmap_description": "API 키와 모델 전반의 토큰 집중도입니다.",
       "heatmap_high": "높음",
       "heatmap_low": "낮음",

@@ -513,7 +513,7 @@ export function OverviewKpis({
     .join('. ')}. ${dailyBasis}`;
 
   return (
-    <div className={styles.summaryStack}>
+    <div className={styles.summaryStack} data-analytics-tiles>
       <MetricTiles
         cards={cards}
         label={t('analytics.overview.key_metrics', { defaultValue: 'Key metrics' })}

@@ -1580,11 +1580,40 @@ option icon on every width). `Pagination` spans the full width on phones with a 
 label so Previous, the label, and Next share one line, and uses the new `IconChevronRight`. The
 Overview daily averages keep three inline columns on phones with bottom-aligned figures.
 
-**Implementation evidence:** `src/features/analytics/{Analytics.module.scss,AnalyticsTabs.module.scss,AnalyticsShell.tsx,AnalyticsShellContext.ts}`, `src/features/analytics/views/overview/Overview.module.scss`, `src/features/analytics/views/keys/KeysView.module.scss`, `src/features/analytics/views/analysis/{Analysis.module.scss,ModelCostModal.module.scss}`, `src/features/analytics/views/Events.tsx`, `src/features/analytics/views/events/Events.module.scss`, `src/components/layout/{MainLayout.tsx,headerActionSlot.ts}`, `src/styles/layout.scss`, `src/components/ui/{DateRangePicker/index.tsx,Pagination.tsx,Pagination.module.scss,icons.tsx}`; tests: `tests/analyticsRange.test.ts`.
+At or below 768px, top-level Usage cards drop their padding, border, background, and shadow so
+charts and lists use the full content width. A hairline under each card separates neighbours. The
+workspace carries `data-analytics-page`, and the rule matches only `usage`. Cards nested in a card
+(Keys rows) and the Overview KPI tiles (`data-analytics-tiles` on the summary stack) keep their frame.
+The tab strip no longer overflows vertically. The active underline hung 1px below the scroller
+(`bottom: -1px`), and iOS rubber-banded that axis well beyond 1px on touch drags. The underline now
+sits inside the tab, and the scroller overlaps the nav's bottom rule by 1px so the underline still
+covers it. The scroller also sets `overflow-y: hidden`, because `overflow-x: auto` alone computes
+`overflow-y: auto`. Token Usage Over Time renders its legend as HTML toggle buttons in normal flow
+(`.chartLegend`, shared with Usage Distribution), so it wraps on phones instead of overlapping the
+plot. The hidden ECharts legend only carries `selected`. The latency p95 TTFT label grows toward
+the plot interior, so a marker at the axis floor is no longer clipped. The mobile latency summary
+gets a top margin. The Keys card list gets the desktop table's 12px top offset, so the first card
+no longer touches the pricing disclosure.
+
+**Implementation evidence:** `src/features/analytics/{Analytics.module.scss,AnalyticsTabs.module.scss,AnalyticsShell.tsx,AnalyticsShellContext.ts}`, `src/features/analytics/views/overview/Overview.module.scss`, `src/features/analytics/views/keys/KeysView.module.scss`, `src/features/analytics/views/analysis/{Analysis.module.scss,ModelCostModal.module.scss}`, `src/features/analytics/views/Events.tsx`, `src/features/analytics/views/events/Events.module.scss`, `src/components/layout/{MainLayout.tsx,headerActionSlot.ts}`, `src/styles/layout.scss`, `src/components/ui/{DateRangePicker/index.tsx,Pagination.tsx,Pagination.module.scss,icons.tsx}`, `src/features/analytics/AnalyticsPage.tsx`, `src/features/analytics/views/overview/OverviewKpis.tsx`, `src/features/analytics/views/analysis/{TimeSeriesCharts.tsx,UsageDistribution.tsx,analysisModel.ts}`; tests: `tests/analyticsRange.test.ts`, `tests/analyticsAnalysis.test.ts`, `tests/analyticsTabsKeyboard.test.ts`.
 
 **Recorded validation:** On 2026-11-03, `bun run verify` passes tests, lint, TypeScript, and the production build. Against a local CPA in ClickHouse server mode seeded with 37 days of synthetic traffic across five labeled keys and seven models, isolated Chrome CDP checks of Overview, Analysis, Keys, and Events at 1440px and 390px in light and dark themes found no document or main-area horizontal overflow and no console errors; the Keys filter bar was also checked at 1180px and 1024px. The phone pass also confirmed the header filter icon appears only on phones, that the sheet shows the shared controls plus Event filters on the Events tab and Rank by on the Keys tab, that choosing an outcome in the sheet filters the list and shows a count bubble on the icon, that tapping a row opens the event detail sheet, that the pagination row fits one line at 390px, and that the desktop filter cards, table, and Columns control are unchanged.
 
-**Last updated:** 2026-11-03
+On 2026-11-05, `bun run verify` passed 2,935 tests, lint, TypeScript, and the production build. The
+new option and source tests fail against the previous source. Isolated Chrome CDP checks ran
+against a local CPA in ClickHouse server mode with seeded traffic. At 375px, before the change, the
+token legend ended 116px into the SVG while the plot started at 28px. A raw vertical touch drag
+scrolled the tab strip by 1px, and the strip measured 41px of content in a 40px box. After the
+change, the legend ends above the plot, the strip measures 40px in 40px, the same drag leaves it at
+0, and horizontal drags still scroll it. Headless Chrome does not rubber-band, so the iOS drag
+itself was not reproduced here. All four Usage tabs had no document
+overflow or console errors at 375px. Desktop at 1440px and phone at 390px, in light and dark, kept
+the chart layout, and mouse and keyboard legend toggles hid and restored series. The owner then
+confirmed on an iPhone that the tab strip no longer moves vertically. The pricing disclosure
+measured 0px above the first key card at 375px and 12px above the desktop table; both now measure
+12px.
+
+**Last updated:** 2026-11-05
 
 ### DL077 — Floating back-to-top control
 

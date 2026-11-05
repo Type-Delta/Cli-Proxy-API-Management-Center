@@ -20,3 +20,17 @@ describe('AnalyticsTabs roving keyboard target', () => {
     expect(nextAnalyticsTab('events', 'a')).toBeNull();
   });
 });
+
+describe('AnalyticsTabs strip scrolling', () => {
+  test('leaves nothing to pan vertically so touch drags only move the strip sideways', async () => {
+    const scss = await Bun.file('src/features/analytics/AnalyticsTabs.module.scss').text();
+    const scroller = scss.slice(scss.indexOf('.scroller {'), scss.indexOf('.tab {'));
+    const tab = scss.slice(scss.indexOf('.tab {'), scss.indexOf('@include mobile'));
+    // iOS rubber-banded the strip vertically because the underline hung 1px below the scroller.
+    expect(scroller).toContain('overflow-x: auto;');
+    expect(scroller).toContain('overflow-y: hidden;');
+    expect(scroller).toContain('margin-bottom: -1px;');
+    expect(tab).toContain('bottom: 0;');
+    expect(tab).not.toMatch(/bottom: -\d/);
+  });
+});

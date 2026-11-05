@@ -845,6 +845,7 @@
       "distribution_title": "Kullanım Dağılımı",
       "displayed_tokens": "Görüntülenen jetonlar",
       "filter_token_categories": "Belirteç kategorilerini filtrele",
+      "filter_chart_series": "Grafik serilerini filtrele",
       "heatmap_description": "API anahtarları ve modelleri genelinde jeton konsantrasyonu.",
       "heatmap_high": "Yüksek",
       "heatmap_low": "Düşük",

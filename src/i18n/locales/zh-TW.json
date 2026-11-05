@@ -845,6 +845,7 @@
       "distribution_title": "使用分佈",
       "displayed_tokens": "顯示的權杖",
       "filter_token_categories": "篩選權杖類別",
+      "filter_chart_series": "篩選圖表系列",
       "heatmap_description": "API 金鑰和模型的代幣集中度。",
       "heatmap_high": "高的",
       "heatmap_low": "低的",

@@ -261,7 +261,7 @@ export function UsageDistribution({
       >
         {rows.length > 0 && (
           <ul
-            className={styles.distributionLegend}
+            className={styles.chartLegend}
             aria-label={t('analytics.analysis.filter_token_categories', {
               defaultValue: 'Filter token categories',
             })}

@@ -496,6 +496,20 @@ tbody tr:hover .stickyAction {
   .refreshingContent {
     gap: 16px;
   }
+
+  // Usage on phones: top-level cards drop their chrome so charts and lists get the full content
+  // width, and a hairline under each one keeps neighbouring cards apart (under, so the first card
+  // never doubles the tab strip's rule). Cards nested in a card (Keys rows) and the Overview KPI
+  // tiles (`data-analytics-tiles`) keep their frame.
+  .workspace[data-analytics-page='usage']
+    :global(.card):not(:global(.card) *):not([data-analytics-tiles] *) {
+    padding: 0 0 16px;
+    border: 0;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
 }
 
 @keyframes analyticsLivePing {

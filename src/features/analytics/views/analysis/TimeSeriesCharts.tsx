@@ -58,6 +58,21 @@ export function TokenUsageChart({
   };
   const requestsLabel = t('analytics.proxy_requests', { defaultValue: 'Proxy requests' });
   const costLabel = t('analytics.known_cost', { defaultValue: 'Estimated cost' });
+  const legend = [
+    ...TOKEN_CATEGORY_KEYS.map((key, index) => ({
+      name: labels[key],
+      color: palette.categorical[index],
+    })),
+    { name: requestsLabel, color: palette.textSecondary },
+    { name: costLabel, color: palette.lineCost },
+  ];
+  const [hiddenSeries, setHiddenSeries] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleSeries = (name: string) =>
+    setHiddenSeries((previous) => {
+      const next = new Set(previous);
+      if (!next.delete(name)) next.add(name);
+      return next;
+    });
   const option = useMemo(
     () =>
       tokenUsageOption({
@@ -71,9 +86,10 @@ export function TokenUsageChart({
         formatTokens: (value) => formatCompactTokens(value, locale).text,
         formatCount: (value) => formatNumber(value, locale),
         formatCost: (value) => formatCostValue(value, locale).text,
+        hiddenSeries,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- labels are derived from t/locale.
-    [costLabel, locale, palette, points, requestsLabel, t]
+    [costLabel, hiddenSeries, locale, palette, points, requestsLabel, t]
   );
 
   return (
@@ -100,8 +116,28 @@ export function TokenUsageChart({
       }
       onRetry={onRetry}
     >
+      <ul
+        className={styles.chartLegend}
+        aria-label={t('analytics.analysis.filter_chart_series', {
+          defaultValue: 'Filter chart series',
+        })}
+      >
+        {legend.map(({ name, color }) => (
+          <li key={name}>
+            <button
+              type="button"
+              aria-pressed={!hiddenSeries.has(name)}
+              onClick={() => toggleSeries(name)}
+            >
+              <i aria-hidden="true" style={{ backgroundColor: color }} />
+              {name}
+            </button>
+          </li>
+        ))}
+      </ul>
       <AnalyticsChart
         option={option}
+        mergeUpdates
         height={ANALYSIS_CHART_HEIGHT}
         ariaLabel={t('analytics.analysis.token_chart_summary', {
           defaultValue:

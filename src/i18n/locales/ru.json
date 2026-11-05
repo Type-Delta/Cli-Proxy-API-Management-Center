@@ -845,6 +845,7 @@
       "distribution_title": "Распределение использования",
       "displayed_tokens": "Отображаемые токены",
       "filter_token_categories": "Фильтр категорий токенов",
+      "filter_chart_series": "Фильтр рядов графика",
       "heatmap_description": "Концентрация токенов по ключам и моделям API.",
       "heatmap_high": "Высокий",
       "heatmap_low": "Низкий",

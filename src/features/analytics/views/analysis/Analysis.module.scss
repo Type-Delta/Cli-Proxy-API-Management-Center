@@ -425,7 +425,9 @@
   }
 }
 
-.distributionLegend {
+// HTML chart legends (Token Usage, Usage Distribution): they wrap in normal flow on narrow
+// cards instead of overlapping the plot, and each entry toggles its series.
+.chartLegend {
   display: flex;
   flex-wrap: wrap;
   gap: 6px 14px;
@@ -592,7 +594,7 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-    margin: 0;
+    margin: $spacing-md 0 0;
 
     > div {
       padding: 9px 10px;

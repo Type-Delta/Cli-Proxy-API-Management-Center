@@ -87,6 +87,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  // Same offset as the desktop table wrapper, so the cards clear the pricing disclosure.
+  margin-top: 12px;
 }
 
 // Phone cards read top-down: who the key is, the two numbers it is ranked by, how much of the

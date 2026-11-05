@@ -5,7 +5,7 @@ import { useAnalyticsFilters } from './AnalyticsFilterContext';
 import { AnalyticsSkeleton } from './AnalyticsSkeleton';
 import { useAnalyticsCapabilities } from './AnalyticsShellContext';
 import { INVALID_MANAGEMENT_CAPABILITIES_RESPONSE } from '@/services/api/capabilities';
-import type { AnalyticsPageKind } from './navigation';
+import { analyticsPageForKind, type AnalyticsPageKind } from './navigation';
 import { resolveAnalyticsAvailability } from './query';
 import { Analysis } from './views/Analysis';
 import { Events } from './views/Events';
@@ -59,7 +59,11 @@ export function AnalyticsPage({ kind }: { kind: AnalyticsPageKind }) {
       </Card>
     );
   return (
-    <div className={styles.workspace} data-analytics-workspace>
+    <div
+      className={styles.workspace}
+      data-analytics-workspace
+      data-analytics-page={analyticsPageForKind(kind)}
+    >
       <AnalyticsWorkspace kind={kind} />
     </div>
   );

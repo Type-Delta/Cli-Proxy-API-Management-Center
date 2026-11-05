@@ -845,6 +845,7 @@
       "distribution_title": "Usage Distribution",
       "displayed_tokens": "Displayed tokens",
       "filter_token_categories": "Filter token categories",
+      "filter_chart_series": "Filter chart series",
       "heatmap_description": "Token concentration across API keys and models.",
       "heatmap_high": "High",
       "heatmap_low": "Low",

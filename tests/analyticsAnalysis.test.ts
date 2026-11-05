@@ -941,6 +941,31 @@ describe('analysis ECharts options', () => {
     expect(option.tooltip.axisPointer).toEqual({ type: 'line', snap: true });
   });
 
+  test('draws no legend over the plot and switches off series hidden in the HTML legend', () => {
+    const option = tokenUsageOption({
+      points,
+      categories: TOKEN_CATEGORY_KEYS.map((key) => ({ key, label: key })),
+      palette: PALETTE,
+      requestsLabel: 'Proxy requests',
+      costLabel: 'Known cost',
+      totalLabel: 'Total',
+      formatBucket: identity,
+      formatTokens: identity,
+      formatCount: identity,
+      formatCost: identity,
+      hiddenSeries: new Set(['input', 'Known cost']),
+    }) as unknown as Option & { legend: { show: boolean; selected: Record<string, boolean> } };
+
+    // A wrapping ECharts legend covered the plot on phones; the card renders it in flow instead.
+    expect(option.legend.show).toBe(false);
+    expect(option.grid.top).toBe(12);
+    expect(option.legend.selected).toEqual({
+      ...Object.fromEntries(TOKEN_CATEGORY_KEYS.map((key) => [key, key !== 'input'])),
+      'Proxy requests': true,
+      'Known cost': false,
+    });
+  });
+
   test('totals only the stacked bands, not the overlay lines', () => {
     const option = tokenUsageOption({
       points,
@@ -1289,11 +1314,50 @@ describe('analysis ECharts options', () => {
     // A log axis cannot plot 0; the sample lands on the decade floor instead of vanishing.
     expect((option.series[1].data[0] as number[])[0]).toBe(100);
     expect(option.series[0].markLine?.data).toMatchObject([
-      { name: 'p95 TTFT 1100ms', xAxis: 1_100 },
+      // Past the log midpoint of 100..10000, so the label grows left, into the plot.
+      { name: 'p95 TTFT 1100ms', xAxis: 1_100, label: { align: 'right' } },
       { name: 'p95 latency 12000ms', yAxis: 12_000 },
     ]);
     expect(option.tooltip.trigger).toBe('item');
     expect(option.tooltip.formatter([{ value: [120, 900, 'model-a', 'ts'] }])).toContain('900ms');
+  });
+
+  test('grows the TTFT marker label into the plot when the marker sits at the axis floor', () => {
+    const option = latencyOption({
+      samples: [
+        {
+          requested_at: '2026-09-01T00:00:00Z',
+          ttft_ms: 1,
+          latency_ms: 2,
+          model: 'model-a',
+          succeeded: true,
+        },
+        {
+          requested_at: '2026-09-01T00:01:00Z',
+          ttft_ms: 8,
+          latency_ms: 9,
+          model: 'model-b',
+          succeeded: true,
+        },
+      ],
+      p95Ttft: 1,
+      p95Latency: 2,
+      palette: PALETTE,
+      succeededLabel: 'Succeeded',
+      failedLabel: 'Failures',
+      ttftLabel: 'TTFT',
+      latencyLabel: 'Latency',
+      p95TtftLabel: 'p95 TTFT',
+      p95LatencyLabel: 'p95 latency',
+      formatDuration: (value) => `${value}ms`,
+      formatTimestamp: identity,
+    }) as unknown as Option;
+
+    // Right-aligned at the left edge, the label ran past the chart and was clipped.
+    expect(option.series[0].markLine?.data[0]).toMatchObject({
+      xAxis: 1,
+      label: { align: 'left' },
+    });
   });
 
   test('uses shared log10 latency radar axes and omits an incomplete polygon', () => {
