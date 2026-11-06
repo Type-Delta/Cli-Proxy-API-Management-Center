@@ -307,13 +307,17 @@ test('normalizes configured API-key names and routing cooldowns at the API bound
 });
 
 test('routing navigation uses links with the current page marked', () => {
-  for (const value of ['credentials', 'rules'] as const) {
+  for (const value of ['credentials', 'rules', 'dry-run'] as const) {
     const html = renderToStaticMarkup(
       createElement(MemoryRouter, null, createElement(RoutingTabs, { value }))
     );
     expect(html).toContain('<nav');
     expect(html).toContain('href="/routing/tiers"');
     expect(html).toContain('href="/routing/rules"');
+    expect(html).toContain('href="/routing/dry-run"');
+    expect(html).toContain('role="tablist"');
+    expect(html.match(/aria-selected="true"/g)).toHaveLength(1);
+    expect(html.match(/tabindex="0"/g)).toHaveLength(1);
     expect(html).not.toContain('href="/routing"');
     expect(html.match(/aria-current="page"/g)).toHaveLength(1);
     expect(html).not.toContain('<button');

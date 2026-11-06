@@ -1790,6 +1790,20 @@ validated separately with the Go test suite and build. Independent review found 
 
 ### DL079 — Routing dry-run tab, strategy reasoning, and session-binding provenance
 
+**Routing controls, 2026-11-06.** Routing and Usage share `RouteTabs`, including the underline
+style, overflow hints, and Arrow/Home/End navigation. The shared simulated-request model field
+uses `AutocompleteInput` in both Dry run and Rules. Suggestions reuse the priority board's
+catalog discovery, aliases, prefixes, and exclusion filtering; custom model entry remains
+available when discovery fails. Discovery results are discarded after a connection change or
+unmount.
+
+Validation: `bunx bun@1.4.3 run verify` passes 2,965 tests, ESLint, TypeScript, and the production
+build. The canonical Docker panel build and CPA compile check pass. Isolated Chrome CDP checks
+at 1440px and 390px exercise case-insensitive search, click and keyboard selection, prefixed and
+custom models, Rules picker parity, and tab keyboard navigation against a local CPA server.
+Selected models produce HTTP 200 dry runs with a real routing candidate. Neither viewport has
+horizontal page overflow or browser runtime errors.
+
 Routing gains a third tab, **Dry run** (`/routing/dry-run`), beside Priority tiers and Rules. It runs
 `POST /routing/dry-run` against the saved rules (no `rules` override) and answers where a request
 sent now would land. The request form (model, API key, client, header, session, and a WebSocket

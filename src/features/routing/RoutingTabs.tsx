@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
-import styles from '@/components/ui/SegmentedControl.module.scss';
+import { RouteTabs } from '@/components/ui/RouteTabs';
 
 const TABS = [
   { id: 'credentials', to: '/routing/tiers', label: 'routing.tab_credentials' },
@@ -11,17 +10,10 @@ const TABS = [
 export function RoutingTabs({ value }: { value: (typeof TABS)[number]['id'] }) {
   const { t } = useTranslation();
   return (
-    <nav className={`${styles.segmented} ${styles.tabs}`} aria-label={t('routing.title')}>
-      {TABS.map((tab) => (
-        <Link
-          key={tab.id}
-          to={tab.to}
-          className={`${styles.segment} ${value === tab.id ? styles.segmentActive : ''}`}
-          aria-current={value === tab.id ? 'page' : undefined}
-        >
-          {t(tab.label)}
-        </Link>
-      ))}
-    </nav>
+    <RouteTabs
+      active={value}
+      ariaLabel={t('routing.title')}
+      tabs={TABS.map((tab) => ({ ...tab, label: t(tab.label) }))}
+    />
   );
 }

@@ -5,7 +5,7 @@
   min-width: 0;
   border-bottom: 1px solid var(--border-color);
 
-  // Overflow affordance. `data-overflow` is maintained by AnalyticsTabs from a scroll/resize
+  // Overflow affordance. `data-overflow` is maintained by RouteTabs from a scroll/resize
   // listener and holds a space-separated list of the edges that still have hidden tabs.
   // The fades dissolve the clipped tab against the page well (--bg-secondary), which is what
   // sits behind the strip; using --bg-primary here would tint against the wrong backdrop.

@@ -1,5 +1,10 @@
-import { useId } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AutocompleteInput } from '@/components/ui/AutocompleteInput';
+import { buildRoutingBoard, routingApi } from '@/services/api/routing';
+import { useAuthStore, useConfigStore } from '@/stores';
+import type { RoutingModelCatalog } from '@/types/routing';
+import { collectModelOptions, neededChannels, neededCredentialModels } from '../logic';
 import { Select } from '@/components/ui/Select';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import type { RoutingDryRunInput } from './useRoutingDryRun';
@@ -25,6 +30,45 @@ export function RoutingDryRunFields({
 }) {
   const { t } = useTranslation();
   const fieldId = useId();
+  const apiBase = useAuthStore((state) => state.apiBase);
+  const connectionStatus = useAuthStore((state) => state.connectionStatus);
+  const fetchConfig = useConfigStore((state) => state.fetchConfig);
+  const [models, setModels] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setModels([]);
+    if (connectionStatus !== 'connected') return;
+    const load = async () => {
+      const [config, credentials] = await Promise.all([
+        fetchConfig(),
+        routingApi.listCredentials(),
+      ]);
+      if (cancelled) return;
+      const board = buildRoutingBoard(config.raw ?? {}, credentials);
+      const catalog: RoutingModelCatalog = { channels: {}, credentials: {} };
+      const update = (kind: 'channels' | 'credentials', id: string, values: string[] | null) => {
+        if (cancelled) return;
+        catalog[kind][id] = values;
+        setModels(collectModelOptions(board, catalog));
+      };
+      setModels(collectModelOptions(board, catalog));
+      await Promise.all([
+        routingApi.loadChannelModels(neededChannels(board), (id, values) =>
+          update('channels', id, values)
+        ),
+        routingApi.loadCredentialModels(neededCredentialModels(board), (id, values) =>
+          update('credentials', id, values)
+        ),
+      ]);
+    };
+    void load().catch(() => {
+      // Manual model entry remains available if discovery fails.
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [apiBase, connectionStatus, fetchConfig]);
   const set = (patch: Partial<RoutingDryRunInput>) => onChange({ ...value, ...patch });
 
   const keyOptions = [
@@ -38,20 +82,21 @@ export function RoutingDryRunFields({
 
   return (
     <div className={cx(styles.fields, className)}>
-      <label className={cx(styles.field, styles.wide)} htmlFor={`${fieldId}-model`}>
-        <span className={styles.fieldLabel}>
+      <div className={cx(styles.field, styles.wide)}>
+        <label className={styles.fieldLabel} htmlFor={`${fieldId}-model`}>
           {t('config_management.visual.routing_trace.model')}
-        </span>
-        <input
+        </label>
+        <AutocompleteInput
+          wrapperClassName={styles.modelInput}
+          options={models}
           id={`${fieldId}-model`}
-          className={cx('input', styles.mono)}
+          className={styles.mono}
           value={value.model}
           placeholder="claude-opus-5-5"
-          spellCheck={false}
           disabled={disabled}
-          onChange={(event) => set({ model: event.target.value })}
+          onChange={(model) => set({ model })}
         />
-      </label>
+      </div>
       <div className={styles.field}>
         <span className={styles.fieldLabel}>
           {t('config_management.visual.routing_trace.api_key')}
