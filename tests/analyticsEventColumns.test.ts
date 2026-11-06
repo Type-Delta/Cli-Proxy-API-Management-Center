@@ -169,6 +169,8 @@ describe('Event filters reset', () => {
       result: '',
       errorClass: '',
       sessionId: '',
+      proxyRequestId: '',
+      boundCredential: '',
         outcome: '',
     });
   });

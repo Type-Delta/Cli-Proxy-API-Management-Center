@@ -121,6 +121,8 @@ describe('analytics client contracts', () => {
         result: 'failure',
         errorClass: 'rate_limit',
         sessionId: '',
+        proxyRequestId: '',
+        boundCredential: '',
         outcome: '',
       },
       activityWindow: 'month',
@@ -142,10 +144,13 @@ describe('analytics client contracts', () => {
         result: '',
         errorClass: 'rate_limit',
         sessionId: '',
+        proxyRequestId: '',
+        boundCredential: '',
         outcome: 'failed',
       },
       activityWindow: 'month',
       distribution: 'model',
+      eventId: '',
     });
   });
 
@@ -163,10 +168,13 @@ describe('analytics client contracts', () => {
         result: '',
         errorClass: '',
         sessionId: '',
+        proxyRequestId: '',
+        boundCredential: '',
         outcome: '',
       },
       activityWindow: 'week',
       distribution: 'key',
+      eventId: '',
     });
     expect(
       leaderboardRedirectTarget('?range=24h&time_zone=Asia%2FBangkok&keys=short-one&sort=tokens')

@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/Table';
-import { IconChevronRight, IconDownload, IconSettings } from '@/components/ui/icons';
+import { IconChevronRight, IconDownload, IconSettings, IconX } from '@/components/ui/icons';
 import { PROVIDER_LOGOS } from '@/features/providers/brandLogos';
 import { ProviderLogo } from '@/features/providers/components/ProviderLogo';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -70,6 +70,7 @@ import {
 } from './events/eventColumns';
 import {
   eventExportRequest,
+  proxyRequestAttemptToOpen,
   loadEventDimensionRows,
   retentionCutoffFromError,
 } from './events/eventRequests';
@@ -103,6 +104,8 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     reportResolvedRange,
     eventFilters: filters,
     setEventFilters: setFilters,
+    eventId: selectedAttemptId,
+    setEventId: setSelectedAttemptId,
   } = useAnalyticsFilters();
   const [sessionDraft, setSessionDraft] = useState(filters.sessionId);
   const sessionFocused = useRef(false);
@@ -136,7 +139,6 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
   const [columnPreferences, setColumnPreferences] = useState<EventColumnPreferences>(
     loadEventColumnPreferences
   );
-  const [selectedAttemptId, setSelectedAttemptId] = useState('');
   const [activeRow, setActiveRow] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -178,6 +180,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
       ...(filters.provider ? { provider: [filters.provider] } : {}),
       ...(filters.model ? { model: [filters.model] } : {}),
       ...(filters.sessionId ? { session_id: [filters.sessionId] } : {}),
+      ...(filters.proxyRequestId ? { proxy_request_id: [filters.proxyRequestId] } : {}),
       ...(filters.source ? { source: [filters.source] } : {}),
       ...(filters.result ? { result: filters.result } : {}),
       ...(filters.outcome ? { outcome: filters.outcome } : {}),
@@ -244,8 +247,33 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     setCurrentPage(1);
   }, [scope]);
 
+  // A binding link filters by one proxy request; open its attempt once the first page arrives.
+  const autoOpenedRequest = useRef('');
+  const [loadedScope, setLoadedScope] = useState('');
+  useEffect(() => {
+    const requestId = filters.proxyRequestId;
+    if (!requestId || selectedAttemptId || autoOpenedRequest.current === requestId) return;
+    // The previous scope's page lingers while the filtered one loads; wait for this scope's rows.
+    if (!result.data || loadedScope !== scope) return;
+    autoOpenedRequest.current = requestId;
+    const attemptId = proxyRequestAttemptToOpen(
+      result.data.events.filter((event) => event.proxy_request_id === requestId),
+      filters.boundCredential
+    );
+    if (attemptId) setSelectedAttemptId(attemptId);
+  }, [
+    filters.boundCredential,
+    filters.proxyRequestId,
+    loadedScope,
+    result.data,
+    scope,
+    selectedAttemptId,
+    setSelectedAttemptId,
+  ]);
+
   useEffect(() => {
     if (!result.data) return;
+    setLoadedScope(scopeRef.current);
     setPages([result.data]);
     setCurrentPage(1);
     setActiveRow(0);
@@ -750,6 +778,26 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
           </Button>
         </div>
         <div className={styles.filterFooter}>
+          {filters.proxyRequestId ? (
+            <span className={styles.requestFilter}>
+              <span className={styles.requestFilterLabel}>
+                {t('analytics.events.proxy_request_filter', {
+                  defaultValue: 'Request {{id}}',
+                  id: shortIdentifier(filters.proxyRequestId),
+                })}
+              </span>
+              <button
+                type="button"
+                className={styles.requestFilterClear}
+                aria-label={t('analytics.events.proxy_request_filter_clear', {
+                  defaultValue: 'Remove the request filter',
+                })}
+                onClick={() => setFilters({ ...filters, proxyRequestId: '', boundCredential: '' })}
+              >
+                <IconX size={12} aria-hidden="true" />
+              </button>
+            </span>
+          ) : null}
           {sourceDimensions.error && (
             <span className={styles.sourceNotice}>
               {t('analytics.source_loaded_fallback', {

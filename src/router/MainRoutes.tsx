@@ -8,6 +8,7 @@ import { AuthFilesOAuthModelAliasEditPage } from '@/pages/AuthFilesOAuthModelAli
 import { OAuthPage } from '@/features/oauth/OAuthPage';
 import { QuotaPage } from '@/features/quota/QuotaPage';
 import { RulesPage } from '@/features/routing/rules/RulesPage';
+import { DryRunPage } from '@/features/routing/dryrun/DryRunPage';
 import { RoutingPage } from '@/features/routing/RoutingPage';
 import { PluginResourcePage } from '@/features/plugins/PluginResourcePage';
 import { PluginsPage } from '@/features/plugins/PluginsPage';
@@ -86,6 +87,7 @@ const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/routing', element: <Navigate to="/routing/tiers" replace /> },
   { path: '/routing/tiers', element: <RoutingPage /> },
   { path: '/routing/rules', element: <RulesPage /> },
+  { path: '/routing/dry-run', element: <DryRunPage /> },
   { path: '/quota', element: <QuotaPage /> },
   { path: '/analytics', element: <AnalyticsPageRedirect page="usage" /> },
   {

@@ -1,4 +1,4 @@
-import type { AnalyticsDimensionPage, AnalyticsQuery } from '@/types';
+import type { AnalyticsDimensionPage, AnalyticsEvent, AnalyticsQuery } from '@/types';
 import { freezeAnalyticsCursorQuery } from '../../query';
 
 const readCutoff = (value: unknown): string => {
@@ -53,4 +53,25 @@ export async function loadEventDimensionRows(
     if (cursor) cursors.add(cursor);
   } while (cursor && rows.length < 10_000);
   return rows;
+}
+
+/**
+ * The attempt a proxy-request filter opens. With `boundCredential` (the binding's credential
+ * pseudonym), the earliest attempt on that credential: quota-only rebinding lets a failed
+ * attempt create the binding while a failover attempt elsewhere succeeds. Without it, or when no
+ * attempt matches, the earliest successful attempt, else the earliest attempt.
+ */
+export function proxyRequestAttemptToOpen(
+  events: readonly (Pick<AnalyticsEvent, 'attempt_id' | 'requested_at' | 'succeeded'> &
+    Partial<Pick<AnalyticsEvent, 'credential_id'>>)[],
+  boundCredential = ''
+): string {
+  if (events.length === 0) return '';
+  const ordered = [...events].sort(
+    (left, right) => Date.parse(left.requested_at) - Date.parse(right.requested_at)
+  );
+  const bound = boundCredential
+    ? ordered.find((event) => event.credential_id === boundCredential)
+    : undefined;
+  return (bound ?? ordered.find((event) => event.succeeded) ?? ordered[0]).attempt_id;
 }

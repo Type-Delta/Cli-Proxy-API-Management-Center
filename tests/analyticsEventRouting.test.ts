@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { I18nextProvider } from 'react-i18next';
+import { MemoryRouter } from 'react-router-dom';
 import i18n from '@/i18n';
 import { EventDetailSheet } from '@/features/analytics/views/events/EventDetailSheet';
 import { RoutingDecision } from '@/features/analytics/views/events/RoutingDecision';
@@ -61,6 +62,9 @@ const glyphs = (trace: RoutingTrace, rowId: 'rules' | 'strategy' | 'affinity' | 
 const renderDetail = (event: AnalyticsEvent) =>
   renderToStaticMarkup(
     createElement(
+      MemoryRouter,
+      null,
+      createElement(
       I18nextProvider,
       { i18n },
       createElement(EventDetailSheet, {
@@ -72,6 +76,7 @@ const renderDetail = (event: AnalyticsEvent) =>
         onClose: () => {},
         onRetry: () => {},
       })
+      )
     )
   );
 

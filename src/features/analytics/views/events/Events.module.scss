@@ -367,3 +367,38 @@
     gap: 8px;
   }
 }
+
+/* Proxy-request filter set by a session-binding link; it has no form control of its own. */
+.requestFilter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 2px 2px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.requestFilterLabel {
+  font-family: $font-mono;
+}
+
+.requestFilterClear {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+}

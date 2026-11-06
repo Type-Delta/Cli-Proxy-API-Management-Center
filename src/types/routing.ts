@@ -234,6 +234,11 @@ export type RoutingTraceCandidate = {
   until_ms?: number;
   /** Resolved from currently loaded credentials; empty when unknown. */
   label?: string;
+  /**
+   * Dry runs only, on the affinity-bound candidate: its CPAUK credential_id pseudonym, so a
+   * binding link can find that credential's attempt among analytics events.
+   */
+  analytics_id?: string;
 };
 
 export type RoutingRuleTrace = {
@@ -264,12 +269,60 @@ export type RoutingTrace = {
   };
   /** Strategy input: highest priority tier of the (possibly narrowed) pool. */
   tier?: { priority: number; pool: number[] };
-  affinity?: { state: RoutingAffinityState; bound: number; age_ms?: number };
+  affinity?: RoutingAffinityStep;
   /** Selected candidate index, or -1. */
   pick: number;
   /** Dry runs only: false when the strategy pick could not be predicted. */
   pick_predicted?: boolean;
+  /** Why the built-in strategy wanted a credential; absent on older events and plugin picks. */
+  strategy_step?: RoutingStrategyStep;
   error?: string;
+};
+
+export type RoutingAffinityStep = {
+  state: RoutingAffinityState;
+  /** Previously bound candidate, or -1. */
+  bound: number;
+  age_ms?: number;
+  /** Unix ms when the binding to `bound` was created. */
+  bound_at_ms?: number;
+  /** Proxy request ID (32 lowercase hex) whose selection created the binding. */
+  bound_request_id?: string;
+};
+
+/** One pool candidate's standing in the strategy. GSR factor fields may be dropped from stored traces. */
+export type RoutingStrategyWeight = {
+  /** Candidate index. */
+  index: number;
+  /** Long-run fraction of picks while the pool stays unchanged (0..1); not a random draw. */
+  share: number;
+  /** Effective smooth-weighted weight (WRR and GSR). */
+  weight?: number;
+  /** Accumulated smooth-weighted credit before this pick; highest credit + weight is wanted. */
+  credit: number;
+  config_weight?: number;
+  recovery_at_ms?: number;
+  recovery_source?: string;
+  delay_ms?: number;
+  decay?: number;
+  base_weight?: number;
+  tier?: string;
+  tier_multiplier?: number;
+  tier_source?: string;
+};
+
+export type RoutingStrategyStep = {
+  /** Algorithm that ranked the pool; differs from `strategy` when GSR falls back. */
+  applied: string;
+  fallback?: string;
+  half_life_ms?: number;
+  /** Candidate the round-robin cursor picked previously, or -1. */
+  last: number;
+  /** Candidate the strategy picked (live) or would pick next (dry run), or -1. */
+  wanted: number;
+  weights: RoutingStrategyWeight[];
+  /** Predicted upcoming picks starting with `wanted`. Dry runs only. */
+  next?: number[];
 };
 
 /** GET /v8/management/routing/credentials */
@@ -303,6 +356,8 @@ export type RoutingDryRunRequest = {
   client_type?: string;
   headers?: Record<string, string>;
   session_id?: string;
+  /** Simulate a WebSocket client: Codex/xAI then prefer websocket-capable credentials. */
+  downstream_websocket?: boolean;
   /** Draft rules; omitted to use the saved rules. */
   rules?: RoutingRule[];
 };

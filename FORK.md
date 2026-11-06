@@ -1787,3 +1787,93 @@ pages, OAuth editors, and analytics on desktop and mobile, with no reported brow
 horizontal overflow. Event fixtures confirm raw payload rendering and the routing-inclusive
 total. These browser checks use the existing development backend; merged CPA behavior is
 validated separately with the Go test suite and build. Independent review found no additional frontend issues.
+
+### DL079 — Routing dry-run tab, strategy reasoning, and session-binding provenance
+
+Routing gains a third tab, **Dry run** (`/routing/dry-run`), beside Priority tiers and Rules. It runs
+`POST /routing/dry-run` against the saved rules (no `rules` override) and answers where a request
+sent now would land. The request form (model, API key, client, header, session, and a WebSocket
+client switch that sends `downstream_websocket: true`, because Codex and xAI prefer
+websocket-capable credentials for WebSocket clients) is now
+`RoutingDryRunFields`, and the debounced request logic is the `useRoutingDryRun` hook; the Rules
+side panel uses both unchanged and keeps posting draft rules. Run again re-sends the same request
+without debounce, and an opt-in switch refreshes every 10 s while the tab is visible, because GSR
+weights depend on the clock. The results show the existing verdict card, the event matrix
+(`RoutingDecision`) for the gate → rules → tier → strategy → affinity precedence, the binding
+provenance, and the strategy reasoning.
+
+`StrategyBreakdown` renders CPA's new `trace.strategy_step` and is shared by the Dry run tab and
+the event detail sheet, where it sits in a "Why the strategy wanted this credential" `Collapsible` accordion
+(closed by default) under the matrix. Events whose session binding was kept omit it: the strategy did
+not run for them, and the "Binding event" link leads to the event that holds the reasoning. It shows the applied algorithm (and a warning when GSR fell back, with
+the fallback reason), a note when the strategy wanted one credential but affinity or a pin used
+another, a segmented share bar with a legend, one card per pool credential, the GSR decay curve, and
+the predicted next picks. Shares are worded as the long-run proportion of upcoming requests, and the
+copy states that the next pick is deterministic (highest credit + weight); nothing calls them a
+chance. GSR cards list the recovery deadline and its source, delay after the earliest deadline,
+decay, allowance tier with multiplier and source, then the two formulas `base × tier + config =
+weight` and `credit + weight = score`, compact numbers with exact tooltips. The decay curve is a
+small SVG of `exp(−delay / half-life)` over at least two half-lives with each credential plotted
+(equal delays share a point), a half-life marker, and per-point tooltips. Colors come from
+`--viz-cat-1..10` by pool position, so a credential keeps its color across views; text uses text
+tokens. Shares between 0 and 0.1% show as `<0.1%` and shares just under 1 as `>99.9%`, formatted
+for the locale. A persisted trace is treated as trimmed when every row lacks the fields CPA's
+`SanitizeRoutingTrace` drops (recovery deadline and source, decay, base weight, tier, tier source).
+When the trimmed rows still carry `delay_ms` or `tier_multiplier` and the step has a half-life,
+decay is recomputed as `exp(−delay / half-life)` (an absent delay is the earliest credential, decay
+1) and base weight as `max(1, trunc(decay × 1e6))`, so the curve and formula still render, the tier
+shows as `×N`, and the notice names only what is gone: recovery deadlines, their sources, and tier
+names. A trace with none of those fields keeps the plain trimmed notice. Old events without
+`strategy_step` render nothing extra.
+
+When a dry run reports `pick_predicted: false` with `strategy_step.fallback =
+missing_recovery_data_refresh_pending` (GSR lacks cached recovery data that a live request would
+refresh first), the outcome card shows the pick as an estimate and explains why, and the breakdown
+titles the share bar "Estimated share (cached data)" with matching hint copy.
+
+Session affinity provenance: when `affinity.bound_request_id` is present, the event sheet and the
+Dry run tab show when the binding was created (`bound_at_ms`, `age_ms`) and a right-aligned "Binding event" link
+whose tooltip reads "View the event that created this binding". The link opens Events with the remembered or current range, clears
+other event filters and the key selection, and filters by the new `proxy_request_id` URL parameter,
+which maps to the backend events filter `proxy_request_id: [id]`. If the binding time is outside
+the range, the range widens to a custom window from just before the binding to just after now.
+Events also gains an `event=<attempt id>` URL parameter that holds the open detail sheet. The link
+also carries `bound_credential`, the bound credential's CPAUK `credential_id` (64 lowercase hex):
+event traces already use pseudonyms as candidate IDs, and dry-run traces use the optional
+`analytics_id` CPA adds to the bound candidate (dry-run candidate IDs are Auth IDs and never count).
+Once the filtered page loads, Events opens the earliest attempt on that credential, because with
+quota-only rebinding a failed attempt can create the binding while a failover attempt on another
+credential succeeds. Without a pseudonym, or when no attempt matches, it opens the earliest
+successful attempt, else the earliest. A removable chip shows the request filter and clears both.
+`proxy_request_id` and `event` accept only 32-character lowercase hex IDs; `bound_credential` is
+kept only as 64-character lowercase hex alongside a valid `proxy_request_id`.
+
+Trace normalization moved to `src/services/api/routingTrace.ts` and now runs on dry-run responses
+too. It clamps shares, drops out-of-range indexes and duplicate weights, rejects malformed
+provenance fields, and drops an unusable `strategy_step` without hiding the rest of the trace.
+
+**Implementation evidence:** `src/features/routing/{RoutingTabs.tsx,dryrun/**,strategy/**}`,
+`src/features/routing/rules/{RoutingTracePanel.tsx,RoutingDryRunFields.tsx,useRoutingDryRun.ts}`,
+`src/features/analytics/{query.ts,bindingLink.ts,AnalyticsFilterContext.ts,AnalyticsFilterProvider.tsx}`,
+`src/features/analytics/views/{Events.tsx,events/**}`, `src/services/api/{routing,routingTrace}.ts`,
+`src/types/routing.ts`, `src/router/MainRoutes.tsx`, `src/i18n/locales/*.json`; tests:
+`tests/routingStrategyViz.test.ts`, fixtures `tests/fixtures/routingStrategyTraces.ts`, updated
+`tests/{analyticsContracts,analyticsEventColumns,analyticsEventRouting}.test.ts`.
+
+**Recorded validation:** On 2026-11-06, `bun run verify` passes 2,957 tests across 251 files (25,319 assertions), ESLint, TypeScript compilation, and the single-file build; Vite keeps its existing native-config-loader warning. Built against the CPA contract before the backend
+landed, so browser checks used an isolated Chrome CDP context against the Vite dev server with every
+`/v8/management` call answered by route interception (GSR trace with 4 pool credentials plus one
+cooled-down candidate, affinity kept a different credential than the strategy wanted, and a
+round-robin fallback). At 1440px light and 390px dark there is no horizontal overflow and no page or
+console errors. Following the binding link sent `filters.proxy_request_id` to the events query and
+opened the attempt through `event=`. Non-English copy is best effort pending native review.
+
+QA follow-up on 2026-11-06: rebuilt sanitized GSR factors, `<0.1%`/`>99.9%` shares, bound-credential
+attempt selection, refresh-pending estimates, and the WebSocket switch. `bun run verify` passes
+2,964 tests, ESLint, TypeScript, and the build. The browser re-check used the same mocked setup with
+the real sanitizer output shape (plus a 1-in-5.5M share), a refresh-pending dry run, and a binding
+whose failed creating attempt is followed by a successful failover on another credential: the link
+opened the failed creating attempt, the WebSocket switch sent `downstream_websocket: true`, and
+1440px light and 390px dark show no overflow and no page or console errors.
+
+**Last updated:** 2026-11-06

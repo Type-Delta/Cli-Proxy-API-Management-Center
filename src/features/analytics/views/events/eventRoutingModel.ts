@@ -4,6 +4,7 @@ import type {
   RoutingTrace,
   RoutingTraceCandidate,
 } from '@/types';
+import { normalizeRoutingTrace } from '@/services/api/routingTrace';
 
 export type RoutingLayerId = 'rules' | 'strategy' | 'affinity' | 'gate';
 
@@ -51,44 +52,7 @@ const validIndex = (value: number, count: number) =>
 
 const nullableArray = <T>(value: unknown): T[] => (Array.isArray(value) ? value : []);
 
-/**
- * Analytics storage serializes empty Go slices as null. The API response is typed by shape, but the
- * event sheet must tolerate that wire-level distinction and reject only objects it cannot render.
- */
-export function normalizeRoutingTrace(value: unknown): RoutingTrace | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const input = value as RoutingTrace;
-
-  if (input.candidates !== null && !Array.isArray(input.candidates)) return null;
-  const candidates: RoutingTraceCandidate[] = [];
-  for (const candidate of nullableArray<RoutingTraceCandidate>(input.candidates)) {
-    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null;
-    candidates.push({ ...candidate });
-  }
-
-  let rules: RoutingTrace['rules'];
-  if (input.rules != null) {
-    if (typeof input.rules !== 'object' || Array.isArray(input.rules)) return null;
-    if (input.rules.matched !== null && !Array.isArray(input.rules.matched)) return null;
-    rules = {
-      ...input.rules,
-      matched: nullableArray<RoutingRuleTrace>(input.rules.matched).flatMap((rule) =>
-        rule && typeof rule === 'object' && !Array.isArray(rule)
-          ? [{ ...rule, targets: nullableArray<number>(rule.targets) }]
-          : []
-      ),
-      pool: nullableArray<number>(input.rules.pool),
-    };
-  }
-
-  let tier: RoutingTrace['tier'];
-  if (input.tier != null) {
-    if (typeof input.tier !== 'object' || Array.isArray(input.tier)) return null;
-    tier = { ...input.tier, pool: nullableArray<number>(input.tier.pool) };
-  }
-
-  return { ...input, candidates, rules, tier };
-}
+export { normalizeRoutingTrace };
 
 function candidateIndexes(trace: RoutingTrace): number[] {
   return trace.candidates.map((_, index) => index);

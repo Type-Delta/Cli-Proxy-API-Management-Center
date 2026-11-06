@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Sheet } from '@/components/ui/Sheet';
-import type { AnalyticsEvent } from '@/types';
+import type { AnalyticsEvent, RoutingTraceCandidate } from '@/types';
 import {
   formatAnalyticsEnum,
   formatCompactTokens,
@@ -35,10 +35,16 @@ import {
   type EventHopId,
 } from './eventDiagnostics';
 import { RoutingDecision } from './RoutingDecision';
+import { AffinityProvenance } from './AffinityProvenance';
+import { Collapsible } from '@/components/ui/Collapsible';
+import { StrategyBreakdown } from '@/features/routing/strategy/StrategyBreakdown';
 import { normalizeRoutingTrace } from './eventRoutingModel';
 import { EventTimeline } from './EventTimeline';
 import { EventTimingGraph } from './EventTimingGraph';
 import sheetStyles from './Events.module.scss';
+
+const traceCandidateLabel = (candidate: RoutingTraceCandidate | undefined) =>
+  candidate?.label?.trim() || shortIdentifier(candidate?.id || '');
 
 const statusTone = (status: number | null | undefined) => {
   if (typeof status !== 'number' || !Number.isFinite(status)) return 'neutral' as const;
@@ -84,6 +90,9 @@ export function EventDetailSheet({
     () => (event ? normalizeRoutingTrace(event.routing_trace) : null),
     [event]
   );
+
+  // GSR "recovers in" is relative to when the request was routed, not to now.
+  const eventTime = event ? Date.parse(event.requested_at) || 0 : 0;
 
   const notRecorded = t('analytics.event_detail.not_recorded', { defaultValue: 'Not recorded' });
   const formatRate = (value: number) =>
@@ -422,6 +431,26 @@ export function EventDetailSheet({
                 </span>
               </div>
               <RoutingDecision trace={routingTrace} />
+              <AffinityProvenance
+                trace={routingTrace}
+                credential={traceCandidateLabel(
+                  routingTrace.candidates[routingTrace.affinity?.bound ?? -1]
+                )}
+              />
+              {/* A kept binding didn't run the strategy; its reasoning lives on the binding event. */}
+              {routingTrace.strategy_step && routingTrace.affinity?.state !== 'kept' ? (
+                <Collapsible
+                  label={t('routing.strategy.event_summary', {
+                    defaultValue: 'Why the strategy wanted this credential',
+                  })}
+                >
+                  <StrategyBreakdown
+                    trace={routingTrace}
+                    labelOf={traceCandidateLabel}
+                    now={eventTime}
+                  />
+                </Collapsible>
+              ) : null}
             </section>
           ) : null}
 

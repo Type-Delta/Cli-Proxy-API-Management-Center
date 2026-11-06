@@ -1,0 +1,366 @@
+@use '../../../styles/mixins' as *;
+
+/* Strategy reasoning: share bar, per-credential factor cards, GSR decay curve, next picks. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.algorithm {
+  color: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 650;
+}
+
+.meta,
+.muted {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.sectionLabel {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hint {
+  margin: 4px 0 0;
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.notice,
+.override {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+
+  svg {
+    flex: none;
+    margin-top: 1px;
+  }
+}
+
+.notice {
+  border: 1px solid var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.override {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+/* ---------- share bar ---------- */
+
+.bar {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+}
+
+.segment {
+  flex-basis: 0;
+  min-width: 3px;
+  transition: flex-grow var(--dur-hover) var(--ease-out-strong);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.segmentWanted {
+  box-shadow: inset 0 0 0 2px var(--text-primary);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.legendName {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-family: $font-mono;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legendValue {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+/* ---------- factor cards ---------- */
+
+.rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+}
+
+.cardWanted {
+  border-color: color-mix(in srgb, var(--success-color) 50%, var(--border-color));
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cardName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: $font-mono;
+  font-size: 12.5px;
+  font-weight: 620;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardShare {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.badge {
+  padding: 1px 7px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.badgeWanted {
+  border-color: color-mix(in srgb, var(--success-color) 45%, transparent);
+  background: color-mix(in srgb, var(--success-color) 10%, transparent);
+  color: var(--success-color);
+}
+
+.factors {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 10px;
+  margin: 0;
+  font-size: 12px;
+
+  dt {
+    color: var(--text-tertiary);
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+}
+
+.source {
+  display: block;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.formula {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.formulaLine {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  font-size: 11.5px;
+}
+
+.term {
+  color: var(--text-tertiary);
+  white-space: nowrap;
+
+  span {
+    color: var(--text-primary);
+    font-family: $font-mono;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.termResult span {
+  font-weight: 700;
+}
+
+.op {
+  color: var(--text-tertiary);
+}
+
+/* ---------- decay curve ---------- */
+
+.curve {
+  margin: 0;
+  max-width: 520px;
+}
+
+.curveSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grid {
+  stroke: var(--border-color);
+  stroke-width: 1;
+}
+
+.halfLife {
+  stroke: var(--text-tertiary);
+  stroke-dasharray: 3 3;
+  stroke-width: 1;
+}
+
+.curveLine {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.axisText {
+  fill: var(--text-tertiary);
+  font-size: 10px;
+}
+
+.hit {
+  fill: transparent;
+  cursor: help;
+}
+
+.point {
+  stroke: var(--bg-primary);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+/* ---------- next picks ---------- */
+
+.nextList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: pick;
+}
+
+.nextItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 2px 8px 2px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  font-size: 11.5px;
+  counter-increment: pick;
+
+  &::before {
+    content: counter(pick);
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.nextName {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: $font-mono;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@container (max-width: 420px) {
+  .rows {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

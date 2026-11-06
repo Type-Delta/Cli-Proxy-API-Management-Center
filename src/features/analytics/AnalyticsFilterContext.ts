@@ -23,6 +23,9 @@ export type AnalyticsFilterState = {
   setActivityWindow: (window: ActivityWindow) => void;
   distribution: AnalyticsDistribution;
   setDistribution: (distribution: AnalyticsDistribution) => void;
+  /** Attempt ID whose Events detail sheet is open (`event` URL param). */
+  eventId: string;
+  setEventId: (attemptId: string) => void;
   keys: AnalyticsKey[];
   keysLoading: boolean;
   keysError: string;

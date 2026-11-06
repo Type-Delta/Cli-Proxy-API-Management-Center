@@ -51,6 +51,13 @@ export type AnalyticsEventFilters = {
   outcome: '' | 'succeeded' | 'failed' | 'canceled';
   errorClass: string;
   sessionId: string;
+  /** Exact proxy request ID (32 lowercase hex); groups the attempts of one client request. */
+  proxyRequestId: string;
+  /**
+   * Credential pseudonym (64 lowercase hex, an event's `credential_id`) the binding link expects
+   * the opened attempt to use. Only meaningful with `proxyRequestId`; not a query filter.
+   */
+  boundCredential: string;
 };
 export type AnalyticsDistribution = 'key' | 'model' | 'credential' | 'provider';
 export const DEFAULT_ANALYTICS_EVENT_FILTERS: AnalyticsEventFilters = {
@@ -61,6 +68,8 @@ export const DEFAULT_ANALYTICS_EVENT_FILTERS: AnalyticsEventFilters = {
   outcome: '',
   errorClass: '',
   sessionId: '',
+  proxyRequestId: '',
+  boundCredential: '',
 };
 export const DEFAULT_ANALYTICS_ACTIVITY_WINDOW: ActivityWindow = 'week';
 export const DEFAULT_ANALYTICS_DISTRIBUTION: AnalyticsDistribution = 'key';
@@ -72,6 +81,8 @@ export type AnalyticsUrlState = {
   eventFilters: AnalyticsEventFilters;
   activityWindow: ActivityWindow;
   distribution: AnalyticsDistribution;
+  /** Attempt ID whose detail sheet is open on the Events page; empty when none. */
+  eventId: string;
 };
 
 export type AnalyticsAvailability =
@@ -112,6 +123,12 @@ const ANALYTICS_DISTRIBUTIONS = new Set<AnalyticsDistribution>([
   'provider',
 ]);
 const SAFE_KEY_REF = /^[a-zA-Z0-9_-]{1,32}$/;
+const CORRELATION_ID = /^[0-9a-f]{32}$/;
+const validCorrelationId = (value: string | null | undefined) =>
+  value && CORRELATION_ID.test(value) ? value : '';
+/** CPAUK credential_id: HMAC-SHA256 in lowercase hex. */
+export const isCredentialPseudonym = (value: unknown): value is string =>
+  typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const unique = <T>(values: T[]) => [...new Set(values)];
@@ -471,6 +488,12 @@ export function parseAnalyticsUrlState(search: string): AnalyticsUrlState {
               : '',
       errorClass: validFilterValue(params.get('error_class')),
       sessionId: validFilterValue(params.get('session_id'), 256),
+      proxyRequestId: validCorrelationId(params.get('proxy_request_id')),
+      boundCredential:
+        validCorrelationId(params.get('proxy_request_id')) &&
+        isCredentialPseudonym(params.get('bound_credential'))
+          ? (params.get('bound_credential') as string)
+          : '',
     },
     activityWindow:
       activityWindow && ANALYTICS_ACTIVITY_WINDOWS.has(activityWindow)
@@ -480,6 +503,7 @@ export function parseAnalyticsUrlState(search: string): AnalyticsUrlState {
       distribution && ANALYTICS_DISTRIBUTIONS.has(distribution)
         ? distribution
         : DEFAULT_ANALYTICS_DISTRIBUTION,
+    eventId: validCorrelationId(params.get('event')),
   };
 }
 
@@ -525,12 +549,19 @@ export function serializeAnalyticsUrlState(state: AnalyticsUrlState): string {
     const safeValue = validFilterValue(value, name === 'session_id' ? 256 : 200);
     if (safeValue) params.set(name, safeValue);
   }
+  const proxyRequestId = validCorrelationId(eventFilters.proxyRequestId);
+  if (proxyRequestId) params.set('proxy_request_id', proxyRequestId);
+  if (proxyRequestId && isCredentialPseudonym(eventFilters.boundCredential)) {
+    params.set('bound_credential', eventFilters.boundCredential);
+  }
   if (state.activityWindow !== DEFAULT_ANALYTICS_ACTIVITY_WINDOW) {
     params.set('activity', state.activityWindow);
   }
   if (state.distribution !== DEFAULT_ANALYTICS_DISTRIBUTION) {
     params.set('distribution', state.distribution);
   }
+  const eventId = validCorrelationId(state.eventId);
+  if (eventId) params.set('event', eventId);
   return `?${params.toString()}`;
 }
 

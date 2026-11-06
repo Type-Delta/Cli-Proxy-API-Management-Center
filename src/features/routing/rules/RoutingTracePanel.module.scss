@@ -58,6 +58,12 @@
   font-weight: 600;
 }
 
+.fieldHint {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .mono {
   font-family: $font-mono;
   font-size: 12.5px;

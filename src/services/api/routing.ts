@@ -503,6 +503,7 @@ import type {
   RoutingDryRunRequest,
   RoutingDryRunResponse,
 } from '@/types/routing';
+import { normalizeRoutingTrace } from './routingTrace';
 
 const normalizeCooldown = (raw: unknown): AuthFileCooldown | null => {
   if (
@@ -577,11 +578,12 @@ export async function getRoutingCredentials(): Promise<RoutingCredentialsRespons
 export async function dryRunRouting(body: RoutingDryRunRequest): Promise<RoutingDryRunResponse> {
   const raw = await apiClient.post<unknown>('/routing/dry-run', body);
   const record = isRecord(raw) ? raw : {};
-  if (!isRecord(record.trace)) {
+  const trace = normalizeRoutingTrace(record.trace);
+  if (!trace) {
     throw Object.assign(new Error('Invalid dry-run response'), { status: 502 });
   }
   return {
-    trace: record.trace as RoutingDryRunResponse['trace'],
+    trace,
     warnings: Array.isArray(record.warnings)
       ? record.warnings.map((warning) => String(warning ?? ''))
       : [],

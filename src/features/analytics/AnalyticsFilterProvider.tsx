@@ -154,6 +154,7 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
     (distribution: AnalyticsDistribution) => updateUrl({ distribution }),
     [updateUrl]
   );
+  const setEventId = useCallback((eventId: string) => updateUrl({ eventId }), [updateUrl]);
   const value = useMemo(
     () => ({
       range: urlState.range,
@@ -170,6 +171,8 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
       setActivityWindow,
       distribution: urlState.distribution,
       setDistribution,
+      eventId: urlState.eventId,
+      setEventId,
       keys,
       keysLoading: keyCatalog.loading,
       keysError: keyCatalog.error,
@@ -191,6 +194,8 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
       setEventFilters,
       setActivityWindow,
       setDistribution,
+      setEventId,
+      urlState.eventId,
       urlState.activityWindow,
       urlState.distribution,
       urlState.eventFilters,
