@@ -264,7 +264,7 @@ describe('analytics v2 API adapter', () => {
       });
 
       expect(get).toHaveBeenCalledWith(
-        `/analytics/events/${'b'.repeat(32)}?start=2026-08-01T00%3A00%3A00Z&end=2026-08-08T00%3A00%3A00Z&time_zone=Asia%2FKolkata`
+        `/analytics/attempts/${'b'.repeat(32)}?start=2026-08-01T00%3A00%3A00Z&end=2026-08-08T00%3A00%3A00Z&time_zone=Asia%2FKolkata`
       );
       expect(post).toHaveBeenCalledWith('/analytics/pricing/reprice', {
         range: { preset: 'today', time_zone: 'UTC' },

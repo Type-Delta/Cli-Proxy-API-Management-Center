@@ -227,11 +227,11 @@ const readAnalyticsQuery = async (encoded: string, etag: string) => {
 };
 
 /**
- * A 404 or 405 without a Management API error code means the server predates the GET route.
+ * A 404 or 405 without a Management API error code means the server predates the requested route.
  * Analytics reports its own refusals, including a disabled module, as coded errors, so those
  * are never mistaken for a missing route and always surface to the caller.
  */
-const analyticsQueryRouteMissing = (caught: unknown): boolean => {
+const analyticsRouteMissing = (caught: unknown): boolean => {
   const { status, apiCode } = caught as ApiError;
   if (status !== 404 && status !== 405) return false;
   return !apiCode;
@@ -277,7 +277,7 @@ async function requestAnalyticsQuery<T extends QueryResult>(
     } catch (caught) {
       // A connection change is never answered with the POST fallback: it would replay this
       // query, including its key IDs, against the server the client just moved to.
-      if (connectionChanged(revision) || !analyticsQueryRouteMissing(caught)) throw caught;
+      if (connectionChanged(revision) || !analyticsRouteMissing(caught)) throw caught;
       analyticsQueryGetUnsupportedRevision = revision;
     }
   }
@@ -450,10 +450,17 @@ export const analyticsApi = {
       })),
     };
   },
-  event: (attemptId: string, request: AnalyticsEventDetailQuery) =>
-    apiClient.get<AnalyticsEvent>(
-      `/analytics/events/${encodeURIComponent(attemptId)}?${eventDetailParams(request)}`
-    ),
+  async event(attemptId: string, request: AnalyticsEventDetailQuery): Promise<AnalyticsEvent> {
+    const revision = apiClient.getConnectionRevision();
+    const resource = `${encodeURIComponent(attemptId)}?${eventDetailParams(request)}`;
+    try {
+      // Privacy lists match /analytics/event as a substring, including /analytics/events/.
+      return await apiClient.get<AnalyticsEvent>(`/analytics/attempts/${resource}`);
+    } catch (caught) {
+      if (connectionChanged(revision) || !analyticsRouteMissing(caught)) throw caught;
+      return apiClient.get<AnalyticsEvent>(`/analytics/events/${resource}`);
+    }
+  },
   async leaderboard(request: AnalyticsQuery): Promise<AnalyticsLeaderboard> {
     const data = await query<AnalyticsLeaderboardResponse>(request);
     return { ...data, rows: analyticsCollection(data.rows) };

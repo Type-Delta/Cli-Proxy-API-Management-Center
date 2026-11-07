@@ -1891,3 +1891,36 @@ opened the failed creating attempt, the WebSocket switch sent `downstream_websoc
 1440px light and 390px dark show no overflow and no page or console errors.
 
 **Last updated:** 2026-11-06
+
+### DL080 — Stable event-sheet dismissal and privacy-filter-safe detail reads
+
+The shared Sheet starts its open/close lifecycle only when `open` changes. A fresh parent
+`onClose` callback no longer cancels an exit timer, and the timer reads the latest committed
+callback. The sheet keeps its exit state until the parent clears `open`, preventing an entrance
+animation during delayed router updates. X, backdrop, and Escape use the same close sequence.
+
+Event detail reads prefer `/v8/management/analytics/attempts/:attempt_id`. CPA provides this
+alias through the original event handler, with the same range, response, authentication, and
+read-only permissions. The existing `/analytics/events/:attempt_id` path matches EasyPrivacy's
+`/analytics/event$domain=~app.diagrams.net` rule. Blocking that request reproduces the panel's
+"Event details could not load" / "Network Error" state while other Usage queries succeed.
+The client falls back to the old URL only for an uncoded 404/405 from an older backend, and
+never replays that fallback after a connection change. A coded missing event, authentication
+failure, throttle, or network error remains an error. The privacy-filter correction requires
+the matching CPA alias; the fallback preserves compatibility with unblocked older servers.
+
+**Implementation evidence:** `src/components/ui/Sheet/Sheet.tsx`,
+`src/services/api/analytics.ts`, `tests/{sheetLifecycle,analyticsEventTransport,analyticsApiV2}.test.ts`.
+
+**Recorded validation:** On 2026-11-07, Bun 1.4.3 `bun run verify` passes 2,976 tests across
+253 files, ESLint, TypeScript, and the single-file production build. Isolated desktop Chrome
+at 1440px, mobile Chrome at 390px, mobile reduced-motion Chrome, and WebKit 27.2 at 390px with
+an iOS 27 Safari user agent exercise the built panel against CPA's registered management routes
+and synthetic analytics data. The EasyPrivacy rule remains active through a filter matcher:
+all detail reads return 200 through the new route, X/backdrop/Escape each finish one exit,
+reduced motion uses no animation, and no page errors or panel overflow occur. Before the fix,
+WebKit reproduces the exact network-error state under that rule; a separate browser stress
+check reproduces slide-out/slide-in during parent updates and verifies a single exit after
+the fix. Physical iPhone verification remains external to these checks.
+
+**Last updated:** 2026-11-07
