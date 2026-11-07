@@ -1132,11 +1132,15 @@ Summary segments and quota meters share reserve stripes and credential-aware too
 
 Verified Ultra responses with `five_hour: null` and no session entry in `limits` omit the short window. Weekly and Fable meters, summary totals, weekly timeline/history and reserve controls continue to use only reported windows, without fabricating a five-hour bar. Session mode excludes these accounts while weekly mode keeps them.
 
+Upstream quota-limit wording and the Grok client version are retained. The fork continues to use its own credential rows, reserve presentation, and gold and liquid-platinum badges instead of upstream's jade replacement.
+
 **Implementation evidence:** `src/features/quota/{QuotaPage.tsx,quotaSummary.ts,types.ts}`, `src/features/quota/components/{QuotaSummary.tsx,QuotaCard.tsx,QuotaMeter.tsx,QuotaResetLabel.tsx}`, `src/features/quota/providers/{claude/ClaudeQuotaBody.tsx,kimi/KimiQuotaBody.tsx}`, `src/utils/quota/{planTier.ts,resetInstants.ts}`, `src/components/ui/Tooltip.tsx`; tests: `tests/{quotaSummary,quotaRowTitle,quotaResetInstants,tooltipProvider,quotaPageLogic,quotaPlanTier,quotaBodyRendering,claudeOAuthUsage,claudeUltraQuota,kimiPlan}.test.ts`, `tests/fixtures/claude-ultra-usage.json`.
 
 **Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,593 tests, ESLint, TypeScript compilation and the single-file production build. The weekly-only Ultra regression passed on the merged code before the plan update, so no missing-window implementation fix was needed. Eight isolated Chrome CDP checks at 1440px/390px in light/dark themes verify the weekly-only Ultra card, 150% Max-plus-Ultra capacity, history, session exclusion, reserves, and spaced Pro 500 badge without overflow or runtime exceptions. Live CPA integration is still pending against the merged CPA.
 
-**Last updated:** 2026-10-31
+On 2026-11-07, Bun 1.4.3 `bun run verify` passes 3,010 tests, lint, TypeScript and the production build. Mocked Chrome CDP checks cover the touched quota, provider, OAuth and sponsor pages at 1440px and 390px in light and dark themes. All seven locale files contain the 3,979-key union.
+
+**Last updated:** 2026-11-07
 
 ### DL054 — OAuth rule editors skip API-key credentials
 
@@ -1294,7 +1298,9 @@ only appears once something is typed. Starting sends `start_url` and `region` wi
 the account choice instead of reusing the previous options. The fork's former inline Kiro card on
 `src/pages/OAuthPage.tsx` was removed with that page.
 
-**Implementation evidence:** `src/features/oauth/providers.ts`, `src/features/oauth/{kiroOAuth.ts,OAuthPage.tsx}`, `src/features/oauth/components/{KiroLoginSetup.tsx,OAuthFlowDialog.tsx}`, `src/features/oauth/hooks/useOAuthFlows.ts`; tests: `tests/kiroProvider.test.ts`.
+Plugin OAuth entries coexist with the Kiro tile. Each declared plugin login can show its own title and icon, while built-in provider IDs remain reserved.
+
+**Implementation evidence:** `src/features/oauth/providers.ts`, `src/features/oauth/{kiroOAuth.ts,OAuthPage.tsx}`, `src/features/oauth/components/{KiroLoginSetup.tsx,OAuthFlowDialog.tsx}`, `src/features/oauth/hooks/useOAuthFlows.ts`; tests: `tests/{kiroProvider,pluginOAuthEntries}.test.ts`.
 
 **Recorded validation:** On 2026-10-19: `tests/kiroProvider.test.ts` covers the registry entry, callback support,
 both setup states, and validation. Through Chrome CDP against a CPA built from the fork, the gallery
@@ -1302,17 +1308,23 @@ showed the Kiro tile; the dialog started a Builder ID login (AWS authorize URL, 
 Identity Center attempt sent `start_url` and `region` to CPA. Desktop 1440px and mobile 390px had no
 horizontal overflow.
 
-**Last updated:** 2026-10-19
+On 2026-11-07, Bun 1.4.3 `bun run verify` passes 3,010 tests, lint, TypeScript and the production build. Mocked Chrome CDP checks cover the touched quota, provider, OAuth and sponsor pages at 1440px and 390px in light and dark themes. All seven locale files contain the 3,979-key union.
+
+**Last updated:** 2026-11-07
 
 ### DL061 — Complete fork translations across seven locales
 
 English, Simplified Chinese, Traditional Chinese, Russian, Vietnamese, Korean and Turkish share one union of upstream and fork keys. Fork-only analytics, structured API keys, quota reserves/summaries/history, Kiro, Z.AI, OpenCode Go, storage and routing text exists in every locale rather than falling back to Simplified Chinese. Locale tests enumerate all seven languages and require equal key sets and matching interpolation tokens. Claude product names are consistently Max for `plan_max`/`plan_max5` and Ultra for `plan_max20` across all seven locales. Turkish fork strings are machine-translated and still need native-language review.
 
+The upstream AIcodemirror provider, quota labels, and Double 11 campaign keys are included in all seven locales alongside the fork strings.
+
 **Implementation evidence:** `src/i18n/{index.ts,locales/*.json}`, `src/utils/{constants.ts,language.ts}`; tests: `tests/{koreanLocale,turkishLocale,quotaPlanTier,claudeOAuthUsage,analyticsEventRouting,analyticsOverview,oauthPage}.test.ts`.
 
 **Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,593 tests, ESLint, TypeScript compilation and the single-file production build. The weekly-only Ultra regression passed on the merged code before the plan update, so no missing-window implementation fix was needed. Eight isolated Chrome CDP checks at 1440px/390px in light/dark themes verify the weekly-only Ultra card, 150% Max-plus-Ultra capacity, history, session exclusion, reserves, and spaced Pro 500 badge without overflow or runtime exceptions. Live CPA integration is still pending against the merged CPA.
 
-**Last updated:** 2026-10-31
+On 2026-11-07, Bun 1.4.3 `bun run verify` passes 3,010 tests, lint, TypeScript and the production build. Mocked Chrome CDP checks cover the touched quota, provider, OAuth and sponsor pages at 1440px and 390px in light and dark themes. All seven locale files contain the 3,979-key union.
+
+**Last updated:** 2026-11-07
 
 ### DL062 — Analytics filter restoration
 
@@ -1736,6 +1748,19 @@ Project-specific checks every upstream sync runs, in addition to the full test s
 ## Merge History
 
 This is an append-only decision record, newest first, with one entry per upstream sync. It explains past integrations but does not by itself establish a current divergence; use the Divergence Log for that. Sync with upstream only when the user explicitly asks. Do not edit past entries.
+
+### 2026-11-07 - Merge upstream `main` at `953fb24`
+
+Target: `upstream/main` at `953fb2444350c6c36052dda46cac0abce6b23ea6`.
+Parents: fork `a4ec1ed4c8898f294f966766a139f4f6b7820bdc` and upstream `953fb2444350c6c36052dda46cac0abce6b23ea6`. Merged 10 upstream commits without rebasing or squashing.
+
+User decisions: carry forward the earlier Codex badge tiers and retain the fork's quota list, summary, reserve stripes, tooltips, history and gold/liquid-platinum badge artwork. Keep the seven-locale union of fork and upstream keys.
+
+Other decisions: integrate AIcodemirror, plugin OAuth multi-entry metadata, quota limit labels, Grok client version and the Double 11 sponsor card. Retain the fork's quota row and badge presentation instead of replacing the elite badge with jade. Preserve both Kiro and plugin OAuth entries.
+
+Integration repairs: add the fork-specific AIcodemirror descriptor capabilities, retain fork quota types and preview, merge Vietnamese provider strings, and restore the two upstream routing-strategy labels in all locales. The labels remain in the upstream key union even though the fork's current UI does not reference them.
+
+Validation: pinned Bun 1.4.3 frozen install and `bun run verify` pass 3,010 tests across 257 files, ESLint, TypeScript and the single-file production build; baseline passed 2,979 tests across 253 files. A scripted comparison confirms 3,979 identical keys across all seven locales, including the union of both parents. Sixteen mocked Chrome CDP checks cover quota, providers, OAuth and the campaign at 1440px/390px in light/dark themes, without overflow or page errors. The divergence evidence audit is recorded separately; no dedicated automated tests were identified for some pre-existing visual behavior. Live integration against a matching CPA and smoke testing every fork feature were not run. Turkish and other machine-translated fork strings still need native review.
 
 ### 2026-10-31 - Merge upstream `main` at `4e4aeff`
 
