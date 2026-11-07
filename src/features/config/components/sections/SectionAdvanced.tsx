@@ -21,7 +21,7 @@ import { SectionOAuthBehavior } from './SectionOAuthBehavior';
 
 const Icon = CONFIG_TAB_ICONS.advanced;
 
-/** 05 高级与实验：插件源、供应商敏感词、签名缓存与请求头默认值。 */
+/** Advanced settings for plugins, provider filters, signature caching, and header defaults. */
 export function SectionAdvanced({
   values,
   validationErrors,
@@ -310,6 +310,27 @@ export function SectionAdvanced({
               disabled={disabled}
               onChange={(claudeHeaderOauthSafeguard) => onChange({ claudeHeaderOauthSafeguard })}
             />
+            <BlockSetting
+              fieldId="claudeHeaderOauthSafeguardClientIdentities"
+              label={t(
+                'config_management.visual.sections.headers.oauth_safeguard_client_identities'
+              )}
+              description={t(
+                'config_management.visual.sections.headers.oauth_safeguard_client_identities_desc'
+              )}
+            >
+              <StringListEditor
+                value={values.claudeHeaderOauthSafeguardClientIdentities}
+                disabled={disabled}
+                placeholder="partner-app"
+                inputAriaLabel={t(
+                  'config_management.visual.sections.headers.oauth_safeguard_client_identities'
+                )}
+                onChange={(claudeHeaderOauthSafeguardClientIdentities) =>
+                  onChange({ claudeHeaderOauthSafeguardClientIdentities })
+                }
+              />
+            </BlockSetting>
           </SettingList>
 
           <SettingList title={t('config_management.visual.sections.headers.codex_title')}>

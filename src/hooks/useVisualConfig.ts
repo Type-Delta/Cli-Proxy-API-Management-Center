@@ -1787,6 +1787,15 @@ function getNextDirtyFields(
       areStringArraysEqual(nextValues.pluginStoreSources, baselineValues.pluginStoreSources)
     );
   }
+  if (Object.prototype.hasOwnProperty.call(patch, 'claudeHeaderOauthSafeguardClientIdentities')) {
+    updateDirty(
+      'claudeHeaderOauthSafeguardClientIdentities',
+      areStringArraysEqual(
+        nextValues.claudeHeaderOauthSafeguardClientIdentities,
+        baselineValues.claudeHeaderOauthSafeguardClientIdentities
+      )
+    );
+  }
   if (Object.prototype.hasOwnProperty.call(patch, 'antigravitySensitiveWords')) {
     updateDirty(
       'antigravitySensitiveWords',
@@ -2071,6 +2080,9 @@ function parseVisualValuesFromYaml(yamlContent: string): VisualConfigValues {
       typeof claudeHeaderDefaults?.timeout === 'string' ? claudeHeaderDefaults.timeout : '',
     claudeHeaderStabilizeDeviceProfile: Boolean(claudeHeaderDefaults?.['stabilize-device-profile']),
     claudeHeaderOauthSafeguard: Boolean(claudeHeaderDefaults?.['oauth-safeguard']),
+    claudeHeaderOauthSafeguardClientIdentities: parseStringList(
+      claudeHeaderDefaults?.['oauth-safeguard-client-identities']
+    ),
     codexHeaderUserAgent:
       typeof codexHeaderDefaults?.['user-agent'] === 'string'
         ? codexHeaderDefaults['user-agent']
@@ -2577,7 +2589,8 @@ export function useVisualConfig() {
           dirtyFields.has('claudeHeaderArch') ||
           dirtyFields.has('claudeHeaderTimeout') ||
           dirtyFields.has('claudeHeaderStabilizeDeviceProfile') ||
-          dirtyFields.has('claudeHeaderOauthSafeguard');
+          dirtyFields.has('claudeHeaderOauthSafeguard') ||
+          dirtyFields.has('claudeHeaderOauthSafeguardClientIdentities');
         if (claudeHeadersDirty) {
           ensureMapInDoc(doc, ['upstream', 'claude', 'header-defaults']);
           if (dirtyFields.has('claudeHeaderUserAgent')) {
@@ -2634,6 +2647,13 @@ export function useVisualConfig() {
               doc,
               ['upstream', 'claude', 'header-defaults', 'oauth-safeguard'],
               values.claudeHeaderOauthSafeguard
+            );
+          }
+          if (dirtyFields.has('claudeHeaderOauthSafeguardClientIdentities')) {
+            setStringListInDoc(
+              doc,
+              ['upstream', 'claude', 'header-defaults', 'oauth-safeguard-client-identities'],
+              values.claudeHeaderOauthSafeguardClientIdentities
             );
           }
           deleteIfMapEmpty(doc, ['upstream', 'claude', 'header-defaults']);
@@ -2829,7 +2849,7 @@ export function useVisualConfig() {
   return {
     visualValues,
     visualDirty,
-    /** 脏字段的叶值键集合（streaming 为点号叶），供 tab 脏点 / 头部计数消费。 */
+    /** Dirty leaf keys, with dotted streaming paths, used by tab indicators and the header count. */
     visualDirtyFields: dirtyFields as ReadonlySet<string>,
     visualParseError,
     visualValidationErrors,

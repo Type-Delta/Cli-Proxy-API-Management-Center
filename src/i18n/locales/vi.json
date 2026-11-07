@@ -2941,6 +2941,8 @@
           "stabilize_device_desc": "Cố định OS/Kiến trúc và ổn định vân tay phần mềm theo từng credential/API key",
           "oauth_safeguard": "OAuth Safeguard",
           "oauth_safeguard_desc": "CPA privately captures its own Claude Code reference using a CPA Claude OAuth credential and checks for updates every 24 hours. It never uses global Claude data. When enabled, direct OAuth requests to api.anthropic.com must match the active reference. A failed update keeps the last successful reference; requests are blocked before Anthropic only if no valid active reference is available.",
+          "oauth_safeguard_client_identities": "Danh tính ứng dụng tùy chỉnh",
+          "oauth_safeguard_client_identities_desc": "Thêm tên điểm vào từ claude-cli/X.X.X (external, <identity>), mỗi dòng một tên. Không phân biệt chữ hoa và chữ thường. Danh sách bổ sung cho các danh tính tích hợp chỉ khi bật OAuth Safeguard. Các kiểm tra tiêu đề và phiên khác vẫn áp dụng.",
           "beta_features": "Tính năng Beta"
         },
         "network": {

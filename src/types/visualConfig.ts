@@ -263,6 +263,7 @@ export type VisualConfigValues = {
   claudeHeaderTimeout: string;
   claudeHeaderStabilizeDeviceProfile: boolean;
   claudeHeaderOauthSafeguard: boolean;
+  claudeHeaderOauthSafeguardClientIdentities: string[];
   codexHeaderUserAgent: string;
   codexHeaderBetaFeatures: string;
   payloadDefaultRules: PayloadRule[];
@@ -389,6 +390,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   claudeHeaderTimeout: '',
   claudeHeaderStabilizeDeviceProfile: false,
   claudeHeaderOauthSafeguard: false,
+  claudeHeaderOauthSafeguardClientIdentities: [],
   codexHeaderUserAgent: '',
   codexHeaderBetaFeatures: '',
   payloadDefaultRules: [],

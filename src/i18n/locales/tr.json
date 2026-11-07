@@ -2941,6 +2941,8 @@
           "stabilize_device_desc": "OS/Arch Değerlerini Sabitle ve Yazılım Parmak İzini Kimlik Bilgisi/API Anahtarı Başına Kararlı Tut",
           "oauth_safeguard": "OAuth Koruması",
           "oauth_safeguard_desc": "CPA, bir CPA Claude OAuth kimlik bilgisini kullanarak kendi Claude Kodu referansını özel olarak yakalar ve her 24 saatte bir güncellemeleri kontrol eder. Hiçbir zaman global Claude verilerini kullanmaz. Etkinleştirildiğinde, api.anthropic.com'a yapılan doğrudan OAuth isteklerinin etkin referansla eşleşmesi gerekir. Başarısız bir güncelleme, son başarılı referansı korur; Anthropic'ten önce istekler yalnızca geçerli bir etkin referans bulunmadığında engellenir.",
+          "oauth_safeguard_client_identities": "Özel istemci kimlikleri",
+          "oauth_safeguard_client_identities_desc": "claude-cli/X.X.X (external, <identity>) içindeki giriş noktası adlarını her satıra bir tane ekleyin. Eşleştirme büyük/küçük harfe duyarlı değildir. Bu liste yalnızca OAuth Koruması açıkken yerleşik kimlikleri genişletir. Diğer başlık ve oturum denetimleri geçerliliğini korur.",
           "beta_features": "Beta Özellikleri"
         },
         "network": {

@@ -1048,6 +1048,15 @@ setting appears in search and every supported locale. It renders as a setting ro
 (`ToggleSetting`): an external `<label for>` names the switch and the description is
 connected through `aria-describedby`; the switch track shows keyboard focus.
 
+The same section includes a list editor for
+`upstream.claude.header-defaults.oauth-safeguard-client-identities`. Each row
+specifies one additional entrypoint from `claude-cli/X.X.X (external, <identity>)`.
+The help text explains case-insensitive matching, the safeguard-enabled scope,
+and the remaining header and session checks. Users can add and remove multiple
+identities without changing the built-in list. Visual/YAML round trips preserve
+unknown sibling fields, and clearing the list removes custom identities. The
+setting is searchable and translated in all seven locales.
+
 **Implementation evidence:** `src/features/config/components/sections/SectionAdvanced.tsx`, `src/hooks/useVisualConfig.ts`, `src/features/config/searchIndex.ts`, `src/types/visualConfig.ts`, `src/i18n/locales/**`; tests: `tests/visualConfigClaudeOauthSafeguard.test.ts`, `tests/toggleSwitchAccessibility.test.ts`.
 
 **Recorded validation:** Focused config, accessibility, and four-locale copy tests pass.
@@ -1056,7 +1065,20 @@ retains the existing `Select.tsx` warning. Chrome CDP verified the rendered
 description on desktop and at a 390px mobile viewport without horizontal
 overflow.
 
-**Last updated:** 2026-10-19
+**Custom identity validation:** On the final code, `bun run verify` passes all
+2,979 tests, lint, TypeScript, and the production build. A Docker rerun with
+pinned Bun 1.4.3 also passes all 2,979 tests. CPA's canonical
+`ALLOW_DIRTY_PANEL=1 ./scripts/build-management-center.sh` Docker build passes,
+as do `go test ./...` and
+`go build -o test-output ./cmd/server && unlink test-output`. Chrome CDP verified
+the embedded CPA panel by editing, adding, and deleting list rows, saving
+through the review dialog, reloading, and checking that the v8 config API
+returned the same list. Inspected screenshots at desktop 1440px and mobile 390px
+show no horizontal overflow. The independent finish review found no material
+issues and returned SHIP. Executor acceptance tests use a simulated Anthropic
+transport; no real partner inference was attempted.
+
+**Last updated:** 2026-11-07
 
 ### DL050 — Cache-managed quota refresh
 

@@ -791,6 +791,15 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     yamlKeys: ['upstream', 'claude', 'header-defaults', 'oauth-safeguard'],
     keywords: ['claude', 'oauth', 'reference', 'client'],
   },
+  {
+    fieldId: 'claudeHeaderOauthSafeguardClientIdentities',
+    sectionId: 'advanced',
+    labelKey: L('sections.headers.oauth_safeguard_client_identities'),
+    qualifierKey: L('sections.headers.claude_title'),
+    hintKey: L('sections.headers.oauth_safeguard_client_identities_desc'),
+    yamlKeys: ['upstream', 'claude', 'header-defaults', 'oauth-safeguard-client-identities'],
+    keywords: ['claude', 'oauth', 'safeguard', 'custom', 'client', 'identity', 'entrypoint'],
+  },
   // Codex header defaults.
   {
     fieldId: 'codexHeaderUserAgent',

@@ -250,6 +250,7 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   claudeHeaderTimeout: ['claudeHeaderTimeout'],
   claudeHeaderStabilizeDeviceProfile: ['claudeHeaderStabilizeDeviceProfile'],
   claudeHeaderOauthSafeguard: ['claudeHeaderOauthSafeguard'],
+  claudeHeaderOauthSafeguardClientIdentities: ['claudeHeaderOauthSafeguardClientIdentities'],
   codexHeaderUserAgent: ['codexHeaderUserAgent'],
   codexHeaderBetaFeatures: ['codexHeaderBetaFeatures'],
   // ── payload ───────────────────────────────────────────────────────────────

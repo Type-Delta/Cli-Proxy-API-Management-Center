@@ -77,6 +77,69 @@ describe('visual config Claude OAuth safeguard', () => {
     });
   });
 
+  test('reads multiple custom identities from YAML', () => {
+    expect(DEFAULT_VISUAL_VALUES.claudeHeaderOauthSafeguardClientIdentities).toEqual([]);
+    function Harness() {
+      const config = useVisualConfig();
+      const [loaded, setLoaded] = useState(false);
+      if (!loaded) {
+        config.loadVisualValuesFromYaml(
+          'upstream: {claude: {header-defaults: {oauth-safeguard-client-identities: [partner-app, another-app]}}}'
+        );
+        setLoaded(true);
+        return null;
+      }
+      return createElement(
+        'pre',
+        null,
+        encodeURIComponent(
+          JSON.stringify(config.visualValues.claudeHeaderOauthSafeguardClientIdentities)
+        )
+      );
+    }
+    expect(JSON.parse(unwrapPre(renderToStaticMarkup(createElement(Harness))))).toEqual([
+      'partner-app',
+      'another-app',
+    ]);
+  });
+
+  test.each([{ identities: ['partner-app', 'another-app'] }, { identities: [] }])(
+    'saves custom identities $identities and preserves unknown fields',
+    ({ identities }) => {
+      function Harness() {
+        const config = useVisualConfig();
+        const [phase, setPhase] = useState(0);
+        if (phase === 0) {
+          config.loadVisualValuesFromYaml(
+            'upstream: {claude: {header-defaults: {oauth-safeguard-client-identities: [old-app]}}}'
+          );
+          setPhase(1);
+          return null;
+        }
+        if (phase === 1) {
+          config.setVisualValues({ claudeHeaderOauthSafeguardClientIdentities: identities });
+          setPhase(2);
+          return null;
+        }
+        return createElement(
+          'pre',
+          null,
+          encodeURIComponent(
+            config.applyVisualChangesToYaml(
+              'upstream: {claude: {header-defaults: {oauth-safeguard: true, future-field: keep, oauth-safeguard-client-identities: [old-app]}}}'
+            )
+          )
+        );
+      }
+      const yaml = parseYaml(unwrapPre(renderToStaticMarkup(createElement(Harness))));
+      expect(yaml.upstream.claude['header-defaults']['oauth-safeguard']).toBe(true);
+      expect(yaml.upstream.claude['header-defaults']['future-field']).toBe('keep');
+      expect(
+        yaml.upstream.claude['header-defaults']['oauth-safeguard-client-identities'] ?? []
+      ).toEqual(identities);
+    }
+  );
+
   test('explains CPA-managed private capture and fail-closed behavior in every locale', async () => {
     const localeRequirements = {
       en: [

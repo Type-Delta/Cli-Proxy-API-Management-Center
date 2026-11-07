@@ -2941,6 +2941,8 @@
           "stabilize_device_desc": "자격 증명/API 키별로 OS/Arch를 고정하고 소프트웨어 지문을 안정화합니다.",
           "oauth_safeguard": "OAuth 보호",
           "oauth_safeguard_desc": "CPA는 CPA Claude OAuth 자격 증명을 사용해 자체 Claude Code 참조를 비공개로 캡처하고 24시간마다 업데이트를 확인합니다. 전역 Claude 데이터는 사용하지 않습니다. 사용 중에는 api.anthropic.com에 대한 직접 OAuth 요청이 활성 참조와 일치해야 합니다. 업데이트에 실패하면 마지막으로 성공한 참조를 유지합니다. 유효한 활성 참조가 없을 때만 Anthropic으로 전달되기 전에 요청을 차단합니다.",
+          "oauth_safeguard_client_identities": "사용자 지정 클라이언트 ID",
+          "oauth_safeguard_client_identities_desc": "claude-cli/X.X.X (external, <identity>)의 진입점 이름을 행마다 하나씩 추가하세요. 대소문자를 구분하지 않습니다. OAuth 보호가 켜져 있을 때만 기본 ID 목록에 추가됩니다. 다른 헤더 및 세션 검사는 그대로 적용됩니다.",
           "beta_features": "Beta Features"
         },
         "network": {
