@@ -1,8 +1,39 @@
-import { memo, useCallback, useContext, useEffect, useId, useMemo, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { UNSAFE_LocationContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import {
+  IconAlertTriangle,
+  IconCopy,
+  IconEye,
+  IconEyeOff,
+  IconKey,
+  IconPencil,
+  IconPlus,
+  IconRefreshCw,
+  IconSearch,
+  IconTrash2,
+  IconX,
+} from '@/components/ui/icons';
 import { Modal } from '@/components/ui/Modal';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/Table';
+import { TablePagination } from '@/features/analytics/components/TablePagination';
 import { apiKeysApi, capabilitiesApi } from '@/services/api';
 import { useAuthStore, useNotificationStore } from '@/stores';
 import type { ApiKeyLimitEntry, ApiKeysResponse } from '@/types';
@@ -14,10 +45,15 @@ import {
 } from '@/utils/keyIdentity';
 import { makeClientId } from '@/types/visualConfig';
 import { generateSecureApiKey } from '@/utils/apiKey';
-import { maskApiKey } from '@/utils/format';
+import { formatCompactNumber, maskApiKey } from '@/utils/format';
 import { isValidApiKeyCharset } from '@/utils/validation';
 import { ApiKeyStrengthMeter } from './ApiKeyStrengthMeter';
-import { buildApiKeyLimits } from './apiKeyEditorUtils';
+import {
+  buildApiKeyLimits,
+  matchesApiKeyQuery,
+  orderRecentFirst,
+  warningCodesByConfigIndex,
+} from './apiKeyEditorUtils';
 import styles from './Blocks.module.scss';
 
 const emptyResponse: ApiKeysResponse = {
@@ -27,6 +63,9 @@ const emptyResponse: ApiKeysResponse = {
   warnings: [],
   structured: false,
 };
+
+const PAGE_SIZE = 10;
+const KNOWN_WARNINGS = new Set(['weak_api_key', 'duplicate_trimmed_key', 'identity_conflict']);
 
 export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   value,
@@ -73,7 +112,13 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   const [contract, setContract] = useState(emptyResponse);
   const [limitRows, setLimitRows] = useState<ApiKeyLimitEntry[]>([]);
   const [supportsWrites, setSupportsWrites] = useState(false);
-  const [revealedRows, setRevealedRows] = useState<Set<number>>(() => new Set());
+  const [revealedRows, setRevealedRows] = useState<Set<string>>(() => new Set());
+  // Raw keys added in this session, newest first. Memory only: pins fresh keys to the top
+  // without persisting key material.
+  const [recentKeys, setRecentKeys] = useState<string[]>([]);
+  const [query, setQuery] = useState('');
+  const [attentionOnly, setAttentionOnly] = useState(false);
+  const [page, setPage] = useState(1);
   const [busy, setBusy] = useState(false);
   const refreshContract = useCallback(async () => {
     try {
@@ -98,6 +143,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
     void refreshContract();
   }, [refreshContract]);
   useEffect(() => setRevealedRows(new Set()), [locationPathname, connectionStatus]);
+  useEffect(() => setRecentKeys([]), [connectionStatus]);
 
   const shortIds = useMemo(
     () => collisionSafeShortKeyIds(contract.identities.map((identity) => identity.key_id)),
@@ -130,6 +176,34 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       ? undefined
       : limitRows.find((row) => row.config_index === configIndex);
   };
+
+  const warningCodes = useMemo(
+    () => warningCodesByConfigIndex(contract.warnings),
+    [contract.warnings]
+  );
+  const rows = apiKeys.map((key, index) => {
+    const configIndex = configIndexFor(index);
+    const identity = identityFor(index);
+    return {
+      rowId: renderRowIds[index] ?? `${index}`,
+      key,
+      label: labelFor(index),
+      identity,
+      shortId: identity ? shortIds.get(identity.key_id) : undefined,
+      usage: limitsFor(index),
+      warnings: configIndex === undefined ? [] : (warningCodes.get(configIndex) ?? []),
+    };
+  });
+  const attentionCount = rows.filter((row) => row.warnings.length > 0).length;
+  const showAttentionOnly = attentionOnly && attentionCount > 0;
+  const visibleRows = orderRecentFirst(rows, recentKeys).filter(
+    (row) =>
+      (!showAttentionOnly || row.warnings.length > 0) &&
+      matchesApiKeyQuery({ label: row.label, keyId: row.identity?.key_id, key: row.key }, query)
+  );
+  const pageCount = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageRows = visibleRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const inputId = useId();
   const labelInputId = `${inputId}-label`;
@@ -200,6 +274,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
           }
           setRevealedRows(new Set());
           setRowIds(renderRowIds.filter((id) => id !== rowId));
+          setRecentKeys((current) => current.filter((key) => key !== apiKeys[index]));
           updateKeys(
             apiKeys.filter((_, current) => current !== index),
             apiKeyLabels.filter((_, current) => current !== index)
@@ -294,7 +369,16 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
         editingIndex < 0
           ? [...apiKeyLabels, labelValue]
           : apiKeyLabels.map((label, index) => (index === editingIndex ? labelValue : label));
-      if (editingIndex < 0) setRowIds([...renderRowIds, makeClientId()]);
+      if (editingIndex < 0) {
+        setRowIds([...renderRowIds, makeClientId()]);
+        setRecentKeys((current) => [trimmed, ...current]);
+        setQuery('');
+        setAttentionOnly(false);
+        setPage(1);
+      } else {
+        const previousKey = apiKeys[editingIndex];
+        setRecentKeys((current) => current.map((key) => (key === previousKey ? trimmed : key)));
+      }
       setRevealedRows(new Set());
       updateKeys(nextKeys, nextLabels);
       closeModal();
@@ -324,121 +408,258 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       },
     });
 
+  const toggleReveal = (rowId: string) =>
+    setRevealedRows((current) => {
+      const next = new Set(current);
+      if (!next.delete(rowId)) next.add(rowId);
+      return next;
+    });
+  const tk = (key: string, options?: Record<string, unknown>) =>
+    t(`config_management.visual.api_keys.${key}`, options);
+  const formatLimit = (used: number, limit: number) =>
+    `${formatCompactNumber(used)} / ${limit > 0 ? formatCompactNumber(limit) : '∞'}`;
+
   return (
     <div className={styles.apiKeys}>
       <div className={styles.apiKeysHeader}>
         <div className={styles.apiKeysCopy}>
           <span className={styles.apiKeysTitle}>
-            {t('config_management.visual.api_keys.label')}
+            {tk('label')}
+            {apiKeys.length > 0 && <span className={styles.apiKeysCount}>{apiKeys.length}</span>}
           </span>
-          <span className={styles.apiKeysHint}>{t('config_management.visual.api_keys.hint')}</span>
+          <span className={styles.apiKeysHint}>{tk('hint')}</span>
         </div>
-        <Button size="sm" onClick={openAddModal} disabled={disabled || busy}>
-          {t('config_management.visual.api_keys.add')}
+        <Button
+          size="sm"
+          icon={<IconPlus size={16} />}
+          onClick={openAddModal}
+          disabled={disabled || busy}
+        >
+          {tk('add')}
         </Button>
       </div>
 
       {!supportsWrites && contract.structured && (
-        <div className="warning-box">
-          {t('config_management.visual.api_keys.compatibility_blocked')}
+        <div className={styles.apiKeysNotice} role="status">
+          <IconAlertTriangle size={16} aria-hidden="true" />
+          <span>{tk('compatibility_blocked')}</span>
         </div>
       )}
 
-      {contract.warnings.length > 0 && (
-        <div className="warning-box" role="status">
-          {t('config_management.visual.api_keys.warning', { count: contract.warnings.length })}
+      {apiKeys.length > 0 && (
+        <div className={styles.apiKeysToolbar}>
+          <div className={styles.apiKeysSearch}>
+            <IconSearch size={15} className={styles.apiKeysSearchIcon} aria-hidden="true" />
+            <input
+              type="text"
+              className={`input ${styles.apiKeysSearchInput}`}
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape' && query) {
+                  event.stopPropagation();
+                  setQuery('');
+                }
+              }}
+              placeholder={tk('search_placeholder')}
+              aria-label={tk('search_aria')}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {query && (
+              <button
+                type="button"
+                className={styles.apiKeysSearchClear}
+                onClick={() => setQuery('')}
+                aria-label={tk('search_clear')}
+              >
+                <IconX size={14} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+          {attentionCount > 0 && (
+            <button
+              type="button"
+              className={styles.apiKeysAttention}
+              aria-pressed={showAttentionOnly}
+              onClick={() => {
+                setAttentionOnly(!showAttentionOnly);
+                setPage(1);
+              }}
+            >
+              <IconAlertTriangle size={14} aria-hidden="true" />
+              <span>{tk('attention_filter')}</span>
+              <span className={styles.apiKeysAttentionCount}>{attentionCount}</span>
+            </button>
+          )}
         </div>
       )}
+
       {apiKeys.length === 0 ? (
-        <div className={styles.emptyState}>{t('config_management.visual.api_keys.empty')}</div>
+        <div className={styles.emptyState}>
+          <IconKey size={18} aria-hidden="true" />
+          <span>{tk('empty')}</span>
+        </div>
+      ) : visibleRows.length === 0 ? (
+        <div className={styles.emptyState}>{tk('no_match')}</div>
       ) : (
-        <div className={`item-list ${styles.apiKeyItems}`}>
-          {apiKeys.map((key, index) => {
-            const identity = identityFor(index);
-            const shortId = identity ? shortIds.get(identity.key_id) : undefined;
-            const label = labelFor(index);
-            const usage = limitsFor(index);
-            const revealed = revealedRows.has(index);
-            return (
-              <div key={renderRowIds[index] ?? `${index}`} className="item-row">
-                <div className={`item-meta ${styles.apiKeyItemMeta}`}>
-                  <div className="pill">#{index + 1}</div>
-                  <div className={`item-title ${styles.apiKeyTitle}`} title={shortId ?? undefined}>
-                    {label || shortId || t('common.api_key')}
-                  </div>
-                  <div
-                    className="item-subtitle"
-                    aria-label={t('config_management.visual.api_keys.raw_value')}
-                  >
-                    {revealed ? key : maskApiKey(key)}
-                  </div>
-                  {usage && (
-                    <div className="item-subtitle">
-                      {t('config_management.visual.api_keys.consumption', {
-                        requests: usage.limits.requests_used,
-                        requestLimit: usage.limits.max_requests || '∞',
-                        tokens: usage.limits.tokens_used,
-                        tokenLimit: usage.limits.max_tokens || '∞',
-                      })}
-                    </div>
-                  )}
-                </div>
-                <div className="item-actions">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() =>
-                      setRevealedRows((current) => {
-                        const next = new Set(current);
-                        if (next.has(index)) next.delete(index);
-                        else next.add(index);
-                        return next;
-                      })
-                    }
-                  >
-                    {t(`config_management.visual.api_keys.${revealed ? 'hide' : 'reveal'}`)}
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => void copy(key)}>
-                    {t('config_management.visual.api_keys.copy_raw')}
-                  </Button>
-                  {identity && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => void copy(identity.key_id)}
-                    >
-                      {t('config_management.visual.api_keys.copy_id')}
-                    </Button>
-                  )}
-                  {usage && identity && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => resetUsage(identity.key_id)}
-                    >
-                      {t('config_management.visual.api_keys.reset')}
-                    </Button>
-                  )}
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => openEditModal(renderRowIds[index] ?? '')}
-                    disabled={disabled || busy}
-                  >
-                    {t('config_management.visual.common.edit')}
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleDelete(renderRowIds[index] ?? '')}
-                    disabled={disabled || busy}
-                  >
-                    {t('config_management.visual.common.delete')}
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
+        <div className={styles.apiKeyTableWrap}>
+          <Table
+            className={styles.apiKeyTable}
+            aria-label={tk('label')}
+            cols={
+              <>
+                <col />
+                <col className={styles.apiKeyColKey} />
+                <col className={styles.apiKeyColUsage} />
+                <col className={styles.apiKeyColActions} />
+              </>
+            }
+          >
+            <TableHeader>
+              <TableRow>
+                <TableHead>{tk('col_name')}</TableHead>
+                <TableHead>{tk('col_key')}</TableHead>
+                <TableHead>{tk('col_usage')}</TableHead>
+                <TableHead alignRight>{t('common.action')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pageRows.map((row) => {
+                const revealed = revealedRows.has(row.rowId);
+                const isNew = recentKeys.includes(row.key);
+                const { identity, usage } = row;
+                const requestsFull =
+                  usage !== undefined &&
+                  usage.limits.max_requests > 0 &&
+                  usage.limits.requests_used >= usage.limits.max_requests;
+                const tokensFull =
+                  usage !== undefined &&
+                  usage.limits.max_tokens > 0 &&
+                  usage.limits.tokens_used >= usage.limits.max_tokens;
+                return (
+                  <TableRow key={row.rowId} className={isNew ? styles.apiKeyRowNew : undefined}>
+                    <TableCell className={styles.apiKeyNameCell}>
+                      <div className={styles.apiKeyNameLine}>
+                        <span
+                          className={row.label ? styles.apiKeyLabel : styles.apiKeyLabelEmpty}
+                          title={row.label || undefined}
+                        >
+                          {row.label || tk('unlabeled')}
+                        </span>
+                        {isNew && <span className={styles.apiKeyBadgeNew}>{tk('new_badge')}</span>}
+                        {row.warnings.map((code) => {
+                          const known = KNOWN_WARNINGS.has(code);
+                          return (
+                            <span
+                              key={code}
+                              className={styles.apiKeyBadgeWarn}
+                              data-cpamc-tooltip={known ? tk(`warnings.${code}.desc`) : code}
+                              tabIndex={0}
+                            >
+                              <IconAlertTriangle size={12} aria-hidden="true" />
+                              {known ? tk(`warnings.${code}.label`) : code}
+                            </span>
+                          );
+                        })}
+                      </div>
+                      {identity && row.shortId && (
+                        <button
+                          type="button"
+                          className={styles.apiKeyIdButton}
+                          onClick={() => void copy(identity.key_id)}
+                          aria-label={`${tk('copy_id')}: ${row.shortId}`}
+                          data-cpamc-tooltip={tk('copy_id')}
+                        >
+                          <span>{row.shortId}</span>
+                          <IconCopy size={12} aria-hidden="true" />
+                        </button>
+                      )}
+                    </TableCell>
+                    <TableCell className={styles.apiKeyValueCell}>
+                      <div className={styles.apiKeyValueLine}>
+                        <code className={styles.apiKeyValue} aria-label={tk('raw_value')}>
+                          {revealed ? row.key : maskApiKey(row.key)}
+                        </code>
+                        <IconAction
+                          label={tk(revealed ? 'hide' : 'reveal')}
+                          pressed={revealed}
+                          onClick={() => toggleReveal(row.rowId)}
+                        >
+                          {revealed ? <IconEyeOff size={15} /> : <IconEye size={15} />}
+                        </IconAction>
+                        <IconAction label={tk('copy_raw')} onClick={() => void copy(row.key)}>
+                          <IconCopy size={15} />
+                        </IconAction>
+                      </div>
+                    </TableCell>
+                    <TableCell className={styles.apiKeyUsageCell}>
+                      {usage ? (
+                        <div className={styles.apiKeyUsage}>
+                          <div className={styles.apiKeyUsageLines}>
+                            <span data-full={requestsFull || undefined}>
+                              {tk('usage_requests', {
+                                value: formatLimit(
+                                  usage.limits.requests_used,
+                                  usage.limits.max_requests
+                                ),
+                              })}
+                            </span>
+                            <span data-full={tokensFull || undefined}>
+                              {tk('usage_tokens', {
+                                value: formatLimit(
+                                  usage.limits.tokens_used,
+                                  usage.limits.max_tokens
+                                ),
+                              })}
+                            </span>
+                          </div>
+                          {identity && (
+                            <IconAction
+                              label={tk('reset')}
+                              onClick={() => resetUsage(identity.key_id)}
+                            >
+                              <IconRefreshCw size={14} />
+                            </IconAction>
+                          )}
+                        </div>
+                      ) : (
+                        <span className={styles.apiKeyMuted}>{tk('no_limits')}</span>
+                      )}
+                    </TableCell>
+                    <TableCell alignRight className={styles.apiKeyActionsCell}>
+                      <div className={styles.apiKeyActions}>
+                        <IconAction
+                          label={t('config_management.visual.common.edit')}
+                          onClick={() => openEditModal(row.rowId)}
+                          disabled={disabled || busy}
+                        >
+                          <IconPencil size={15} />
+                        </IconAction>
+                        <IconAction
+                          label={t('config_management.visual.common.delete')}
+                          onClick={() => handleDelete(row.rowId)}
+                          disabled={disabled || busy}
+                          danger
+                        >
+                          <IconTrash2 size={15} />
+                        </IconAction>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalItems={visibleRows.length}
+            onPageChange={setPage}
+            pageSize={PAGE_SIZE}
+          />
         </div>
       )}
 
@@ -553,3 +774,36 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
     </div>
   );
 });
+
+/** Square icon-only row action; the label doubles as tooltip and accessible name. */
+function IconAction({
+  label,
+  onClick,
+  disabled,
+  danger,
+  pressed,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+  pressed?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className={
+        danger ? `${styles.apiKeyIconButton} ${styles.apiKeyIconDanger}` : styles.apiKeyIconButton
+      }
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      aria-pressed={pressed}
+      data-cpamc-tooltip={label}
+    >
+      {children}
+    </button>
+  );
+}

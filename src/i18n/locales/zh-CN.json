@@ -3056,7 +3056,7 @@
         "add": "添加 API 密钥",
         "generate": "生成",
         "empty": "暂无 API 密钥",
-        "hint": "每个条目代表一个 API 密钥（与 「API 密钥管理」 页面样式一致）",
+        "hint": "客户端调用代理时用于认证的密钥。",
         "edit_title": "编辑 API 密钥",
         "add_title": "添加 API 密钥",
         "label_input": "密钥标签（可选）",
@@ -3083,8 +3083,6 @@
         "daily": "每天",
         "weekly": "每周",
         "monthly": "每月",
-        "consumption": "请求 {{requests}} / {{requestLimit}} · 令牌 {{tokens}} / {{tokenLimit}}",
-        "warning": "发现 {{count}} 个密钥身份或强度警告。",
         "compatibility_blocked": "此 CPA 版本无法安全写入结构化密钥。请先升级 CPA 再编辑限额。",
         "error_empty": "请输入 API 密钥",
         "error_invalid": "API 密钥包含无效字符",
@@ -3102,7 +3100,34 @@
         "name_label": "名称 / 说明（可选）",
         "name_placeholder": "例如：小明的笔记本",
         "name_hint": "名称立即保存在当前浏览器中，按服务器隔离，不写入服务器配置。清空此字段可移除名称。",
-        "name_save_error": "无法将名称保存到浏览器存储，请检查浏览器存储设置。"
+        "name_save_error": "无法将名称保存到浏览器存储，请检查浏览器存储设置。",
+        "search_placeholder": "按标签或密钥 ID 搜索，或粘贴完整密钥",
+        "search_aria": "筛选 API 密钥",
+        "search_clear": "清除搜索",
+        "attention_filter": "需要处理",
+        "col_name": "名称",
+        "col_key": "密钥",
+        "col_usage": "用量",
+        "unlabeled": "未命名",
+        "new_badge": "新",
+        "no_limits": "不限",
+        "no_match": "没有符合当前筛选的密钥。",
+        "usage_requests": "请求 {{value}}",
+        "usage_tokens": "Token {{value}}",
+        "warnings": {
+          "weak_api_key": {
+            "label": "弱密钥",
+            "desc": "过短或可预测，建议生成新密钥替换。"
+          },
+          "duplicate_trimmed_key": {
+            "label": "重复",
+            "desc": "该密钥在配置中出现了多次。"
+          },
+          "identity_conflict": {
+            "label": "ID 冲突",
+            "desc": "另一条目解析为相同的密钥 ID。"
+          }
+        }
       },
       "payload_rules": {
         "rule": "规则",

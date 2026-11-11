@@ -3056,7 +3056,7 @@
         "add": "API Anahtarı Ekle",
         "generate": "Üret",
         "empty": "API Anahtarı Yok",
-        "hint": "Her Girdi Bir API Anahtarını Temsil Eder ('API Anahtarı Yönetimi' Sayfa Biçimiyle Tutarlı)",
+        "hint": "İstemcilerin proxy ile kimlik doğrulamak için kullandığı anahtarlar.",
         "edit_title": "API Anahtarını Düzenle",
         "add_title": "API Anahtarı Ekle",
         "label_input": "Anahtar etiketi (isteğe bağlı)",
@@ -3083,8 +3083,6 @@
         "daily": "Günlük",
         "weekly": "Haftalık",
         "monthly": "Aylık",
-        "consumption": "{{requests}} / {{requestLimit}} istekler · {{tokens}} / {{tokenLimit}} belirteçleri",
-        "warning": "{{count}} anahtar kimlik veya güç uyarısı/uyarıları.",
         "compatibility_blocked": "Bu CPA sürümü, yapılandırılmış anahtarları güvenli bir şekilde yazamaz. Sınırları düzenlemeden önce EBM'yi yükseltin.",
         "error_empty": "Lütfen Bir API Anahtarı Gir",
         "error_invalid": "API Anahtarı Geçersiz Karakterler İçeriyor",
@@ -3102,7 +3100,34 @@
         "name_label": "Ad / Açıklama (İsteğe Bağlı)",
         "name_placeholder": "Örnek: Alice'in Dizüstü Bilgisayarı",
         "name_hint": "Yalnızca Bu Tarayıcıda, Her Sunucu için Ayrı Olarak Hemen Kaydedilir. Sunucu Yapılandırmasına Dahil Değildir. Adı Kaldırmak için Bu Alanı Temizle.",
-        "name_save_error": "Ad Tarayıcı Deposuna Kaydedilemedi. Tarayıcı Depolama Ayarlarını Kontrol Et."
+        "name_save_error": "Ad Tarayıcı Deposuna Kaydedilemedi. Tarayıcı Depolama Ayarlarını Kontrol Et.",
+        "search_placeholder": "Etiket veya anahtar kimliğiyle ara ya da anahtarı yapıştır",
+        "search_aria": "API anahtarlarını filtrele",
+        "search_clear": "Aramayı temizle",
+        "attention_filter": "İlgi gerekiyor",
+        "col_name": "Ad",
+        "col_key": "Anahtar",
+        "col_usage": "Kullanım",
+        "unlabeled": "Etiketsiz",
+        "new_badge": "Yeni",
+        "no_limits": "Sınır yok",
+        "no_match": "Geçerli filtreyle eşleşen anahtar yok.",
+        "usage_requests": "İstekler {{value}}",
+        "usage_tokens": "Token {{value}}",
+        "warnings": {
+          "weak_api_key": {
+            "label": "Zayıf",
+            "desc": "Kısa veya tahmin edilebilir. Yerine yeni bir anahtar oluşturun."
+          },
+          "duplicate_trimmed_key": {
+            "label": "Yinelenen",
+            "desc": "Bu anahtar yapılandırmada birden fazla kez geçiyor."
+          },
+          "identity_conflict": {
+            "label": "Kimlik çakışması",
+            "desc": "Başka bir girdi aynı anahtar kimliğine çözümleniyor."
+          }
+        }
       },
       "payload_rules": {
         "rule": "Kural",

@@ -168,51 +168,276 @@
   line-height: 1.55;
 }
 
-.apiKeyList {
+.apiKeys .emptyState {
   display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.apiKeyRow {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  /* 序号 / 名称 / 掩码按文字基线对齐（三种字号混排），操作组整体居中。 */
-  align-items: baseline;
-  gap: 14px;
-  min-height: 48px;
-  padding: 6px 0;
-  border-top: 1px solid var(--border-color);
-}
-
-.apiKeyIndex {
-  min-width: 26px;
-  color: var(--text-tertiary);
-  font-family: $font-mono;
+.apiKeysCount {
+  display: inline-flex;
+  align-items: center;
+  min-width: 22px;
+  height: 20px;
+  margin-left: 8px;
+  padding: 0 7px;
+  border-radius: $radius-full;
+  background: var(--count-badge-bg);
+  color: var(--count-badge-text);
   font-size: 11.5px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  justify-content: center;
+  vertical-align: 1px;
 }
 
-.apiKeyMeta {
+.apiKeysNotice {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--warning-border);
+  border-radius: 10px;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 13px;
+  line-height: 1.5;
+
+  svg {
+    flex: none;
+    margin-top: 2px;
+  }
+}
+
+/* ---------- API key table ---------- */
+
+.apiKeysToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.apiKeysSearch {
+  position: relative;
+  flex: 1 1 240px;
+  max-width: 360px;
+}
+
+.apiKeysSearchIcon {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.apiKeys .apiKeysSearchInput {
+  height: 36px;
+  padding: 0 34px;
+  font-size: 13px;
+}
+
+.apiKeysSearchClear {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transform: translateY(-50%);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+}
+
+.apiKeysAttention {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--warning-border);
+  border-radius: $radius-full;
+  background: transparent;
+  color: var(--warning-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-hover) var(--ease-out-strong),
+    border-color var(--dur-hover) var(--ease-out-strong);
+
+  &:hover,
+  &[aria-pressed='true'] {
+    background: var(--warning-bg);
+  }
+
+  &[aria-pressed='true'] {
+    border-color: var(--warning-color);
+  }
+}
+
+.apiKeysAttentionCount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.apiKeyTableWrap {
+  min-width: 0;
+
+  /* The shared table adds its own top margin; the editor's flex gap already spaces it. */
+  > :first-child {
+    margin-top: 0;
+  }
+}
+
+.apiKeyTable {
+  table-layout: fixed;
+
+  tbody td {
+    vertical-align: middle;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+}
+
+.apiKeyColKey {
+  width: 32%;
+}
+
+.apiKeyColUsage {
+  width: 22%;
+}
+
+.apiKeyColActions {
+  width: 92px;
+}
+
+.apiKeyRowNew td {
+  background: var(--primary-8);
+}
+
+.apiKeyNameCell {
   min-width: 0;
 }
 
-.apiKeyName {
+.apiKeyNameLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  min-width: 0;
+}
+
+.apiKeyLabel,
+.apiKeyLabelEmpty {
   overflow: hidden;
-  color: var(--text-primary);
+  max-width: 100%;
   font-size: 13.5px;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.apiKeyLabel {
+  color: var(--text-primary);
+}
+
+.apiKeyLabelEmpty {
+  color: var(--text-tertiary);
+  font-style: italic;
+  font-weight: 500;
+}
+
+%apiKeyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: $radius-full;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.apiKeyBadgeNew {
+  @extend %apiKeyBadge;
+  border-color: var(--primary-30);
+  background: var(--primary-10);
+  color: var(--primary-color);
+}
+
+.apiKeyBadgeWarn {
+  @extend %apiKeyBadge;
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  cursor: help;
+}
+
+.apiKeyIdButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0 0 -4px;
+  padding: 1px 4px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: $font-mono;
+  font-size: 11.5px;
+  cursor: pointer;
+
+  svg {
+    opacity: 0;
+    transition: opacity var(--dur-hover) var(--ease-out-strong);
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+
+    svg {
+      opacity: 1;
+    }
+  }
+
+  @media (hover: none) {
+    svg {
+      opacity: 0.7;
+    }
+  }
+}
+
+.apiKeyValueLine {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
 .apiKeyValue {
   overflow: hidden;
+  min-width: 0;
+  margin-right: 4px;
   color: var(--text-secondary);
   font-family: $font-mono;
   font-size: 12.5px;
@@ -220,65 +445,148 @@
   white-space: nowrap;
 }
 
-.apiKeyActions {
+.apiKeyUsage {
   display: flex;
-  align-self: center;
   align-items: center;
+  gap: 6px;
+}
+
+.apiKeyUsageLines {
+  display: flex;
+  flex-direction: column;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.45;
+  white-space: nowrap;
+
+  [data-full] {
+    color: var(--error-color);
+    font-weight: 600;
+  }
+}
+
+.apiKeyMuted {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.apiKeyActions {
+  display: inline-flex;
   gap: 2px;
 }
 
-/* 行内操作是次要信息：两套主题都用次级文字色（压过深色主题下 ghost 按钮的纯白）。
-   删除平时与其他操作同色，悬停 / 聚焦才亮出危险色——破坏性动作不该是行里最响的元素。 */
-.apiKeyRow .apiKeyActions :global(.btn.btn-ghost) {
-  color: var(--text-secondary);
+.apiKeyIconButton {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-hover) var(--ease-out-strong),
+    color var(--dur-hover) var(--ease-out-strong);
 
-  &:focus-visible {
+  &:hover:not(:disabled),
+  &:focus-visible,
+  &[aria-pressed='true'] {
+    background: var(--bg-hover);
     color: var(--text-primary);
   }
 
-  &.apiKeyDelete:focus-visible {
+  &.apiKeyIconDanger:hover:not(:disabled),
+  &.apiKeyIconDanger:focus-visible {
     background: var(--destructive-10);
     color: var(--error-color);
   }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  @media (pointer: coarse) {
+    width: 36px;
+    height: 36px;
+  }
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .apiKeyRow .apiKeyActions :global(.btn.btn-ghost):hover {
-    color: var(--text-primary);
+/* Phones: each row becomes a card — name and actions on top, key and usage below. */
+@media (max-width: 640px) {
+  .apiKeys .apiKeysSearch {
+    max-width: none;
   }
 
-  .apiKeyRow .apiKeyActions :global(.btn.btn-ghost).apiKeyDelete:hover {
-    background: var(--destructive-10);
-    color: var(--error-color);
+  .apiKeyTable {
+    display: block;
+
+    thead,
+    colgroup {
+      display: none;
+    }
+
+    tbody {
+      display: block;
+    }
+
+    tbody tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        'name actions'
+        'key key'
+        'usage usage';
+      gap: 6px 8px;
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr td,
+    tbody tr:hover td {
+      display: block;
+      padding: 0;
+      border-bottom: none;
+      background: transparent;
+    }
   }
-}
 
-/* Fork rows keep labels, consumption, and explicit reveal/copy/ID/reset actions, so they
-   stay as bordered item rows under the shared header rather than single hairline rows. */
-.apiKeyItems {
-  gap: 8px;
-
-  :global(.item-row) {
-    border-radius: 10px;
-    padding: 12px;
-    background: transparent;
-    border-color: var(--border-color);
+  .apiKeyTable .apiKeyUsageCell:has(.apiKeyMuted) {
+    display: none;
   }
 
-  :global(.item-row .item-meta) {
-    gap: 4px;
+  .apiKeyRowNew {
+    background: var(--primary-8);
   }
 
-  :global(.item-row .item-actions) {
-    flex-wrap: wrap;
+  .apiKeyNameCell {
+    grid-area: name;
   }
 
-  :global(.pill) {
-    align-self: flex-start;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background: transparent;
-    color: var(--text-secondary);
+  .apiKeyValueCell {
+    grid-area: key;
+  }
+
+  .apiKeyUsageCell {
+    grid-area: usage;
+  }
+
+  .apiKeyActionsCell {
+    grid-area: actions;
+    align-self: start;
+  }
+
+  .apiKeyUsageLines {
+    flex-direction: row;
+    gap: 12px;
   }
 }
 
@@ -292,18 +600,6 @@
   :global(.input) {
     flex: 1;
   }
-}
-
-.apiKeyItemMeta {
-  min-width: 0;
-  flex: 1 1 240px;
-}
-
-.apiKeyTitle {
-  min-width: 0;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
 }
 
 .apiKeyLabelInput {

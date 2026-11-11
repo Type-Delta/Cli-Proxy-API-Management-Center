@@ -3056,7 +3056,7 @@
         "add": "Add API Key",
         "generate": "Generate",
         "empty": "No API keys",
-        "hint": "Each entry represents an API key (consistent with 'API Key Management' page style)",
+        "hint": "Keys that clients use to authenticate with the proxy.",
         "edit_title": "Edit API Key",
         "add_title": "Add API Key",
         "label_input": "Key label (optional)",
@@ -3083,8 +3083,6 @@
         "daily": "Daily",
         "weekly": "Weekly",
         "monthly": "Monthly",
-        "consumption": "{{requests}} / {{requestLimit}} requests · {{tokens}} / {{tokenLimit}} tokens",
-        "warning": "{{count}} key identity or strength warning(s).",
         "compatibility_blocked": "This CPA version cannot safely write structured keys. Upgrade CPA before editing limits.",
         "error_empty": "Please enter an API key",
         "error_invalid": "API key contains invalid characters",
@@ -3102,7 +3100,34 @@
         "name_label": "Name / description (optional)",
         "name_placeholder": "For example: Alice's laptop",
         "name_hint": "Saved immediately in this browser only, separately for each server. Not included in server configuration. Clear this field to remove the name.",
-        "name_save_error": "Could not save the name in browser storage. Check your browser storage settings."
+        "name_save_error": "Could not save the name in browser storage. Check your browser storage settings.",
+        "search_placeholder": "Search name or ID, or paste a key",
+        "search_aria": "Filter API keys",
+        "search_clear": "Clear search",
+        "attention_filter": "Needs attention",
+        "col_name": "Name",
+        "col_key": "Key",
+        "col_usage": "Usage",
+        "unlabeled": "Unlabeled",
+        "new_badge": "New",
+        "no_limits": "No limits",
+        "no_match": "No keys match the current filter.",
+        "usage_requests": "Requests {{value}}",
+        "usage_tokens": "Tokens {{value}}",
+        "warnings": {
+          "weak_api_key": {
+            "label": "Weak",
+            "desc": "Short or predictable. Generate a new key to replace it."
+          },
+          "duplicate_trimmed_key": {
+            "label": "Duplicate",
+            "desc": "This key appears more than once in the config."
+          },
+          "identity_conflict": {
+            "label": "ID conflict",
+            "desc": "Another entry resolves to the same key ID."
+          }
+        }
       },
       "payload_rules": {
         "rule": "Rule",

@@ -3056,7 +3056,7 @@
         "add": "Thêm API Key",
         "generate": "Tạo",
         "empty": "Chưa có API key",
-        "hint": "Mỗi mục là một API key (nhất quán với phong cách trang 'Quản lý API Key')",
+        "hint": "Các khóa mà client dùng để xác thực với proxy.",
         "edit_title": "Chỉnh sửa API Key",
         "add_title": "Thêm API Key",
         "label_input": "Key label (optional)",
@@ -3083,8 +3083,6 @@
         "daily": "Daily",
         "weekly": "Weekly",
         "monthly": "Monthly",
-        "consumption": "{{requests}} / {{requestLimit}} requests · {{tokens}} / {{tokenLimit}} tokens",
-        "warning": "{{count}} key identity or strength warning(s).",
         "compatibility_blocked": "This CPA version cannot safely write structured keys. Upgrade CPA before editing limits.",
         "error_empty": "Vui lòng nhập API key",
         "error_invalid": "API key chứa ký tự không hợp lệ",
@@ -3102,7 +3100,34 @@
         "name_label": "Tên / mô tả (tùy chọn)",
         "name_placeholder": "Ví dụ: Laptop của Alice",
         "name_hint": "Được lưu ngay trong trình duyệt này, riêng cho từng máy chủ. Không bao gồm trong cấu hình máy chủ. Xóa trường này để xóa tên.",
-        "name_save_error": "Không thể lưu tên vào bộ lưu trữ trình duyệt. Vui lòng kiểm tra cài đặt lưu trữ của trình duyệt."
+        "name_save_error": "Không thể lưu tên vào bộ lưu trữ trình duyệt. Vui lòng kiểm tra cài đặt lưu trữ của trình duyệt.",
+        "search_placeholder": "Tìm theo nhãn hoặc ID khóa, hoặc dán khóa",
+        "search_aria": "Lọc API key",
+        "search_clear": "Xóa tìm kiếm",
+        "attention_filter": "Cần xử lý",
+        "col_name": "Tên",
+        "col_key": "Khóa",
+        "col_usage": "Mức dùng",
+        "unlabeled": "Chưa đặt nhãn",
+        "new_badge": "Mới",
+        "no_limits": "Không giới hạn",
+        "no_match": "Không có khóa nào khớp bộ lọc hiện tại.",
+        "usage_requests": "Yêu cầu {{value}}",
+        "usage_tokens": "Token {{value}}",
+        "warnings": {
+          "weak_api_key": {
+            "label": "Yếu",
+            "desc": "Ngắn hoặc dễ đoán. Hãy tạo khóa mới để thay thế."
+          },
+          "duplicate_trimmed_key": {
+            "label": "Trùng lặp",
+            "desc": "Khóa này xuất hiện nhiều lần trong cấu hình."
+          },
+          "identity_conflict": {
+            "label": "Xung đột ID",
+            "desc": "Một mục khác cho ra cùng ID khóa."
+          }
+        }
       },
       "payload_rules": {
         "rule": "Quy tắc",

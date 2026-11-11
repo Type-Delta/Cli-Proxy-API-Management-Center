@@ -3056,7 +3056,7 @@
         "add": "新增 API 金鑰",
         "generate": "產生",
         "empty": "暫無 API 金鑰",
-        "hint": "每個條目代表一個 API 金鑰（與「API 金鑰管理」頁面樣式一致）",
+        "hint": "用戶端呼叫代理時用於驗證的金鑰。",
         "edit_title": "編輯 API 金鑰",
         "add_title": "新增 API 金鑰",
         "label_input": "金鑰標籤（選填）",
@@ -3083,8 +3083,6 @@
         "daily": "每天",
         "weekly": "每週",
         "monthly": "每月",
-        "consumption": "請求 {{requests}} / {{requestLimit}} · 權杖 {{tokens}} / {{tokenLimit}}",
-        "warning": "發現 {{count}} 個金鑰身分或強度警告。",
         "compatibility_blocked": "此 CPA 版本無法安全寫入結構化金鑰。請先升級 CPA 再編輯限額。",
         "error_empty": "請輸入 API 金鑰",
         "error_invalid": "API 金鑰包含無效字元",
@@ -3102,7 +3100,34 @@
         "name_label": "名稱 / 說明（選填）",
         "name_placeholder": "例如：小明的筆記型電腦",
         "name_hint": "名稱立即儲存在目前瀏覽器中，依伺服器隔離，不寫入伺服器設定。清空此欄位可移除名稱。",
-        "name_save_error": "無法將名稱儲存至瀏覽器儲存空間，請檢查瀏覽器儲存設定。"
+        "name_save_error": "無法將名稱儲存至瀏覽器儲存空間，請檢查瀏覽器儲存設定。",
+        "search_placeholder": "依標籤或金鑰 ID 搜尋，或貼上完整金鑰",
+        "search_aria": "篩選 API 金鑰",
+        "search_clear": "清除搜尋",
+        "attention_filter": "需要處理",
+        "col_name": "名稱",
+        "col_key": "金鑰",
+        "col_usage": "用量",
+        "unlabeled": "未命名",
+        "new_badge": "新",
+        "no_limits": "不限",
+        "no_match": "沒有符合目前篩選的金鑰。",
+        "usage_requests": "請求 {{value}}",
+        "usage_tokens": "Token {{value}}",
+        "warnings": {
+          "weak_api_key": {
+            "label": "弱金鑰",
+            "desc": "過短或可預測，建議產生新金鑰替換。"
+          },
+          "duplicate_trimmed_key": {
+            "label": "重複",
+            "desc": "此金鑰在設定中出現了多次。"
+          },
+          "identity_conflict": {
+            "label": "ID 衝突",
+            "desc": "另一個項目解析為相同的金鑰 ID。"
+          }
+        }
       },
       "payload_rules": {
         "rule": "規則",

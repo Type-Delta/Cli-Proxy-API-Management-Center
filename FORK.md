@@ -1736,6 +1736,37 @@ and 320px.
 
 **Last updated:** 2026-11-04
 
+### DL081 — Searchable client API-key table
+
+The Config Panel's client API-key editor (DL024) renders keys as a paged table (10 per page)
+instead of one bordered card per key, so 30+ keys no longer stretch the page. Columns are name
+(label or "Unlabeled", per-key warning badges, and the short key ID, which copies the full ID),
+masked key with reveal and copy, limit usage with reset, and edit/delete icon actions. A search
+box matches labels and key-ID prefixes; a raw key matches only when pasted in full, so the
+filter never confirms fragments of concealed keys. Server warnings are mapped through their
+`config_indexes` onto rows as "Weak", "Duplicate", and "ID conflict" badges with explanatory
+tooltips, and a "Needs attention" chip filters to those rows; this replaces the unstyled
+"N key identity or strength warning(s)" count and the meaningless `#N` row numbers. Keys added
+in the current session are pinned to the top with a "New" badge. That list lives only in
+component memory: it never reaches browser storage, is not shared between devices, and clears
+on reload or connection change. Adding a key clears the search and filter so the new row is
+visible. Below 640px each row becomes a card, and a key without limits omits its usage line.
+
+**Implementation evidence:**
+`src/features/config/components/blocks/{ApiKeysCardEditor.tsx,apiKeyEditorUtils.ts,Blocks.module.scss}`,
+`src/i18n/locales/*.json`; tests: `tests/apiKeyTable.test.ts`.
+
+**Recorded validation:** On 2026-11-11, `bun run verify` passes 3,013 tests, ESLint,
+TypeScript, and the production build. Isolated Chrome CDP at 1440px, 900px, and 390px, light
+and dark, plus WebKit at 390px, ran the dev panel against a local CPA seeded with 38 client
+keys (labelled, unlabelled, limited, and two weak). Checks covered search narrowing, the
+attention filter showing exactly the two weak keys with tooltips, a key added while a search
+was active landing first with "New" and the search cleared, reveal without column shift, and
+no page-level horizontal overflow. The editor's height with 38 keys dropped from 4,620px to
+801px.
+
+**Last updated:** 2026-11-11
+
 ## Sync Checklist
 
 Project-specific checks every upstream sync runs, in addition to the full test suite, lint, typecheck, builds, and a smoke test of upstream and fork features.
