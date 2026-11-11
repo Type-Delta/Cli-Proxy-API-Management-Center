@@ -20,9 +20,10 @@ export function AnalyticsSettingsFields({
   // Intl.supportedValuesOf is not guaranteed to exist in every runtime (or TS lib target); guard it.
   const supportedValuesOf = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] })
     .supportedValuesOf;
-  // supportedValuesOf lists canonical-legacy names only; prepend UTC so the default is offered.
+  // Chromium omits UTC from supportedValuesOf while Firefox and WebKit list it; offer the
+  // default first, once.
   const timeZoneOptions: string[] = supportedValuesOf
-    ? ['UTC', ...supportedValuesOf('timeZone')]
+    ? [...new Set(['UTC', ...supportedValuesOf('timeZone')])]
     : [];
 
   return (

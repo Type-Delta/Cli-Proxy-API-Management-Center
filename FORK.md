@@ -184,7 +184,7 @@ The Analysis view groups its cards into two labeled `<section>` landmarks, Consu
 
 `fetchViewerJSON` resolves viewer requests against the configured API base (`apiClient.getApiBase()`) rather than a hardcoded same-origin path, and chooses `same-origin` vs. `include` credentials by comparing the resolved URL's origin to `window.location.origin`, so a shared-view link opens correctly when CPAMC and CPA are served from different origins (paired with DL011's server-side allowlist).
 
-The analytics storage time zone field accepts the literal value `Local` without attempting `Intl.DateTimeFormat` validation, and trims the value before persisting it, so the config UI doesn't reject the sentinel or save trailing whitespace as part of an IANA zone name.
+The analytics storage time zone field accepts the literal value `Local` without attempting `Intl.DateTimeFormat` validation, and trims the value before persisting it, so the config UI doesn't reject the sentinel or save trailing whitespace as part of an IANA zone name. Its option list puts `UTC` first exactly once: Firefox and WebKit already include `UTC` in `Intl.supportedValuesOf('timeZone')` while Chromium omits it, and prepending it unconditionally gave those engines a duplicate React key (`tests/analyticsTimezoneOptions.test.ts`).
 
 `AsyncState` now retains previously rendered content through a subsequent loading pass (tracked via a `hasRenderedContent` flag) instead of reverting to `initial-loading`, so changing the analytics range no longer blanks a chart while the new range's data streams in.
 
@@ -196,7 +196,7 @@ Finally, the four CPAMC locale files gained the enum-label groups `analytics.enu
 
 **Recorded validation:** `bun run verify` (577 tests, lint, `tsc && vite build`) passes, including new `tests/analyticsPalette.test.ts` (contrast-ratio assertions per theme), `tests/analyticsRetryWiring.test.ts` (retry disabled under an active `Retry-After`), and `tests/analyticsViewerSecurity.test.ts` (`buildViewerURL` resolves against a configured non-default API origin; `viewerCredentialsMode` picks `same-origin` vs. `include`), plus the updated `tests/analyticsOverview.test.ts` (stale content survives a range-change load) and `tests/visualConfigAnalytics.test.ts` (`Local` sentinel accepted and trimmed). `LANG=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8 bun test` passes the same 577 tests, confirming the locale-independent assertions. A key-set scan (`analytics.*` in each locale JSON) confirms all four files carry the identical 608-key set after the additions.
 
-**Last updated:** 2026-09-03
+**Last updated:** 2026-11-11
 
 ### DL012 — Round-6 analytics chart engine, navigation, and locale round-trip
 
