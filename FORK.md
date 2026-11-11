@@ -1752,18 +1752,30 @@ component memory: it never reaches browser storage, is not shared between device
 on reload or connection change. Adding a key clears the search and filter so the new row is
 visible. Below 640px each row becomes a card, and a key without limits omits its usage line.
 
+Adding, editing, or deleting a key through the revisioned `/api-keys` endpoints saves it
+immediately, so the editor no longer copies the change into the Config Panel draft, where it
+showed "Unsaved changes" for work that was already saved. `useConfigDocument.adoptServerChange`
+re-reads `config.yaml` instead and makes it the baseline; any other unsaved visual edits are
+rebased on top and stay dirty, and Discard restores the post-write server state. CPA builds
+without revisioned writes still edit the draft and save through the page's Save flow.
+
 **Implementation evidence:**
 `src/features/config/components/blocks/{ApiKeysCardEditor.tsx,apiKeyEditorUtils.ts,Blocks.module.scss}`,
-`src/i18n/locales/*.json`; tests: `tests/apiKeyTable.test.ts`.
+`src/features/config/{ConfigPage.tsx,types.ts,hooks/useConfigDocument.ts}`,
+`src/features/config/components/{fields/sharedFields.tsx,sections/SectionCommon.tsx,sections/SectionConnectivity.tsx}`,
+`src/i18n/locales/*.json`; tests: `tests/{apiKeyTable,configSaveLifecycle}.test.ts`.
 
-**Recorded validation:** On 2026-11-11, `bun run verify` passes 3,013 tests, ESLint,
+**Recorded validation:** On 2026-11-11, `bun run verify` passes 3,016 tests, ESLint,
 TypeScript, and the production build. Isolated Chrome CDP at 1440px, 900px, and 390px, light
 and dark, plus WebKit at 390px, ran the dev panel against a local CPA seeded with 38 client
 keys (labelled, unlabelled, limited, and two weak). Checks covered search narrowing, the
 attention filter showing exactly the two weak keys with tooltips, a key added while a search
 was active landing first with "New" and the search cleared, reveal without column shift, and
 no page-level horizontal overflow. The editor's height with 38 keys dropped from 4,620px to
-801px.
+801px. Against the same local CPA, Chrome showed "Unsaved changes" after editing a label or
+adding a key before the draft fix and none after it in Chrome, Firefox, and WebKit. A pending
+proxy-URL edit survived a key delete, and saving it afterwards produced a diff containing only
+`requests.proxy-url` and succeeded.
 
 **Last updated:** 2026-11-11
 

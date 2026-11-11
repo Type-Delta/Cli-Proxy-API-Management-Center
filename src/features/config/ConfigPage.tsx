@@ -270,6 +270,7 @@ export function ConfigPage() {
       disableControls || doc.loading || doc.saving || doc.diffModalOpen || doc.recoveryRequired,
     animateIn: animateCards,
     onChange: setVisualValues,
+    onServerChange: doc.adoptServerChange,
   };
 
   const renderActiveSection = () => {

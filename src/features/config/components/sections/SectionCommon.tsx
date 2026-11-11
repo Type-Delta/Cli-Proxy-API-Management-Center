@@ -27,6 +27,7 @@ export function SectionCommon({
   disabled,
   animateIn,
   onChange,
+  onServerChange,
 }: ConfigSectionProps) {
   const { t } = useTranslation();
   const portError = getValidationMessage(t, validationErrors?.port);
@@ -46,7 +47,7 @@ export function SectionCommon({
           <ProxyUrlField {...fieldProps} wide />
         </SettingList>
 
-        <ApiKeysField {...fieldProps} />
+        <ApiKeysField {...fieldProps} onServerChange={onServerChange} />
 
         <SettingList>
           <DebugToggle {...fieldProps} />

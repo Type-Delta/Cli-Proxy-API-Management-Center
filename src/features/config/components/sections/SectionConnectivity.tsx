@@ -24,6 +24,7 @@ export function SectionConnectivity({
   disabled,
   animateIn,
   onChange,
+  onServerChange,
 }: ConfigSectionProps) {
   const { t } = useTranslation();
   const fieldProps = { values, disabled, onChange };
@@ -51,7 +52,7 @@ export function SectionConnectivity({
         />
       </SettingList>
 
-      <ApiKeysField {...fieldProps} />
+      <ApiKeysField {...fieldProps} onServerChange={onServerChange} />
 
       <SettingList>
         <TextSetting

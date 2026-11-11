@@ -95,7 +95,12 @@ export function ProxyUrlField({ values, disabled, onChange, wide }: SharedFieldP
   );
 }
 
-export function ApiKeysField({ values, disabled, onChange }: SharedFieldProps) {
+export function ApiKeysField({
+  values,
+  disabled,
+  onChange,
+  onServerChange,
+}: SharedFieldProps & { onServerChange?: () => Promise<void> }) {
   return (
     <SettingList>
       <SettingCell fieldId="apiKeys">
@@ -104,6 +109,7 @@ export function ApiKeysField({ values, disabled, onChange }: SharedFieldProps) {
           labels={values.apiKeyLabels}
           disabled={disabled}
           onChange={(apiKeysText, apiKeyLabels) => onChange({ apiKeysText, apiKeyLabels })}
+          onServerChange={onServerChange}
         />
       </SettingCell>
     </SettingList>

@@ -8,4 +8,6 @@ export type ConfigSectionProps = {
   /** 仅首载入场为 true（页面挂载时捕获），tab 切换不重播。 */
   animateIn?: boolean;
   onChange: (patch: Partial<VisualConfigValues>) => void;
+  /** Re-reads the server config after a write that bypasses the Save flow (API-key endpoints). */
+  onServerChange?: () => Promise<void>;
 };

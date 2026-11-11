@@ -201,6 +201,29 @@ export function useConfigDocument({
     [mergedYaml, previewServerYaml, rebaseVisualValuesFromYaml]
   );
 
+  /**
+   * Call after a write that bypasses this save flow (the API-key endpoints). The server's YAML
+   * becomes the baseline, so the written field is not reported as unsaved; other visual edits
+   * stay dirty on top of it.
+   */
+  const adoptServerChange = useCallback(async () => {
+    const revision = apiClient.getConnectionRevision();
+    const latestYaml = await configFileApi.fetchConfigYaml();
+    if (revision !== apiClient.getConnectionRevision()) return;
+    let draftYaml = latestYaml;
+    if (visualDirty) {
+      draftYaml = applyVisualChangesToYaml(latestYaml);
+      const result = rebaseVisualValuesFromYaml(latestYaml, draftYaml);
+      if (!result.ok) throw new Error(result.error);
+    } else {
+      loadVisualValuesFromYaml(latestYaml);
+    }
+    setContent(latestYaml);
+    setServerYaml(latestYaml);
+    setMergedYaml(draftYaml);
+    setPreviewServerYaml(latestYaml);
+  }, [applyVisualChangesToYaml, loadVisualValuesFromYaml, rebaseVisualValuesFromYaml, visualDirty]);
+
   const handleConfirmSave = useCallback(async () => {
     if (!diffModalOpen || saving) return;
     const operation = beginOperation();
@@ -521,6 +544,7 @@ export function useConfigDocument({
     serverYaml,
     mergedYaml,
     loadConfig,
+    adoptServerChange,
     handleSave,
     handleConfirmSave,
     handleChange,

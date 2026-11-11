@@ -72,11 +72,14 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   labels,
   disabled,
   onChange,
+  onServerChange,
 }: {
   value: string;
   labels: readonly string[];
   disabled?: boolean;
   onChange: (nextValue: string, nextLabels: string[]) => void;
+  /** Re-reads the page's config after an endpoint write, which is already saved. */
+  onServerChange?: () => Promise<void>;
 }) {
   const { t } = useTranslation();
   // The editor also renders in static config-field previews and tests without a Router.
@@ -254,8 +257,20 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
     setLabelValue('');
     setFormError('');
   };
-  const updateKeys = (nextKeys: string[], nextLabels: string[]) =>
-    onChange(nextKeys.join('\n'), nextLabels);
+  // Endpoint writes are already saved, so the page re-reads the server instead of holding them
+  // as unsaved draft edits. Older CPA builds edit the draft, which the page's Save flow writes.
+  const commitKeys = async (nextKeys: string[], nextLabels: string[]) => {
+    if (!supportsWrites || !onServerChange) {
+      onChange(nextKeys.join('\n'), nextLabels);
+      await refreshContract();
+      return;
+    }
+    try {
+      await Promise.all([onServerChange(), refreshContract()]);
+    } catch (error) {
+      showNotification(error instanceof Error ? error.message : t('common.error'), 'error');
+    }
+  };
 
   const handleDelete = (rowId: string) => {
     const index = renderRowIds.findIndex((id) => id === rowId);
@@ -275,11 +290,10 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
           setRevealedRows(new Set());
           setRowIds(renderRowIds.filter((id) => id !== rowId));
           setRecentKeys((current) => current.filter((key) => key !== apiKeys[index]));
-          updateKeys(
+          await commitKeys(
             apiKeys.filter((_, current) => current !== index),
             apiKeyLabels.filter((_, current) => current !== index)
           );
-          await refreshContract();
         } catch (error) {
           showNotification(error instanceof Error ? error.message : t('common.error'), 'error');
         } finally {
@@ -380,9 +394,8 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
         setRecentKeys((current) => current.map((key) => (key === previousKey ? trimmed : key)));
       }
       setRevealedRows(new Set());
-      updateKeys(nextKeys, nextLabels);
       closeModal();
-      await refreshContract();
+      await commitKeys(nextKeys, nextLabels);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : t('common.error'));
     } finally {

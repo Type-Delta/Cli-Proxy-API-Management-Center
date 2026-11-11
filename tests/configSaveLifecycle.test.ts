@@ -126,6 +126,32 @@ describe('shared visual config save lifecycle', () => {
     });
   }
 
+  test('adopting an endpoint write keeps it out of the draft and retains other edits', async () => {
+    await withEditor(async (editor, read) => {
+      read.mockResolvedValue(
+        `${initial}access:\n  api-keys:\n    - key: sk-added\n      label: new\n`
+      );
+      await act(async () => editor().doc.adoptServerChange());
+      const { visual, doc } = editor();
+      expect(visual.visualValues.apiKeysText).toBe('sk-added');
+      expect(visual.visualValues.apiKeyLabels).toEqual(['new']);
+      expect([...visual.visualDirtyFields]).toEqual(['routingRules']);
+      expect(visual.visualValues.routingRules.map((rule) => rule.name)).toEqual(['Renamed']);
+      expect(doc.isDirty).toBe(true);
+
+      // Once the remaining edit is reverted, nothing is left to save.
+      await act(async () =>
+        editor().visual.setVisualValues({
+          routingRules: editor().visual.visualValues.routingRules.map((rule) => ({
+            ...rule,
+            name: 'Original',
+          })),
+        })
+      );
+      expect(editor().doc.isDirty).toBe(false);
+    });
+  });
+
   test('header refresh during a pending save cannot supersede it or leave saving stuck', async () => {
     await withEditor(async (editor, read) => {
       const pending = Promise.withResolvers<string>();
