@@ -136,6 +136,32 @@ export function mergeApiKeyEntries(
 type YamlDocument = ReturnType<typeof parseDocument>;
 type YamlPath = string[];
 
+const SIGNATURE_STABILIZATION_PATH = [
+  'upstream',
+  'claude',
+  'header-defaults',
+  'signature-stabilization',
+];
+// Backend alias order: canonical spellings in any layout win over legacy ones.
+const SIGNATURE_STABILIZATION_ALIASES: YamlPath[] = [
+  ['oauth', 'providers', 'claude', 'header-defaults', 'signature-stabilization'],
+  ['claude-header-defaults', 'signature-stabilization'],
+  ['upstream', 'claude', 'header-defaults', 'stabilize-device-profile'],
+  ['oauth', 'providers', 'claude', 'header-defaults', 'stabilize-device-profile'],
+  ['claude-header-defaults', 'stabilize-device-profile'],
+];
+
+function readSignatureStabilization(root: Record<string, unknown>): boolean {
+  for (const path of [SIGNATURE_STABILIZATION_PATH, ...SIGNATURE_STABILIZATION_ALIASES]) {
+    const parent = path
+      .slice(0, -1)
+      .reduce<Record<string, unknown> | null>((node, key) => asRecord(node?.[key]), root);
+    const key = path[path.length - 1];
+    if (parent && Object.prototype.hasOwnProperty.call(parent, key)) return Boolean(parent[key]);
+  }
+  return false;
+}
+
 function docHas(doc: YamlDocument, path: YamlPath): boolean {
   return doc.hasIn(path);
 }
@@ -2078,7 +2104,7 @@ function parseVisualValuesFromYaml(yamlContent: string): VisualConfigValues {
       typeof claudeHeaderDefaults?.arch === 'string' ? claudeHeaderDefaults.arch : '',
     claudeHeaderTimeout:
       typeof claudeHeaderDefaults?.timeout === 'string' ? claudeHeaderDefaults.timeout : '',
-    claudeHeaderStabilizeDeviceProfile: Boolean(claudeHeaderDefaults?.['stabilize-device-profile']),
+    claudeHeaderStabilizeDeviceProfile: readSignatureStabilization(parsed),
     claudeHeaderOauthSafeguard: Boolean(claudeHeaderDefaults?.['oauth-safeguard']),
     claudeHeaderOauthSafeguardClientIdentities: parseStringList(
       claudeHeaderDefaults?.['oauth-safeguard-client-identities']
@@ -2638,9 +2664,12 @@ export function useVisualConfig() {
           if (dirtyFields.has('claudeHeaderStabilizeDeviceProfile')) {
             setBooleanInDoc(
               doc,
-              ['upstream', 'claude', 'header-defaults', 'stabilize-device-profile'],
+              SIGNATURE_STABILIZATION_PATH,
               values.claudeHeaderStabilizeDeviceProfile
             );
+            for (const path of SIGNATURE_STABILIZATION_ALIASES) {
+              if (docHas(doc, path)) deletePathInDoc(doc, path);
+            }
           }
           if (dirtyFields.has('claudeHeaderOauthSafeguard')) {
             setBooleanInDoc(

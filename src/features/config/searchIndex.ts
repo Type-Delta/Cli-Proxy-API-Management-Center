@@ -779,8 +779,8 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     labelKey: L('sections.headers.stabilize_device'),
     qualifierKey: L('sections.headers.claude_title'),
     hintKey: L('sections.headers.stabilize_device_desc'),
-    yamlKeys: ['upstream', 'claude', 'header-defaults', 'stabilize-device-profile'],
-    keywords: ['claude'],
+    yamlKeys: ['upstream', 'claude', 'header-defaults', 'signature-stabilization'],
+    keywords: ['claude', 'stabilize-device-profile', 'device', 'fingerprint'],
   },
   {
     fieldId: 'claudeHeaderOauthSafeguard',

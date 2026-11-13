@@ -1779,6 +1779,34 @@ proxy-URL edit survived a key delete, and saving it afterwards produced a diff c
 
 **Last updated:** 2026-11-11
 
+### DL082 — Claude Signature Stabilization setting
+
+The Claude Header Defaults toggle formerly labelled "Stabilize Device Profile" is now
+"Signature Stabilization" in all seven locales. Its help text says CPA keeps one stable device
+and client profile per credential or API key, distinct from other credentials, and that client
+software only upgrades, never downgrading or switching clients. The internal field ID
+(`claudeHeaderStabilizeDeviceProfile`) and translation keys are unchanged.
+
+CPA's canonical key is `upstream.claude.header-defaults.signature-stabilization`. Visual config
+reads it first, then the backend's historical spellings in the same order CPA applies them:
+canonical under `oauth.providers.claude.header-defaults` and root `claude-header-defaults`,
+then legacy `stabilize-device-profile` under upstream, OAuth, and root. The first key present
+wins, so an explicit canonical `false` beats a legacy `true`. Editing the toggle writes only
+the canonical key and deletes every other stabilization spelling, pruning containers it empties
+and keeping unknown siblings. Unedited legacy input is left as is. Config search points at the
+canonical key and still matches the legacy name.
+
+**Implementation evidence:** `src/hooks/useVisualConfig.ts`, `src/features/config/searchIndex.ts`,
+`src/i18n/locales/*.json`; tests: `tests/visualConfigSignatureStabilization.test.ts`.
+
+Browser validation against an isolated CPA server loaded a legacy enabled setting,
+turned Signature Stabilization off, confirmed the reviewed save, and reloaded the
+canonical disabled value. The flow sent one canonical PATCH and no legacy DELETE.
+Desktop and mobile screenshots showed the existing toggle layout with no horizontal
+overflow or browser console errors.
+
+**Last updated:** 2026-11-13
+
 ## Sync Checklist
 
 Project-specific checks every upstream sync runs, in addition to the full test suite, lint, typecheck, builds, and a smoke test of upstream and fork features.
