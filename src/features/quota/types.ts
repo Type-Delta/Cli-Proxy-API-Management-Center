@@ -30,6 +30,7 @@ export interface QuotaClassMap {
   quotaResetRelativeSoon: string;
   quotaAmount: string;
   quotaMessage: string;
+  claudeExtraUsageTitle: string;
   // Plan chip rows (named for codex, reused by claude/antigravity/kimi/xai;
   // premium = gold card, elite = Pro 20x liquid platinum. Final artwork, do not restyle.)
   planMeta: string;
@@ -78,6 +79,7 @@ export const QUOTA_CLASS_KEYS: readonly (keyof QuotaClassMap)[] = [
   'quotaResetRelativeSoon',
   'quotaAmount',
   'quotaMessage',
+  'claudeExtraUsageTitle',
   'planMeta',
   'planMetaItem',
   'planMetaLabel',

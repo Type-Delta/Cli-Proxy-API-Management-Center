@@ -85,11 +85,13 @@ export function ClaudeQuotaBody({
                 <span className={classes.planMetaLabel}>{t('claude_quota.extra_usage_label')}</span>
                 <span className={classes.planMetaValue}>
                   {t(
-                    extraUsage.isEnabled === null
-                      ? 'claude_quota.plan_unknown'
-                      : extraUsage.isEnabled
+                    extraUsage.isEnabled === false ||
+                      extraUsage.userDisabled ||
+                      extraUsage.disabledReason === 'user_disabled'
+                      ? 'claude_quota.extra_usage_disabled'
+                      : extraUsage.isEnabled === true
                         ? 'claude_quota.extra_usage_enabled'
-                        : 'claude_quota.extra_usage_disabled'
+                        : 'claude_quota.plan_unknown'
                   )}
                 </span>
               </span>
@@ -109,13 +111,6 @@ export function ClaudeQuotaBody({
                   </span>
                 </span>
               )}
-              {extraUsage.userDisabled && (
-                <span className={classes.planMetaItem}>
-                  <span className={classes.planMetaLabel}>
-                    {t('claude_quota.extra_usage_user_disabled')}
-                  </span>
-                </span>
-              )}
               {extraUsage.spendLimitReached && (
                 <span className={classes.planMetaItem}>
                   <span className={classes.planMetaLabel}>
@@ -123,7 +118,7 @@ export function ClaudeQuotaBody({
                   </span>
                 </span>
               )}
-              {extraUsage.disabledReason && (
+              {extraUsage.disabledReason && extraUsage.disabledReason !== 'user_disabled' && (
                 <span className={classes.planMetaItem}>
                   <span className={classes.planMetaLabel}>
                     {t('claude_quota.extra_usage_disabled_reason', {

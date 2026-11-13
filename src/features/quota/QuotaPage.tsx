@@ -53,6 +53,10 @@ import {
 } from './logic';
 import { nextRecoveryMs } from './resetSchedule';
 import { QUOTA_ADAPTERS, getQuotaSetter, type QuotaCardState } from './providers';
+import {
+  codexCreditOverageKey,
+  countCodexCreditOverageKeys,
+} from './providers/codex/creditOverage';
 import type { QuotaProviderType } from './providers/types';
 import { useDevinQuotaAutoLoad } from './providers/devin/useDevinQuotaAutoLoad';
 import { useQuotaActions } from './hooks/useQuotaActions';
@@ -199,6 +203,14 @@ export function QuotaPage() {
   const visibleTabs = useMemo(
     () => TAB_IDS.filter((id) => id === 'all' || id === tab || (tabCounts[id] ?? 0) > 0),
     [tabCounts, tab]
+  );
+  // Account-level settings span every page and tab, so count over all entries.
+  const codexCreditOverageCounts = useMemo(
+    () =>
+      countCodexCreditOverageKeys(
+        entries.filter((entry) => entry.type === 'codex').map((entry) => entry.file)
+      ),
+    [entries]
   );
   const filteredEntries = useMemo(
     () => filterEntriesBySearch(filterEntriesByTab(entries, tab), search),
@@ -582,6 +594,11 @@ export function QuotaPage() {
                 readOnly={readOnly}
                 resetting={resettingQuotaName === getQuotaCacheKey(entry.file)}
                 entranceDelayMs={cardEntranceDelay(index)}
+                creditOverageSharedCount={
+                  entry.type === 'codex'
+                    ? codexCreditOverageCounts.get(codexCreditOverageKey(entry.file) ?? '')
+                    : undefined
+                }
                 onRefresh={() => void refreshQuota(entry.file, QUOTA_ADAPTERS[entry.type])}
                 onReset={() => resetQuota(entry.file, QUOTA_ADAPTERS[entry.type])}
               />

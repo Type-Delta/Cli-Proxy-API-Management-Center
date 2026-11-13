@@ -132,6 +132,7 @@ export const useAuthStore = create<AuthStoreState>()(
           useOverviewStore.getState().clearCache();
           useModelsStore.getState().clearCache();
           useQuotaStore.getState().clearQuotaCache();
+          useQuotaStore.getState().clearCodexCreditOverageOperations();
 
           // Configure subsequent API requests.
           apiClient.setConfig({
@@ -190,6 +191,7 @@ export const useAuthStore = create<AuthStoreState>()(
         useOverviewStore.getState().clearCache();
         useModelsStore.getState().clearCache();
         useQuotaStore.getState().clearQuotaCache();
+        useQuotaStore.getState().clearCodexCreditOverageOperations();
         set({
           isAuthenticated: false,
           apiBase: '',

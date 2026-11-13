@@ -37,6 +37,7 @@ export function CodexQuotaBody({
   credential,
   quotaReserves,
   quotaReserveHits,
+  afterPlan,
 }: QuotaBodyProps<CodexQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
@@ -78,6 +79,7 @@ export function CodexQuotaBody({
         expiryDisplay ||
         creditsUnlimited ||
         creditBalance !== null ||
+        Boolean(afterPlan) ||
         rateLimitResetCredits.length > 0 ||
         rateLimitResetCreditsError) && (
         <div className={classes.metaColumn}>
@@ -110,6 +112,7 @@ export function CodexQuotaBody({
               )}
             </div>
           )}
+          {afterPlan}
           {rateLimitResetCredits.length > 0 ? (
             <div className={classes.codexResetCredits}>
               <div className={classes.codexResetCreditsTitle}>
