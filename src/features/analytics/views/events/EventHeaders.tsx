@@ -95,10 +95,11 @@ export function EventHeaders({
           ) : null}
           {data ? (
             <>
-              <p className={styles.headerHint}>
-                {t('analytics.event_detail.headers_masked')}
-                {upstream ? ` ${t('analytics.event_detail.headers_dispatches')}` : ''}
-              </p>
+              {upstream ? (
+                <p className={styles.headerHint}>
+                  {t('analytics.event_detail.headers_dispatches')}
+                </p>
+              ) : null}
               {data.blocks.length === 0 ? (
                 <p>{t('analytics.event_detail.headers_unavailable')}</p>
               ) : (

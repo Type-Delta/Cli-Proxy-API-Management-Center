@@ -372,7 +372,6 @@
       "headers_cpa_to_provider": "CPA → 上游請求標頭",
       "headers_provider_to_cpa": "上游 → CPA 回應標頭",
       "headers_failed": "無法載入標頭，請重試。",
-      "headers_masked": "憑證值已隱藏。",
       "headers_dispatches": "包含此代理請求保留的所有 HTTP 傳送記錄。",
       "headers_unavailable": "未記錄。WebSocket 請求、日誌已過期或較早的請求可能沒有標頭。",
       "header_dispatch": "傳送 {{index}}",

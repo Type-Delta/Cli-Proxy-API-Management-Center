@@ -372,7 +372,6 @@
       "headers_cpa_to_provider": "CPA → üst sunucu istek başlıkları",
       "headers_provider_to_cpa": "Üst sunucu → CPA yanıt başlıkları",
       "headers_failed": "Başlıklar yüklenemedi. Tekrar deneyin.",
-      "headers_masked": "Kimlik bilgisi değerleri maskelenmiştir.",
       "headers_dispatches": "Bu proxy isteği için saklanan tüm HTTP gönderimlerini içerir.",
       "headers_unavailable": "Kaydedilmemiş. WebSocket istekleri, süresi dolmuş günlükler veya eski istekler için başlıklar bulunmayabilir.",
       "header_dispatch": "Gönderim {{index}}",

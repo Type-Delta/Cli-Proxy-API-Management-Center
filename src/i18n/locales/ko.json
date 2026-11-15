@@ -372,7 +372,6 @@
       "headers_cpa_to_provider": "CPA → 업스트림 요청 헤더",
       "headers_provider_to_cpa": "업스트림 → CPA 응답 헤더",
       "headers_failed": "헤더를 불러오지 못했습니다. 다시 시도하세요.",
-      "headers_masked": "인증 정보 값은 마스킹됩니다.",
       "headers_dispatches": "이 프록시 요청에 대해 보관된 모든 HTTP 전송을 포함합니다.",
       "headers_unavailable": "기록되지 않았습니다. WebSocket, 만료된 로그 또는 이전 요청에는 헤더가 없을 수 있습니다.",
       "header_dispatch": "전송 {{index}}",

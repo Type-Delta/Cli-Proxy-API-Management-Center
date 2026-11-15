@@ -372,7 +372,6 @@
       "headers_cpa_to_provider": "CPA → upstream request headers",
       "headers_provider_to_cpa": "Upstream → CPA response headers",
       "headers_failed": "Headers could not load. Try again.",
-      "headers_masked": "Credential values are masked.",
       "headers_dispatches": "Includes all retained HTTP dispatches for this proxy request.",
       "headers_unavailable": "Not recorded. Headers may be unavailable for WebSocket requests, expired logs, or older requests.",
       "header_dispatch": "Dispatch {{index}}",
