@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Sheet } from '@/components/ui/Sheet';
-import type { AnalyticsEvent, RoutingTraceCandidate } from '@/types';
+import type { AnalyticsEvent, AnalyticsEventDetailQuery, RoutingTraceCandidate } from '@/types';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { EventHeaders } from './EventHeaders';
 import {
   formatAnalyticsEnum,
   formatCompactTokens,
@@ -66,6 +68,7 @@ export function EventDetailSheet({
   keyIdentity,
   onClose,
   onRetry,
+  headerRange,
 }: {
   open: boolean;
   event: AnalyticsEvent | null;
@@ -74,9 +77,11 @@ export function EventDetailSheet({
   keyIdentity: string;
   onClose: () => void;
   onRetry: () => void;
+  headerRange?: AnalyticsEventDetailQuery;
 }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.resolvedLanguage;
+  const fullAccess = useAuthStore((state) => state.scope === 'full-access');
 
   const steps = useMemo(() => (event ? buildEventTimeline(event) : []), [event]);
   const timing = useMemo(() => (event ? buildEventTiming(event) : null), [event]);
@@ -308,6 +313,14 @@ export function EventDetailSheet({
         ) : null}
       </div>
       {children}
+      {event && headerRange && fullAccess ? (
+        <EventHeaders
+          key={JSON.stringify([event.attempt_id, headerRange, hop, open])}
+          attemptId={event.attempt_id}
+          range={headerRange}
+          hop={hop}
+        />
+      ) : null}
     </section>
   );
 

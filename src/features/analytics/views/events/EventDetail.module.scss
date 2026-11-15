@@ -503,6 +503,25 @@
 }
 
 // Raw payload blocks -------------------------------------------------------
+.headerHint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.headerExchange {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: $font-mono;
+  font-size: 12px;
+
+  small {
+    display: block;
+    color: var(--text-secondary);
+  }
+}
+
 .raw {
   display: flex;
   flex-direction: column;

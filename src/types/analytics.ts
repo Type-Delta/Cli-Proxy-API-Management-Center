@@ -663,6 +663,19 @@ export type AnalyticsAnalysisQuery = AnalyticsQuery & {
 };
 
 export type AnalyticsKeyCatalogRange = AnalyticsRange & { page_size?: number };
+export type AnalyticsHeaderHop =
+  'client_to_cpa' | 'cpa_to_client' | 'cpa_to_provider' | 'provider_to_cpa';
+
+export interface AnalyticsHeaderDetail {
+  blocks: {
+    attempt_index?: number;
+    started_at: string;
+    method: string;
+    url: string;
+    headers: Record<string, string[]>;
+  }[];
+}
+
 export type AnalyticsEventDetailQuery = AnalyticsRange & {
   filters?: Omit<AnalyticsFilters, 'credential_id'>;
 };

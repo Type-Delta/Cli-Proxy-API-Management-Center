@@ -628,3 +628,10 @@ export function errorPayloadFormat(source: string): { language: 'json' | 'text';
     return { language: 'text', tone: 'error' };
   }
 }
+
+export function formatHeaders(headers: Record<string, string[]>): string {
+  return Object.entries(headers)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([name, values]) => values.map((value) => `${name}: ${value}`))
+    .join('\n');
+}

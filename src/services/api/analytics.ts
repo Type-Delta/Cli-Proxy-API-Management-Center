@@ -13,6 +13,8 @@ import type {
   AnalyticsDimensionPageResponse,
   AnalyticsEvent,
   AnalyticsEventDetailQuery,
+  AnalyticsHeaderDetail,
+  AnalyticsHeaderHop,
   AnalyticsEventPage,
   AnalyticsEventPageResponse,
   AnalyticsHealth,
@@ -420,6 +422,18 @@ const modelCostSeriesCache = createModelCostSeriesCache<ModelCostSeries>(async (
 apiClient.onConnectionChange(() => modelCostSeriesCache.clear());
 
 export const analyticsApi = {
+  async eventHeaders(
+    attemptId: string,
+    request: AnalyticsEventDetailQuery,
+    hop: AnalyticsHeaderHop
+  ): Promise<AnalyticsHeaderDetail> {
+    const params = eventDetailParams(request);
+    params.set('hop', hop);
+    const data = await apiClient.get<AnalyticsHeaderDetail>(
+      `/analytics/attempts/${encodeURIComponent(attemptId)}/headers?${params}`
+    );
+    return { blocks: analyticsCollection(data.blocks) };
+  },
   modelCostSeries(request: ModelCostSeriesQuery): Promise<ModelCostSeries> {
     return modelCostSeriesCache.get(analyticsRequestKey(request));
   },

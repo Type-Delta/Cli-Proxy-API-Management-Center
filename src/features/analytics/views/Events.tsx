@@ -1062,6 +1062,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
         }}
       />
       <EventDetailSheet
+        headerRange={eventRange}
         open={Boolean(selectedAttemptId)}
         event={detail.data?.attempt_id === selectedAttemptId ? detail.data : null}
         loading={detail.loading}

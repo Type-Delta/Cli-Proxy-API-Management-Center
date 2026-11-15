@@ -764,6 +764,23 @@ cost rows. Timeline nodes are keyboard focusable and reuse the shared tooltip th
 wraps to vertical on mobile. All new strings resolve through i18n with defaults in English, Russian,
 Simplified Chinese, and Traditional Chinese.
 
+Header diagnostics add four collapsed accordions for Client → CPA, CPA → Provider,
+Provider → CPA, and CPA → Client. Full-access sessions fetch each header set on expansion
+or hover/focus prefetch, with pending-read deduplication, retry, and connection-change cleanup.
+Prefetch leaves the accordion collapsed and header values absent from the DOM. Copyable
+headers preserve repeated values and CPA's credential masking; upstream blocks identify
+dispatches by index, URL, and time and explicitly cover all HTTP dispatches for the proxy
+request. WebSocket request information is omitted, and missing captures show an empty state.
+All seven locales include the labels and states. `EventHeaders.tsx` reuses the shared
+Collapsible; interaction regressions live in `tests/analyticsEventHeaders.test.ts`.
+
+Header validation: Bun 1.4.3 `bun run verify` passes 3,169 tests, ESLint, TypeScript, and the
+production single-file build. Browser checks at 1440×1050 and 390×844 confirm no eager reads,
+four collapsed hover prefetches without rendered values, hover/open deduplication, repeated
+values, masked credentials, keyboard focus/Enter, and no viewport overflow or page errors.
+A real CPA HTTP request through a test upstream and ClickHouse returns all four header sets
+with request logging off; SQL confirms header-only retention and zero request/response body bytes.
+
 **Implementation evidence:** `src/features/analytics/views/events/EventDetailSheet.tsx`, `src/features/analytics/views/events/EventDetailParts.tsx`, `src/features/analytics/views/events/EventTimeline.tsx`, `src/features/analytics/views/events/EventTimingGraph.tsx`, `src/features/analytics/views/events/eventDiagnostics.ts`, `src/features/analytics/views/events/EventDetail.module.scss`, `src/types/analytics.ts`, `src/i18n/locales/{en,ru,zh-CN,zh-TW}.json`, `tests/analyticsEventDiagnostics.test.ts`.
 
 **Recorded validation:** `bun run verify` passes 689 tests, lint, TypeScript, and the production build.
