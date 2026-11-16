@@ -3764,7 +3764,9 @@
       "rebuildMidSystemMessage": "重建系统消息",
       "rebuildMidSystemMessageHint": "将 Claude 中 role 为 system 的消息移至顶层 system 字段。",
       "supportPromptCacheKey": "注入提示词缓存键",
-      "supportPromptCacheKeyHint": "为兼容的请求派生并注入 prompt_cache_key。仅在上游支持此字段时启用。"
+      "supportPromptCacheKeyHint": "为兼容的请求派生并注入 prompt_cache_key。仅在上游支持此字段时启用。",
+      "instructionRoleWrapper": "包装指令角色",
+      "instructionRoleWrapperHint": "适用于不接受 developer 消息的提供商。将指令包装为 system 消息，并保留原始角色和顺序。优先级通过文本表达，效果可能因模型而异。"
     },
     "modelOptions": {
       "displayName": "显示名称",

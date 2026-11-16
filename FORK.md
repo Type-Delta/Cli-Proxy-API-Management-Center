@@ -1820,6 +1820,30 @@ overflow or browser console errors.
 
 **Last updated:** 2026-11-13
 
+### DL083 — Opt-in instruction role wrapper for compatible providers
+
+The OpenAI-compatible provider behavior editor includes “Wrap instruction roles”,
+off by default. It reads and writes the provider-level `instruction-role-wrapper`
+boolean through the v8 configuration API, preserves explicit false and untouched
+absence, and keeps the control out of other provider forms. Help text explains
+that the option targets upstreams rejecting developer messages and that priority
+is conveyed through text, with results depending on the model. All seven locales
+include the label and hint. Provider API regressions cover enable, disable,
+round-trip, and sibling preservation.
+
+**Recorded validation:** Bun 1.4.3 `bun run verify` passes 3,170 tests, lint,
+TypeScript, and the production build. The canonical Docker bundle builds.
+Isolated Chrome at 1440px and 390px confirms the control is initially unchecked,
+saves its provider-level option to a real v8 backend, and restores the checked
+state on reopening, with no page errors or horizontal page overflow.
+
+**Implementation evidence:** `src/features/providers/{descriptors.ts,providerBehavior.ts}`,
+`src/features/providers/sheets/forms/ProviderBehaviorEditor.tsx`,
+`src/services/api/{providers.ts,transformers.ts}`, `src/types/provider.ts`,
+`src/i18n/locales/`, and `tests/providerBehavior.test.ts`.
+
+**Last updated:** 2026-11-16
+
 ## Sync Checklist
 
 Project-specific checks every upstream sync runs, in addition to the full test suite, lint, typecheck, builds, and a smoke test of upstream and fork features.

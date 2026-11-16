@@ -24,7 +24,10 @@ export function ProviderBehaviorEditor({
   const id = useId();
   const capabilities = getProviderBehaviorCapabilities(brand);
   if (!Object.values(capabilities).some(Boolean)) return null;
-  const checkbox = (key: 'alphaSearch' | 'rebuildMidSystemMessage' | 'supportPromptCacheKey') => (
+  const checkbox = (
+    key:
+      'alphaSearch' | 'rebuildMidSystemMessage' | 'supportPromptCacheKey' | 'instructionRoleWrapper'
+  ) => (
     <label className={styles.checkboxRow}>
       <input
         type="checkbox"
@@ -79,6 +82,7 @@ export function ProviderBehaviorEditor({
         ) : null}
         {capabilities.rebuildMidSystemMessage ? checkbox('rebuildMidSystemMessage') : null}
         {capabilities.supportPromptCacheKey ? checkbox('supportPromptCacheKey') : null}
+        {capabilities.instructionRoleWrapper ? checkbox('instructionRoleWrapper') : null}
       </div>
     </Collapsible>
   );

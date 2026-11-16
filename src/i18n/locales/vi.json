@@ -3764,7 +3764,9 @@
       "rebuildMidSystemMessage": "Tái cấu trúc thông điệp hệ thống",
       "rebuildMidSystemMessageHint": "Chuyển các tin nhắn Claude có role là system vào trường system ở cấp cao nhất.",
       "supportPromptCacheKey": "Chèn prompt cache key",
-      "supportPromptCacheKeyHint": "Tạo và chèn prompt_cache_key cho các yêu cầu tương thích. Chỉ bật khi upstream hỗ trợ trường này."
+      "supportPromptCacheKeyHint": "Tạo và chèn prompt_cache_key cho các yêu cầu tương thích. Chỉ bật khi upstream hỗ trợ trường này.",
+      "instructionRoleWrapper": "Bọc vai trò chỉ dẫn",
+      "instructionRoleWrapperHint": "Dành cho nhà cung cấp không chấp nhận tin nhắn developer. Bọc chỉ dẫn thành tin nhắn system, giữ vai trò và thứ tự ban đầu. Mức ưu tiên được diễn đạt bằng văn bản và có thể khác nhau theo mô hình."
     },
     "modelOptions": {
       "displayName": "Tên hiển thị",

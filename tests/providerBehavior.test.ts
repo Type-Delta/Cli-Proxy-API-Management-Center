@@ -116,6 +116,7 @@ test('UI and form projection gate behavior by actual provider or sponsor protoco
     disableCodexCloaking: false,
     rebuildMidSystemMessage: true,
     supportPromptCacheKey: true,
+    instructionRoleWrapper: true,
   };
   expect(pickProviderBehavior(options, 'codex')).toEqual({
     alphaSearch: true,
@@ -123,6 +124,7 @@ test('UI and form projection gate behavior by actual provider or sponsor protoco
   });
   expect(pickProviderBehavior(options, 'claude')).toEqual({ rebuildMidSystemMessage: true });
   expect(pickProviderBehavior(options, 'openaiCompatibility')).toEqual({
+    instructionRoleWrapper: true,
     supportPromptCacheKey: true,
   });
   for (const brand of ['gemini', 'interactions', 'vertex', 'xai', 'meta'] as ProviderBrand[]) {
@@ -161,4 +163,28 @@ test('unsupported behavior does not leak through a non-Codex API serializer', as
     rebuildMidSystemMessage: true,
   });
   expect(key(groups())).toEqual({ 'api-key': 'fixture-key' });
+});
+
+test('OpenAI instruction wrapping is opt-in, round-trips and preserves sibling data', async () => {
+  const sibling = { name: 'sibling', 'base-url': 'https://sibling.invalid', keys: [] };
+  const groups = backend('openai-compatibility', [sibling]);
+  await providersApi.createOpenAIProvider({
+    name: 'wrapped',
+    baseUrl: 'https://example.invalid',
+    apiKeyEntries: [{ apiKey: 'fixture-key' }],
+    instructionRoleWrapper: true,
+  });
+  expect(groups()[0]).toEqual(sibling);
+  let config = normalizeProviderGroups(groups(), true)[1] as OpenAIProviderConfig;
+  expect(config.instructionRoleWrapper).toBe(true);
+  await providersApi.updateOpenAIProvider(config.name, 1, {
+    ...config,
+    instructionRoleWrapper: false,
+  });
+  expect(groups()[1]['instruction-role-wrapper']).toBe(false);
+  config = normalizeProviderGroups(groups(), true)[0] as OpenAIProviderConfig;
+  expect(config.instructionRoleWrapper).toBeUndefined();
+  await providersApi.updateOpenAIProvider(config.name, 0, { ...config, priority: 2 });
+  expect(groups()[0]).not.toHaveProperty('instruction-role-wrapper');
+  expect(groups()[1]['instruction-role-wrapper']).toBe(false);
 });

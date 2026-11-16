@@ -229,6 +229,8 @@ const serializeOpenAIProvider = (provider: OpenAIProviderConfig) => {
   };
   if (provider.prefix?.trim()) payload.prefix = provider.prefix.trim();
   if (provider.disabled !== undefined) payload.disabled = provider.disabled;
+  if (provider.instructionRoleWrapper !== undefined)
+    payload['instruction-role-wrapper'] = provider.instructionRoleWrapper;
   if (provider.supportPromptCacheKey !== undefined)
     payload['support-prompt-cache-key'] = provider.supportPromptCacheKey;
   const headers = serializeHeaders(provider.headers);

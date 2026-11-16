@@ -321,6 +321,8 @@ const normalizeOpenAIProvider = (
     ...normalizeRuntimePolicy(provider),
   };
 
+  const instructionRoleWrapper = normalizeBoolean(provider['instruction-role-wrapper']);
+  if (instructionRoleWrapper !== undefined) result.instructionRoleWrapper = instructionRoleWrapper;
   const supportPromptCacheKey = normalizeBoolean(provider['support-prompt-cache-key']);
   if (supportPromptCacheKey !== undefined) result.supportPromptCacheKey = supportPromptCacheKey;
   const disabled = normalizeBoolean(provider.disabled);

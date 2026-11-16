@@ -3764,7 +3764,9 @@
       "rebuildMidSystemMessage": "Sistem İletilerini Yeniden Kur",
       "rebuildMidSystemMessageHint": "role system Olan Claude İletilerini Üst Düzey system Alanına Taşı.",
       "supportPromptCacheKey": "İstem Önbellek Anahtarı Ekle",
-      "supportPromptCacheKeyHint": "Uyumlu İstekler için prompt_cache_key Türet ve Ekle. Yalnızca Yukarı Akış Bu Alanı Destekliyorsa Etkinleştir."
+      "supportPromptCacheKeyHint": "Uyumlu İstekler için prompt_cache_key Türet ve Ekle. Yalnızca Yukarı Akış Bu Alanı Destekliyorsa Etkinleştir.",
+      "instructionRoleWrapper": "Talimat rollerini sar",
+      "instructionRoleWrapperHint": "Developer mesajlarını kabul etmeyen sağlayıcılar içindir. Talimatları özgün rol ve sıralarıyla system mesajları olarak sarar. Öncelik metinle belirtilir ve modele göre değişebilir."
     },
     "modelOptions": {
       "displayName": "Görünen Ad",

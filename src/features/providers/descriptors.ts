@@ -318,6 +318,7 @@ export const getProviderBehaviorCapabilities = (brand: ProviderBrand) => ({
   disableCodexCloaking: brand === 'codex',
   rebuildMidSystemMessage: brand === 'claude',
   supportPromptCacheKey: brand === 'openaiCompatibility',
+  instructionRoleWrapper: brand === 'openaiCompatibility',
 });
 
 export interface ProviderModelCapabilities {

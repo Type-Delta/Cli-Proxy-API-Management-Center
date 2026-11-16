@@ -3764,7 +3764,9 @@
       "rebuildMidSystemMessage": "Rebuild system messages",
       "rebuildMidSystemMessageHint": "Move Claude messages with role system into the top-level system field.",
       "supportPromptCacheKey": "Inject prompt cache key",
-      "supportPromptCacheKeyHint": "Derive and inject prompt_cache_key for compatible requests. Enable only when the upstream supports this field."
+      "supportPromptCacheKeyHint": "Derive and inject prompt_cache_key for compatible requests. Enable only when the upstream supports this field.",
+      "instructionRoleWrapper": "Wrap instruction roles",
+      "instructionRoleWrapperHint": "For providers that reject developer messages. Wrap instructions as system messages with their original role and order. Priority is conveyed in text and may vary by model."
     },
     "modelOptions": {
       "displayName": "Display name",

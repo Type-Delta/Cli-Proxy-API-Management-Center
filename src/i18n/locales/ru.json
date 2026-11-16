@@ -3764,7 +3764,9 @@
       "rebuildMidSystemMessage": "Перестроить системные сообщения",
       "rebuildMidSystemMessageHint": "Перемещать сообщения Claude с ролью system в поле system верхнего уровня.",
       "supportPromptCacheKey": "Внедрять ключ кэша промпта",
-      "supportPromptCacheKeyHint": "Формировать и внедрять prompt_cache_key для совместимых запросов. Включайте только при поддержке этого поля вышестоящим сервисом."
+      "supportPromptCacheKeyHint": "Формировать и внедрять prompt_cache_key для совместимых запросов. Включайте только при поддержке этого поля вышестоящим сервисом.",
+      "instructionRoleWrapper": "Оборачивать роли инструкций",
+      "instructionRoleWrapperHint": "Для провайдеров, не принимающих сообщения developer. Инструкции передаются как сообщения system с исходной ролью и порядком. Приоритет задаётся текстом и зависит от модели."
     },
     "modelOptions": {
       "displayName": "Отображаемое имя",

@@ -16,6 +16,9 @@ export function pickProviderBehavior(
     ...(capabilities.rebuildMidSystemMessage
       ? { rebuildMidSystemMessage: input.rebuildMidSystemMessage }
       : {}),
+    ...(capabilities.instructionRoleWrapper
+      ? { instructionRoleWrapper: input.instructionRoleWrapper }
+      : {}),
     ...(capabilities.supportPromptCacheKey
       ? { supportPromptCacheKey: input.supportPromptCacheKey }
       : {}),
