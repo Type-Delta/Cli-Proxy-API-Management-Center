@@ -637,7 +637,7 @@ test('all grant messages and confirmation are translated in six locales', async 
     }
     expect(locale.confirm_text).toContain('{{name}}');
     expect(locale.retry_confirm).toContain('{{name}}');
-    expect(typeof locale.remaining).toBe('string');
+    expect(locale.remaining).toBeUndefined();
     expect(locale.count).toContain('{{left}}');
     for (const key of [
       ...ANTHROPIC_RESET_RESULTS,
@@ -689,7 +689,7 @@ test('card retains one dialog trigger with explicit selection and no second conf
   const dialog = await Bun.file(
     'src/features/quota/providers/claude/ClaudeResetGrantDialog.tsx'
   ).text();
-  expect(card).toContain('quotaClasses.planMetaValue}>{claudeReset.count');
+  expect(card).not.toContain('claude_reset.remaining');
   expect(card.match(/onClick=\{claudeReset.openDialog\}/g)).toHaveLength(1);
   expect(card).toContain('<ClaudeResetGrantDialog');
   expect(card).not.toContain('onRedeem=');

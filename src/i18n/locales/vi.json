@@ -4162,10 +4162,8 @@
   },
   "claude_reset": {
     "expiry_title": "Hết hạn đặt lại thủ công ({{timezone}})",
-    "grant_number": "Gói {{index}}",
     "expiry_unknown": "Chưa rõ thời gian hết hạn",
     "retry_confirm": "Thử lại lượt đặt lại chưa rõ kết quả cho “{{name}}” với ID yêu cầu ban đầu? Một lượt đặt lại có thể đã được tiêu tốn. Hãy thử lại trong vòng 10 phút; không tải lại trang hoặc bắt đầu nhận ở tab khác.",
-    "remaining": "Lượt đặt lại còn lại",
     "title": "Lượt đặt lại dự trữ",
     "scope": "Sử dụng một quyền đặt lại có hạn để xóa chu kỳ sử dụng Claude đủ điều kiện. Chỉ xác nhận khi bạn muốn tiêu tốn một lượt đặt lại. Việc khôi phục chỉ giới hạn trong tab/phiên này; không tải lại hoặc dùng tab khác trong khi kết quả chưa rõ.",
     "loading": "Đang tải…",

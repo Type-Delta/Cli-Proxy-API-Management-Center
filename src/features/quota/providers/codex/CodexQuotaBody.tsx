@@ -18,6 +18,7 @@ import { formatDateTimeValue } from '@/utils/format';
 import { useNow } from '@/hooks/useNow';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
+import { QuotaResetStack } from '../../components/QuotaResetStack';
 import { collectQuotaRowInstants, pickUrgentRowId, resetCreditRowId } from '../../resetSchedule';
 import { quotaWindowTitle } from '../../windowGating';
 import { quotaReserveTooltip } from '../../quotaReserve';
@@ -114,95 +115,70 @@ export function CodexQuotaBody({
           )}
           {afterPlan}
           {rateLimitResetCredits.length > 0 ? (
-            <div className={classes.codexResetCredits}>
-              <div className={classes.codexResetCreditsTitle}>
-                {t('codex_quota.reset_credits_expiry_label', { timezone: resolveTimeZoneLabel() })}
-              </div>
-              {(() => {
-                const orderedCredits = rateLimitResetCredits
-                  .map((credit, originalIndex) => ({ credit, originalIndex }))
-                  .sort((a, b) => {
-                    const aMs = parseIsoToMs(a.credit.expiresAt) ?? Number.POSITIVE_INFINITY;
-                    const bMs = parseIsoToMs(b.credit.expiresAt) ?? Number.POSITIVE_INFINITY;
-                    return aMs - bMs;
-                  });
-                const visibleCredits = orderedCredits.slice(0, 1);
-                const stackCount = Math.min(3, orderedCredits.length);
-                // One line per reset: the shared tooltip preserves newlines, so the
-                // stack's hover detail reads as a list instead of a run-on sentence.
-                const creditLines = orderedCredits.map(({ credit }, index) => {
-                  const expiresAtMs = parseIsoToMs(credit.expiresAt);
-                  const display = buildResetDisplay(
-                    expiresAtMs === null ? credit.expiresAt : null,
-                    expiresAtMs,
-                    now,
-                    locale
-                  );
+            (() => {
+              const orderedCredits = rateLimitResetCredits
+                .map((credit, originalIndex) => ({ credit, originalIndex }))
+                .sort((a, b) => {
+                  const aMs = parseIsoToMs(a.credit.expiresAt) ?? Number.POSITIVE_INFINITY;
+                  const bMs = parseIsoToMs(b.credit.expiresAt) ?? Number.POSITIVE_INFINITY;
+                  return aMs - bMs;
+                });
+              const creditDisplay = (expiresAt: string) => {
+                const expiresAtMs = parseIsoToMs(expiresAt);
+                return buildResetDisplay(
+                  expiresAtMs === null ? expiresAt : null,
+                  expiresAtMs,
+                  now,
+                  locale
+                );
+              };
+              // One line per reset: the shared tooltip preserves newlines, so the
+              // stack's hover detail reads as a list instead of a run-on sentence.
+              const allCreditsTitle = orderedCredits
+                .map(({ credit }, index) => {
+                  const display = creditDisplay(credit.expiresAt);
                   return `${t('codex_quota.reset_credit_number', { index: index + 1 })}: ${display?.absolute ?? credit.expiresAt}${display?.relative ? ` · ${display.relative}` : ''}`;
-                });
-                const allCreditsTitle = creditLines.join('\n');
-                return visibleCredits.map(({ credit, originalIndex }, index) => {
-                  const expiresAtMs = parseIsoToMs(credit.expiresAt);
-                  const expiresDisplay = buildResetDisplay(
-                    expiresAtMs === null ? credit.expiresAt : null,
-                    expiresAtMs,
-                    now,
-                    locale
-                  );
-                  // One expression for both the key and the highlight — two copies
-                  // that drift would emphasize the wrong row.
-                  const rowId = resetCreditRowId(credit, originalIndex);
-                  const soon = rowId === soonestRowId;
-                  return (
-                    <div
-                      key={rowId}
-                      className={`${classes.codexResetCreditRow} ${stackCount > 1 ? classes.codexResetCreditStack : ''} ${soon ? classes.codexResetCreditRowSoon : ''}`}
-                      data-stack-count={stackCount}
-                      tabIndex={stackCount > 1 ? 0 : undefined}
-                      aria-label={stackCount > 1 ? allCreditsTitle : undefined}
-                      title={
-                        stackCount > 1
-                          ? [
-                              // Stacked rows replace the single-row label/timing header with a
-                              // stable identity line, then list every hidden reset underneath.
-                              [
-                                credential?.displayName,
-                                planLabel,
-                                soon ? t('quota_management.soonest_row_hint') : '',
-                              ]
-                                .filter(Boolean)
-                                .join(' · '),
-                              ...creditLines,
-                            ]
-                              .filter(Boolean)
-                              .join('\n')
-                          : buildQuotaRowTitle(credential, {
-                              label: t('codex_quota.reset_credit_number', { index: index + 1 }),
-                              resetAbsolute: expiresDisplay?.absolute,
-                              resetRelative: expiresDisplay?.relative,
-                              plan: planLabel,
-                              hint: [
-                                soon ? t('quota_management.soonest_row_hint') : '',
-                                allCreditsTitle,
-                              ]
-                                .filter(Boolean)
-                                .join('\n'),
-                            })
-                      }
-                    >
-                      <span className={classes.codexResetCreditLabel}>
-                        {t('codex_quota.reset_credit_count', { count: orderedCredits.length })}
-                      </span>
-                      <span className={classes.codexResetCreditTime}>
-                        {expiresDisplay && (
-                          <QuotaResetLabel display={expiresDisplay} classes={classes} soon={soon} />
-                        )}
-                      </span>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
+                })
+                .join('\n');
+              const { credit, originalIndex } = orderedCredits[0];
+              const expiresDisplay = creditDisplay(credit.expiresAt);
+              // The same row ID drives the urgency pick, so the highlight cannot drift.
+              const soon = resetCreditRowId(credit, originalIndex) === soonestRowId;
+              const soonHint = soon ? t('quota_management.soonest_row_hint') : '';
+              return (
+                <QuotaResetStack
+                  classes={classes}
+                  heading={t('codex_quota.reset_credits_expiry_label', {
+                    timezone: resolveTimeZoneLabel(),
+                  })}
+                  count={orderedCredits.length}
+                  label={t('codex_quota.reset_credit_count', { count: orderedCredits.length })}
+                  display={expiresDisplay}
+                  soon={soon}
+                  ariaLabel={allCreditsTitle}
+                  title={
+                    orderedCredits.length > 1
+                      ? // Stacked rows replace the single-row label/timing header with a
+                        // stable identity line, then list every hidden reset underneath.
+                        [
+                          [credential?.displayName, planLabel, soonHint]
+                            .filter(Boolean)
+                            .join(' · '),
+                          allCreditsTitle,
+                        ]
+                          .filter(Boolean)
+                          .join('\n')
+                      : buildQuotaRowTitle(credential, {
+                          label: t('codex_quota.reset_credit_number', { index: 1 }),
+                          resetAbsolute: expiresDisplay?.absolute,
+                          resetRelative: expiresDisplay?.relative,
+                          plan: planLabel,
+                          hint: [soonHint, allCreditsTitle].filter(Boolean).join('\n'),
+                        })
+                  }
+                />
+              );
+            })()
           ) : rateLimitResetCreditsError ? (
             <div className={classes.codexResetCreditsError}>
               {t('codex_quota.reset_credits_expiry_failed', {

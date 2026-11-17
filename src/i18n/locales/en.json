@@ -4162,10 +4162,8 @@
   },
   "claude_reset": {
     "expiry_title": "Manual reset expiry ({{timezone}})",
-    "grant_number": "Grant {{index}}",
     "expiry_unknown": "Expiry unknown",
     "retry_confirm": "Retry the unknown reset for “{{name}}” with its original request ID? A reset may already have been spent. Retry within 10 minutes; do not reload or start another claim in another tab.",
-    "remaining": "Resets remaining",
     "title": "Banked resets",
     "scope": "Uses a limited reset grant to clear eligible Claude usage windows. Only confirm when you want to spend a reset. Recovery is limited to this tab/session; do not reload or use another tab while an outcome is unknown.",
     "loading": "Loading…",

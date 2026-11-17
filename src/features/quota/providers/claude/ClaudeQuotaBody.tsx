@@ -1,6 +1,6 @@
 /**
- * Claude quota body: plan, extra-usage and stale-snapshot chips, read-only dollar balances,
- * and the usage-window level bars.
+ * Claude quota body: plan, extra-usage and stale-snapshot chips, host reset-grant meta last,
+ * read-only dollar balances, and the usage-window level bars.
  */
 
 import { useMemo } from 'react';
@@ -19,7 +19,7 @@ export function ClaudeQuotaBody({
   quota,
   classes,
   credential,
-  leadingMeta,
+  trailingMeta,
   planItems,
   afterPlan,
   quotaReserves,
@@ -48,7 +48,7 @@ export function ClaudeQuotaBody({
   };
 
   const hasMeta =
-    Boolean(leadingMeta) ||
+    Boolean(trailingMeta) ||
     Boolean(planItems) ||
     Boolean(afterPlan) ||
     Boolean(quota.stale) ||
@@ -59,7 +59,6 @@ export function ClaudeQuotaBody({
     <>
       {hasMeta && (
         <div className={classes.metaColumn}>
-          {leadingMeta}
           {quota.stale && (
             <div role="status" className={classes.codexResetCreditsError}>
               {t('claude_quota.stale_snapshot', {
@@ -129,6 +128,7 @@ export function ClaudeQuotaBody({
               )}
             </div>
           )}
+          {trailingMeta}
         </div>
       )}
       <div className={classes.quotaArea}>

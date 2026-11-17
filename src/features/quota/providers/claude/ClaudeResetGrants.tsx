@@ -140,7 +140,6 @@ export function useClaudeResetGrants(
     }
   };
   return {
-    count: status?.grants.reduce((sum, grant) => sum + grant.resetsLeft, 0) ?? null,
     grants,
     loading: !status && !message && !pending,
     open,

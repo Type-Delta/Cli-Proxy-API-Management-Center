@@ -35,15 +35,49 @@ beforeAll(async () => {
 });
 
 describe('Claude reset grant details', () => {
-  test('uses Codex detail classes, timezone, remaining count and live relative date', () => {
+  test('uses the Codex reset stack with timezone, total count and live relative date', () => {
     const markup = render([grant()]);
     expect(markup).toContain('class="codexResetCredits"');
-    expect(markup).toContain('class="codexResetCreditRow"');
+    expect(markup).toContain('codexResetCreditRow codexResetCreditStack');
+    expect(markup).toContain('data-stack-count="2"');
     expect(markup).toContain(resolveTimeZoneLabel());
-    expect(markup).toContain('Launch · 2 / 3 resets remaining');
+    expect(markup).toContain('2 resets');
     expect(markup).toContain(formatInstantShort(expiry));
     expect(markup).toContain('class="quotaResetRelative"');
     expect(markup).toContain('in 11 days');
+  });
+
+  test('stacks grants behind the soonest expiry and lists each one in the tooltip', () => {
+    const fable = 'New model launch: one Fable reset for Pro and Team Standard, launch week only';
+    const full = 'One full limit reset (November 2026)';
+    const later = expiry + 12 * 86400_000;
+    const markup = render([
+      grant({
+        id: 'full',
+        label: full,
+        resetsLeft: 1,
+        resetsTotal: 1,
+        resetType: 'full',
+        endsAt: new Date(later).toISOString(),
+      }),
+      grant({ id: 'fable', label: fable, resetsLeft: 1, resetsTotal: 1, givesBackWeekly: true }),
+    ]);
+    const visible = markup.replace(/ (title|aria-label)="[^"]*"/g, '');
+    expect(visible).toContain('2 resets');
+    expect(visible).toContain(formatInstantShort(expiry));
+    expect(visible).not.toContain(formatInstantShort(later));
+    expect(visible).not.toContain(fable);
+    expect(markup).toContain('tabindex="0"');
+    expect(markup).toContain(`title="Fable reset · 1/1: ${formatInstantShort(expiry)}`);
+    expect(markup.indexOf(fable)).toBeLessThan(markup.indexOf('Full reset · 1/1'));
+    expect(markup).toContain(`\n${full}`);
+  });
+
+  test('a single reset is a plain row without a stack or tab stop', () => {
+    const markup = render([grant({ resetsLeft: 1, resetsTotal: 1 })]);
+    expect(markup).toContain('class="codexResetCreditRow  "');
+    expect(markup).toContain('1 reset<');
+    expect(markup).not.toContain('tabindex');
   });
 
   test('hides empty and spent grants', () => {
@@ -61,6 +95,7 @@ describe('Claude reset grant details', () => {
       grant({ id: 'first', label: 'First' }),
     ];
     const markup = render(grants);
+    // Labels live in each row's tooltip, so their order is the row order.
     expect(markup.indexOf('First')).toBeLessThan(markup.indexOf('Later'));
     expect(markup.indexOf('Later')).toBeLessThan(markup.indexOf('Unknown'));
     expect(markup).toContain('Expiry unknown');
@@ -76,12 +111,12 @@ describe('Claude reset grant details', () => {
   });
 
   test.each(['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko', 'tr'])(
-    'translates fallback labels in %s',
+    'translates kind labels in %s',
     async (lng) => {
       await i18n.changeLanguage(lng);
       try {
-        const markup = render([grant({ label: '', endsAt: null })]);
-        expect(markup).toContain(i18n.t('claude_reset.grant_number', { index: 1 }));
+        const markup = render([grant({ label: '', endsAt: null, resetType: 'full' })]);
+        expect(markup).toContain(i18n.t('claude_reset.kind_full'));
         expect(markup).toContain(i18n.t('claude_reset.expiry_unknown'));
         expect(markup).not.toContain('claude_reset.');
       } finally {

@@ -128,9 +128,9 @@ export interface QuotaBodyProps<TState> {
   /**
    * Extra meta owned by the host card (Claude's reset grant count lives in
    * QuotaCard because it also drives the action button). Bodies render it as the
-   * first item of their meta column so every meta line stays in one stack.
+   * last item of their meta column, where Codex shows its manual resets.
    */
-  leadingMeta?: ReactNode;
+  trailingMeta?: ReactNode;
   /** Host chips inside the plan row and content immediately after it. */
   planItems?: ReactNode;
   afterPlan?: ReactNode;

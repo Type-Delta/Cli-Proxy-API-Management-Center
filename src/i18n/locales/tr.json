@@ -4162,10 +4162,8 @@
   },
   "claude_reset": {
     "expiry_title": "Elle Sıfırlama Bitişi ({{timezone}})",
-    "grant_number": "Hak {{index}}",
     "expiry_unknown": "Bitiş Bilinmiyor",
     "retry_confirm": "“{{name}}” için Bilinmeyen Sıfırlama Özgün İstek Kimliğiyle Yeniden Denensin Mi? Bir Sıfırlama Zaten Harcanmış Olabilir. 10 Dakika İçinde Yeniden Dene. Yeniden Yükleme veya Başka Bir Sekmede Başka Bir Talep Başlatma.",
-    "remaining": "Kalan Sıfırlamalar",
     "title": "Birikmiş Sıfırlamalar",
     "scope": "Uygun Claude Kullanım Pencerelerini Temizlemek için Sınırlı Bir Sıfırlama Hakkı Kullanır. Yalnızca Bir Sıfırlama Harcamak İstediğinde Onayla. Kurtarma Bu Sekme/Oturumla Sınırlıdır. Sonuç Bilinmiyorken Yeniden Yükleme veya Başka Sekme Kullanma.",
     "loading": "Yükleniyor…",

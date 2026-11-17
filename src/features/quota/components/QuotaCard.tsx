@@ -128,12 +128,6 @@ export function QuotaCard(props: QuotaCardProps) {
   const claudeResetMeta =
     entry.type === 'claude' && status === 'success' ? (
       <>
-        <div className={quotaClasses.planMeta}>
-          <span className={quotaClasses.planMetaItem}>
-            <span className={quotaClasses.planMetaLabel}>{t('claude_reset.remaining')}</span>
-            <span className={quotaClasses.planMetaValue}>{claudeReset.count ?? '--'}</span>
-          </span>
-        </div>
         <ClaudeResetGrantDetails grants={claudeReset.grants} classes={quotaClasses} />
         {claudeReset.message && (
           <div role="status" className={quotaClasses.codexResetCreditsError}>
@@ -147,7 +141,7 @@ export function QuotaCard(props: QuotaCardProps) {
       quota={quota}
       classes={quotaClasses}
       credential={{ displayName }}
-      leadingMeta={claudeResetMeta}
+      trailingMeta={claudeResetMeta}
       afterPlan={entry.type === 'codex' ? codexAfterPlan : undefined}
       quotaReserves={file.quotaReserves}
       quotaReserveHits={quotaReserveHitsById(file.quotaReserveState)}
