@@ -99,19 +99,12 @@ export function useClaudeResetGrants(
       if (!current()) return;
       if (
         !answer.unresolved &&
-        (answer.code === 'reset' ||
-          answer.code === 'already_used' ||
-          answer.code === 'cooldown_clear_failed')
+        (answer.code === 'reset' || answer.code === 'already_used')
       ) {
         setDialog(null);
       }
       showNotification(
-        answer.code === 'cooldown_clear_failed'
-          ? t('auth_files.cooldown_reset_failed', {
-              name: file.name,
-              message: t('common.unknown_error'),
-            })
-          : t(`claude_reset.${answer.unresolved ? 'unknown' : answer.code}`),
+        t(`claude_reset.${answer.unresolved ? 'unknown' : answer.code}`),
         !answer.unresolved && (answer.code === 'reset' || answer.code === 'already_used')
           ? 'success'
           : 'error'

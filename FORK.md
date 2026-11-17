@@ -1860,6 +1860,16 @@ Project-specific checks every upstream sync runs, in addition to the full test s
 - Check the pages that fork entries touch against a CPA built from the matching CPA fork commit, in a browser at desktop (1440px) and mobile (390px) widths, in light and dark themes.
 - Push `main` before advancing CPA's `web/management-center` gitlink, then rebuild CPA's panel bundle.
 
+### DL084 — Claude reset grant reconciliation
+
+After a Claude reset grant succeeds, CPA reconciles the affected routing quota before returning the claim response. CPAMC does not issue a second blanket cooldown reset, so unrelated model failures remain in place. The explicit cooldown reset action remains available.
+
+**Implementation evidence:** `src/features/quota/providers/claude/resetGrantOperations.ts`; tests: `tests/claudeResetGrants.test.ts`.
+
+**Recorded validation:** Bun 1.4.3 `bun run verify` passes 3,170 tests, lint, TypeScript, and the production build.
+
+**Last updated:** 2026-11-17
+
 ## Merge History
 
 This is an append-only decision record, newest first, with one entry per upstream sync. It explains past integrations but does not by itself establish a current divergence; use the Divergence Log for that. Sync with upstream only when the user explicitly asks. Do not edit past entries.

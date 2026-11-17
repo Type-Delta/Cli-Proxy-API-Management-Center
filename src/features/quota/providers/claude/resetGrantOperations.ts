@@ -1,5 +1,4 @@
 import { apiClient } from '@/services/api/client';
-import { authFilesApi } from '@/services/api/authFiles';
 import {
   AnthropicResetGrantError,
   anthropicResetGrantBlocker,
@@ -50,15 +49,12 @@ type Operation = {
   createdAt: number;
   code?: AnthropicResetSettledCode;
 };
-type ResetGrantResult =
-  | { code: AnthropicResetSettledCode; unresolved: boolean }
-  | { code: 'cooldown_clear_failed'; unresolved: false };
+type ResetGrantResult = { code: AnthropicResetSettledCode; unresolved: boolean };
 const defaultDependencies = {
   revision: () => apiClient.getConnectionRevision(),
   readStatus: readClaudeResetGrants,
   readOrganization: readClaudeOrganization,
   claim: claimClaudeResetGrant,
-  resetCooldown: authFilesApi.resetCooldown,
   now: () => Date.now(),
   requestId: generateResetGrantRequestId,
 };
@@ -146,18 +142,6 @@ export function createResetGrantOperations(deps = defaultDependencies) {
         assertSession();
         // A refusal on a retry cannot prove that the earlier ambiguous POST did not spend.
         if (!wasRetry || code === 'reset' || code === 'already_used') operation.code = code;
-        if (code === 'reset' || code === 'already_used') {
-          try {
-            const result = await deps.resetCooldown(authIndex);
-            assertSession();
-            if (result.status !== 'ok' || result.auth_index !== authIndex) {
-              throw new Error('Invalid cooldown reset response');
-            }
-          } catch {
-            assertSession();
-            return { code: 'cooldown_clear_failed', unresolved: false };
-          }
-        }
         return { code, unresolved: !operation.code };
       } finally {
         if (deps.revision() === session) busy.delete(key);
