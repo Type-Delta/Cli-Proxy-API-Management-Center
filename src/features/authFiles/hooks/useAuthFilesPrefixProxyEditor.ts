@@ -50,6 +50,7 @@ type AuthFileEditorErrorKey = AuthFileHeadersErrorKey | AuthFileWeightErrorKey;
 
 export type PrefixProxyEditorField =
   | CredentialPolicyField
+  | 'label'
   | 'prefix'
   | 'proxyUrl'
   | 'priority'
@@ -79,6 +80,9 @@ export type PrefixProxyEditorState = {
   invalidContentPreview: string;
   json: Record<string, unknown> | null;
   providerKey: string;
+  /** Label draft, compared with the list label the editor opened with. */
+  label: string;
+  savedLabel: string;
   prefix: string;
   proxyUrl: string;
   priority: string;
@@ -306,6 +310,11 @@ export const buildAuthFileFieldsPatch = (
   const original = editor.json ?? {};
   const patch: AuthFileFieldsPatch = {};
 
+  const nextLabel = editor.label.trim();
+  if (nextLabel !== editor.savedLabel) {
+    patch.label = nextLabel;
+  }
+
   const originalPrefix = normalizeTextField(original.prefix);
   const nextPrefix = editor.prefix.trim();
   if (nextPrefix !== originalPrefix) {
@@ -440,6 +449,13 @@ const buildPrefixProxyUpdatedText = (
   if (!editor?.json) return editor?.rawText ?? '';
   const patch = buildAuthFileFieldsPatch(editor, resolveError);
   let next: Record<string, unknown> = { ...editor.json };
+  if (patch.label !== undefined) {
+    if (patch.label) {
+      next.label = patch.label;
+    } else {
+      delete next.label;
+    }
+  }
   if (patch.prefix !== undefined) {
     if (patch.prefix) {
       next.prefix = patch.prefix;
@@ -562,6 +578,7 @@ export function useAuthFilesPrefixProxyEditor(
 
   const openPrefixProxyEditor = async (file: AuthFileItem) => {
     const name = file.name;
+    const savedLabel = (file.label ?? '').trim();
     const fileProviderKey = normalizeProviderKey(String(file.type ?? file.provider ?? ''));
 
     if (disableControls) return;
@@ -586,6 +603,8 @@ export function useAuthFilesPrefixProxyEditor(
       invalidContentPreview: '',
       json: null,
       providerKey: fileProviderKey,
+      label: savedLabel,
+      savedLabel,
       prefix: '',
       proxyUrl: '',
       priority: '',
@@ -735,6 +754,7 @@ export function useAuthFilesPrefixProxyEditor(
           },
         };
       }
+      if (field === 'label') return { ...prev, label: String(value) };
       if (field === 'prefix') return { ...prev, prefix: String(value) };
       if (field === 'proxyUrl') return { ...prev, proxyUrl: String(value) };
       if (field === 'priority') return { ...prev, priority: String(value) };

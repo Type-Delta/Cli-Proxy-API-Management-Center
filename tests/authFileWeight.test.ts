@@ -20,6 +20,8 @@ const makeEditor = (json: Record<string, unknown>, weight: string): PrefixProxyE
   invalidContentPreview: '',
   json,
   providerKey: 'codex',
+  label: '',
+  savedLabel: '',
   prefix: '',
   proxyUrl: '',
   priority: '',
@@ -184,5 +186,17 @@ describe('auth-file excluded models patch', () => {
         resolveError
       )
     ).toEqual({ excluded_models: [] });
+  });
+});
+
+describe('auth-file label', () => {
+  test('rides in the main save patch only when it differs from the list label', () => {
+    const editor = { ...makeEditor({}, ''), label: 'Old', savedLabel: 'Old' };
+    expect(buildAuthFileFieldsPatch(editor, resolveError)).toEqual({});
+    expect(buildAuthFileFieldsPatch({ ...editor, label: ' Old ' }, resolveError)).toEqual({});
+    expect(buildAuthFileFieldsPatch({ ...editor, label: ' Billing ' }, resolveError)).toEqual({
+      label: 'Billing',
+    });
+    expect(buildAuthFileFieldsPatch({ ...editor, label: '' }, resolveError)).toEqual({ label: '' });
   });
 });

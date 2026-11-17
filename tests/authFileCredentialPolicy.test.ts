@@ -254,6 +254,8 @@ describe('auth-file structured credential policy contracts', () => {
     const editor = {
       json: {},
       providerKey: 'codex',
+      label: '',
+      savedLabel: '',
       prefix: '',
       proxyUrl: '',
       priority: '',

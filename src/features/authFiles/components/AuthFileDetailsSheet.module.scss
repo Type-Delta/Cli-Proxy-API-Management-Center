@@ -33,16 +33,6 @@
   gap: 6px;
 }
 
-.renameLabel {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  > button {
-    align-self: flex-start;
-  }
-}
-
 .label {
   font-family: $font-mono;
   font-size: 10.5px;
@@ -112,4 +102,12 @@
     outline-offset: 2px;
     border-radius: 2px;
   }
+}
+
+/* Footer actions match the provider sheet's footer buttons (32px, 13px/500). */
+.footerButton:global(.btn) {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
 }

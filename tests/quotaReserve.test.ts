@@ -227,6 +227,8 @@ describe('auth-file quota reserve patch', () => {
       fileName: 'credential.json',
       json,
       providerKey: 'claude',
+      label: '',
+      savedLabel: '',
       prefix: '',
       proxyUrl: '',
       priority: '',

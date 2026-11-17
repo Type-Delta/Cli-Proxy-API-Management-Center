@@ -943,7 +943,10 @@ The Quota page gains a Z.AI tab. Auth-file entries with `usage_probe: zai` are p
 `/api-call` against the Z.ai monitor endpoint and rendered as one meter per credit window
 (five-hour and weekly) with plan level and reset countdowns; the remaining-credits text lives in the shared tooltip on the percentage so narrow cards do not overflow. Quota cards use
 `display_name` as their title. Auth Files cards lead with a user-set label and the details sheet
-offers a "Rename / set label" action that patches the auth file `label`.
+offers a "Rename / set label" field. The label is part of the sheet's draft: it marks the sheet dirty,
+appears in the JSON preview, and is sent as `label` in the same `/credentials/fields` patch as the
+other fields when the footer Save is pressed. The sheet's footer buttons use the provider sheet's
+32px, 13px/500 footer metrics.
 
 The upstream Routing board also leads with a custom credential label, using `display_name` when supplied and retaining the raw file name for writes. Email, project and file-name fallbacks remain; secret-bearing account fields are never displayed.
 
@@ -951,7 +954,9 @@ The upstream Routing board also leads with a custom credential label, using `dis
 
 **Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript compilation, and the single-file production build. Sixteen isolated Chrome CDP checks cover quota, OAuth, both routing screens, desktop/mobile widths, and light/dark themes without overflow or runtime exceptions. The pre-merge baseline passes 2,320 tests. Turkish strings are machine-translated pending native review; live integration remains pending against the merged CPA.
 
-**Last updated:** 2026-10-31
+On 2026-11-17, a local CPA build with a dummy credential verifies that editing only the label enables the footer Save, previews the label, persists it with one fields patch, closes the sheet and updates the card title. The footer buttons measure 32px, matching the provider sheet.
+
+**Last updated:** 2026-11-17
 
 ### DL044 — Provider selectors and OpenCode Go usage
 
