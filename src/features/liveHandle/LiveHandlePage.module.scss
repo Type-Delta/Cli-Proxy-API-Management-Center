@@ -33,7 +33,7 @@
   background-color: var(--bg-secondary);
 }
 
-/* The dot grid; the map engine pans and scales it with the camera. */
+/* The dot grid; the map engine pans it with the camera and keeps its spacing at any zoom. */
 .host {
   position: absolute;
   inset: 0;
