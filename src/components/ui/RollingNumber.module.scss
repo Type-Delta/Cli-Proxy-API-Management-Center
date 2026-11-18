@@ -1,0 +1,38 @@
+.root {
+  position: relative;
+  display: inline-flex;
+  font-variant-numeric: tabular-nums;
+}
+
+.reel {
+  display: inline-flex;
+  line-height: 1.15em;
+}
+
+/* One reel window; the strip behind it slides, faded at the edges like a slot machine. */
+.digit {
+  display: inline-block;
+  height: 1.15em;
+  overflow: hidden;
+  mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent);
+}
+
+.strip {
+  display: flex;
+  flex-direction: column;
+  transition: transform 820ms var(--ease-out-strong, ease-out);
+
+  > span {
+    height: 1.15em;
+    text-align: center;
+  }
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
