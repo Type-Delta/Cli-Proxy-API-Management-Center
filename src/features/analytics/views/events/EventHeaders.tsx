@@ -6,7 +6,7 @@ import { apiClient } from '@/services/api/client';
 import { analyticsApi } from '@/services/api/analytics';
 import type { AnalyticsEventDetailQuery, AnalyticsHeaderDetail, AnalyticsHeaderHop } from '@/types';
 import { CopyButton } from './EventDetailParts';
-import { formatHeaders, formatPreciseTime } from './eventDiagnostics';
+import { formatHeaders, formatPreciseTime, headerLines } from './eventDiagnostics';
 import styles from './EventDetail.module.scss';
 
 // The parent keys each accordion by event and range, so pending reads cannot cross events.
@@ -104,6 +104,7 @@ export function EventHeaders({
                 <p>{t('analytics.event_detail.headers_unavailable')}</p>
               ) : (
                 data.blocks.map((block, index) => {
+                  const lines = headerLines(block.headers);
                   const text = formatHeaders(block.headers);
                   return (
                     <div className={styles.raw} key={block.attempt_index ?? index}>
@@ -125,7 +126,16 @@ export function EventHeaders({
                         ) : null}
                       </div>
                       <pre className={styles.rawPre}>
-                        {text || t('analytics.event_detail.headers_empty')}
+                        {lines.length
+                          ? lines.map(([name, value], line) => (
+                              <span key={line}>
+                                {line ? '\n' : ''}
+                                <span className={styles.jsonKey}>{name}</span>
+                                <span className={styles.jsonPunctuation}>: </span>
+                                <span className={styles.jsonString}>{value}</span>
+                              </span>
+                            ))
+                          : t('analytics.event_detail.headers_empty')}
                       </pre>
                     </div>
                   );

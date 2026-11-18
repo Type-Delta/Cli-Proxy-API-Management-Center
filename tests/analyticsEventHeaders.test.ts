@@ -108,6 +108,14 @@ for (const trigger of ['hover', 'focus', 'open'] as const) {
         details.dispatchEvent(new browser.Event('toggle'));
       });
       expect(container.querySelector('pre')?.textContent).toBe('X-Test: one\nX-Test: two');
+      // Each line splits into name, separator, and value tokens for highlighting.
+      const tokens = [...container.querySelectorAll('pre > span')].map((line) =>
+        [...line.querySelectorAll('span')].map((token) => token.textContent)
+      );
+      expect(tokens).toEqual([
+        ['X-Test', ': ', 'one'],
+        ['X-Test', ': ', 'two'],
+      ]);
       expect(load).toHaveBeenCalledTimes(1);
     } finally {
       await act(async () => root.unmount());

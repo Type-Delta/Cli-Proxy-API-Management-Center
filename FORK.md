@@ -767,15 +767,18 @@ Simplified Chinese, and Traditional Chinese.
 Header diagnostics add four collapsed accordions for Client → CPA, CPA → Provider,
 Provider → CPA, and CPA → Client. Full-access sessions fetch each header set on expansion
 or hover/focus prefetch, with pending-read deduplication, retry, and connection-change cleanup.
-Prefetch leaves the accordion collapsed and header values absent from the DOM. Copyable
-headers preserve repeated values and CPA's credential masking; upstream blocks identify
+Prefetch leaves the accordion collapsed and header values absent from the DOM. Header lines
+are syntax-highlighted with the raw-JSON token colors (name, separator, value), while the copy
+action still yields plain `Name: value` text. Copyable headers preserve repeated values and
+CPA's credential masking; upstream blocks identify
 dispatches by index, URL, and time and explicitly cover all HTTP dispatches for the proxy
 request. WebSocket request information is omitted, and missing captures show an empty state.
 All seven locales include the labels and states. `EventHeaders.tsx` reuses the shared
 Collapsible; interaction regressions live in `tests/analyticsEventHeaders.test.ts`.
 
-Header validation: Bun 1.4.3 `bun run verify` passes 3,169 tests, ESLint, TypeScript, and the
-production single-file build. Browser checks at 1440×1050 and 390×844 confirm no eager reads,
+Header validation: Bun 1.4.3 `bun run verify` passes 3,172 tests, ESLint, TypeScript, and the
+production single-file build. Highlighted header blocks were inspected against a live CPA in light
+and dark themes at 1440px. Browser checks at 1440×1050 and 390×844 confirm no eager reads,
 four collapsed hover prefetches without rendered values, hover/open deduplication, repeated
 values, masked credentials, keyboard focus/Enter, and no viewport overflow or page errors.
 A real CPA HTTP request through a test upstream and ClickHouse returns all four header sets
@@ -811,7 +814,7 @@ build. Isolated Chrome CDP checks at 1440x900 and 390x844 confirm the raw provid
 renders and a 3.47-second arrival-to-response span displays as 3.5 seconds, rather than the
 3.29-second attempt latency. Neither viewport has horizontal overflow. CPA compiles.
 
-**Last updated:** 2026-09-09
+**Last updated:** 2026-11-18
 
 ### DL038 — Observed timing descriptions and zero-request chart behavior
 

@@ -629,9 +629,15 @@ export function errorPayloadFormat(source: string): { language: 'json' | 'text';
   }
 }
 
-export function formatHeaders(headers: Record<string, string[]>): string {
+/** One `[name, value]` pair per header value, sorted by name as a raw dump would list them. */
+export function headerLines(headers: Record<string, string[]>): Array<[string, string]> {
   return Object.entries(headers)
     .sort(([left], [right]) => left.localeCompare(right))
-    .flatMap(([name, values]) => values.map((value) => `${name}: ${value}`))
+    .flatMap(([name, values]) => values.map((value): [string, string] => [name, value]));
+}
+
+export function formatHeaders(headers: Record<string, string[]>): string {
+  return headerLines(headers)
+    .map(([name, value]) => `${name}: ${value}`)
     .join('\n');
 }
