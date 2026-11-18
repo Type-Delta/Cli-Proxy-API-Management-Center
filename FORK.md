@@ -1912,6 +1912,22 @@ The Keys tab keeps its Rank by field in the compact card.
 
 **Last updated:** 2026-11-18
 
+### DL086 — Auth Files header actions wrap on phones
+
+On phone widths the Auth Files header action row (Sync model catalog, Refresh all credentials,
+Refresh, Upload File) wraps onto extra lines instead of running past the content area, and each
+label stays on one line. Upstream keeps the row on one line, so at 390px the clipped content area
+cuts off Upload File and it cannot be scrolled into view. Tablet and desktop layouts are unchanged.
+
+**Implementation evidence:** `src/features/authFiles/components/VaultHeader.module.scss`.
+
+**Recorded validation:** Bun `bun run verify` passes. Against a live CPA in isolated Chrome CDP,
+Auth Files at 390px (light and dark) and 360px shows every header action inside the viewport with
+no horizontal overflow in `.main-content`; 768px and 1440px button positions match the previous
+build.
+
+**Last updated:** 2026-11-18
+
 ## Merge History
 
 This is an append-only decision record, newest first, with one entry per upstream sync. It explains past integrations but does not by itself establish a current divergence; use the Divergence Log for that. Sync with upstream only when the user explicitly asks. Do not edit past entries.
