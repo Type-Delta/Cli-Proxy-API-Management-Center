@@ -50,6 +50,8 @@ export type AnalyticsEventFilters = {
   result: '' | 'success' | 'failure';
   outcome: '' | 'succeeded' | 'failed' | 'canceled';
   errorClass: string;
+  /** Routed credential pseudonym (64 lowercase hex, an event's `credential_id`). */
+  credential: string;
   sessionId: string;
   /** Exact proxy request ID (32 lowercase hex); groups the attempts of one client request. */
   proxyRequestId: string;
@@ -67,6 +69,7 @@ export const DEFAULT_ANALYTICS_EVENT_FILTERS: AnalyticsEventFilters = {
   result: '',
   outcome: '',
   errorClass: '',
+  credential: '',
   sessionId: '',
   proxyRequestId: '',
   boundCredential: '',
@@ -487,6 +490,9 @@ export function parseAnalyticsUrlState(search: string): AnalyticsUrlState {
               ? 'failed'
               : '',
       errorClass: validFilterValue(params.get('error_class')),
+      credential: isCredentialPseudonym(params.get('credential'))
+        ? (params.get('credential') as string)
+        : '',
       sessionId: validFilterValue(params.get('session_id'), 256),
       proxyRequestId: validCorrelationId(params.get('proxy_request_id')),
       boundCredential:
@@ -548,6 +554,9 @@ export function serializeAnalyticsUrlState(state: AnalyticsUrlState): string {
   ] as const) {
     const safeValue = validFilterValue(value, name === 'session_id' ? 256 : 200);
     if (safeValue) params.set(name, safeValue);
+  }
+  if (isCredentialPseudonym(eventFilters.credential)) {
+    params.set('credential', eventFilters.credential);
   }
   const proxyRequestId = validCorrelationId(eventFilters.proxyRequestId);
   if (proxyRequestId) params.set('proxy_request_id', proxyRequestId);

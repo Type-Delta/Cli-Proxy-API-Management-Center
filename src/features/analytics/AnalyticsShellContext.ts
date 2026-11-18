@@ -8,9 +8,10 @@ export type AnalyticsShellContextValue = {
   contentHost: HTMLElement | null;
   shellKind: AnalyticsPageKind;
   setPortalPayloadPresent: (token: symbol, present: boolean) => void;
-  // Phones move every filter into one sheet: views portal their own filter cards into this host
-  // and report how many of their filters are active so the header icon can show a count.
-  filterSheetHost: HTMLElement | null;
+  // Views portal their own filter fields into this slot of the shared filter card (inline on
+  // desktop, inside the filter sheet on phones) and report how many of their filters are active
+  // so the phone header icon can show a count.
+  viewFilterHost: HTMLElement | null;
   setViewFilterCount: (count: number) => void;
 };
 
@@ -31,7 +32,7 @@ export function useAnalyticsContentHost() {
   return { contentHost, setPortalPayloadPresent, shellKind };
 }
 
-export function useAnalyticsFilterSheet() {
-  const { filterSheetHost, setViewFilterCount } = useAnalyticsShellContext();
-  return { filterSheetHost, setViewFilterCount };
+export function useAnalyticsViewFilters() {
+  const { viewFilterHost, setViewFilterCount } = useAnalyticsShellContext();
+  return { viewFilterHost, setViewFilterCount };
 }

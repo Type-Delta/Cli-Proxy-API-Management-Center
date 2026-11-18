@@ -139,6 +139,7 @@ export function Filters({
   sort,
   setSort,
   showSort = false,
+  children,
 }: {
   range: AnalyticsRange;
   setRange: (range: AnalyticsRange) => void;
@@ -154,6 +155,8 @@ export function Filters({
   sort: AnalyticsLeaderboardSort;
   setSort: (sort: AnalyticsLeaderboardSort) => void;
   showSort?: boolean;
+  /** View-specific filters, laid out as a second section of the card. */
+  children?: ReactNode;
 }) {
   const { t } = useTranslation();
   return (
@@ -187,6 +190,7 @@ export function Filters({
             </label>
           )}
         </div>
+        {children}
       </Card>
     </section>
   );

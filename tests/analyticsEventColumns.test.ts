@@ -168,10 +168,11 @@ describe('Event filters reset', () => {
       source: '',
       result: '',
       errorClass: '',
+      credential: '',
       sessionId: '',
       proxyRequestId: '',
       boundCredential: '',
-        outcome: '',
+      outcome: '',
     });
   });
 });

@@ -65,7 +65,7 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
   const isMobile = useMediaQuery('(max-width: 768px)');
   const headerActionSlot = useHeaderActionSlot();
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
-  const [filterSheetHost, setFilterSheetHost] = useState<HTMLElement | null>(null);
+  const [viewFilterHost, setViewFilterHost] = useState<HTMLElement | null>(null);
   const [viewFilterCount, setViewFilterCount] = useState(0);
   const closeFilterSheet = useCallback(() => setFilterSheetOpen(false), []);
   const setPortalPayloadPresent = useCallback((token: symbol, present: boolean) => {
@@ -130,10 +130,10 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
       contentHost,
       shellKind: kind,
       setPortalPayloadPresent,
-      filterSheetHost,
+      viewFilterHost,
       setViewFilterCount,
     }),
-    [capabilities, contentHost, filterSheetHost, kind, setPortalPayloadPresent]
+    [capabilities, contentHost, viewFilterHost, kind, setPortalPayloadPresent]
   );
   const analytics = capabilities.data?.analytics;
   const state = analytics?.state;
@@ -163,7 +163,9 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
       showSort={kind === 'keys'}
       // The Keys catalog always ranks every key, so a key selection would do nothing there.
       keysDisabled={kind === 'keys'}
-    />
+    >
+      <div ref={setViewFilterHost} className={styles.viewFilters} />
+    </Filters>
   );
 
   return (
@@ -267,7 +269,6 @@ export function AnalyticsShell({ pathname, children }: { pathname: string; child
             className={styles.filterSheet}
           >
             {filterControls}
-            <div ref={setFilterSheetHost} data-analytics-filter-sheet-host />
           </Sheet>
         )}
       </AnalyticsShellContext.Provider>

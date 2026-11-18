@@ -1878,6 +1878,33 @@ After a Claude reset grant succeeds, CPA reconciles the affected routing quota b
 
 **Last updated:** 2026-11-17
 
+### DL085 — Compact Usage filters with routed-credential and searchable model filters
+
+The Usage page keeps every filter in one card. Time range, API keys (or Rank by on Keys) form the
+first row; on Events, Session ID joins that row and a hairline separates a second row of Provider,
+Model, Credential, Source, Outcome, and Error class selects ending in Clear filters. Views portal
+their fields into a slot of the shell's filter card (`viewFilterHost`), which lives inline on
+desktop and inside the filter sheet on phones, so the layout composes without a second card.
+Labels are compact secondary text, keeping the Events filters at two rows on wide screens instead
+of two cards.
+
+The Credential filter lists the routed credentials from CPA's `credential` dimension, labelled by
+credential label, then filename, then a short pseudonym; named credentials sort alphabetically and
+removed ones last, and the unattributed `Unknown` bucket is omitted. Selecting one sends the
+`credential_id` event filter and round-trips through the URL as `credential`, accepted only as a
+64-hex pseudonym. Model and Credential use the shared Select's search field.
+
+**Implementation evidence:** `src/features/analytics/views/Events.tsx`, `src/features/analytics/views/events/Events.module.scss`, `src/features/analytics/{AnalyticsShell.tsx,AnalyticsShellContext.ts,Analytics.module.scss,query.ts}`, `src/features/analytics/components/AnalyticsShared.tsx`, all seven locales; tests: `tests/analyticsContracts.test.ts`, `tests/analyticsEventColumns.test.ts`.
+
+**Recorded validation:** Bun 1.4.3 `bun run verify` passes 3,172 tests, ESLint, TypeScript, and
+the production build. Against a live CPA, isolated Chrome CDP at 1440px shows the two-row card, model
+search narrowing to `gpt` models, and a Credential pick narrowing events to that credential with the
+pseudonym in the URL; the event detail's Credential fact matches. 1024px wraps Session ID and the
+selects without overflow; the 390px filter sheet stacks every field with no horizontal overflow.
+The Keys tab keeps its Rank by field in the compact card.
+
+**Last updated:** 2026-11-18
+
 ## Merge History
 
 This is an append-only decision record, newest first, with one entry per upstream sync. It explains past integrations but does not by itself establish a current divergence; use the Divergence Log for that. Sync with upstream only when the user explicitly asks. Do not edit past entries.

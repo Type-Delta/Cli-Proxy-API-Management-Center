@@ -17,7 +17,7 @@ import { AnalyticsCard as Card } from '@/features/analytics/components/Analytics
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Pagination } from '@/components/ui/Pagination';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
+import { Select, type SelectOption } from '@/components/ui/Select';
 import {
   Table,
   TableBody,
@@ -31,10 +31,16 @@ import { PROVIDER_LOGOS } from '@/features/providers/brandLogos';
 import { ProviderLogo } from '@/features/providers/components/ProviderLogo';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { analyticsApi } from '@/services/api';
-import type { AnalyticsEvent, AnalyticsEventPage, AnalyticsFilters, AnalyticsKey } from '@/types';
+import type {
+  AnalyticsEvent,
+  AnalyticsEventPage,
+  AnalyticsFilters,
+  AnalyticsKey,
+  DimensionRow,
+} from '@/types';
 import { useAnalyticsFilters } from '../AnalyticsFilterContext';
 import { analyticsKeyIdentity } from '../analyticsKeyFilterModel';
-import { useAnalyticsFilterSheet } from '../AnalyticsShellContext';
+import { useAnalyticsViewFilters } from '../AnalyticsShellContext';
 import { AsyncState } from '../components/AnalyticsShared';
 import {
   formatAnalyticsEnum,
@@ -48,6 +54,7 @@ import {
   buildAnalyticsQuery,
   DEFAULT_ANALYTICS_EVENT_FILTERS,
   freezeAnalyticsCursorQuery,
+  isCredentialPseudonym,
   resolveAnalyticsRange,
   type AnalyticsEventFilters,
   type AnalyticsRange,
@@ -142,7 +149,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
   const [activeRow, setActiveRow] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const { filterSheetHost, setViewFilterCount } = useAnalyticsFilterSheet();
+  const { viewFilterHost, setViewFilterCount } = useAnalyticsViewFilters();
 
   const dimensionRequest = (dimension: string) =>
     buildAnalyticsQuery('dimensions', range, keyIds, { dimension, page_size: 500 });
@@ -159,6 +166,13 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
         analyticsApi.dimensions(request)
       ),
     JSON.stringify(['event-model-options', range, keyIds])
+  );
+  const credentialDimensions = useAnalyticsLoad(
+    () =>
+      loadEventDimensionRows(dimensionRequest('credential'), (request) =>
+        analyticsApi.dimensions(request)
+      ),
+    JSON.stringify(['event-credential-options', range, keyIds])
   );
   const sourceDimensions = useAnalyticsLoad(
     () =>
@@ -179,6 +193,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     () => ({
       ...(filters.provider ? { provider: [filters.provider] } : {}),
       ...(filters.model ? { model: [filters.model] } : {}),
+      ...(filters.credential ? { credential_id: [filters.credential] } : {}),
       ...(filters.sessionId ? { session_id: [filters.sessionId] } : {}),
       ...(filters.proxyRequestId ? { proxy_request_id: [filters.proxyRequestId] } : {}),
       ...(filters.source ? { source: [filters.source] } : {}),
@@ -222,6 +237,7 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     loadMoreRetryAt ?? 0,
     providerDimensions.retryAt ?? 0,
     modelDimensions.retryAt ?? 0,
+    credentialDimensions.retryAt ?? 0,
     sourceDimensions.retryAt ?? 0,
     failureDimensions.retryAt ?? 0
   );
@@ -348,6 +364,28 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     ...[...new Set((modelDimensions.data ?? []).map((row) => row.value).filter(Boolean))].map(
       (value) => ({ value, label: value })
     ),
+  ];
+  // The dimension groups unattributed attempts as "Unknown"; only real pseudonyms can filter.
+  const credentialName = (row: Pick<DimensionRow, 'credential_label' | 'credential_filename'>) =>
+    row.credential_label?.trim() || row.credential_filename?.trim() || '';
+  const credentialOptions = [
+    allOption(t('analytics.all_credentials', { defaultValue: 'All credentials' })),
+    ...(credentialDimensions.data ?? [])
+      .filter((row) => isCredentialPseudonym(row.value))
+      // Named credentials alphabetically; removed ones known only by a short id go last.
+      .sort(
+        (left, right) =>
+          +!credentialName(left) - +!credentialName(right) ||
+          credentialName(left).localeCompare(credentialName(right))
+      )
+      .map((row) => {
+        const filename = row.credential_filename?.trim();
+        return {
+          value: row.value,
+          label: credentialName(row) || shortIdentifier(row.value),
+          description: filename && filename !== credentialName(row) ? filename : undefined,
+        };
+      }),
   ];
   const sourceOptions = [
     allOption(t('analytics.all_sources', { defaultValue: 'All sources' })),
@@ -680,159 +718,176 @@ export function Events({ range, keyIds }: { range: AnalyticsRange; keyIds: strin
     (rows?.[next] as HTMLTableRowElement | undefined)?.focus();
   };
 
-  // Phones hand this card to the shell's filter sheet; desktop keeps it inline above the list.
-  const filterCard = (
-    <div id="analytics-events-filters">
-      <Card title={t('analytics.event_filters', { defaultValue: 'Event filters' })}>
-        <div className={styles.controlGrid}>
-          <label className={styles.control}>
-            <span>{t('analytics.provider')}</span>
-            <Select
-              value={filters.provider}
-              onChange={(value) => updateFilter('provider', value)}
-              options={providerOptions}
-              ariaLabel={t('analytics.provider')}
-            />
-          </label>
-          <label className={styles.control}>
-            <span>{t('analytics.model')}</span>
-            <Select
-              value={filters.model}
-              onChange={(value) => updateFilter('model', value)}
-              options={modelOptions}
-              ariaLabel={t('analytics.model')}
-            />
-          </label>
-          <label className={styles.control}>
-            <span>{t('analytics.source', { defaultValue: 'Source' })}</span>
-            <Select
-              value={filters.source}
-              onChange={(value) => updateFilter('source', value)}
-              options={sourceOptions}
-              ariaLabel={t('analytics.source', { defaultValue: 'Source' })}
-            />
-          </label>
-          <label className={styles.control}>
-            <span>{t('analytics.events.outcome')}</span>
-            <Select
-              value={filters.outcome}
-              onChange={(value) =>
-                updateFilter('outcome', value as AnalyticsEventFilters['outcome'])
-              }
-              options={[
-                { value: '', label: t('analytics.all_results') },
-                { value: 'succeeded', label: t('common.success') },
-                { value: 'failed', label: t('common.failure') },
-                { value: 'canceled', label: t('analytics.events.canceled') },
-              ]}
-              ariaLabel={t('analytics.events.outcome')}
-            />
-          </label>
-          <label className={styles.control}>
-            <span>{t('analytics.error_class', { defaultValue: 'Error class' })}</span>
-            <Select
-              value={filters.errorClass}
-              onChange={(value) => updateFilter('errorClass', value)}
-              options={errorOptions}
-              ariaLabel={t('analytics.error_class', { defaultValue: 'Error class' })}
-            />
-          </label>
-        </div>
-        <div className={styles.sessionFilterRow}>
-          <label className={styles.control}>
-            <span>{t('analytics.event_detail.session_id', { defaultValue: 'Session ID' })}</span>
-            <Input
-              className={styles.sessionInput}
-              spellCheck={false}
-              autoComplete="off"
-              aria-label={t('analytics.event_detail.session_id', { defaultValue: 'Session ID' })}
-              value={sessionDraft}
-              maxLength={256}
-              onFocus={() => {
-                sessionFocused.current = true;
-              }}
-              onChange={(event) => setSessionDraft(event.target.value)}
-              onBlur={() => {
-                sessionFocused.current = false;
-                commitSession(sessionDraft);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') commitSession(sessionDraft);
-              }}
-              placeholder={t('analytics.event_detail.session_id_exact', {
-                defaultValue: 'Exact session ID',
-              })}
-            />
-          </label>
-          <Button
-            variant="secondary"
-            size="sm"
-            className={styles.clearFilters}
-            disabled={!hasFilters}
-            onClick={() => {
-              setSessionDraft('');
-              setFilters(DEFAULT_ANALYTICS_EVENT_FILTERS);
-            }}
-          >
-            {t('analytics.clear_filters', { defaultValue: 'Clear filters' })}
-          </Button>
-        </div>
-        <div className={styles.filterFooter}>
-          {filters.proxyRequestId ? (
-            <span className={styles.requestFilter}>
-              <span className={styles.requestFilterLabel}>
-                {t('analytics.events.proxy_request_filter', {
-                  defaultValue: 'Request {{id}}',
-                  id: shortIdentifier(filters.proxyRequestId),
+  const selectField = (
+    label: string,
+    value: string,
+    onChange: (value: string) => void,
+    options: SelectOption[],
+    search?: { placeholder: string }
+  ) => (
+    <label className={styles.control}>
+      <span>{label}</span>
+      <Select
+        value={value}
+        onChange={onChange}
+        options={options}
+        ariaLabel={label}
+        {...(search
+          ? {
+              searchable: true,
+              searchPlaceholder: search.placeholder,
+              emptyLabel: t('analytics.no_matching_options', { defaultValue: 'No matches' }),
+              dropdownMinWidth: 320,
+            }
+          : {})}
+      />
+    </label>
+  );
+  const dimensionErrors = [
+    providerDimensions,
+    modelDimensions,
+    credentialDimensions,
+    sourceDimensions,
+    failureDimensions,
+  ].filter((dimension) => Boolean(dimension.error));
+
+  // The shell's filter card lays these out beside its own fields, inline on desktop and inside the
+  // filter sheet on phones: Session ID joins the range and key row, the selects get their own.
+  const filterFields = (
+    <>
+      <label className={`${styles.control} ${styles.sessionControl}`}>
+        <span>{t('analytics.event_detail.session_id', { defaultValue: 'Session ID' })}</span>
+        <Input
+          className={styles.sessionInput}
+          spellCheck={false}
+          autoComplete="off"
+          aria-label={t('analytics.event_detail.session_id', { defaultValue: 'Session ID' })}
+          value={sessionDraft}
+          maxLength={256}
+          onFocus={() => {
+            sessionFocused.current = true;
+          }}
+          onChange={(event) => setSessionDraft(event.target.value)}
+          onBlur={() => {
+            sessionFocused.current = false;
+            commitSession(sessionDraft);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') commitSession(sessionDraft);
+          }}
+          placeholder={t('analytics.event_detail.session_id_exact', {
+            defaultValue: 'Exact session ID',
+          })}
+        />
+      </label>
+      <div id="analytics-events-filters" className={styles.filterGrid}>
+        {selectField(
+          t('analytics.provider'),
+          filters.provider,
+          (value) => updateFilter('provider', value),
+          providerOptions
+        )}
+        {selectField(
+          t('analytics.model'),
+          filters.model,
+          (value) => updateFilter('model', value),
+          modelOptions,
+          { placeholder: t('analytics.search_models', { defaultValue: 'Search models' }) }
+        )}
+        {selectField(
+          t('analytics.credential', { defaultValue: 'Credential' }),
+          filters.credential,
+          (value) => updateFilter('credential', value),
+          credentialOptions,
+          { placeholder: t('analytics.search_credentials', { defaultValue: 'Search credentials' }) }
+        )}
+        {selectField(
+          t('analytics.source', { defaultValue: 'Source' }),
+          filters.source,
+          (value) => updateFilter('source', value),
+          sourceOptions
+        )}
+        {selectField(
+          t('analytics.events.outcome'),
+          filters.outcome,
+          (value) => updateFilter('outcome', value as AnalyticsEventFilters['outcome']),
+          [
+            { value: '', label: t('analytics.all_results') },
+            { value: 'succeeded', label: t('common.success') },
+            { value: 'failed', label: t('common.failure') },
+            { value: 'canceled', label: t('analytics.events.canceled') },
+          ]
+        )}
+        {selectField(
+          t('analytics.error_class', { defaultValue: 'Error class' }),
+          filters.errorClass,
+          (value) => updateFilter('errorClass', value),
+          errorOptions
+        )}
+        <Button
+          variant="secondary"
+          className={styles.clearFilters}
+          disabled={!hasFilters}
+          onClick={() => {
+            setSessionDraft('');
+            setFilters(DEFAULT_ANALYTICS_EVENT_FILTERS);
+          }}
+        >
+          {t('analytics.clear_filters', { defaultValue: 'Clear filters' })}
+        </Button>
+        {filters.proxyRequestId || sourceDimensions.error ? (
+          <div className={styles.filterFooter}>
+            {filters.proxyRequestId ? (
+              <span className={styles.requestFilter}>
+                <span className={styles.requestFilterLabel}>
+                  {t('analytics.events.proxy_request_filter', {
+                    defaultValue: 'Request {{id}}',
+                    id: shortIdentifier(filters.proxyRequestId),
+                  })}
+                </span>
+                <button
+                  type="button"
+                  className={styles.requestFilterClear}
+                  aria-label={t('analytics.events.proxy_request_filter_clear', {
+                    defaultValue: 'Remove the request filter',
+                  })}
+                  onClick={() =>
+                    setFilters({ ...filters, proxyRequestId: '', boundCredential: '' })
+                  }
+                >
+                  <IconX size={12} aria-hidden="true" />
+                </button>
+              </span>
+            ) : null}
+            {sourceDimensions.error && (
+              <span className={styles.sourceNotice}>
+                {t('analytics.source_loaded_fallback', {
+                  defaultValue:
+                    'CPA did not return Source options; this control uses values from loaded events.',
                 })}
               </span>
-              <button
-                type="button"
-                className={styles.requestFilterClear}
-                aria-label={t('analytics.events.proxy_request_filter_clear', {
-                  defaultValue: 'Remove the request filter',
-                })}
-                onClick={() => setFilters({ ...filters, proxyRequestId: '', boundCredential: '' })}
-              >
-                <IconX size={12} aria-hidden="true" />
-              </button>
-            </span>
-          ) : null}
-          {sourceDimensions.error && (
-            <span className={styles.sourceNotice}>
-              {t('analytics.source_loaded_fallback', {
-                defaultValue:
-                  'CPA did not return Source options; this control uses values from loaded events.',
-              })}
-            </span>
-          )}
-        </div>
-        {[
-          [providerDimensions.error, providerDimensions.refresh],
-          [modelDimensions.error, modelDimensions.refresh],
-          [sourceDimensions.error, sourceDimensions.refresh],
-          [failureDimensions.error, failureDimensions.refresh],
-        ]
-          .filter(([error]) => Boolean(error))
-          .map(([error, retry], index) => (
-            <div className="error-box" role="alert" key={`${index}:${String(error)}`}>
-              <span>{String(error)}</span>
-              <Button
-                variant="secondary"
-                onClick={() => void (retry as () => Promise<unknown>)()}
-                disabled={retryIn > 0}
-              >
-                {retryLabel}
-              </Button>
-            </div>
-          ))}
-      </Card>
-    </div>
+            )}
+          </div>
+        ) : null}
+        {dimensionErrors.map(({ error, refresh }, index) => (
+          <div
+            className={`error-box ${styles.filterError}`}
+            role="alert"
+            key={`${index}:${String(error)}`}
+          >
+            <span>{String(error)}</span>
+            <Button variant="secondary" onClick={() => void refresh()} disabled={retryIn > 0}>
+              {retryLabel}
+            </Button>
+          </div>
+        ))}
+      </div>
+    </>
   );
 
   return (
     <>
-      {isMobile ? filterSheetHost && createPortal(filterCard, filterSheetHost) : filterCard}
+      {viewFilterHost && createPortal(filterFields, viewFilterHost)}
 
       {result.error && effectivePages.length === 0 ? (
         <Card>

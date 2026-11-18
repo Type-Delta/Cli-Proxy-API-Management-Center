@@ -178,6 +178,7 @@
   align-items: end;
   gap: 8px 12px;
   flex-wrap: wrap;
+  padding: 16px 20px;
 
   button,
   input {
@@ -211,11 +212,15 @@
   min-width: 180px;
 
   > span:first-child {
-    color: var(--text-primary);
-    font-size: 13px;
+    color: var(--text-secondary);
+    font-size: 12px;
     font-weight: 500;
     line-height: 1.35;
   }
+}
+// Slot for view-specific filters (Events). Its children lay out as items of the card itself.
+.viewFilters {
+  display: contents;
 }
 // The range picker owns its own flex basis above; its inner field just fills it.
 .rangeFilter .filterField {
@@ -693,11 +698,5 @@ tbody tr:hover .stickyAction {
 
   :global(.card-header .title) {
     font-size: 14px;
-  }
-
-  [data-analytics-filter-sheet-host]:not(:empty) {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color);
   }
 }

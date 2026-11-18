@@ -120,6 +120,7 @@ describe('analytics client contracts', () => {
         source: 'import',
         result: 'failure',
         errorClass: 'rate_limit',
+        credential: '',
         sessionId: '',
         proxyRequestId: '',
         boundCredential: '',
@@ -143,6 +144,7 @@ describe('analytics client contracts', () => {
         source: 'import',
         result: '',
         errorClass: 'rate_limit',
+        credential: '',
         sessionId: '',
         proxyRequestId: '',
         boundCredential: '',
@@ -152,6 +154,20 @@ describe('analytics client contracts', () => {
       distribution: 'model',
       eventId: '',
     });
+  });
+
+  test('round-trips the routed credential filter only as a 64-hex pseudonym', () => {
+    const pseudonym = 'cd'.repeat(32);
+    const state = parseAnalyticsUrlState('?range=today&time_zone=UTC');
+    const search = serializeAnalyticsUrlState({
+      ...state,
+      eventFilters: { ...state.eventFilters, credential: pseudonym },
+    });
+    expect(search).toContain(`credential=${pseudonym}`);
+    expect(parseAnalyticsUrlState(search).eventFilters.credential).toBe(pseudonym);
+    for (const hostile of ['Unknown', 'auth-1', 'CD'.repeat(32), 'cd'.repeat(31)]) {
+      expect(parseAnalyticsUrlState(`?credential=${hostile}`).eventFilters.credential).toBe('');
+    }
   });
 
   test('sanitizes malformed URL state and redirects the legacy leaderboard to all keys', () => {
@@ -167,6 +183,7 @@ describe('analytics client contracts', () => {
         source: '',
         result: '',
         errorClass: '',
+        credential: '',
         sessionId: '',
         proxyRequestId: '',
         boundCredential: '',

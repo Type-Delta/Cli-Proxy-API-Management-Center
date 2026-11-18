@@ -1,7 +1,19 @@
-.controlGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 12px;
+// Event filters join the shared filter card: Session ID sits beside the range and key fields,
+// and the selects take a full-width row of their own that ends with Clear filters.
+.filterGrid {
+  display: flex;
+  flex: 1 0 100%;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px 12px;
+  min-width: 0;
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+
+  > .control {
+    flex: 1 1 150px;
+  }
 }
 
 .control {
@@ -11,9 +23,10 @@
   gap: 6px;
 
   > span {
-    color: var(--text-primary);
-    font-size: 13px;
+    color: var(--text-secondary);
+    font-size: 12px;
     font-weight: 500;
+    line-height: 1.35;
   }
 
   button {
@@ -34,6 +47,29 @@
   font-weight: 500;
 }
 
+.sessionControl {
+  flex: 0 1 auto;
+  width: 280px;
+  min-width: 180px;
+}
+
+.filterGrid button.clearFilters {
+  flex: 0 0 auto;
+  min-height: 40px;
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.filterFooter,
+.filterError {
+  flex: 1 0 100%;
+}
+
+.filterError {
+  margin: 0;
+}
+
 .filterFooter,
 .tableActions,
 .pagination {
@@ -41,10 +77,6 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.filterFooter {
-  margin-top: 14px;
 }
 
 .sourceNotice,
@@ -333,8 +365,21 @@
     }
   }
 
-  .controlGrid {
-    grid-template-columns: 1fr;
+  .filterGrid {
+    flex-direction: column;
+    align-items: stretch;
+
+    > .control {
+      flex: 0 0 auto;
+    }
+  }
+
+  .sessionControl {
+    width: 100%;
+  }
+
+  .filterGrid button.clearFilters {
+    margin-left: 0;
   }
 }
 
@@ -342,30 +387,6 @@
   color: var(--text-secondary);
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-}
-
-.sessionFilterRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 12px;
-  margin-top: 12px;
-
-  > label {
-    max-width: 430px;
-  }
-}
-
-.sessionFilterRow button.clearFilters {
-  min-height: 40px;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-@media (max-width: 480px) {
-  .sessionFilterRow {
-    gap: 8px;
-  }
 }
 
 /* Proxy-request filter set by a session-binding link; it has no form control of its own. */
