@@ -121,7 +121,8 @@
     "analytics_management": "Analytics Management",
     "analytics_leaderboard": "Bảng xếp hạng mô hình",
     "routing": "Định tuyến",
-    "management_keys": "Khóa quản lý"
+    "management_keys": "Khóa quản lý",
+    "live_handle": "Xử lý trực tiếp"
   },
   "nav_groups": {
     "operate": "Vận hành",
@@ -148,7 +149,8 @@
     "analytics_leaderboard": "Các mô hình hàng đầu trong tuần",
     "analytics_model-leaderboard": "Các mô hình hàng đầu trong tuần trên mọi nhà cung cấp và thông tin xác thực.",
     "routing": "Tầng ưu tiên và chuyển đổi dự phòng",
-    "management_keys": "Quyền quản trị theo phạm vi"
+    "management_keys": "Quyền quản trị theo phạm vi",
+    "live_handle": "Yêu cầu đang xử lý"
   },
   "analytics": {
     "events_pagination": "Attempt history pagination",
@@ -1481,7 +1483,8 @@
       }
     },
     "events.proxy_request_filter": "Yêu cầu {{id}}",
-    "events.proxy_request_filter_clear": "Bỏ bộ lọc yêu cầu"
+    "events.proxy_request_filter_clear": "Bỏ bộ lọc yêu cầu",
+    "event_filters": "Event filters"
   },
   "dashboard": {
     "hero_verdict_good": "Mọi hệ thống ổn định",
@@ -4626,5 +4629,113 @@
     "remove_pattern": "Xóa quy tắc regex dòng {{row}}",
     "move_up": "Chuyển quy tắc regex dòng {{row}} lên",
     "move_down": "Chuyển quy tắc regex dòng {{row}} xuống"
+  },
+  "live_handle": {
+    "title": "Xử lý trực tiếp",
+    "in_flight": "{{count}} đang xử lý",
+    "output_rate": "≈{{value}} tok/s",
+    "pause": "Tạm dừng",
+    "resume": "Tiếp tục",
+    "paused": "Đã tạm dừng",
+    "updates_interrupted": "Cập nhật bị gián đoạn · lần cuối lúc {{time}}",
+    "connecting": "Đang kết nối…",
+    "unsupported_title": "Phiên bản CPA này không cung cấp dữ liệu yêu cầu trực tiếp",
+    "unsupported_desc": "Hãy cập nhật CPA lên phiên bản hỗ trợ yêu cầu trực tiếp để dùng trang này.",
+    "listening": "Yên tĩnh. Đang chờ yêu cầu.",
+    "no_key": "Không có API key",
+    "routing_target": "Đang chọn thông tin xác thực",
+    "tokens_estimated": "≈{{value}} tok",
+    "tokens_exact": "{{value}} tok",
+    "truncated": "đã ẩn các yêu cầu cũ",
+    "state": {
+      "routing": "định tuyến",
+      "waiting": "đang chờ",
+      "streaming": "đang xuất",
+      "idle": "rảnh",
+      "finished": "hoàn tất",
+      "failed": "lỗi",
+      "cancelled": "đã hủy"
+    },
+    "detail": {
+      "endpoint": "Endpoint",
+      "received": "Nhận lúc",
+      "duration": "Thời lượng",
+      "status": "Trạng thái HTTP",
+      "output": "Đầu ra",
+      "request_id": "ID yêu cầu",
+      "copy": "Sao chép",
+      "copied": "Đã sao chép",
+      "estimated": "Số token được ước tính từ số byte đã xuất cho đến khi CPA báo cáo mức sử dụng.",
+      "attempts": "Lần thử ({{count}})",
+      "attempt": "Lần thử {{index}}",
+      "credential": "Thông tin xác thực",
+      "upstream_model": "Mô hình upstream",
+      "first_output": "Đầu ra đầu tiên",
+      "tokens": "Token",
+      "tokens_in_out": "{{input}} vào · {{output}} ra"
+    },
+    "map_label": "Bản đồ yêu cầu trực tiếp",
+    "tokens_this_visit": "token trong lần xem này",
+    "busy": "{{count}} đang bận",
+    "stack": "phiên tác tử con: {{count}}",
+    "request_label": "{{key}} → {{model}}, {{state}}. Mở chi tiết.",
+    "full_screen": "Toàn màn hình",
+    "exit_full_screen": "Thoát toàn màn hình",
+    "columns": {
+      "key": "API key",
+      "session": "Phiên",
+      "model": "Mô hình",
+      "cred": "Thông tin xác thực"
+    },
+    "feed": {
+      "finished": "<b>{{key}}</b> nhận <b>{{tokens}} token</b> từ {{model}} trong {{duration}}",
+      "failed": "Yêu cầu {{model}} của <b>{{key}}</b> lỗi sau {{duration}}",
+      "failed_status": "Yêu cầu {{model}} của <b>{{key}}</b> lỗi ({{status}}) sau {{duration}}",
+      "cancelled": "<b>{{key}}</b> đã hủy {{model}} sau {{duration}}",
+      "retry": "<b>{{from}}</b> từ chối {{key}}, thử lại với <b>{{to}}</b>",
+      "retry_status": "<b>{{from}}</b> từ chối {{key}} ({{status}}), thử lại với <b>{{to}}</b>"
+    },
+    "legend": {
+      "title": "Chú giải",
+      "request": "mỗi chấm là một yêu cầu, mang màu của key",
+      "ack": "chấm dừng ở mép trái của thông tin xác thực đang chờ nhà cung cấp xác nhận",
+      "waiting": "chấm có vòng nhấp nháy xoay quanh thông tin xác thực đang chờ token đầu tiên",
+      "streaming": "tia sáng chạy ngược về là token đang truyền",
+      "flash": "đường nhấp nháy đang mang quá nhiều tia để vẽ từng tia",
+      "stack": "phiên xếp chồng chứa các tác tử con; nhấn để mở ra",
+      "failed": "màu đỏ là lần thử thất bại",
+      "navigate": "kéo để di chuyển bản đồ hoặc một nút, cuộn để thu phóng"
+    },
+    "tip": {
+      "state": "Trạng thái",
+      "elapsed": "Đã chạy",
+      "attempts": "Số lần thử",
+      "in_flight": "Đang xử lý",
+      "tokens_visit": "Token trong lần xem này",
+      "key_id": "ID key",
+      "provider": "Nhà cung cấp",
+      "open": "Nhấn để xem chi tiết",
+      "unfold": "Nhấn để hiện các phiên tác tử con",
+      "fold": "Nhấn để thu gọn",
+      "subagents": "Phiên tác tử con",
+      "kind": {
+        "key": "API key",
+        "session": "Phiên",
+        "model": "Mô hình",
+        "cred": "Thông tin xác thực"
+      }
+    },
+    "reset_view": "Đặt lại góc nhìn",
+    "settings": {
+      "title": "Cài đặt bản đồ",
+      "feed": "Nhật ký hoạt động",
+      "feed_hint": "Các yêu cầu hoàn tất, thất bại và thử lại ở góc dưới bên trái",
+      "legend": "Chú giải",
+      "legend_hint": "Ý nghĩa của chấm, vòng và tia sáng",
+      "heads": "Nhãn cột",
+      "heads_hint": "Tiêu đề phía trên khóa, mô hình và thông tin xác thực",
+      "sessions": "Nút phiên",
+      "sessions_hint": "Một cột giữa khóa và mô hình cho biết mỗi yêu cầu thuộc phiên máy khách nào"
+    }
   }
 }

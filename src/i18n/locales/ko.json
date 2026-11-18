@@ -121,7 +121,8 @@
     "analytics_management": "분석 관리",
     "analytics_leaderboard": "모델 리더보드",
     "routing": "라우팅",
-    "management_keys": "관리 키"
+    "management_keys": "관리 키",
+    "live_handle": "실시간 처리"
   },
   "nav_groups": {
     "operate": "운영",
@@ -148,7 +149,8 @@
     "analytics_leaderboard": "이번 주 최고 모델",
     "analytics_model-leaderboard": "모든 공급자와 자격 증명에서 이번 주 최고 모델.",
     "routing": "우선순위 계층과 장애 조치",
-    "management_keys": "범위가 지정된 관리 접근"
+    "management_keys": "범위가 지정된 관리 접근",
+    "live_handle": "처리 중인 요청"
   },
   "analytics": {
     "events_pagination": "시도 기록 페이지 매김",
@@ -1481,7 +1483,8 @@
       }
     },
     "events.proxy_request_filter": "요청 {{id}}",
-    "events.proxy_request_filter_clear": "요청 필터 제거"
+    "events.proxy_request_filter_clear": "요청 필터 제거",
+    "event_filters": "이벤트 필터"
   },
   "dashboard": {
     "hero_verdict_good": "모든 시스템 정상",
@@ -4626,5 +4629,113 @@
     "remove_pattern": "{{row}}행 정규식 규칙 삭제",
     "move_up": "{{row}}행 정규식 규칙 위로 이동",
     "move_down": "{{row}}행 정규식 규칙 아래로 이동"
+  },
+  "live_handle": {
+    "title": "실시간 처리",
+    "in_flight": "{{count}}개 처리 중",
+    "output_rate": "≈{{value}} tok/s",
+    "pause": "일시정지",
+    "resume": "재개",
+    "paused": "일시정지됨",
+    "updates_interrupted": "업데이트 중단됨 · 마지막 {{time}}",
+    "connecting": "연결 중…",
+    "unsupported_title": "이 CPA 버전은 실시간 요청 피드를 제공하지 않습니다",
+    "unsupported_desc": "이 페이지를 사용하려면 실시간 요청을 지원하는 CPA 버전으로 업데이트하세요.",
+    "listening": "조용합니다. 요청을 기다리는 중입니다.",
+    "no_key": "API 키 없음",
+    "routing_target": "자격 증명 선택 중",
+    "tokens_estimated": "≈{{value}} tok",
+    "tokens_exact": "{{value}} tok",
+    "truncated": "오래된 요청 숨김",
+    "state": {
+      "routing": "라우팅 중",
+      "waiting": "대기 중",
+      "streaming": "출력 중",
+      "idle": "유휴",
+      "finished": "완료",
+      "failed": "실패",
+      "cancelled": "취소됨"
+    },
+    "detail": {
+      "endpoint": "엔드포인트",
+      "received": "수신",
+      "duration": "소요 시간",
+      "status": "HTTP 상태",
+      "output": "출력",
+      "request_id": "요청 ID",
+      "copy": "복사",
+      "copied": "복사됨",
+      "estimated": "CPA가 사용량을 보고하기 전까지 토큰 수는 출력된 바이트로 추정합니다.",
+      "attempts": "시도 ({{count}})",
+      "attempt": "시도 {{index}}",
+      "credential": "자격 증명",
+      "upstream_model": "업스트림 모델",
+      "first_output": "첫 출력",
+      "tokens": "토큰",
+      "tokens_in_out": "입력 {{input}} · 출력 {{output}}"
+    },
+    "map_label": "실시간 요청 지도",
+    "tokens_this_visit": "이번 방문의 토큰",
+    "busy": "{{count}}개 사용 중",
+    "stack": "하위 에이전트 세션: {{count}}",
+    "request_label": "{{key}} → {{model}}, {{state}}. 세부 정보 열기.",
+    "full_screen": "전체 화면",
+    "exit_full_screen": "전체 화면 종료",
+    "columns": {
+      "key": "API 키",
+      "session": "세션",
+      "model": "모델",
+      "cred": "자격 증명"
+    },
+    "feed": {
+      "finished": "<b>{{key}}</b>이(가) {{duration}} 동안 {{model}}에서 <b>토큰 {{tokens}}개</b>를 받았습니다",
+      "failed": "<b>{{key}}</b>의 {{model}} 요청이 {{duration}} 후 실패했습니다",
+      "failed_status": "<b>{{key}}</b>의 {{model}} 요청이 {{duration}} 후 실패했습니다 ({{status}})",
+      "cancelled": "<b>{{key}}</b>이(가) {{duration}} 후 {{model}} 요청을 취소했습니다",
+      "retry": "<b>{{from}}</b>이(가) {{key}}을(를) 거부해 <b>{{to}}</b>(으)로 재시도합니다",
+      "retry_status": "<b>{{from}}</b>이(가) {{key}}을(를) 거부해({{status}}) <b>{{to}}</b>(으)로 재시도합니다"
+    },
+    "legend": {
+      "title": "범례",
+      "request": "점 하나가 요청 하나이며 키의 색을 띱니다",
+      "ack": "자격 증명 왼쪽 가장자리에 멈춘 점은 공급자의 확인을 기다리는 중입니다",
+      "waiting": "고동치는 링을 두르고 자격 증명 주위를 도는 점은 첫 토큰을 기다리는 중입니다",
+      "streaming": "되돌아오는 불꽃은 스트리밍 중인 토큰입니다",
+      "flash": "깜박이는 선은 하나씩 그리기엔 불꽃이 너무 많다는 뜻입니다",
+      "stack": "겹쳐진 세션에는 하위 에이전트가 들어 있으며, 클릭하면 펼쳐집니다",
+      "failed": "빨간색은 실패한 시도입니다",
+      "navigate": "지도나 노드를 드래그해 옮기고, 스크롤로 확대/축소"
+    },
+    "tip": {
+      "state": "상태",
+      "elapsed": "경과",
+      "attempts": "시도",
+      "in_flight": "처리 중",
+      "tokens_visit": "이번 방문의 토큰",
+      "key_id": "키 ID",
+      "provider": "공급자",
+      "open": "클릭하여 세부 정보 보기",
+      "unfold": "클릭하면 하위 에이전트 세션을 펼칩니다",
+      "fold": "클릭하면 접습니다",
+      "subagents": "하위 에이전트 세션",
+      "kind": {
+        "key": "API 키",
+        "session": "세션",
+        "model": "모델",
+        "cred": "자격 증명"
+      }
+    },
+    "reset_view": "보기 초기화",
+    "settings": {
+      "title": "지도 설정",
+      "feed": "활동 로그",
+      "feed_hint": "왼쪽 아래에 완료, 실패, 재시도된 요청 표시",
+      "legend": "범례",
+      "legend_hint": "점, 고리, 불꽃이 뜻하는 것",
+      "heads": "열 제목",
+      "heads_hint": "키, 모델, 자격 증명 위의 제목",
+      "sessions": "세션 노드",
+      "sessions_hint": "키와 모델 사이에 각 요청이 속한 클라이언트 세션을 보여 주는 열"
+    }
   }
 }

@@ -15,6 +15,7 @@ import { PluginsPage } from '@/features/plugins/PluginsPage';
 import { PLUGINS_STORE_PATH } from '@/features/plugins/pluginsView';
 import { ConfigPage } from '@/features/config/ConfigPage';
 import { LogsPage } from '@/features/logs/LogsPage';
+import { LiveHandlePage } from '@/features/liveHandle/LiveHandlePage';
 import { SystemPage } from '@/pages/SystemPage';
 import { ManagementKeysPage } from '@/features/managementKeys/ManagementKeysPage';
 import { useAuthStore } from '@/stores';
@@ -89,6 +90,7 @@ const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/routing/rules', element: <RulesPage /> },
   { path: '/routing/dry-run', element: <DryRunPage /> },
   { path: '/quota', element: <QuotaPage /> },
+  { path: '/live-handle', element: <LiveHandlePage /> },
   { path: '/analytics', element: <AnalyticsPageRedirect page="usage" /> },
   {
     path: '/analytics/usage',

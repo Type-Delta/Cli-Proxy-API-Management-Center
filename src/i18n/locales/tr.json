@@ -121,7 +121,8 @@
     "analytics_management": "Analitik Yönetimi",
     "analytics_leaderboard": "Model Skor Tablosu",
     "routing": "Yönlendirme",
-    "management_keys": "Yönetim Anahtarları"
+    "management_keys": "Yönetim Anahtarları",
+    "live_handle": "Canlı İşlem"
   },
   "nav_groups": {
     "operate": "İşlet",
@@ -148,7 +149,8 @@
     "analytics_leaderboard": "Haftanın öne çıkan modelleri",
     "analytics_model-leaderboard": "Tüm sağlayıcılar ve kimlik bilgileri genelinde haftanın en iyi modelleri.",
     "routing": "Öncelik katmanları ve yük devretme",
-    "management_keys": "Kapsamlı yönetici erişimi"
+    "management_keys": "Kapsamlı yönetici erişimi",
+    "live_handle": "İşlenen istekler"
   },
   "analytics": {
     "events_pagination": "Geçmişi sayfalandırmayı deneyin",
@@ -1481,7 +1483,8 @@
       }
     },
     "events.proxy_request_filter": "İstek {{id}}",
-    "events.proxy_request_filter_clear": "İstek filtresini kaldır"
+    "events.proxy_request_filter_clear": "İstek filtresini kaldır",
+    "event_filters": "Etkinlik filtreleri"
   },
   "dashboard": {
     "hero_verdict_good": "Tüm Sistemler Dengede",
@@ -4626,5 +4629,113 @@
     "remove_pattern": "{{row}}. regex satırını sil",
     "move_up": "{{row}}. regex satırını yukarı taşı",
     "move_down": "{{row}}. regex satırını aşağı taşı"
+  },
+  "live_handle": {
+    "title": "Canlı İşlem",
+    "in_flight": "{{count}} işleniyor",
+    "output_rate": "≈{{value}} tok/sn",
+    "pause": "Duraklat",
+    "resume": "Sürdür",
+    "paused": "Duraklatıldı",
+    "updates_interrupted": "Güncellemeler kesildi · son {{time}}",
+    "connecting": "Bağlanıyor…",
+    "unsupported_title": "Bu CPA sürümü canlı istek akışı sunmuyor",
+    "unsupported_desc": "Bu sayfayı kullanmak için CPA'yı canlı istekleri destekleyen bir sürüme güncelleyin.",
+    "listening": "Sessiz. İstek bekleniyor.",
+    "no_key": "API anahtarı yok",
+    "routing_target": "Kimlik bilgisi seçiliyor",
+    "tokens_estimated": "≈{{value}} tok",
+    "tokens_exact": "{{value}} tok",
+    "truncated": "eski istekler gizlendi",
+    "state": {
+      "routing": "yönlendiriliyor",
+      "waiting": "bekliyor",
+      "streaming": "akış",
+      "idle": "boşta",
+      "finished": "bitti",
+      "failed": "başarısız",
+      "cancelled": "iptal edildi"
+    },
+    "detail": {
+      "endpoint": "Uç nokta",
+      "received": "Alındı",
+      "duration": "Süre",
+      "status": "HTTP durumu",
+      "output": "Çıktı",
+      "request_id": "İstek kimliği",
+      "copy": "Kopyala",
+      "copied": "Kopyalandı",
+      "estimated": "CPA kullanımı bildirene kadar token sayısı akan baytlardan tahmin edilir.",
+      "attempts": "Denemeler ({{count}})",
+      "attempt": "Deneme {{index}}",
+      "credential": "Kimlik bilgisi",
+      "upstream_model": "Üst akış modeli",
+      "first_output": "İlk çıktı",
+      "tokens": "Token",
+      "tokens_in_out": "{{input}} giriş · {{output}} çıkış"
+    },
+    "map_label": "Canlı istek haritası",
+    "tokens_this_visit": "bu ziyaretteki token",
+    "busy": "{{count}} meşgul",
+    "stack": "alt ajan oturumları: {{count}}",
+    "request_label": "{{key}} → {{model}}, {{state}}. Ayrıntıları aç.",
+    "full_screen": "Tam ekran",
+    "exit_full_screen": "Tam ekrandan çık",
+    "columns": {
+      "key": "API anahtarları",
+      "session": "Oturumlar",
+      "model": "Modeller",
+      "cred": "Kimlik bilgileri"
+    },
+    "feed": {
+      "finished": "<b>{{key}}</b>, {{model}} modelinden {{duration}} içinde <b>{{tokens}} token</b> aldı",
+      "failed": "<b>{{key}}</b> için {{model}} isteği {{duration}} sonra başarısız oldu",
+      "failed_status": "<b>{{key}}</b> için {{model}} isteği {{duration}} sonra başarısız oldu ({{status}})",
+      "cancelled": "<b>{{key}}</b>, {{model}} isteğini {{duration}} sonra iptal etti",
+      "retry": "<b>{{from}}</b> {{key}} isteğini reddetti, <b>{{to}}</b> ile yeniden deneniyor",
+      "retry_status": "<b>{{from}}</b> {{key}} isteğini reddetti ({{status}}), <b>{{to}}</b> ile yeniden deneniyor"
+    },
+    "legend": {
+      "title": "Açıklama",
+      "request": "her nokta bir istektir, anahtarının rengindedir",
+      "ack": "bir kimlik bilgisinin sol kenarında duran nokta sağlayıcının onayını bekliyor",
+      "waiting": "nabız gibi atan halkayla kimlik bilgisinin çevresinde dönen nokta ilk tokenını bekliyor",
+      "streaming": "geri akan kıvılcımlar akan token'lardır",
+      "flash": "yanıp sönen çizgi tek tek çizilemeyecek kadar çok kıvılcım taşıyor",
+      "stack": "yığılmış oturum alt ajanlarını tutar; açmak için tıklayın",
+      "failed": "kırmızı başarısız bir denemedir",
+      "navigate": "haritayı veya bir düğümü sürükleyin, yakınlaştırmak için kaydırın"
+    },
+    "tip": {
+      "state": "Durum",
+      "elapsed": "Geçen süre",
+      "attempts": "Denemeler",
+      "in_flight": "İşleniyor",
+      "tokens_visit": "Bu ziyaretteki token",
+      "key_id": "Anahtar kimliği",
+      "provider": "Sağlayıcı",
+      "open": "Ayrıntılar için tıklayın",
+      "unfold": "Alt ajan oturumlarını göstermek için tıklayın",
+      "fold": "Katlamak için tıklayın",
+      "subagents": "Alt ajan oturumları",
+      "kind": {
+        "key": "API anahtarı",
+        "session": "Oturum",
+        "model": "Model",
+        "cred": "Kimlik bilgisi"
+      }
+    },
+    "reset_view": "Görünümü sıfırla",
+    "settings": {
+      "title": "Harita ayarları",
+      "feed": "Etkinlik günlüğü",
+      "feed_hint": "Sol altta biten, başarısız olan ve yeniden denenen istekler",
+      "legend": "Gösterge",
+      "legend_hint": "Noktaların, halkaların ve kıvılcımların anlamı",
+      "heads": "Sütun başlıkları",
+      "heads_hint": "Anahtarların, modellerin ve kimlik bilgilerinin üstündeki başlıklar",
+      "sessions": "Oturum düğümleri",
+      "sessions_hint": "Anahtarlarla modeller arasında, her isteğin hangi istemci oturumuna ait olduğunu gösteren bir sütun"
+    }
   }
 }

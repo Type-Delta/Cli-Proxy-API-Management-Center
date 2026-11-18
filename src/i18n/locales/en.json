@@ -121,7 +121,8 @@
     "analytics_management": "Analytics Management",
     "analytics_leaderboard": "Model Leaderboard",
     "routing": "Routing",
-    "management_keys": "Management Keys"
+    "management_keys": "Management Keys",
+    "live_handle": "Live Handle"
   },
   "nav_groups": {
     "operate": "Operate",
@@ -148,7 +149,8 @@
     "analytics_leaderboard": "Top models of the week",
     "analytics_model-leaderboard": "Top models of the week, across every provider and credential.",
     "routing": "Priority tiers and failover",
-    "management_keys": "Scoped admin access"
+    "management_keys": "Scoped admin access",
+    "live_handle": "Requests in flight"
   },
   "analytics": {
     "events_pagination": "Attempt history pagination",
@@ -1481,7 +1483,8 @@
       }
     },
     "events.proxy_request_filter": "Request {{id}}",
-    "events.proxy_request_filter_clear": "Remove the request filter"
+    "events.proxy_request_filter_clear": "Remove the request filter",
+    "event_filters": "Event filters"
   },
   "dashboard": {
     "hero_verdict_good": "All systems steady",
@@ -4626,5 +4629,113 @@
     "remove_pattern": "Remove regex row {{row}}",
     "move_up": "Move regex row {{row}} up",
     "move_down": "Move regex row {{row}} down"
+  },
+  "live_handle": {
+    "title": "Live Handle",
+    "in_flight": "{{count}} in flight",
+    "output_rate": "≈{{value}} tok/s",
+    "pause": "Pause",
+    "resume": "Resume",
+    "paused": "Paused",
+    "updates_interrupted": "Updates interrupted · last at {{time}}",
+    "connecting": "Connecting…",
+    "unsupported_title": "This CPA version has no live request feed",
+    "unsupported_desc": "Update CPA to a version that serves live requests to use this page.",
+    "listening": "Quiet. Listening for requests.",
+    "no_key": "No API key",
+    "routing_target": "Selecting a credential",
+    "tokens_estimated": "≈{{value}} tok",
+    "tokens_exact": "{{value}} tok",
+    "truncated": "older requests hidden",
+    "state": {
+      "routing": "routing",
+      "waiting": "waiting",
+      "streaming": "streaming",
+      "idle": "idle",
+      "finished": "finished",
+      "failed": "failed",
+      "cancelled": "cancelled"
+    },
+    "detail": {
+      "endpoint": "Endpoint",
+      "received": "Received",
+      "duration": "Duration",
+      "status": "HTTP status",
+      "output": "Output",
+      "request_id": "Request ID",
+      "copy": "Copy",
+      "copied": "Copied",
+      "estimated": "Token counts are estimated from streamed bytes until CPA reports usage.",
+      "attempts": "Attempts ({{count}})",
+      "attempt": "Attempt {{index}}",
+      "credential": "Credential",
+      "upstream_model": "Upstream model",
+      "first_output": "First output",
+      "tokens": "Tokens",
+      "tokens_in_out": "{{input}} in · {{output}} out"
+    },
+    "map_label": "Live request map",
+    "tokens_this_visit": "tokens this visit",
+    "busy": "{{count}} busy",
+    "stack": "subagent sessions: {{count}}",
+    "request_label": "{{key}} → {{model}}, {{state}}. Open details.",
+    "full_screen": "Full screen",
+    "exit_full_screen": "Exit full screen",
+    "columns": {
+      "key": "API keys",
+      "session": "Sessions",
+      "model": "Models",
+      "cred": "Credentials"
+    },
+    "feed": {
+      "finished": "<b>{{key}}</b> got <b>{{tokens}} tokens</b> of {{model}} in {{duration}}",
+      "failed": "<b>{{key}}</b>'s {{model}} request failed after {{duration}}",
+      "failed_status": "<b>{{key}}</b>'s {{model}} request failed ({{status}}) after {{duration}}",
+      "cancelled": "<b>{{key}}</b> cancelled {{model}} after {{duration}}",
+      "retry": "<b>{{from}}</b> refused {{key}}, retrying on <b>{{to}}</b>",
+      "retry_status": "<b>{{from}}</b> refused {{key}} ({{status}}), retrying on <b>{{to}}</b>"
+    },
+    "legend": {
+      "title": "Legend",
+      "request": "a dot is one request, in its key's colour",
+      "ack": "a dot stopped at a credential's left edge is waiting for the provider to acknowledge",
+      "waiting": "a dot circling a credential with a pulsing ring is waiting for its first token",
+      "streaming": "sparks flowing back are tokens streaming",
+      "flash": "a flashing line carries more sparks than can be drawn one by one",
+      "stack": "a stacked session holds its subagents; click it to unfold",
+      "failed": "red is a failed attempt",
+      "navigate": "drag to move the map or a node, scroll to zoom"
+    },
+    "tip": {
+      "state": "State",
+      "elapsed": "Elapsed",
+      "attempts": "Attempts",
+      "in_flight": "In flight",
+      "tokens_visit": "Tokens this visit",
+      "key_id": "Key ID",
+      "provider": "Provider",
+      "open": "Click for details",
+      "unfold": "Click to show its subagent sessions",
+      "fold": "Click to fold them away",
+      "subagents": "Subagent sessions",
+      "kind": {
+        "key": "API key",
+        "session": "Session",
+        "model": "Model",
+        "cred": "Credential"
+      }
+    },
+    "reset_view": "Reset view",
+    "settings": {
+      "title": "Map settings",
+      "feed": "Activity log",
+      "feed_hint": "Finished, failed, and retried requests at the bottom left",
+      "legend": "Legend",
+      "legend_hint": "What the dots, rings, and sparks mean",
+      "heads": "Column labels",
+      "heads_hint": "Headings above the keys, models, and credentials",
+      "sessions": "Session nodes",
+      "sessions_hint": "A column between keys and models showing which client session each request belongs to"
+    }
   }
 }

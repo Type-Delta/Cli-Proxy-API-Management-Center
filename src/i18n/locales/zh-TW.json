@@ -121,7 +121,8 @@
     "analytics_management": "分析管理",
     "analytics_leaderboard": "模型排行榜",
     "routing": "路由編排",
-    "management_keys": "管理金鑰"
+    "management_keys": "管理金鑰",
+    "live_handle": "即時處理"
   },
   "nav_groups": {
     "operate": "運行",
@@ -148,7 +149,8 @@
     "analytics_leaderboard": "每週最佳模型",
     "analytics_model-leaderboard": "本週跨所有供應商與憑證的最佳模型。",
     "routing": "優先級分層與故障轉移",
-    "management_keys": "分級管理存取"
+    "management_keys": "分級管理存取",
+    "live_handle": "正在處理的請求"
   },
   "analytics": {
     "events_pagination": "嘗試記錄分頁",
@@ -1481,7 +1483,8 @@
       }
     },
     "events.proxy_request_filter": "請求 {{id}}",
-    "events.proxy_request_filter_clear": "移除請求篩選"
+    "events.proxy_request_filter_clear": "移除請求篩選",
+    "event_filters": "事件過濾器"
   },
   "dashboard": {
     "hero_verdict_good": "運行平穩",
@@ -4626,5 +4629,113 @@
     "remove_pattern": "刪除第 {{row}} 列正規規則",
     "move_up": "上移第 {{row}} 列正規規則",
     "move_down": "下移第 {{row}} 列正規規則"
+  },
+  "live_handle": {
+    "title": "即時處理",
+    "in_flight": "{{count}} 個處理中",
+    "output_rate": "≈{{value}} tok/s",
+    "pause": "暫停",
+    "resume": "繼續",
+    "paused": "已暫停",
+    "updates_interrupted": "更新中斷 · 最後更新於 {{time}}",
+    "connecting": "連線中…",
+    "unsupported_title": "目前的 CPA 版本不提供即時請求資料",
+    "unsupported_desc": "請將 CPA 更新到支援即時請求的版本後再使用此頁面。",
+    "listening": "很安靜，正在等待請求。",
+    "no_key": "無 API 金鑰",
+    "routing_target": "正在選擇憑證",
+    "tokens_estimated": "≈{{value}} tok",
+    "tokens_exact": "{{value}} tok",
+    "truncated": "較早的請求未顯示",
+    "state": {
+      "routing": "路由中",
+      "waiting": "等待中",
+      "streaming": "輸出中",
+      "idle": "閒置",
+      "finished": "已完成",
+      "failed": "失敗",
+      "cancelled": "已取消"
+    },
+    "detail": {
+      "endpoint": "端點",
+      "received": "接收時間",
+      "duration": "耗時",
+      "status": "HTTP 狀態",
+      "output": "輸出",
+      "request_id": "請求 ID",
+      "copy": "複製",
+      "copied": "已複製",
+      "estimated": "在 CPA 回報用量之前，token 數依已輸出的位元組估算。",
+      "attempts": "嘗試（{{count}}）",
+      "attempt": "第 {{index}} 次嘗試",
+      "credential": "憑證",
+      "upstream_model": "上游模型",
+      "first_output": "首次輸出",
+      "tokens": "Token",
+      "tokens_in_out": "輸入 {{input}} · 輸出 {{output}}"
+    },
+    "map_label": "即時請求圖",
+    "tokens_this_visit": "本次造訪的 Token",
+    "busy": "{{count}} 個忙碌",
+    "stack": "子代理工作階段：{{count}}",
+    "request_label": "{{key}} → {{model}}，{{state}}。開啟詳細資料。",
+    "full_screen": "全螢幕",
+    "exit_full_screen": "結束全螢幕",
+    "columns": {
+      "key": "API 金鑰",
+      "session": "工作階段",
+      "model": "模型",
+      "cred": "憑證"
+    },
+    "feed": {
+      "finished": "<b>{{key}}</b> 花了 {{duration}} 收到 {{model}} 的 <b>{{tokens}} 個 Token</b>",
+      "failed": "<b>{{key}}</b> 的 {{model}} 請求在 {{duration}} 後失敗",
+      "failed_status": "<b>{{key}}</b> 的 {{model}} 請求在 {{duration}} 後失敗（{{status}}）",
+      "cancelled": "<b>{{key}}</b> 在 {{duration}} 後取消了 {{model}}",
+      "retry": "<b>{{from}}</b> 拒絕了 {{key}}，改用 <b>{{to}}</b> 重試",
+      "retry_status": "<b>{{from}}</b> 拒絕了 {{key}}（{{status}}），改用 <b>{{to}}</b> 重試"
+    },
+    "legend": {
+      "title": "圖例",
+      "request": "每個圓點是一個請求，顏色對應其金鑰",
+      "ack": "停在憑證左側的圓點正在等待供應商確認",
+      "waiting": "帶脈動光環繞著憑證轉圈的圓點正在等待第一個 Token",
+      "streaming": "流回的光點是正在傳輸的 Token",
+      "flash": "閃爍的連線表示光點太多，無法逐一繪製",
+      "stack": "疊起的工作階段收納著它的子代理，點擊即可展開",
+      "failed": "紅色表示嘗試失敗",
+      "navigate": "拖曳可移動地圖或節點，捲動可縮放"
+    },
+    "tip": {
+      "state": "狀態",
+      "elapsed": "已用時間",
+      "attempts": "嘗試次數",
+      "in_flight": "處理中",
+      "tokens_visit": "本次造訪的 Token",
+      "key_id": "金鑰 ID",
+      "provider": "供應商",
+      "open": "點擊查看詳細資料",
+      "unfold": "點擊展開其子代理工作階段",
+      "fold": "點擊收合",
+      "subagents": "子代理工作階段",
+      "kind": {
+        "key": "API 金鑰",
+        "session": "工作階段",
+        "model": "模型",
+        "cred": "憑證"
+      }
+    },
+    "reset_view": "重設檢視",
+    "settings": {
+      "title": "地圖設定",
+      "feed": "活動記錄",
+      "feed_hint": "左下角顯示已完成、失敗與重試的請求",
+      "legend": "圖例",
+      "legend_hint": "說明圓點、圓環與光點的意義",
+      "heads": "欄標題",
+      "heads_hint": "API 金鑰、模型與憑證上方的標題",
+      "sessions": "工作階段節點",
+      "sessions_hint": "在金鑰與模型之間新增一欄，顯示每個請求所屬的用戶端工作階段"
+    }
   }
 }

@@ -325,6 +325,7 @@ describe('read-only route allowlist', () => {
       '/logs/',
       '/system',
       '/quota',
+      '/live-handle',
       '/analytics/overview',
       '/analytics/analysis',
       '/analytics/keys',

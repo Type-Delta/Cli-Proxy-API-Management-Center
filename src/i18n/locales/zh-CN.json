@@ -121,7 +121,8 @@
     "analytics_management": "分析管理",
     "analytics_leaderboard": "模型排行榜",
     "routing": "路由编排",
-    "management_keys": "管理密钥"
+    "management_keys": "管理密钥",
+    "live_handle": "实时处理"
   },
   "nav_groups": {
     "operate": "运行",
@@ -148,7 +149,8 @@
     "analytics_leaderboard": "每周最佳模型",
     "analytics_model-leaderboard": "本周跨所有提供商与凭证的最佳模型。",
     "routing": "优先级分层与故障转移",
-    "management_keys": "分级管理访问"
+    "management_keys": "分级管理访问",
+    "live_handle": "正在处理的请求"
   },
   "analytics": {
     "events_pagination": "尝试记录分页",
@@ -1481,7 +1483,8 @@
       }
     },
     "events.proxy_request_filter": "请求 {{id}}",
-    "events.proxy_request_filter_clear": "移除请求筛选"
+    "events.proxy_request_filter_clear": "移除请求筛选",
+    "event_filters": "事件过滤器"
   },
   "dashboard": {
     "hero_verdict_good": "运行平稳",
@@ -4626,5 +4629,113 @@
     "remove_pattern": "删除第 {{row}} 行正则规则",
     "move_up": "上移第 {{row}} 行正则规则",
     "move_down": "下移第 {{row}} 行正则规则"
+  },
+  "live_handle": {
+    "title": "实时处理",
+    "in_flight": "{{count}} 个处理中",
+    "output_rate": "≈{{value}} tok/s",
+    "pause": "暂停",
+    "resume": "继续",
+    "paused": "已暂停",
+    "updates_interrupted": "更新中断 · 最后更新于 {{time}}",
+    "connecting": "连接中…",
+    "unsupported_title": "当前 CPA 版本不提供实时请求数据",
+    "unsupported_desc": "请将 CPA 更新到支持实时请求的版本后再使用此页面。",
+    "listening": "很安静，正在等待请求。",
+    "no_key": "无 API 密钥",
+    "routing_target": "正在选择凭证",
+    "tokens_estimated": "≈{{value}} tok",
+    "tokens_exact": "{{value}} tok",
+    "truncated": "较早的请求未显示",
+    "state": {
+      "routing": "路由中",
+      "waiting": "等待中",
+      "streaming": "输出中",
+      "idle": "空闲",
+      "finished": "已完成",
+      "failed": "失败",
+      "cancelled": "已取消"
+    },
+    "detail": {
+      "endpoint": "端点",
+      "received": "接收时间",
+      "duration": "耗时",
+      "status": "HTTP 状态",
+      "output": "输出",
+      "request_id": "请求 ID",
+      "copy": "复制",
+      "copied": "已复制",
+      "estimated": "在 CPA 报告用量之前，token 数根据已输出的字节估算。",
+      "attempts": "尝试（{{count}}）",
+      "attempt": "第 {{index}} 次尝试",
+      "credential": "凭证",
+      "upstream_model": "上游模型",
+      "first_output": "首次输出",
+      "tokens": "Token",
+      "tokens_in_out": "输入 {{input}} · 输出 {{output}}"
+    },
+    "map_label": "实时请求图",
+    "tokens_this_visit": "本次访问的 Token",
+    "busy": "{{count}} 个忙碌",
+    "stack": "子代理会话：{{count}}",
+    "request_label": "{{key}} → {{model}}，{{state}}。打开详情。",
+    "full_screen": "全屏",
+    "exit_full_screen": "退出全屏",
+    "columns": {
+      "key": "API 密钥",
+      "session": "会话",
+      "model": "模型",
+      "cred": "凭证"
+    },
+    "feed": {
+      "finished": "<b>{{key}}</b> 用时 {{duration}} 收到 {{model}} 的 <b>{{tokens}} 个 Token</b>",
+      "failed": "<b>{{key}}</b> 的 {{model}} 请求在 {{duration}} 后失败",
+      "failed_status": "<b>{{key}}</b> 的 {{model}} 请求在 {{duration}} 后失败（{{status}}）",
+      "cancelled": "<b>{{key}}</b> 在 {{duration}} 后取消了 {{model}}",
+      "retry": "<b>{{from}}</b> 拒绝了 {{key}}，改用 <b>{{to}}</b> 重试",
+      "retry_status": "<b>{{from}}</b> 拒绝了 {{key}}（{{status}}），改用 <b>{{to}}</b> 重试"
+    },
+    "legend": {
+      "title": "图例",
+      "request": "每个圆点是一个请求，颜色对应其密钥",
+      "ack": "停在凭证左侧的圆点正在等待提供商确认",
+      "waiting": "带脉动光环绕着凭证转圈的圆点正在等待第一个 Token",
+      "streaming": "流回的光点是正在传输的 Token",
+      "flash": "闪烁的连线表示光点太多，无法逐个绘制",
+      "stack": "叠起的会话收纳着它的子代理，点击即可展开",
+      "failed": "红色表示尝试失败",
+      "navigate": "拖动可移动地图或节点，滚动可缩放"
+    },
+    "tip": {
+      "state": "状态",
+      "elapsed": "已用时间",
+      "attempts": "尝试次数",
+      "in_flight": "处理中",
+      "tokens_visit": "本次访问的 Token",
+      "key_id": "密钥 ID",
+      "provider": "提供商",
+      "open": "点击查看详情",
+      "unfold": "点击展开其子代理会话",
+      "fold": "点击收起",
+      "subagents": "子代理会话",
+      "kind": {
+        "key": "API 密钥",
+        "session": "会话",
+        "model": "模型",
+        "cred": "凭证"
+      }
+    },
+    "reset_view": "重置视图",
+    "settings": {
+      "title": "地图设置",
+      "feed": "活动日志",
+      "feed_hint": "左下角显示已完成、失败和重试的请求",
+      "legend": "图例",
+      "legend_hint": "说明圆点、圆环和光点的含义",
+      "heads": "列标题",
+      "heads_hint": "API 密钥、模型和凭据上方的标题",
+      "sessions": "会话节点",
+      "sessions_hint": "在密钥和模型之间增加一列，显示每个请求所属的客户端会话"
+    }
   }
 }

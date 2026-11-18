@@ -27,6 +27,7 @@ import {
   IconSidebarConfig,
   IconSidebarDashboard,
   IconSidebarLogs,
+  IconSidebarLiveHandle,
   IconSidebarOauth,
   IconSidebarPlugins,
   IconSidebarProviders,
@@ -81,6 +82,7 @@ const sidebarIcons: Record<string, ReactNode> = {
   plugins: <IconSidebarPlugins size={18} />,
   config: <IconSidebarConfig size={18} />,
   logs: <IconSidebarLogs size={18} />,
+  liveHandle: <IconSidebarLiveHandle size={18} />,
   system: <IconSidebarSystem size={18} />,
   analytics: <ANALYTICS_WORKSPACE_ICON size={18} />,
   analyticsLeaderboard: <IconTrophy size={18} />,
@@ -333,6 +335,7 @@ export function MainLayout() {
   const arrivingFromLogin = useLoginTransitionStore((state) => state.phase === 'revealing');
   const isLogsPage = location.pathname.startsWith('/logs');
   const isPluginResourcePage = location.pathname.startsWith('/plugin-pages');
+  const isLiveHandlePage = location.pathname === '/live-handle';
   const showSidebarLabels = !sidebarCollapsed || sidebarOpen;
 
   // Keep floating header height available to sticky mobile elements and overlays.
@@ -682,6 +685,12 @@ export function MainLayout() {
       id: 'observe',
       labelKey: 'nav_groups.observe',
       items: [
+        {
+          path: '/live-handle',
+          labelKey: 'nav.live_handle',
+          metaKey: 'nav_meta.live_handle',
+          icon: sidebarIcons.liveHandle,
+        },
         {
           path: '/quota',
           labelKey: 'nav.quota_management',
@@ -1047,7 +1056,7 @@ export function MainLayout() {
       <div
         className={`app-shell ${sidebarCollapsed ? 'sidebar-is-collapsed' : ''} ${
           isPluginResourcePage ? 'plugin-resource-shell' : ''
-        } ${arrivingFromLogin ? 'app-shell--arriving' : ''}`}
+        } ${isLiveHandlePage ? 'live-handle-shell' : ''} ${arrivingFromLogin ? 'app-shell--arriving' : ''}`}
       >
         <div className="top-gradient-blur" aria-hidden="true" />
 
@@ -1241,13 +1250,13 @@ export function MainLayout() {
           <div
             className={`content${isLogsPage ? ' content-logs' : ''}${
               isPluginResourcePage ? ' content-plugin-resource' : ''
-            }`}
+            }${isLiveHandlePage ? ' content-live-handle' : ''}`}
             ref={contentRef}
           >
             <main
               className={`main-content${isLogsPage ? ' main-content-logs' : ''}${
                 isPluginResourcePage ? ' main-content-plugin-resource' : ''
-              }`}
+              }${isLiveHandlePage ? ' main-content-live-handle' : ''}`}
             >
               <AnalyticsFilterProvider>
                 <AnalyticsShell pathname={location.pathname}>

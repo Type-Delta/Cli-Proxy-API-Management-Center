@@ -1,0 +1,755 @@
+@use '../../styles/mixins' as *;
+
+/* ============================================================
+ * Live Handle: a full-bleed request map with quiet overlays.
+ * The SVG map is drawn by liveMapEngine.ts; these classes style it.
+ * ============================================================ */
+
+.page {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.unsupported {
+  padding: 70px clamp(20px, 3vw, 48px) 40px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: var(--bg-secondary);
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--text-tertiary) 20%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 24px 24px;
+}
+
+.host {
+  position: absolute;
+  inset: 0;
+}
+
+/* Overlays read over the map without boxes: text gets a halo of the page colour. */
+.hud,
+.controls,
+.feed,
+.legend,
+.quiet {
+  position: absolute;
+  z-index: 1;
+  margin: 0;
+  text-shadow:
+    0 0 6px var(--bg-secondary),
+    0 0 3px var(--bg-secondary);
+}
+
+.hud {
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.counter {
+  color: var(--text-primary);
+  font-size: 30px;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.unit {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.status {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+
+  &[data-status='stale'] {
+    color: var(--warning-text);
+  }
+}
+
+.controls {
+  top: 16px;
+  left: 16px;
+  display: flex;
+  gap: 4px;
+}
+
+.control {
+  @include button-reset;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+
+  &[aria-pressed='true'] {
+    color: var(--text-primary);
+  }
+}
+
+.quiet {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1200ms ease;
+
+  &[data-visible='true'] {
+    opacity: 1;
+  }
+}
+
+/* ---------- Feed: newest at the bottom, older lines dim, each leaves on its own ---------- */
+
+.feed {
+  left: 24px;
+  bottom: 20px;
+  max-width: min(520px, calc(100% - 48px));
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  pointer-events: none;
+}
+
+.feedLine {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  animation: feedLife 20s var(--ease-out-strong) forwards;
+
+  b {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .stage[data-paused='true'] & {
+    animation-play-state: paused;
+  }
+
+  &:nth-last-child(2) > * {
+    opacity: 0.72;
+  }
+
+  &:nth-last-child(3) > * {
+    opacity: 0.5;
+  }
+
+  &:nth-last-child(4) > * {
+    opacity: 0.34;
+  }
+}
+
+.feedDot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  transform: translateY(-1px);
+}
+
+.feedText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.legend {
+  right: 24px;
+  bottom: 20px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  // Faint until wanted: the legend is for the first visit, not every glance.
+  opacity: 0.2;
+  transition: opacity var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+
+  &:hover {
+    opacity: 1;
+  }
+
+  i {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 6px;
+    border-radius: 50%;
+  }
+}
+
+/* The overlays set their own display, so hidden ones need it spelled out. */
+.feed[hidden],
+.legend[hidden] {
+  display: none;
+}
+
+/* ---------- Tooltip: positioned by the engine every frame ---------- */
+
+.tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  min-width: 200px;
+  max-width: 280px;
+  padding: 10px 12px;
+  border: 1px solid var(--viz-tooltip-border);
+  border-radius: 10px;
+  background: var(--viz-tooltip-bg);
+  color: var(--viz-tooltip-text);
+  box-shadow: var(--shadow-lg);
+  font-size: 12.5px;
+  line-height: 1.5;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 160ms ease;
+
+  &[data-open='true'] {
+    opacity: 1;
+  }
+}
+
+.tipTitle {
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.tipRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-variant-numeric: tabular-nums;
+
+  span:first-child {
+    color: var(--viz-tooltip-text-dim);
+  }
+
+  span:last-child {
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+}
+
+.tipHint {
+  margin-top: 6px;
+  color: var(--viz-tooltip-text-dim);
+  font-size: 11.5px;
+}
+
+/* ---------- Map (SVG drawn by the engine) ---------- */
+
+.map {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  // The map pans and pinches itself; the page must not scroll or zoom under it.
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+
+  &[data-gesture] {
+    cursor: grabbing;
+  }
+}
+
+.colhead {
+  fill: var(--text-secondary);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.edge {
+  fill: none;
+  stroke: var(--border-primary);
+  stroke-linecap: round;
+  opacity: 0.55;
+  transition:
+    stroke 600ms ease,
+    opacity 600ms ease;
+
+  // Lines carrying live requests take the theme accent.
+  &.hot {
+    stroke: color-mix(in srgb, var(--primary-color) 75%, var(--border-primary));
+    opacity: 0.9;
+  }
+}
+
+.node {
+  --meta: var(--text-secondary);
+
+  cursor: grab;
+  outline: none;
+  transition: opacity 1200ms ease;
+
+  rect:not(.halo) {
+    fill: var(--bg-quinary);
+    stroke: var(--border-primary);
+    filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.06));
+  }
+
+  text {
+    fill: var(--text-primary);
+    font-size: 13px;
+    dominant-baseline: central;
+  }
+
+  &.dim {
+    opacity: 0.42;
+  }
+}
+
+/* Credential pills take their executor's accent; the label stays in the text colour. */
+.node.tinted {
+  --tint: var(--tint-light);
+
+  rect:not(.halo) {
+    fill: color-mix(in srgb, var(--tint) 10%, var(--bg-quinary));
+    stroke: color-mix(in srgb, var(--tint) 45%, var(--border-primary));
+  }
+
+  --meta: color-mix(in srgb, var(--tint) 70%, var(--text-secondary));
+
+  [data-theme='dark'] & {
+    --tint: var(--tint-dark);
+  }
+}
+
+/* After the tint so a focused credential pill still shows the ring. */
+.node:focus-visible rect:not(.halo) {
+  stroke: var(--primary-color);
+  stroke-width: 2;
+}
+
+.logoDark {
+  display: none;
+
+  [data-theme='dark'] & {
+    display: inline;
+  }
+}
+
+.logoLight {
+  [data-theme='dark'] & {
+    display: none;
+  }
+}
+
+/* Counts and icons fade in as they appear, while the pill eases to its new width. */
+@media (prefers-reduced-motion: no-preference) {
+  .node .icon,
+  .node .meta {
+    animation: pill-in var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+  }
+}
+
+@keyframes pill-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Busy and stack icons sit beside their counts in the count's colour. */
+.node .icon {
+  fill: none;
+  stroke: var(--meta);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A session stack: cards peek out below the pill, and put away while it is unfolded. */
+.node rect.card {
+  fill: var(--bg-quinary);
+  stroke: var(--border-primary);
+  filter: none;
+  opacity: 0.85;
+}
+
+.node[data-open] {
+  cursor: pointer;
+
+  rect.card {
+    display: none;
+  }
+
+  rect:not(.halo, .card) {
+    stroke: var(--primary-color);
+  }
+}
+
+/* A dragged node's place: faint out of the spring's reach, accented once letting go returns it. */
+.home {
+  fill: none;
+  stroke: var(--border-primary);
+  stroke-dasharray: 4 4;
+  stroke-width: 1.5;
+  opacity: 0.6;
+
+  &[data-near] {
+    stroke: var(--primary-color);
+    opacity: 1;
+  }
+}
+
+.node[role='button'] {
+  cursor: pointer;
+}
+
+/* Session names are short digests; monospace keeps them easy to tell apart. */
+.node[data-node='session'] text:not(.meta) {
+  font-family: $font-mono;
+  font-size: 12px;
+}
+
+/* Hovering a node dims what does not share a request with it. */
+.map[data-focus='true'] {
+  .node,
+  .edge {
+    transition-duration: 200ms;
+  }
+
+  .node:not([data-related]),
+  .orb:not([data-related]) {
+    opacity: 0.18;
+  }
+
+  .node[data-related] {
+    opacity: 1;
+  }
+
+  .edge:not([data-related]) {
+    opacity: 0.12;
+  }
+
+  .edge[data-related] {
+    opacity: 0.9;
+  }
+
+  // Sparks fade in and out through their opacity attribute, so dim the fill instead.
+  [data-layer='sparks'] circle:not([data-related]) {
+    fill-opacity: 0.12;
+  }
+}
+
+.map[data-compact='true'] .node text {
+  font-size: 12px;
+}
+
+.halo {
+  fill: none;
+  stroke-width: 1.5;
+  opacity: 0;
+}
+
+.node .tag {
+  fill: var(--text-secondary);
+  font-size: 11px;
+}
+
+.node .meta {
+  fill: var(--meta);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.orb {
+  cursor: pointer;
+  outline: none;
+  transition: opacity 200ms ease;
+
+  &:focus-visible .core {
+    stroke: var(--primary-color);
+    stroke-width: 2.5;
+  }
+}
+
+.core {
+  stroke: var(--bg-quinary);
+  stroke-width: 1.5;
+}
+
+.hit {
+  fill: transparent;
+}
+
+.ring {
+  fill: none;
+  stroke-width: 1.2;
+}
+
+.float {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* ---------- View settings ---------- */
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting > label {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 10px 0;
+}
+
+.settingText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settingName {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.settingHint {
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+/* ---------- Detail sheet ---------- */
+
+.note {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0;
+  font-size: 13px;
+
+  dt {
+    color: var(--text-secondary);
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+
+  code {
+    font-family: $font-mono;
+    font-size: 12px;
+  }
+}
+
+.idRow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.linkButton {
+  @include button-reset;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.attemptsTitle {
+  margin: 24px 0 10px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.attempts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.attempt {
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-quinary);
+}
+
+.attemptHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.attemptState {
+  color: var(--text-secondary);
+  font-weight: 400;
+
+  .attempt[data-state='failed'] & {
+    color: var(--viz-failure);
+  }
+
+  .attempt[data-state='finished'] & {
+    color: var(--viz-success);
+  }
+}
+
+/* ---------- Motion ---------- */
+
+@keyframes feedLife {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  4%,
+  92% {
+    opacity: 1;
+    transform: none;
+  }
+
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes feedFade {
+  0%,
+  92% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedLine {
+    animation-name: feedFade;
+  }
+}
+
+/* ---------- Narrow screens: compact HUD and feed, no legend ---------- */
+
+@media (max-width: $breakpoint-mobile) {
+  .hud {
+    top: 14px;
+  }
+
+  .counter {
+    font-size: 24px;
+  }
+
+  .controls {
+    top: 6px;
+    left: 4px;
+  }
+
+  .control {
+    width: 44px;
+    height: 44px;
+  }
+
+  .feed {
+    left: 16px;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    max-width: calc(100% - 32px);
+  }
+
+  .feedLine {
+    font-size: 12px;
+  }
+
+  .legend {
+    display: none;
+  }
+}
