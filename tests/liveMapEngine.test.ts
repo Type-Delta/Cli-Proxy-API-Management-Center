@@ -7,8 +7,8 @@ import type { LiveMapEvent, LiveMapLabels } from '@/features/liveHandle/liveMapE
 const browser = new Window({ url: 'http://localhost/' });
 const originals = new Map<string, PropertyDescriptor | undefined>();
 let frames: FrameRequestCallback[] = [];
-/** The engine's resize handlers; tests call them after changing the host's size. */
-const resizers: (() => void)[] = [];
+/** The engine's resize handlers by the element each watches; tests call them after a size change. */
+const observed = new Map<unknown, () => void>();
 let clock = 0;
 
 /** Runs animation frames 16 ms apart, as the browser would, for `ms` of simulated time. */
@@ -42,11 +42,15 @@ beforeAll(() => {
     requestAnimationFrame: (callback: FrameRequestCallback) => frames.push(callback),
     cancelAnimationFrame: () => {},
     ResizeObserver: class {
-      constructor(callback: () => void) {
-        resizers.push(callback);
+      targets: unknown[] = [];
+      constructor(readonly callback: () => void) {}
+      observe(target: unknown) {
+        this.targets.push(target);
+        observed.set(target, this.callback);
       }
-      observe() {}
-      disconnect() {}
+      disconnect() {
+        for (const target of this.targets) observed.delete(target);
+      }
     },
   })) {
     originals.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
@@ -149,7 +153,7 @@ async function mount(width = 1280, height = 800, view?: { sessions: boolean; hea
     Number(/translate\(([-\d.]+)/.exec(orb()?.getAttribute('transform') ?? '')?.[1]);
   const resize = (next: number) => {
     Object.defineProperty(host, 'clientWidth', { value: next, configurable: true });
-    resizers.at(-1)!();
+    observed.get(host)!();
   };
   return { map, host, counter, tip, events, moves, orb, orbX, resize };
 }
@@ -499,6 +503,86 @@ test('hovering a node dims the nodes that share no request with it', async () =>
     new window.Event('pointerleave') as unknown as Event
   );
   expect(svg.getAttribute('data-focus')).toBe('false');
+});
+
+test('a paused map writes nothing to the page', async () => {
+  const { map, host } = await mount();
+  map.apply(snapshot());
+  map.apply(
+    snapshot(
+      request({ attempts: [attempt({ output_bytes: 600 })] }),
+      request({ id: 'r2', attempts: [attempt({ first_output_at: null })] })
+    )
+  );
+  advance(400);
+  map.apply(
+    snapshot(
+      request({ attempts: [attempt({ output_bytes: 9000 })] }),
+      request({ id: 'r2', attempts: [attempt({ first_output_at: null })] })
+    )
+  );
+  advance(300);
+  map.setPaused(true);
+  advance(16);
+  const writes: string[] = [];
+  const watch = new window.MutationObserver((records) => {
+    for (const record of records) {
+      const el = record.target as unknown as Element;
+      // happy-dom records a classList.toggle that changes nothing; browsers leave the attribute be.
+      if (record.attributeName !== 'class') writes.push(`${el.tagName} ${record.attributeName}`);
+    }
+  });
+  watch.observe(host as never, { attributes: true, subtree: true });
+  advance(500);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  watch.disconnect();
+  expect(host.querySelectorAll('[data-layer=sparks] circle, [data-orb]').length).toBeGreaterThan(2);
+  expect(writes).toEqual([]);
+});
+
+test('the tooltip reads its size once while it stays the same', async () => {
+  const { map, host, tip } = await mount();
+  let reads = 0;
+  Object.defineProperty(tip, 'offsetWidth', {
+    get: () => {
+      reads += 1;
+      return 200;
+    },
+  });
+  Object.defineProperty(tip, 'offsetHeight', { value: 80 });
+  map.apply(snapshot());
+  map.apply(snapshot(request()));
+  advance(1500);
+  nodeNamed(host, 'API keys').dispatchEvent(new window.Event('pointerenter') as unknown as Event);
+  advance(16);
+  const placed = tip.style.transform;
+  advance(1000);
+  expect(reads).toBe(1);
+  expect(tip.style.transform).toBe(placed);
+});
+
+test('a tooltip that grows is placed again before it paints, until the map is gone', async () => {
+  const { map, host, tip } = await mount();
+  let tipWidth = 200;
+  Object.defineProperty(tip, 'offsetWidth', { get: () => tipWidth });
+  Object.defineProperty(tip, 'offsetHeight', { value: 80 });
+  map.apply(snapshot());
+  map.apply(snapshot(request()));
+  advance(1500);
+  const tipX = () => Number(/translate\(([-\d.]+)px/.exec(tip.style.transform)?.[1]);
+  const model = nodeNamed(host, 'Models');
+  model.dispatchEvent(new window.Event('pointerenter') as unknown as Event);
+  advance(16);
+  const [modelLeft] = position(model);
+  // Right of a model in the middle of the map.
+  expect(tipX()).toBeGreaterThan(modelLeft);
+  // The page fills in a wider tooltip that no longer fits on the right; the observer moves it at once.
+  tipWidth = 900;
+  observed.get(tip)!();
+  expect(tipX() + tipWidth).toBeLessThanOrEqual(1280 - 8);
+  expect(tipX()).toBeLessThan(modelLeft);
+  map.destroy();
+  expect(observed.has(tip)).toBe(false);
 });
 
 test('the tooltip sits off a corner of the node and flips away from the canvas edge', async () => {

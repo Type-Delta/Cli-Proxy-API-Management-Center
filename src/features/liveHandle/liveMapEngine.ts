@@ -302,6 +302,14 @@ const bezier = ([p0, p1, p2, p3]: Curve, t: number): Point => {
   };
 };
 
+/**
+ * Writes an attribute only when its value changes: browsers restyle an SVG element on every
+ * attribute write, even one that leaves the value as it was.
+ */
+const setAttr = (el: Element, name: string, value: string) => {
+  if (el.getAttribute(name) !== value) el.setAttribute(name, value);
+};
+
 /** Shortens an SVG label with an ellipsis until it fits `max` pixels. */
 function fitText(element: SVGTextElement, full: string, max: number) {
   element.textContent = full;
@@ -1069,7 +1077,7 @@ export function createLiveMap(options: {
       at: { x: at.x, y },
       float: true,
       update: (p) => {
-        if (!reduced) el.setAttribute('y', String(y - 22 * p));
+        if (!reduced) setAttr(el, 'y', String(y - 22 * p));
         el.style.opacity = String(1 - p * p);
       },
     });
@@ -1089,7 +1097,7 @@ export function createLiveMap(options: {
       at,
       float: false,
       update: (p) => {
-        el.setAttribute('r', String(6 + 20 * p));
+        setAttr(el, 'r', String(6 + 20 * p));
         el.style.opacity = String(1 - p);
       },
     });
@@ -1184,6 +1192,16 @@ export function createLiveMap(options: {
    * Puts the tooltip off one corner of the hovered item: below right by default, flipping to the
    * left or above where the canvas edge would cut it off.
    */
+  /** The tooltip's size, read again only after it changes, and the position last written. */
+  let tipSize: { w: number; h: number } | null = null;
+  let tipAt = '';
+  // Fires after the page fills or empties the tooltip, before paint, so it never shows misplaced.
+  const tipObserver = new ResizeObserver(() => {
+    tipSize = null;
+    placeTip();
+  });
+  tipObserver.observe(tip);
+
   function placeTip() {
     if (!hovered) return;
     const centre = 'orb' in hovered ? hovered.orb.pos : at(hovered.node);
@@ -1191,8 +1209,8 @@ export function createLiveMap(options: {
     const halfH = ('orb' in hovered ? 10 : nodeHeight() / 2) * cam.k;
     const cx = cam.x + centre.x * cam.k;
     const cy = cam.y + centre.y * cam.k;
-    const tipWidth = tip.offsetWidth;
-    const tipHeight = tip.offsetHeight;
+    tipSize ??= { w: tip.offsetWidth, h: tip.offsetHeight };
+    const { w: tipWidth, h: tipHeight } = tipSize;
     const gap = 6;
     let x = cx + halfW + gap;
     if (x + tipWidth > width - 8) x = cx - halfW - gap - tipWidth;
@@ -1200,7 +1218,11 @@ export function createLiveMap(options: {
     if (y + tipHeight > height - 8) y = cy - halfH - gap - tipHeight;
     x = Math.max(8, Math.min(width - tipWidth - 8, x));
     y = Math.max(8, Math.min(height - tipHeight - 8, y));
-    tip.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+    const transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+    if (transform !== tipAt) {
+      tipAt = transform;
+      tip.style.transform = transform;
+    }
   }
 
   /* ---------- Pan, zoom, and drag ---------- */
@@ -1882,10 +1904,10 @@ export function createLiveMap(options: {
         orb.pos.x += (target.x - orb.pos.x) * follow;
         orb.pos.y += (target.y - orb.pos.y) * follow;
       }
-      orb.g.setAttribute('transform', `translate(${orb.pos.x.toFixed(1)} ${orb.pos.y.toFixed(1)})`);
+      setAttr(orb.g, 'transform', `translate(${orb.pos.x.toFixed(1)} ${orb.pos.y.toFixed(1)})`);
       if (orb.waiting && !reduced) {
         const beat = (Math.sin(clock / 600) + 1) / 2;
-        orb.ring.setAttribute('r', String(8 + 4 * beat));
+        setAttr(orb.ring, 'r', String(8 + 4 * beat));
         orb.ring.style.opacity = String(0.7 - 0.5 * beat);
       }
     }
@@ -1898,9 +1920,9 @@ export function createLiveMap(options: {
       const legs = spark.path.length;
       const index = Math.min(legs - 1, Math.floor(p * legs));
       const point = bezier(edgeCurve(spark.path[index]), 1 - (p * legs - index));
-      spark.el.setAttribute('cx', point.x.toFixed(1));
-      spark.el.setAttribute('cy', point.y.toFixed(1));
-      spark.el.setAttribute('opacity', String(p < 0.1 ? p * 10 : p > 0.92 ? (1 - p) * 12 : 1));
+      setAttr(spark.el, 'cx', point.x.toFixed(1));
+      setAttr(spark.el, 'cy', point.y.toFixed(1));
+      setAttr(spark.el, 'opacity', String(p < 0.1 ? p * 10 : p > 0.92 ? (1 - p) * 12 : 1));
       if (p >= 1) removeSpark(spark, true);
     }
 
@@ -1957,6 +1979,7 @@ export function createLiveMap(options: {
       cancelAnimationFrame(frame);
       document.removeEventListener('visibilitychange', onVisibility);
       observer.disconnect();
+      tipObserver.disconnect();
       svg.remove();
     },
   };
