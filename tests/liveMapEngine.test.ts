@@ -548,10 +548,15 @@ test('the wheel zooms around the pointer and reset eases the view home', async (
   expect(k).toBeGreaterThan(1);
   // The point under the pointer stays put: 640 = x + 640k.
   expect(Number(zoomed[1]) + 640 * k).toBeCloseTo(640, 0);
+  // The dot grid behind the map pans with it; its spacing ignores zoom.
+  const grid = () => host.style.backgroundPosition.split(' ').map(parseFloat);
+  expect(grid()).toEqual([Number(zoomed[1]), Number(zoomed[2])]);
+  expect(host.style.backgroundSize).toBe('');
   expect(moves).toEqual([true]);
   map.resetView();
   advance(600);
   expect(view.getAttribute('transform')).toBe('translate(0.0 0.0) scale(1.0000)');
+  expect(grid()).toEqual([0, 0]);
   expect(moves).toEqual([true, false]);
 });
 
@@ -618,6 +623,122 @@ test('hovering lights only the lines its own requests used', async () => {
   expect(lines.length).toBe(6);
   // K1→m1, m1→c1, K1→m2, m2→c2; not m1→c2, which only K2 used, nor K2→m1.
   expect(lines.filter((line) => line.hasAttribute('data-related')).length).toBe(4);
+});
+
+test('hovering forgets paths a node stopped using once their lines have gone', async () => {
+  const { map, host } = await mount();
+  const via = (id: string, key: string, model: string, cred: string, state = 'streaming') =>
+    request({
+      id,
+      state,
+      ended_at: state === 'streaming' ? null : iso(T0 + 1000),
+      key: { id: `${key}0000000`.slice(0, 8), label: key },
+      requested_model: model,
+      attempts: [
+        attempt({
+          state,
+          ended_at: state === 'streaming' ? null : iso(T0 + 1000),
+          credential: { label: cred, auth_index: cred },
+        }),
+      ],
+    });
+  map.apply(snapshot());
+  map.apply(snapshot(via('a', 'K1', 'm1', 'c1'), via('c', 'K2', 'm1', 'c1')));
+  advance(100);
+  // K1 finishes on m1 and moves on to m2; K2 keeps using m1→c1.
+  map.apply(
+    snapshot(
+      via('a', 'K1', 'm1', 'c1', 'finished'),
+      via('b', 'K1', 'm2', 'c2'),
+      via('c', 'K2', 'm1', 'c1')
+    )
+  );
+  advance(30_000);
+  map.apply(snapshot(via('b', 'K1', 'm2', 'c2'), via('c', 'K2', 'm1', 'c1')));
+  advance(100);
+  nodeNamed(host, 'API keys: K1').dispatchEvent(
+    new window.Event('pointerenter') as unknown as Event
+  );
+  const lit = nodeEls(host)
+    .filter((node) => node.hasAttribute('data-related'))
+    .map((node) => node.getAttribute('aria-label')?.split(',')[0]);
+  expect(lit).toEqual(['API keys: K1', 'Models: m2', 'Credentials: c2']);
+  const lines = [...host.querySelectorAll('[data-layer=edges] path')];
+  // K1→m2 and m2→c2; not m1→c1, which only K2 uses now.
+  expect(lines.filter((line) => line.hasAttribute('data-related')).length).toBe(2);
+});
+
+test('a node lit through a lingering line goes dark when that line leaves', async () => {
+  const { map, host } = await mount();
+  const via = (id: string, key: string, model: string, cred: string, state = 'streaming') =>
+    request({
+      id,
+      state,
+      ended_at: state === 'streaming' ? null : iso(T0 + 1000),
+      key: { id: `${key}0000000`.slice(0, 8), label: key },
+      requested_model: model,
+      attempts: [
+        attempt({
+          state,
+          ended_at: state === 'streaming' ? null : iso(T0 + 1000),
+          credential: { label: cred, auth_index: cred },
+        }),
+      ],
+    });
+  map.apply(snapshot());
+  map.apply(
+    snapshot(via('a', 'K1', 'm1', 'c1'), via('b', 'K1', 'm2', 'c2'), via('c', 'K2', 'm1', 'c1'))
+  );
+  advance(100);
+  // K1 finishes on m1; K2 keeps m1→c1 busy and K1 stays busy on m2.
+  map.apply(
+    snapshot(
+      via('a', 'K1', 'm1', 'c1', 'finished'),
+      via('b', 'K1', 'm2', 'c2'),
+      via('c', 'K2', 'm1', 'c1')
+    )
+  );
+  advance(15_000);
+  nodeNamed(host, 'API keys: K1').dispatchEvent(
+    new window.Event('pointerenter') as unknown as Event
+  );
+  const lit = () =>
+    nodeEls(host)
+      .filter((node) => node.hasAttribute('data-related'))
+      .map((node) => node.getAttribute('aria-label')?.split(',')[0]);
+  expect(lit()).toEqual([
+    'API keys: K1',
+    'Models: m1',
+    'Credentials: c1',
+    'Models: m2',
+    'Credentials: c2',
+  ]);
+  // No snapshot arrives while K1's line to m1 expires.
+  advance(15_000);
+  expect(lit()).toEqual(['API keys: K1', 'Models: m2', 'Credentials: c2']);
+});
+
+test('a request that failed before any line was drawn lights nothing past its key', async () => {
+  const { map, host } = await mount();
+  map.apply(snapshot());
+  map.apply(
+    snapshot(
+      request({
+        state: 'failed',
+        ended_at: iso(T0 + 200),
+        http_status: 429,
+        attempts: [attempt({ state: 'failed', ended_at: iso(T0 + 200), first_output_at: null })],
+      })
+    )
+  );
+  advance(100);
+  nodeNamed(host, 'API keys: Studio').dispatchEvent(
+    new window.Event('pointerenter') as unknown as Event
+  );
+  const lit = nodeEls(host)
+    .filter((node) => node.hasAttribute('data-related'))
+    .map((node) => node.getAttribute('aria-label')?.split(',')[0]);
+  expect(lit).toEqual(['API keys: Studio']);
 });
 
 test('a key renamed in CPA takes its new label on the map', async () => {

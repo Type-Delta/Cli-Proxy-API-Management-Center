@@ -31,17 +31,18 @@
   inset: 0;
   overflow: hidden;
   background-color: var(--bg-secondary);
+}
+
+/* The dot grid; the map engine pans and scales it with the camera. */
+.host {
+  position: absolute;
+  inset: 0;
   background-image: radial-gradient(
     circle at 1px 1px,
     color-mix(in srgb, var(--text-tertiary) 20%, transparent) 1px,
     transparent 0
   );
   background-size: 24px 24px;
-}
-
-.host {
-  position: absolute;
-  inset: 0;
 }
 
 /* Overlays read over the map without boxes: text gets a halo of the page colour. */

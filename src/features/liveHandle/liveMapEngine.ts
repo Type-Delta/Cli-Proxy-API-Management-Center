@@ -358,8 +358,11 @@ export function createLiveMap(options: {
   const credited = new Map<string, { key: string; tokens: number; settled: boolean }>();
   /** Per-key totals for this visit; they outlive a key's node when it leaves the map. */
   const keyTokens = new Map<string, number>();
-  /** Node chains requests took, so hovering a node can tell which others it works with. */
-  const links = new Map<string, MapNode[]>();
+  /**
+   * Node chains active requests took, and when last, so hovering a node can tell which others it
+   * works with. A chain is forgotten once unused as long as a line lingers.
+   */
+  const links = new Map<string, { chain: MapNode[]; at: number }>();
   const nodeOf = new WeakMap<Element, MapNode>();
   /** History at load (or from a pause or hidden tab) is absorbed without replaying it. */
   let primed = false;
@@ -780,7 +783,7 @@ export function createLiveMap(options: {
     for (const item of nodes.values()) {
       while (item.parent && gone.has(item.parent)) item.parent = item.parent.parent;
     }
-    for (const [id, chain] of links) if (chain.some((node) => gone.has(node))) links.delete(id);
+    for (const [id, link] of links) if (link.chain.some((node) => gone.has(node))) links.delete(id);
     if (gesture?.kind === 'node' && gone.has(gesture.node)) endGesture(false);
     for (const edge of [...edges.values()]) {
       if (gone.has(edge.a) || gone.has(edge.b)) dropEdge(edge);
@@ -1119,14 +1122,24 @@ export function createLiveMap(options: {
     relatedEdges = new Set();
     if (focus) {
       const lit = new Set(focus);
+      // A chain lights only the stretch of lines still on the map that reaches a focused node.
       const take = (chain: MapNode[]) => {
-        if (!inFocus(chain)) return;
-        chain.forEach((item, index) => {
-          lit.add(item);
-          if (index > 0) relatedEdges.add(`${chain[index - 1].id}|${item.id}`);
-        });
+        let run = [chain[0]];
+        const runs = [run];
+        for (const [index, item] of chain.entries()) {
+          if (index === 0) continue;
+          if (edges.has(`${chain[index - 1].id}|${item.id}`)) run.push(item);
+          else runs.push((run = [item]));
+        }
+        for (const stretch of runs) {
+          if (!inFocus(stretch)) continue;
+          stretch.forEach((item, index) => {
+            lit.add(item);
+            if (index > 0) relatedEdges.add(`${stretch[index - 1].id}|${item.id}`);
+          });
+        }
       };
-      for (const chain of links.values()) take(chain);
+      for (const link of links.values()) take(link.chain);
       for (const orb of orbs.values()) take(orbChain(orb));
       related = lit;
     }
@@ -1436,6 +1449,7 @@ export function createLiveMap(options: {
       if (edge.flash)
         for (const [color, bytes] of edge.flash.colors) edge.flash.colors.set(color, bytes / 2);
     }
+    for (const [id, link] of links) if (clock - link.at > LINGER_MS) links.delete(id);
     const present = new Set<string>();
     /** This snapshot's output, sent as sparks once every line's load is known. */
     const batches: { orb: Orb; path: Edge[]; count: number; bytes: number; lit: boolean }[] = [];
@@ -1492,7 +1506,6 @@ export function createLiveMap(options: {
       orb.route = route;
       orb.session = own;
       const chain = cred ? [...route, cred] : route;
-      links.set(chain.map((node) => node.id).join('\n'), chain);
       // A settled request still on screen (falling, or flying home) keeps up with late usage.
       if (orb.done && credited.get(request.id)?.settled) settle(request, key.id);
       orb.g.setAttribute('aria-label', labels.request(request));
@@ -1509,6 +1522,7 @@ export function createLiveMap(options: {
       }
 
       if (active) {
+        links.set(chain.map((node) => node.id).join('\n'), { chain, at: clock });
         route.forEach((node, index) => {
           node.active += 1;
           if (index > 0) ensureEdge(route[index - 1], node).count += 1;
@@ -1669,6 +1683,8 @@ export function createLiveMap(options: {
     if (transform !== camWritten) {
       camWritten = transform;
       viewport.setAttribute('transform', transform);
+      // The dot grid pans with the map but keeps its spacing at any zoom.
+      host.style.backgroundPosition = `${cam.x.toFixed(1)}px ${cam.y.toFixed(1)}px`;
     }
     const isMoved = Math.abs(cam.x) > 0.5 || Math.abs(cam.y) > 0.5 || Math.abs(cam.k - 1) > 0.001;
     if (isMoved !== moved) {
@@ -1762,11 +1778,13 @@ export function createLiveMap(options: {
       homeMark.toggleAttribute('data-near', Math.hypot(held.ox, held.oy) <= PULL_RADIUS);
     }
 
+    let faded = false;
     for (const [id, edge] of edges) {
       // An edge no request has used for a while leaves, unless a spark is still riding it.
       if (edge.count === 0 && clock - edge.lastUsed > LINGER_MS && edge.riders === 0) {
         edge.path.remove();
         edges.delete(id);
+        faded = true;
         continue;
       }
       const c = edgeCurve(edge);
@@ -1811,6 +1829,8 @@ export function createLiveMap(options: {
         edge.path.style.strokeOpacity = strength ?? '';
       }
     }
+    // Nodes lit only through a line that just left go dark with it.
+    if (faded && related) showRelated();
 
     for (const orb of [...orbs.values()]) {
       if (orb.falling) {
