@@ -9,6 +9,7 @@ import {
   IconSidebarQuota,
   IconSidebarSystem,
 } from '@/components/ui/icons';
+import { InfoTip } from '@/components/ui/Tooltip';
 import { useAuthStore } from '@/stores';
 import { isPathAllowedForScope } from '@/router/sessionAccess';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
@@ -24,7 +25,7 @@ import styles from './dashboard.module.scss';
 
 const DASH = '—';
 
-/** KPI 卡左上角色签：有语义色调的卡用状态色，其余保持中性 */
+/** KPI eyebrow labels inherit semantic tones where present, otherwise stay neutral. */
 const TILE_ACCENTS: Record<MeterTone, string> = {
   good: 'var(--viz-success)',
   warning: 'var(--amber-color)',
@@ -32,7 +33,7 @@ const TILE_ACCENTS: Record<MeterTone, string> = {
   idle: 'var(--text-quaternary)',
 };
 
-/** 大数字：六位以内用千分位，再往上压缩，避免撑破排版 */
+/** Group up to six digits, then use compact numbers to preserve the layout. */
 const formatHeadline = (value: number): string =>
   value < 100_000 ? value.toLocaleString() : formatCompactNumber(value);
 
@@ -58,7 +59,7 @@ export function DashboardPage() {
 
   useHeaderRefresh(refresh, connected);
 
-  /* Hero 与静态网格走分组级联；异步内容区（图表/供应商）保持整块 reveal */
+  /* Stagger the hero and static grid; reveal asynchronous chart/provider sections as groups. */
   const heroRef = useRevealGroup<HTMLElement>();
   const statsRef = useRevealGroup<HTMLElement>(0.12);
   const trafficRef = useRevealOnScroll<HTMLElement>();
@@ -98,7 +99,7 @@ export function DashboardPage() {
   const unknownProviderLabel = t('dashboard.provider_unknown');
   const successRateTone = toneForSuccessRate(traffic.successRate);
 
-  /** 标题是算出来的判词，不是写死的口号；句尾句号充当状态灯 */
+  /** Derive the headline from current state; its period doubles as the status light. */
   const verdict = useMemo(() => {
     if (!connected) {
       return connectionStatus === 'connecting'
@@ -117,7 +118,7 @@ export function DashboardPage() {
     return { key: keyByTone[successRateTone], accent: TILE_ACCENTS[successRateTone] };
   }, [connected, connectionStatus, traffic.total, traffic.successRate, successRateTone]);
 
-  /* 句号状态灯只在「有活着的流量」时呼吸；离线/静默时保持安静 */
+  /* Pulse the status light only while traffic is active. */
   const heroAlive = connected && traffic.total > 0;
 
   const connectionLabel = t(
@@ -135,7 +136,7 @@ export function DashboardPage() {
       key: 'success',
       label: t('dashboard.success_rate'),
       value: traffic.successRate === null ? DASH : formatPercent(traffic.successRate),
-      hint: t('dashboard.stat_success_hint', { total: traffic.total.toLocaleString() }),
+      info: null,
       meter: traffic.successRate,
       tone: successRateTone,
     },
@@ -143,12 +144,7 @@ export function DashboardPage() {
       key: 'credentials',
       label: t('dashboard.stat_credentials'),
       value: credentials ? credentials.total.toLocaleString() : DASH,
-      hint: credentials
-        ? t('dashboard.stat_credentials_hint', {
-            active: credentials.active,
-            disabled: credentials.disabled + credentials.unavailable,
-          })
-        : t('dashboard.stat_credentials_empty'),
+      info: null,
       meter:
         credentials && credentials.total > 0
           ? (credentials.active / credentials.total) * 100
@@ -159,7 +155,7 @@ export function DashboardPage() {
       key: 'providerKeys',
       label: t('dashboard.stat_provider_keys'),
       value: counts.providerKeys === null ? DASH : counts.providerKeys.toLocaleString(),
-      hint: t('dashboard.stat_provider_keys_hint'),
+      info: t('dashboard.stat_provider_keys_hint'),
       meter: null,
       tone: undefined,
     },
@@ -167,7 +163,7 @@ export function DashboardPage() {
       key: 'models',
       label: t('dashboard.stat_models'),
       value: counts.models === null ? DASH : counts.models.toLocaleString(),
-      hint: t(readOnly ? 'session_scope.models_unavailable' : 'dashboard.stat_models_hint'),
+      info: t(readOnly ? 'session_scope.models_unavailable' : 'dashboard.stat_models_hint'),
       meter: null,
       tone: undefined,
     },
@@ -204,37 +200,31 @@ export function DashboardPage() {
       to: '/ai-providers',
       icon: <IconBot size={20} />,
       title: t('nav.ai_providers'),
-      description: t('dashboard.cta_providers_desc'),
     },
     {
       to: '/auth-files',
       icon: <IconFileText size={20} />,
       title: t('nav.auth_files'),
-      description: t('dashboard.cta_auth_files_desc'),
     },
     {
       to: '/config',
       icon: <IconSidebarConfig size={20} />,
       title: t('nav.config_management'),
-      description: t('dashboard.cta_config_desc'),
     },
     {
       to: '/quota',
       icon: <IconSidebarQuota size={20} />,
       title: t('nav.quota_management'),
-      description: t('dashboard.cta_quota_desc'),
     },
     {
       to: '/logs',
       icon: <IconSidebarLogs size={20} />,
       title: t('nav.logs'),
-      description: t('dashboard.cta_logs_desc'),
     },
     {
       to: '/system',
       icon: <IconSidebarSystem size={20} />,
       title: t('nav.system_info'),
-      description: t('dashboard.cta_system_desc'),
     },
   ].filter((card) => canOpen(card.to));
 
@@ -344,7 +334,10 @@ export function DashboardPage() {
               } as React.CSSProperties
             }
           >
-            <span className={styles.statLabel}>{tile.label}</span>
+            <div className={styles.statLabelRow}>
+              <span className={styles.statLabel}>{tile.label}</span>
+              {tile.info && <InfoTip content={tile.info} label={tile.label} />}
+            </div>
             <strong className={styles.statValue}>{tile.value}</strong>
             {tile.meter !== null && tile.meter !== undefined && (
               <Meter
@@ -354,7 +347,6 @@ export function DashboardPage() {
                 className={styles.statMeter}
               />
             )}
-            <span className={styles.statHint}>{tile.hint}</span>
           </article>
         ))}
       </section>
@@ -364,9 +356,6 @@ export function DashboardPage() {
         <header className={styles.sectionHead}>
           <span className={styles.eyebrow}>{t('dashboard.traffic_eyebrow')}</span>
           <h2 className={styles.sectionTitle}>{t('dashboard.traffic_title')}</h2>
-          <p className={styles.sectionDescription}>
-            {t('dashboard.traffic_description', { window: windowLabel })}
-          </p>
         </header>
         <div className={styles.panel}>
           <ThroughputChart traffic={traffic} />
@@ -378,7 +367,6 @@ export function DashboardPage() {
         <header className={styles.sectionHead}>
           <span className={styles.eyebrow}>{t('dashboard.fleet_eyebrow')}</span>
           <h2 className={styles.sectionTitle}>{t('dashboard.fleet_title')}</h2>
-          <p className={styles.sectionDescription}>{t('dashboard.fleet_description')}</p>
         </header>
         <div className={styles.panel}>
           {providers.length === 0 ? (
@@ -553,7 +541,6 @@ export function DashboardPage() {
             <Link key={card.to} to={card.to} className={styles.ctaCard} data-reveal>
               <span className={styles.ctaIcon}>{card.icon}</span>
               <span className={styles.ctaTitle}>{card.title}</span>
-              <span className={styles.ctaDescription}>{card.description}</span>
               <span className={styles.ctaArrow} aria-hidden="true">
                 →
               </span>

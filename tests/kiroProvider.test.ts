@@ -270,8 +270,7 @@ describe('Kiro frontend integration', () => {
       });
 
       await oauthApi.startAuth('kiro', undefined, {
-        start_url: 'https://d-fixture.awsapps.com/start',
-        region: 'us-west-2',
+        extraParams: { start_url: 'https://d-fixture.awsapps.com/start', region: 'us-west-2' },
       });
       expect(get).toHaveBeenLastCalledWith('/oauth/auth-url', {
         params: {

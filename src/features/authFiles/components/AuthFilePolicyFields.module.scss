@@ -2,6 +2,13 @@
   min-width: 0;
 }
 
+/* The custom retry-count Input carries its own .form-group bottom margin; once the hint moved
+   into an InfoTip it became the last item in the group, drop that extra space so only the outer
+   .form-group sets the spacing between groups. */
+.policyFields > :global(.form-group) > :global(.form-group:last-child) {
+  margin-bottom: 0;
+}
+
 .unsupported {
   margin-top: $spacing-sm;
 }

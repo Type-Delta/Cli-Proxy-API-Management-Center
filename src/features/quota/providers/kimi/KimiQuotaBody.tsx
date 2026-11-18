@@ -27,7 +27,7 @@ export function KimiQuotaBody({ quota, classes, credential }: QuotaBodyProps<Kim
     <>
       <div className={classes.metaColumn}>
         <div className={classes.planMeta}>
-          <span className={classes.planMetaItem}>
+          <span className={classes.planMetaItem} data-quota-plan="">
             <span className={classes.planMetaLabel}>{t('kimi_quota.plan_label')}</span>
             <span className={planValueClassForTier(resolveKimiCardTier(quota.planName), classes)}>
               {quota.planName || t('kimi_quota.plan_unknown')}

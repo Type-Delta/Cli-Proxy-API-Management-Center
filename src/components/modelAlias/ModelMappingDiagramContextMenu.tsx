@@ -9,11 +9,12 @@ interface DiagramContextMenuProps {
   t: TFunction;
   onRequestClose: () => void;
   onAddAlias: () => void;
-  onRenameAlias: (alias: string) => void;
+  /** Omit an editing action to hide its menu item, such as while a save is pending. */
+  onRenameAlias?: (alias: string) => void;
   onOpenAliasSettings: (alias: string) => void;
-  onDeleteAlias: (alias: string) => void;
+  onDeleteAlias?: (alias: string) => void;
   onEditProvider: (provider: string) => void;
-  onDeleteProvider: (provider: string) => void;
+  onDeleteProvider?: (provider: string) => void;
   onOpenSourceSettings: (sourceId: string) => void;
 }
 
@@ -56,16 +57,25 @@ export function DiagramContextMenu({
     if (!data) return null;
     return (
       <>
-        <div className={styles.menuItem} onClick={() => onRenameAlias(data)}>
-          <span>{t('oauth_model_alias.diagram_rename')}</span>
-        </div>
+        {onRenameAlias && (
+          <div className={styles.menuItem} onClick={() => onRenameAlias(data)}>
+            <span>{t('oauth_model_alias.diagram_rename')}</span>
+          </div>
+        )}
         <div className={styles.menuItem} onClick={() => onOpenAliasSettings(data)}>
           <span>{t('oauth_model_alias.diagram_settings')}</span>
         </div>
-        <div className={styles.menuDivider} />
-        <div className={`${styles.menuItem} ${styles.danger}`} onClick={() => onDeleteAlias(data)}>
-          <span>{t('oauth_model_alias.diagram_delete_alias')}</span>
-        </div>
+        {onDeleteAlias && (
+          <>
+            <div className={styles.menuDivider} />
+            <div
+              className={`${styles.menuItem} ${styles.danger}`}
+              onClick={() => onDeleteAlias(data)}
+            >
+              <span>{t('oauth_model_alias.diagram_delete_alias')}</span>
+            </div>
+          </>
+        )}
       </>
     );
   };
@@ -77,13 +87,17 @@ export function DiagramContextMenu({
         <div className={styles.menuItem} onClick={() => onEditProvider(data)}>
           <span>{t('common.edit')}</span>
         </div>
-        <div className={styles.menuDivider} />
-        <div
-          className={`${styles.menuItem} ${styles.danger}`}
-          onClick={() => onDeleteProvider(data)}
-        >
-          <span>{t('oauth_model_alias.delete')}</span>
-        </div>
+        {onDeleteProvider && (
+          <>
+            <div className={styles.menuDivider} />
+            <div
+              className={`${styles.menuItem} ${styles.danger}`}
+              onClick={() => onDeleteProvider(data)}
+            >
+              <span>{t('oauth_model_alias.delete')}</span>
+            </div>
+          </>
+        )}
       </>
     );
   };

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type MouseEvent } from 'react';
+import { useCallback, useId, useMemo, type MouseEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import { Sheet } from '@/components/ui/Sheet';
@@ -22,10 +22,11 @@ import { quotaReserveProviderType } from '@/features/quota/quotaReserve';
 import { QuotaReserveEditor } from '@/features/quota/components/QuotaReserveEditor';
 import { AuthFileExcludedModelsField } from './AuthFileExcludedModelsField';
 import { AuthFilePolicyFields } from './AuthFilePolicyFields';
+import { FieldLabel } from '@/components/ui/FieldLabel';
 import { credentialPolicyError, readCredentialPolicy } from '../credentialPolicy';
 import styles from './AuthFileDetailsSheet.module.scss';
 
-/** API 边界归一化补写的派生字段——INFO 视图里只展示后端原始形状，避免重复噪音。 */
+/** Hide derived API-normalization fields from INFO so it shows the original backend shape. */
 const DERIVED_INFO_KEYS = [
   'successCount',
   'failureCount',
@@ -34,7 +35,7 @@ const DERIVED_INFO_KEYS = [
   'authIndex',
   'statusMessage',
   'modified',
-  // 'email' 不在此列：后端原始键名与 camelCase 同形，删掉会藏起真实数据。
+  // Keep email: its backend and normalized names are identical, so removing it would hide real data.
   'projectId',
 ];
 
@@ -49,15 +50,13 @@ export type AuthFileDetailsSheetProps = {
   onChange: (field: PrefixProxyEditorField, value: PrefixProxyEditorFieldValue) => void;
 };
 
-/**
- * 凭证详情/编辑抽屉：替代旧的居中 Modal，与提供商工作台的 Sheet 模式一致。
- * 脏状态下关闭（Escape/遮罩/×/取消）先走确认对话框。
- */
+/** Credential details sheet, with confirmation before discarding unsaved edits. */
 export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const hintIdBase = useId();
   const { disableControls, editor, updatedText, dirty, onClose, onCopyText, onSave, onChange } =
     props;
-  const navigate = useNavigate();
   const showConfirmation = useNotificationStore((state) => state.showConfirmation);
 
   const confirmClose = useCallback((): boolean | Promise<boolean> => {
@@ -116,7 +115,7 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
         return JSON.stringify(record, null, 2);
       }
     } catch {
-      /* 非 JSON 原样展示 */
+      /* Show non-JSON content unchanged. */
     }
     return fileInfoText;
   }, [fileInfoText]);
@@ -234,9 +233,12 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
                     max={MAX_CREDENTIAL_WEIGHT}
                     value={editor.weight}
                     placeholder="1"
-                    hint={
+                    // Weight semantics belong in the InfoTip; the strategy note stays visible below the input.
+                    // Keep its Routing link keyboard-accessible outside the tooltip.
+                    hint={t('auth_files.weight_hint')}
+                    note={
                       <Trans
-                        i18nKey="auth_files.weight_hint"
+                        i18nKey="auth_files.weight_strategy_note"
                         components={{
                           settingsLink: (
                             <Link
@@ -253,49 +255,69 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
                     onChange={(e) => onChange('weight', e.target.value)}
                   />
                   <div className="form-group">
-                    <label>{t('auth_files.disable_cooling_label')}</label>
+                    <FieldLabel
+                      as="label"
+                      label={t('auth_files.disable_cooling_label')}
+                      hint={t('auth_files.disable_cooling_hint')}
+                      hintId={`${hintIdBase}-disableCooling`}
+                    />
                     <ToggleSwitch
                       checked={editor.disableCooling}
                       onChange={(value) => onChange('disableCooling', value)}
                       disabled={disableControls || editor.saving || !editor.json}
                       ariaLabel={t('auth_files.disable_cooling_label')}
+                      ariaDescribedBy={`${hintIdBase}-disableCooling`}
                     />
-                    <div className="hint">{t('auth_files.disable_cooling_hint')}</div>
                   </div>
                   {supportsAuthFileWebsockets(editor.providerKey) && (
                     <div className="form-group">
-                      <label>{t('auth_files.websockets_label')}</label>
+                      <FieldLabel
+                        as="label"
+                        label={t('auth_files.websockets_label')}
+                        hint={t('auth_files.websockets_hint')}
+                        hintId={`${hintIdBase}-websockets`}
+                      />
                       <ToggleSwitch
                         checked={editor.websockets}
                         onChange={(value) => onChange('websockets', value)}
                         disabled={disableControls || editor.saving || !editor.json}
                         ariaLabel={t('auth_files.websockets_label')}
+                        ariaDescribedBy={`${hintIdBase}-websockets`}
                       />
-                      <div className="hint">{t('auth_files.websockets_hint')}</div>
                     </div>
                   )}
                   {supportsAuthFileSiwc(editor.providerKey) && (
                     <div className="form-group">
-                      <label>{t('auth_files.use_siwc_label')}</label>
+                      <FieldLabel
+                        as="label"
+                        label={t('auth_files.use_siwc_label')}
+                        hint={t('auth_files.use_siwc_hint')}
+                        hintId={`${hintIdBase}-useSiwc`}
+                      />
                       <ToggleSwitch
                         checked={editor.useSiwc}
                         onChange={(value) => onChange('useSiwc', value)}
                         disabled={disableControls || editor.saving || !editor.json}
                         ariaLabel={t('auth_files.use_siwc_label')}
+                        ariaDescribedBy={`${hintIdBase}-useSiwc`}
                       />
-                      <div className="hint">{t('auth_files.use_siwc_hint')}</div>
                     </div>
                   )}
                   {supportsAuthFileUsingApi(editor.providerKey) && (
                     <div className="form-group">
-                      <label>{t('auth_files.using_api_label')}</label>
+                      <FieldLabel
+                        as="label"
+                        label={t('auth_files.using_api_label')}
+                        hint={t('auth_files.using_api_hint')}
+                        hintId={`${hintIdBase}-usingApi`}
+                      />
                       <ToggleSwitch
                         checked={editor.usingApi}
                         onChange={(value) => onChange('usingApi', value)}
                         disabled={disableControls || editor.saving || !editor.json}
                         ariaLabel={t('auth_files.using_api_label')}
+                        ariaDescribedBy={`${hintIdBase}-usingApi`}
                       />
-                      <div className="hint">{t('auth_files.using_api_hint')}</div>
                     </div>
                   )}
                   <AuthFileExcludedModelsField
@@ -316,7 +338,6 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
                       onChange={(e) => onChange('headersText', e.target.value)}
                     />
                     {editor.headersError && <div className="error-box">{editor.headersError}</div>}
-                    <div className="hint">{t('auth_files.headers_hint')}</div>
                   </div>
                   <AuthFilePolicyFields
                     draft={editor.policy ?? readCredentialPolicy(editor.json)}
@@ -342,7 +363,6 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
                     label={t('auth_files.note_label')}
                     value={editor.note}
                     placeholder={t('auth_files.note_placeholder')}
-                    hint={t('auth_files.note_hint')}
                     disabled={disableControls || editor.saving || !editor.json}
                     onChange={(e) => onChange('note', e.target.value)}
                   />

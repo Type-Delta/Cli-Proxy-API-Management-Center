@@ -34,7 +34,6 @@ export function SectionConnectivity({
       indexLabel={SECTION_INDEX_LABELS.connectivity}
       icon={<Icon size={16} />}
       title={t('config_management.visual.sections.connectivity.title')}
-      description={t('config_management.visual.sections.connectivity.description')}
       animateIn={animateIn}
     >
       <SettingList>
@@ -44,7 +43,6 @@ export function SectionConnectivity({
           fieldId="authDir"
           size="lg"
           label={t('config_management.visual.sections.auth.auth_dir')}
-          description={t('config_management.visual.sections.auth.auth_dir_hint')}
           placeholder="~/.cli-proxy-api"
           value={values.authDir}
           onChange={(authDir) => onChange({ authDir })}
@@ -69,6 +67,9 @@ export function SectionConnectivity({
           fieldId="trustedProxies"
           label={t('config_management.visual.serverExtras.trustedProxies.label')}
           description={t('config_management.visual.serverExtras.trustedProxies.hint')}
+          // Security note (trusting a whole range lets clients spoof their IP) that also needs a
+          // restart: stays visible.
+          keepDescriptionVisible
           error={getValidationMessage(t, validationErrors?.trustedProxies)}
         >
           <StringListEditor
@@ -81,17 +82,12 @@ export function SectionConnectivity({
         </BlockSetting>
       </SettingList>
 
-      <Collapsible
-        label={t('config_management.visual.sections.tls.title')}
-        hint={t('config_management.visual.sections.tls.description')}
-        defaultOpen={false}
-      >
+      <Collapsible label={t('config_management.visual.sections.tls.title')} defaultOpen={false}>
         <SettingList>
           <ToggleSetting
             fieldId="tlsEnable"
             wide
             label={t('config_management.visual.sections.tls.enable')}
-            description={t('config_management.visual.sections.tls.enable_desc')}
             checked={values.tlsEnable}
             disabled={disabled}
             onChange={(tlsEnable) => onChange({ tlsEnable })}
@@ -121,17 +117,15 @@ export function SectionConnectivity({
         </SettingList>
       </Collapsible>
 
-      <Collapsible
-        label={t('config_management.visual.sections.remote.title')}
-        hint={t('config_management.visual.sections.remote.description')}
-        defaultOpen={false}
-      >
+      <Collapsible label={t('config_management.visual.sections.remote.title')} defaultOpen={false}>
         <FieldStack>
           <SettingList>
             <ToggleSetting
               fieldId="rmAllowRemote"
               label={t('config_management.visual.sections.remote.allow_remote')}
               description={t('config_management.visual.sections.remote.allow_remote_desc')}
+              // Opens the management API to other hosts: security-relevant, stays visible.
+              keepDescriptionVisible
               checked={values.rmAllowRemote}
               disabled={disabled}
               onChange={(rmAllowRemote) => onChange({ rmAllowRemote })}
@@ -139,7 +133,6 @@ export function SectionConnectivity({
             <ToggleSetting
               fieldId="rmDisableControlPanel"
               label={t('config_management.visual.sections.remote.disable_panel')}
-              description={t('config_management.visual.sections.remote.disable_panel_desc')}
               checked={values.rmDisableControlPanel}
               disabled={disabled}
               onChange={(rmDisableControlPanel) => onChange({ rmDisableControlPanel })}

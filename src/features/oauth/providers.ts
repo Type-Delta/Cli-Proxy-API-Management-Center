@@ -35,6 +35,12 @@ export interface BuiltInOAuthProviderCard {
   /** 区分同品牌的不同站点，磁贴副行展示。 */
   domain?: string;
   /**
+   * Notes needed only at login time (account type, non-interoperable sites, time limits), shown as
+   * an InfoTip after the "open authorization page" step title. Omitted for providers that only "log
+   * in through OAuth and save an auth file".
+   */
+  signInNoteKey?: string;
+  /**
    * 赞助商：同品牌的各站点合并进画廊首行的一张品牌卡，每站一个登录入口 + 开放平台注册链接
    * （目前是 Kimi 国内站 / 国际站）。`siteKey` 是卡内站点短名（品牌名由卡片标题承载）。
    */
@@ -67,6 +73,7 @@ export const OAUTH_PROVIDERS: BuiltInOAuthProviderCard[] = [
     icon: { light: iconKimiTileBlack, dark: iconKimiTileWhite },
     flow: 'device',
     domain: 'kimi.com',
+    signInNoteKey: 'auth_login.kimi_oauth_hint',
     sponsor: { signUpUrl: KIMI_CHINESE_AFFILIATE_URL, siteKey: 'auth_login.sponsor_site_china' },
   },
   {
@@ -77,6 +84,7 @@ export const OAUTH_PROVIDERS: BuiltInOAuthProviderCard[] = [
     icon: { light: iconKimiTileBlack, dark: iconKimiTileWhite },
     flow: 'device',
     domain: 'kimi.ai',
+    signInNoteKey: 'auth_login.kimi_ai_oauth_hint',
     sponsor: {
       signUpUrl: KIMI_INTERNATIONAL_AFFILIATE_URL,
       siteKey: 'auth_login.sponsor_site_international',
@@ -113,6 +121,7 @@ export const OAUTH_PROVIDERS: BuiltInOAuthProviderCard[] = [
     titleKey: 'auth_login.antigravity_oauth_title',
     icon: iconAntigravity,
     flow: 'browser',
+    signInNoteKey: 'auth_login.antigravity_oauth_hint',
   },
   {
     kind: 'builtin',
@@ -129,6 +138,7 @@ export const OAUTH_PROVIDERS: BuiltInOAuthProviderCard[] = [
     titleKey: 'auth_login.devin_oauth_title',
     icon: { light: iconDevin, dark: iconDevinDark },
     flow: 'browser',
+    signInNoteKey: 'auth_login.devin_oauth_hint',
   },
   {
     kind: 'builtin',

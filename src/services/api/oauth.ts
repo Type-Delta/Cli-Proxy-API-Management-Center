@@ -38,6 +38,16 @@ const normalizeProviderForManagementPath = (provider: string): string => {
   return key === 'anthropic' ? 'claude' : key;
 };
 
+export interface OAuthStartOptions {
+  /**
+   * Session-only proxy for this login and the credential it produces. The backend accepts it
+   * only in a POST body; blank values keep the original GET request.
+   */
+  proxyUrl?: string;
+  /** Provider setup values, such as Kiro start_url and region, sent with GET. */
+  extraParams?: Record<string, string>;
+}
+
 export interface SiwcBindResponse {
   status: 'ok';
   url: string;
@@ -50,14 +60,21 @@ export const oauthApi = {
   startSiwcBind: (name: string, signal?: AbortSignal) =>
     apiClient.post<SiwcBindResponse>('/oauth/siwc/bind', { name }, signal ? { signal } : undefined),
 
-  startAuth: (provider: string, signal?: AbortSignal, extraParams?: Record<string, string>) => {
+  startAuth: (provider: string, signal?: AbortSignal, options: OAuthStartOptions = {}) => {
     const providerKey = normalizeProviderForManagementPath(provider);
     const params: Record<string, string | boolean> = { provider: providerKey };
     if (WEBUI_SUPPORTED.has(providerKey)) {
       params.is_webui = true;
     }
-    if (extraParams) {
-      Object.assign(params, extraParams);
+    if (options.extraParams) Object.assign(params, options.extraParams);
+    const proxyUrl = options.proxyUrl?.trim();
+    if (proxyUrl) {
+      // The backend rejects proxy_url in the query string, so everything moves to the body.
+      return apiClient.post<OAuthStartResponse>(
+        '/oauth/auth-url',
+        { ...params, proxy_url: proxyUrl },
+        signal ? { signal } : undefined
+      );
     }
     return apiClient.get<OAuthStartResponse>('/oauth/auth-url', {
       params,

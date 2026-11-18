@@ -1,6 +1,5 @@
-/**
- * Antigravity 额度渲染体：套餐 chip 行（ultra/ultra-lite=金卡）+ 分组水位条。
- */
+import { InfoTip } from '@/components/ui/Tooltip';
+/** Antigravity plan metadata and grouped quota meters, including premium plan styling. */
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -112,7 +111,7 @@ export function AntigravityQuotaBody({
       ),
     [quota.groups]
   );
-  // 首屏直接显示准确文案；后续 effect 会在最近的分钟边界更新并重新排程。
+  // Render accurate initial text; reschedule later updates on the nearest minute boundary.
   const [nowMs, setNowMs] = useState(() => Date.now() + serverTimeOffsetMs);
 
   useEffect(() => {
@@ -145,7 +144,7 @@ export function AntigravityQuotaBody({
       {planLabel && (
         <div className={classes.metaColumn}>
           <div className={classes.planMeta}>
-            <span className={classes.planMetaItem}>
+            <span className={classes.planMetaItem} data-quota-plan="">
               <span className={classes.planMetaLabel}>{t('antigravity_quota.plan_label')}</span>
               <span className={isPremiumPlan ? classes.premiumPlanValue : classes.planMetaValue}>
                 {planLabel}
@@ -174,12 +173,10 @@ export function AntigravityQuotaBody({
             return (
               <div key={group.id} className={classes.antigravityQuotaGroup}>
                 <div className={classes.antigravityQuotaGroupHeader}>
-                  <span className={classes.antigravityQuotaGroupTitle}>{groupLabel}</span>
-                  {groupDescription && (
-                    <span className={classes.antigravityQuotaGroupDescription}>
-                      {groupDescription}
-                    </span>
-                  )}
+                  <span>
+                    <span className={classes.antigravityQuotaGroupTitle}>{groupLabel}</span>
+                    {groupDescription && <InfoTip content={groupDescription} label={groupLabel} />}
+                  </span>
                 </div>
                 {group.buckets.map((bucket, index) => {
                   const clamped = Math.max(0, Math.min(1, bucket.remainingFraction));

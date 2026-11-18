@@ -122,6 +122,22 @@ export type PayloadRule = {
   params: PayloadParamEntry[];
 };
 
+export const PAYLOAD_REPLACE_ROLES = ['user', 'system', 'developer'] as const;
+
+export function isPayloadReplaceRole(value: string): boolean {
+  return PAYLOAD_REPLACE_ROLES.some((role) => role === value);
+}
+
+export type PayloadReplaceRule = {
+  id: string;
+  models: PayloadRule['models'];
+  /** Paths select path mode when present, even if the draft list is empty. */
+  target: { role: string; all: boolean; positions: string; paths?: string[] };
+  replacements: { id: string; from: string; to: string; regex?: boolean }[];
+  /** Malformed source shape; clear explicitly after repairing the draft. */
+  invalid?: boolean;
+};
+
 export type PayloadFilterRule = {
   id: string;
   models: PayloadModelEntry[];
@@ -251,6 +267,10 @@ export type VisualConfigValues = {
   /** routing.rules[]; editor drafts with client ids, serialized by useVisualConfig. */
   routingRules: RoutingRuleDraft[];
   wsAuth: boolean;
+  antigravitySensitiveWordsReplace: Record<string, string>;
+  devinSensitiveWordsReplace: Record<string, string>;
+  antigravitySensitivePatternsReplace: { pattern: string; replacement: string }[];
+  devinSensitivePatternsReplace: { pattern: string; replacement: string }[];
   antigravitySensitiveWords: string[];
   devinSensitiveWords: string[];
   antigravitySignatureCacheEnabled: boolean;
@@ -271,6 +291,7 @@ export type VisualConfigValues = {
   payloadOverrideRules: PayloadRule[];
   payloadOverrideRawRules: PayloadRule[];
   payloadFilterRules: PayloadFilterRule[];
+  payloadReplaceRules: PayloadReplaceRule[];
   streaming: StreamingConfig;
 };
 
@@ -378,6 +399,10 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   sessionAffinityRebindOn: 'any',
   routingRules: [],
   wsAuth: true,
+  antigravitySensitiveWordsReplace: {},
+  devinSensitiveWordsReplace: {},
+  antigravitySensitivePatternsReplace: [],
+  devinSensitivePatternsReplace: [],
   antigravitySensitiveWords: [],
   devinSensitiveWords: [],
   antigravitySignatureCacheEnabled: true,
@@ -398,6 +423,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   payloadOverrideRules: [],
   payloadOverrideRawRules: [],
   payloadFilterRules: [],
+  payloadReplaceRules: [],
   streaming: {
     keepaliveSeconds: '',
     bootstrapRetries: '',

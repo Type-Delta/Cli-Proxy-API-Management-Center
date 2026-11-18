@@ -24,6 +24,7 @@ import {
   IconTrash2,
   IconX,
 } from '@/components/ui/icons';
+import { FieldLabel } from '@/components/ui/FieldLabel';
 import { Modal } from '@/components/ui/Modal';
 import {
   Table,
@@ -440,7 +441,6 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
             {tk('label')}
             {apiKeys.length > 0 && <span className={styles.apiKeysCount}>{apiKeys.length}</span>}
           </span>
-          <span className={styles.apiKeysHint}>{tk('hint')}</span>
         </div>
         <Button
           size="sm"
@@ -700,7 +700,12 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
         }
       >
         <div className="form-group">
-          <label htmlFor={labelInputId}>{t('config_management.visual.api_keys.label_input')}</label>
+          <FieldLabel
+            htmlFor={labelInputId}
+            label={t('config_management.visual.api_keys.label_input')}
+            hint={t('config_management.visual.api_keys.label_hint')}
+            hintId={labelHintId}
+          />
           <textarea
             id={labelInputId}
             className={`input ${styles.apiKeyLabelInput}`}
@@ -711,10 +716,12 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
             aria-describedby={labelHintId}
             placeholder={t('config_management.visual.api_keys.label_placeholder')}
           />
-          <div id={labelHintId} className="hint">
-            {t('config_management.visual.api_keys.label_hint')}
-          </div>
-          <label htmlFor={inputId}>{t('config_management.visual.api_keys.input_label')}</label>
+          <FieldLabel
+            htmlFor={inputId}
+            label={t('config_management.visual.api_keys.input_label')}
+            hint={t('config_management.visual.api_keys.input_hint')}
+            hintId={inputHintId}
+          />
           <div className={styles.apiKeyModalInputRow}>
             <input
               id={inputId}
@@ -773,9 +780,6 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
                 ))}
               </select>
             </label>
-          </div>
-          <div id={inputHintId} className="hint">
-            {t('config_management.visual.api_keys.input_hint')}
           </div>
           {formError && (
             <div id={inputErrorId} className="error-box">

@@ -597,7 +597,7 @@ test('all grant messages and confirmation are translated in six locales', async 
     }
     expect(locale.confirm_text).toContain('{{name}}');
     expect(locale.retry_confirm).toContain('{{name}}');
-    expect(locale.remaining).toBeUndefined();
+    expect(locale.remaining.trim().length).toBeGreaterThan(0);
     expect(locale.count).toContain('{{left}}');
     for (const key of [
       ...ANTHROPIC_RESET_RESULTS,

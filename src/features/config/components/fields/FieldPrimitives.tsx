@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { Select, type SelectOption } from '@/components/ui/Select';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
+import { InfoTip } from '@/components/ui/Tooltip';
 import { configFieldDomId } from '../../searchIndex';
 import { resolveRowSpans } from './rowSpans';
 import styles from './Field.module.scss';
@@ -26,16 +27,62 @@ export const FIELDS_ROOT_CLASS: string = styles.fieldsRoot;
 const cx = (...classes: Array<string | false | undefined>) => classes.filter(Boolean).join(' ');
 
 /* ======================================================================
-   设置行：开关 / 输入 / 下拉 / 区块编辑器共用同一副骨架——
-   左列「标题 + 说明 + 错误」，右列控件；只有控件槽的内容不同。
-   行收进 SettingList（圆角容器 + 发丝分隔线），宽容器下两列排布。
+   Setting rows: toggles, inputs, selects and block editors share one skeleton.
+   Left column "title (+ InfoTip) + error", right column the control; only the control slot differs.
+   Rows sit in a SettingList (rounded container + hairline dividers), two columns in wide containers.
+
+   Descriptions (description / hint) take no space by default: an InfoTip after the title carries
+   them, while a visually hidden copy stays in the DOM and the control's aria-describedby still
+   points at it. Descriptions that must stay on the page (security notes, irreversible consequences)
+   pass keepDescriptionVisible / keepHintVisible. Visible extra content that is not a description
+   (links and other interactive content) uses aside: no InfoTip, no aria-describedby. Errors are
+   always visible.
    ====================================================================== */
+
+/**
+ * Description text: an InfoTip + visually hidden copy by default; with keepVisible it stays a
+ * visible line.
+ */
+function DescriptionText({
+  id,
+  className,
+  keepVisible,
+  children,
+}: {
+  id?: string;
+  className?: string;
+  keepVisible: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div id={id} className={cx(className, !keepVisible && 'visually-hidden-focusable')}>
+      {children}
+    </div>
+  );
+}
 
 type SettingCopy = {
   /** 搜索锚点：行本身即锚点（DOM id 见 configFieldDomId）。 */
   fieldId: string;
   label: string;
+  /**
+   * Row description. By default it lives in the InfoTip after the title (visible on hover / focus /
+   * tap), with a visually hidden copy kept for screen readers (the control's aria-describedby
+   * points at it).
+   */
   description?: ReactNode;
+  /**
+   * Keeps the description as a visible line under the title instead of moving it into an InfoTip.
+   * Only for descriptions that cause mistakes when unread: security, destructive or irreversible
+   * consequences, or interactive content such as links.
+   */
+  keepDescriptionVisible?: boolean;
+  /**
+   * Always-visible extra content under the title that does not describe the control (such as proxy
+   * URL sponsor links): shown as-is and keyboard reachable, not in an InfoTip and not in the
+   * control's aria-describedby.
+   */
+  aside?: ReactNode;
   error?: string;
   /**
    * 两列布局下独占一整行——只为语义而设（长 URL、总开关置顶）。
@@ -69,6 +116,8 @@ function SettingRow({
   fieldId,
   label,
   description,
+  keepDescriptionVisible = false,
+  aside,
   error,
   wide,
   ids,
@@ -96,20 +145,30 @@ function SettingRow({
       )}
     >
       <div className={styles.rowCopy}>
-        {labelFor ? (
-          <label id={ids.labelId} htmlFor={labelFor} className={styles.rowLabel}>
-            {label}
-          </label>
-        ) : (
-          <span id={ids.labelId} className={styles.rowLabel}>
-            {label}
-          </span>
-        )}
+        <div className={styles.rowLabelLine}>
+          {labelFor ? (
+            <label id={ids.labelId} htmlFor={labelFor} className={styles.rowLabel}>
+              {label}
+            </label>
+          ) : (
+            <span id={ids.labelId} className={styles.rowLabel}>
+              {label}
+            </span>
+          )}
+          {description && !keepDescriptionVisible ? (
+            <InfoTip content={description} label={label} descriptionId={ids.hintId} />
+          ) : null}
+        </div>
         {description ? (
-          <div id={ids.hintId} className={styles.rowDescription}>
+          <DescriptionText
+            id={ids.hintId}
+            className={styles.rowDescription}
+            keepVisible={keepDescriptionVisible}
+          >
             {description}
-          </div>
+          </DescriptionText>
         ) : null}
+        {aside ? <div className={styles.rowAside}>{aside}</div> : null}
         {error ? (
           <div id={ids.errorId} className={styles.rowError}>
             {error}
@@ -323,10 +382,17 @@ const isFullRow = (row: RowElement) =>
 export function SettingList({
   title,
   description,
+  keepDescriptionVisible = false,
   children,
 }: {
   title?: string;
+  /**
+   * Group description: lives in the InfoTip after the group title by default; not rendered without
+   * a title.
+   */
   description?: ReactNode;
+  /** Keeps the group description as a visible line under the group title. */
+  keepDescriptionVisible?: boolean;
   children: ReactNode;
 }) {
   const rows = flattenRows(children);
@@ -337,8 +403,15 @@ export function SettingList({
     <Group className={styles.group}>
       {title ? (
         <header className={styles.groupHeader}>
-          <h3 className={styles.groupTitle}>{title}</h3>
-          {description ? <p className={styles.groupDescription}>{description}</p> : null}
+          <div className={styles.groupTitleLine}>
+            <h3 className={styles.groupTitle}>{title}</h3>
+            {description && !keepDescriptionVisible ? (
+              <InfoTip content={description} label={title} />
+            ) : null}
+          </div>
+          {description && keepDescriptionVisible ? (
+            <p className={styles.groupDescription}>{description}</p>
+          ) : null}
         </header>
       ) : null}
       <div className={styles.list}>
@@ -370,7 +443,10 @@ export function FieldAnchor({ fieldId, children }: { fieldId: string; children: 
   );
 }
 
-/** 独立的提示行（SettingCell 里编辑器上方的说明等）。 */
+/**
+ * Standalone visible hint line (such as the scope note opening a collapsible body); pass an id for
+ * aria-describedby when a control needs it.
+ */
 export function FieldHint({ id, children }: { id?: string; children: ReactNode }) {
   return (
     <div id={id} className={styles.fieldHint}>
@@ -379,13 +455,19 @@ export function FieldHint({ id, children }: { id?: string; children: ReactNode }
   );
 }
 
-/** 区块编辑器内部的「标签在上」字段（载荷规则等多控件表单）。 */
+/**
+ * A "label on top" field inside block editors (multi-control forms such as payload rules). The hint
+ * lives in the InfoTip after the label by default; with hintId a visually hidden copy is also kept
+ * for the caller to attach to the control's aria-describedby. With keepHintVisible it shows under
+ * the control as before.
+ */
 export function FieldShell({
   label,
   labelId,
   htmlFor,
   hint,
   hintId,
+  keepHintVisible = false,
   error,
   errorId,
   children,
@@ -395,25 +477,32 @@ export function FieldShell({
   htmlFor?: string;
   hint?: string;
   hintId?: string;
+  /** Keeps the hint as a visible line under the control instead of moving it into an InfoTip. */
+  keepHintVisible?: boolean;
   error?: string;
   errorId?: string;
   children: ReactNode;
 }) {
   return (
     <div className={styles.fieldShell}>
-      <label id={labelId} htmlFor={htmlFor} className={styles.fieldLabel}>
-        {label}
-      </label>
+      <div className={styles.fieldLabelLine}>
+        <label id={labelId} htmlFor={htmlFor} className={styles.fieldLabel}>
+          {label}
+        </label>
+        {hint && !keepHintVisible ? (
+          <InfoTip content={hint} label={label} descriptionId={hintId} />
+        ) : null}
+      </div>
       {children}
       {error ? (
         <div id={errorId} className="error-box">
           {error}
         </div>
       ) : null}
-      {hint ? (
-        <div id={hintId} className={styles.fieldHint}>
+      {hint && (keepHintVisible || hintId) ? (
+        <DescriptionText id={hintId} className={styles.fieldHint} keepVisible={keepHintVisible}>
           {hint}
-        </div>
+        </DescriptionText>
       ) : null}
     </div>
   );

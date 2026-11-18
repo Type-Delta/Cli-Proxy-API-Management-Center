@@ -633,20 +633,23 @@ export const ModelMappingDiagram = forwardRef<ModelMappingDiagramRef, ModelMappi
           t={t}
           onRequestClose={() => setContextMenu(null)}
           onAddAlias={handleAddAlias}
-          onRenameAlias={handleRenameClick}
+          onRenameAlias={onRenameAlias && handleRenameClick}
           onOpenAliasSettings={(alias) => {
             setContextMenu(null);
             setSettingsAlias(alias);
           }}
-          onDeleteAlias={handleDeleteClick}
+          onDeleteAlias={onDeleteAlias && handleDeleteClick}
           onEditProvider={(provider) => {
             setContextMenu(null);
             onEditProvider?.(provider);
           }}
-          onDeleteProvider={(provider) => {
-            setContextMenu(null);
-            onDeleteProvider?.(provider);
-          }}
+          onDeleteProvider={
+            onDeleteProvider &&
+            ((provider) => {
+              setContextMenu(null);
+              onDeleteProvider(provider);
+            })
+          }
           onOpenSourceSettings={(sourceId) => {
             setContextMenu(null);
             setSettingsSourceId(sourceId);
@@ -683,16 +686,16 @@ export const ModelMappingDiagram = forwardRef<ModelMappingDiagramRef, ModelMappi
           alias={settingsAlias}
           aliasNodes={aliasNodes}
           onClose={() => setSettingsAlias(null)}
-          onToggleFork={handleToggleFork}
-          onUnlink={handleUnlinkSource}
+          onToggleFork={onToggleFork && handleToggleFork}
+          onUnlink={onDeleteLink && handleUnlinkSource}
         />
         <SettingsSourceModal
           open={Boolean(settingsSourceId)}
           t={t}
           source={resolveSourceById(settingsSourceId)}
           onClose={() => setSettingsSourceId(null)}
-          onToggleFork={handleToggleFork}
-          onUnlink={handleUnlinkSource}
+          onToggleFork={onToggleFork && handleToggleFork}
+          onUnlink={onDeleteLink && handleUnlinkSource}
         />
       </div>
     );

@@ -7,6 +7,7 @@ import { notifyAuthFilesChanged } from '@/features/authFiles/authFilesEvents';
 import { createOAuthAttempts, type OAuthAttempt } from '../oauthAttempts';
 import { validateDevinCallback } from '../devinOAuth';
 import { resolveCallbackUrl } from '../callbackUrl';
+import { isInvalidProxyUrlError, planLoginProxy } from '../loginProxy';
 import {
   buildPluginOAuthProviderCards,
   type OAuthProviderCard,
@@ -26,16 +27,15 @@ export interface ProviderFlowState {
   callbackSubmitting?: boolean;
   callbackStatus?: 'success' | 'error';
   callbackError?: string;
-  /** 本地校验失败（未提交到后端），内联展示在输入框下。 */
+  /** Local validation failure shown below the input before any backend request. */
   callbackValidation?: string;
+  /** Proxy used for this attempt, held only in memory and masked when displayed. */
+  proxyUrl?: string;
 }
 
 interface UseOAuthFlowsOptions {
   providerCards: OAuthProviderCard[];
-  /**
-   * 该提供商的对话框是否正开着。开着时结果已在对话框内联展示，不再重复弹 toast；
-   * 成功态也会保留到对话框关闭，而不是 5 秒后自动清空。
-   */
+  /** A focused provider shows results in its dialog, suppressing duplicate toasts and retaining success until dismissal. */
   isFocused: (provider: string) => boolean;
 }
 
@@ -50,7 +50,7 @@ function getErrorStatus(error: unknown): number | undefined {
   return typeof error.status === 'number' ? error.status : undefined;
 }
 
-/** 已启用且声明 OAuth 能力的插件 → 追加到内置提供商之后。 */
+/** Append enabled plugins with declared OAuth support after built-in providers. */
 export function usePluginOAuthProviders(apiBase: string) {
   const [pluginProviders, setPluginProviders] = useState<PluginOAuthProviderCard[]>([]);
 
@@ -73,17 +73,22 @@ export function usePluginOAuthProviders(apiBase: string) {
   return pluginProviders;
 }
 
-/**
- * 每个提供商一条独立的登录尝试（attempt）：开始 → 轮询状态 → 成功/失败，
- * 可选的手动回调提交与 Devin 会话取消。尝试失效后，已发出的请求落地也不再写状态。
- */
+/** Each provider owns a login attempt, polling and optional callback/cancellation. Invalidated attempts cannot publish late results. */
 export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions) {
   const { t } = useTranslation();
   const { showNotification } = useNotificationStore();
   const [states, setStates] = useState<Record<string, ProviderFlowState>>({});
-  /** 本次会话新增的凭证数（含 Vertex 导入），换连接时归零。 */
+  /** Credentials added in this session, including Vertex imports; cleared on connection changes. */
   const [addedCount, setAddedCount] = useState(0);
   const recordCredentialAdded = useCallback(() => setAddedCount((count) => count + 1), []);
+  /** Session-only proxy for new built-in and plugin logins. Never stored or placed in a URL; cleared on connection changes and logout. */
+  const [loginProxy, setLoginProxyValue] = useState('');
+  /** Last proxy refused locally or by a backend 400, used for the inline field error. */
+  const [loginProxyRejected, setLoginProxyRejected] = useState<string | null>(null);
+  const setLoginProxy = useCallback((value: string) => {
+    setLoginProxyValue(value);
+    if (!value.trim()) setLoginProxyRejected(null);
+  }, []);
   const attempts = useRef(
     createOAuthAttempts({
       setTimeout: (callback, delay) => window.setTimeout(callback, delay),
@@ -107,6 +112,8 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
         clearTimers();
         setStates({});
         setAddedCount(0);
+        setLoginProxyValue('');
+        setLoginProxyRejected(null);
       }
     });
     return () => {
@@ -122,7 +129,7 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
       : t(getAuthKey(provider, suffix));
   };
 
-  /** 对话框没开时，toast 是唯一的结果反馈。 */
+  /** Toasts carry results when the provider dialog is closed. */
   const notify = (provider: string, message: string, type: 'success' | 'error' | 'warning') => {
     if (!isFocused(provider)) showNotification(message, type);
   };
@@ -157,7 +164,7 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
       callbackError: undefined,
       callbackValidation: undefined,
     });
-    // 后台完成时磁贴短暂显示「已添加」；对话框开着则保留成功页，关闭时再清。
+    // Background success briefly marks the tile; an open dialog retains success until dismissed.
     resetAttempt.schedule(() => {
       if (!isFocused(provider)) resetProviderAttempt(provider);
     }, SUCCESS_RESET_DELAY_MS);
@@ -249,23 +256,58 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
     // explicit cancellation before replacing that Devin session.
     if (provider === 'devin' && states[provider]?.state) return;
     const attempt = attempts.current.begin(provider);
-    updateProviderState(provider, {
+    const proxyPlan = planLoginProxy(loginProxy);
+    const resetFields: Partial<ProviderFlowState> = {
       url: undefined,
       userCode: undefined,
       state: undefined,
-      status: 'waiting',
-      polling: true,
       cancelling: false,
       cancelError: undefined,
-      error: undefined,
       callbackStatus: undefined,
       callbackError: undefined,
       callbackValidation: undefined,
       callbackUrl: '',
       callbackSubmitting: false,
+      proxyUrl: proxyPlan.kind === 'proxy' ? proxyPlan.url : undefined,
+    };
+    if (proxyPlan.kind === 'invalid') {
+      // Never fall back to a login without the requested proxy: fail before any request.
+      const message = t('auth_login.login_proxy_invalid');
+      setLoginProxyRejected(loginProxy.trim());
+      updateProviderState(provider, {
+        ...resetFields,
+        status: 'error',
+        error: message,
+        polling: false,
+      });
+      notify(provider, `${providerText(provider, 'oauth_start_error')} ${message}`, 'error');
+      return;
+    }
+    if (provider === 'kiro' && proxyPlan.kind === 'proxy') {
+      const message = t('auth_login.login_proxy_kiro_unsupported');
+      updateProviderState(provider, {
+        ...resetFields,
+        status: 'error',
+        error: message,
+        polling: false,
+      });
+      notify(provider, message, 'error');
+      return;
+    }
+    updateProviderState(provider, {
+      ...resetFields,
+      status: 'waiting',
+      polling: true,
+      error: undefined,
     });
     try {
-      const res = await oauthApi.startAuth(provider, attempt.signal, params);
+      const res = await oauthApi.startAuth(
+        provider,
+        attempt.signal,
+        proxyPlan.kind === 'proxy'
+          ? { proxyUrl: proxyPlan.url, extraParams: params }
+          : { extraParams: params }
+      );
       if (!attempt.isCurrent()) return;
       if (!res.state) {
         const message = t('auth_login.missing_state');
@@ -289,7 +331,9 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
       startPolling(provider, res.state, attempt);
     } catch (err: unknown) {
       if (!attempt.isCurrent()) return;
-      const message = getErrorMessage(err);
+      const proxyRejected = proxyPlan.kind === 'proxy' && isInvalidProxyUrlError(err);
+      if (proxyRejected) setLoginProxyRejected(proxyPlan.url);
+      const message = proxyRejected ? t('auth_login.login_proxy_invalid') : getErrorMessage(err);
       updateProviderState(provider, { status: 'error', error: message, polling: false });
       notify(
         provider,
@@ -385,7 +429,7 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
     }
   };
 
-  /** 关闭对话框时收起成功页，磁贴回到可再次登录的初始态。 */
+  /** Dismissing success makes the tile ready to start another login. */
   const dismissSuccess = (provider: string) => {
     if (states[provider]?.status === 'success') resetProviderAttempt(provider);
   };
@@ -394,6 +438,9 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
     states,
     addedCount,
     recordCredentialAdded,
+    loginProxy,
+    loginProxyRejected,
+    setLoginProxy,
     providerText,
     startAuth,
     cancelAuth,

@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Collapsible } from '@/components/ui/Collapsible';
 import type { ConfigSectionProps } from '../../types';
@@ -5,6 +6,7 @@ import { CodexLiveICEServersEditor } from '../blocks/CodexLiveICEServersEditor';
 import { getValidationMessage } from '../blocks/shared';
 import {
   BlockSetting,
+  FieldHint,
   FieldStack,
   SettingList,
   TextSetting,
@@ -19,12 +21,18 @@ export function SectionOAuthBehavior({
   onChange,
 }: ConfigSectionProps) {
   const { t } = useTranslation();
+  const scopeId = useId();
   return (
+    // The scope note (API key credentials are unaffected) governs every row below but cannot
+    // live in <summary>, which must not nest interactive content. It opens the expanded body
+    // instead and describes the collapsible group through aria-describedby.
     <Collapsible
       label={t('config_management.visual.additions.oauthTitle')}
-      hint={t('config_management.visual.additions.oauthHint')}
+      aria-describedby={scopeId}
     >
       <FieldStack>
+        <FieldHint id={scopeId}>{t('config_management.visual.additions.oauthHint')}</FieldHint>
+
         <SettingList title={t('config_management.visual.additions.claudeTitle')}>
           <ToggleSetting
             fieldId="claudeModelLevelCooling"
@@ -127,6 +135,8 @@ export function SectionOAuthBehavior({
             description={t(
               'config_management.visual.additions.codexAssumeRequestedServiceTier.hint'
             )}
+            // Pricing scope note (new usage only): stays visible.
+            keepDescriptionVisible
             checked={values.codexAssumeRequestedServiceTier}
             disabled={disabled}
             onChange={(codexAssumeRequestedServiceTier) =>
@@ -198,14 +208,13 @@ export function SectionOAuthBehavior({
           />
         </SettingList>
 
-        <SettingList
-          title={t('config_management.visual.additions.liveRelayTitle')}
-          description={t('config_management.visual.additions.liveRelayHint')}
-        >
+        <SettingList title={t('config_management.visual.additions.liveRelayTitle')}>
           <ToggleSetting
             fieldId="codexLiveMediaRelayEnabled"
             label={t('config_management.visual.additions.codexLiveMediaRelayEnabled.label')}
             description={t('config_management.visual.additions.codexLiveMediaRelayEnabled.hint')}
+            // Inbound UDP reachability prerequisite: stays visible.
+            keepDescriptionVisible
             checked={values.codexLiveMediaRelayEnabled}
             disabled={disabled}
             onChange={(codexLiveMediaRelayEnabled) => onChange({ codexLiveMediaRelayEnabled })}
@@ -233,6 +242,8 @@ export function SectionOAuthBehavior({
             description={t(
               'config_management.visual.additions.codexLiveMediaRelayDisablePrivateRemoteIPs.hint'
             )}
+            // Security note (private-network exposure): stays visible.
+            keepDescriptionVisible
             checked={values.codexLiveMediaRelayDisablePrivateRemoteIPs}
             disabled={disabled}
             onChange={(codexLiveMediaRelayDisablePrivateRemoteIPs) =>
@@ -278,6 +289,9 @@ export function SectionOAuthBehavior({
             fieldId="codexLiveMediaRelayICEServers"
             label={t('config_management.visual.additions.codexLiveMediaRelayICEServers.label')}
             description={t('config_management.visual.additions.codexLiveMediaRelayICEServers.hint')}
+            // Credential handling: TURN passwords are not read back from the config API and must
+            // stay out of screenshots and logs, so the note stays visible.
+            keepDescriptionVisible
             error={getValidationMessage(t, validationErrors?.codexLiveMediaRelayICEServers)}
           >
             {({ describedBy, invalid }) => (

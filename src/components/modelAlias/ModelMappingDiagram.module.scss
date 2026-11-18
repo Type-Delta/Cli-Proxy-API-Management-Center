@@ -355,7 +355,12 @@
   border-radius: 6px;
   cursor: pointer;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--bg-error-light);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
   }
 }

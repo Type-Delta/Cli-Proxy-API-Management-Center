@@ -1,0 +1,188 @@
+/* Shared tooltip panel and InfoTip button.
+   The panel is portalled with fixed positioning. Explicit tooltips and the TooltipProvider's
+   automatic title tooltips share this skin, built on the DL034 shared tooltip tokens
+   (--viz-tooltip-*) that also style chart tooltips in both themes. */
+
+/* ---------- Panel ---------- */
+
+.tooltip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  /* The Sheet backdrop and Modal sit at 2000 and the Select dropdown at 2010
+     (selectPosition.ts); tooltips stack above them but below notifications
+     ($z-notification 3000). */
+  z-index: $z-modal + 20;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 24px));
+  padding: 10px 12px;
+  border: 1px solid var(--viz-tooltip-border);
+  border-radius: 8px;
+  background: var(--viz-tooltip-bg);
+  color: var(--viz-tooltip-text);
+  box-shadow: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: normal;
+  text-align: start;
+  text-transform: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: default;
+
+  /* A bridge across the gap so the pointer can travel from the trigger onto the panel
+     without firing pointerleave on the way. */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8px;
+  }
+
+  &[data-placement='top'] {
+    animation: tooltip-in-top var(--dur-press, 160ms) var(--ease-out-strong, ease-out) both;
+
+    &::before {
+      top: 100%;
+    }
+  }
+
+  &[data-placement='bottom'] {
+    animation: tooltip-in-bottom var(--dur-press, 160ms) var(--ease-out-strong, ease-out) both;
+
+    &::before {
+      bottom: 100%;
+    }
+  }
+
+  /* First frame measures the size: mounted but invisible until the layout effect places it. */
+  &[data-measuring] {
+    visibility: hidden;
+  }
+
+  /* Moving quickly between adjacent tooltips switches directly without replaying the entrance. */
+  &[data-instant] {
+    animation: none;
+  }
+
+  code {
+    padding: 0 3px;
+    border-radius: 4px;
+    background: color-mix(in srgb, currentColor 14%, transparent);
+    font-family: $font-mono;
+    font-size: 0.95em;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+/* Slide in 4px from the trigger side: upward when above it, downward when below it. */
+@keyframes tooltip-in-top {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0);
+  }
+}
+
+@keyframes tooltip-in-bottom {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+@keyframes tooltip-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------- InfoTip button ---------- */
+
+/* Quiet: a 14px icon in the tertiary text color at rest, primary text color on hover, focus
+   or open. It brings its own 0.35em leading space and font-relative vertical alignment (the
+   icon center sits at about 0.36em, the visual middle of the text); negative vertical margins
+   keep it from growing its line. */
+.infoTip {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  margin: -2px 0 -2px 0.35em;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-tertiary);
+  font: inherit;
+  line-height: 0;
+  vertical-align: calc(0.36em - 8px);
+  cursor: help;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
+    background-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+
+  /* Extend the hit area to about 26×28px for touch, less on the left so it does not take
+     clicks meant for the label text. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -6px -6px -6px -4px;
+    border-radius: 999px;
+  }
+
+  svg {
+    display: block;
+    flex: 0 0 auto;
+  }
+
+  &[data-state='open'] {
+    color: var(--text-primary);
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    color: var(--text-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-primary) 40%, transparent);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .infoTip:hover {
+    color: var(--text-primary);
+  }
+}
+
+/* ---------- Accessibility ---------- */
+
+/* Reduced motion: keep the fade, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .tooltip[data-placement] {
+    animation-name: tooltip-fade;
+  }
+
+  .tooltip[data-instant] {
+    animation: none;
+  }
+
+  .infoTip {
+    transition: none;
+  }
+}

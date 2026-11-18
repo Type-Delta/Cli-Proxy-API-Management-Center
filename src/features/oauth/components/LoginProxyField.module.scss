@@ -1,0 +1,266 @@
+@use '../../../styles/mixins' as *;
+
+/* ============================================================
+ * Login proxy: a secondary pill between the page header and the gallery. Same family as the
+ * provider tiles (1px border / 82% translucent paper) but shorter and smaller; always optional and
+ * never competing with the tiles. With a value the pill always shows the (masked) proxy with a
+ * status-colored border, so it is not forgotten while active.
+ *
+ * The left edge aligns with the header text and tiles: the ancestor .page-transition is overflow:
+ * hidden and clips exactly at the content edge, so no negative margins here and the focus ring is
+ * drawn inside the pill.
+ * ============================================================ */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.toggle {
+  @include button-reset;
+  /* Border color follows the state; on hover / expand an ::after layer fades in, animating only
+     opacity */
+  --chip-border: var(--border-color);
+  --chip-border-strong: var(--border-hover);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  max-width: 100%;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--chip-border);
+  background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+  transition: transform var(--dur-press, 160ms) var(--ease-out-strong, ease-out);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    border: 1px solid var(--chip-border-strong);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+  }
+
+  &[aria-expanded='true']::after {
+    opacity: 1;
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  /* Inset focus ring: an outset ring would be clipped by .page-transition at the left edge */
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toggle:hover::after {
+    opacity: 1;
+  }
+
+  .clear:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+}
+
+.toggleIcon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.toggleLabel {
+  flex-shrink: 0;
+  letter-spacing: -0.005em;
+}
+
+.toggleStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-family: $font-mono;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-tertiary);
+}
+
+.statusText {
+  @include text-ellipsis;
+  min-width: 0;
+}
+
+.statusDot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.chevron {
+  flex-shrink: 0;
+  margin-left: -1px;
+  color: var(--text-tertiary);
+  transition: transform var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+}
+
+.toggle[aria-expanded='true'] .chevron {
+  transform: rotate(180deg);
+}
+
+/* With a value: the border leans toward success green and the proxy shows in green as "active";
+   invalid leans toward failure red likewise */
+.root[data-active] .toggle {
+  --chip-border: color-mix(in srgb, var(--viz-success) 38%, var(--border-color));
+  --chip-border-strong: color-mix(in srgb, var(--viz-success) 62%, var(--border-color));
+}
+
+.root[data-active] .toggleStatus {
+  color: var(--viz-success);
+}
+
+.root[data-invalid] .toggle {
+  --chip-border: color-mix(in srgb, var(--viz-failure) 42%, var(--border-color));
+  --chip-border-strong: color-mix(in srgb, var(--viz-failure) 66%, var(--border-color));
+}
+
+.root[data-invalid] .toggleStatus {
+  color: var(--viz-failure);
+}
+
+/* ---------- Expanded panel ---------- */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 560px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
+  animation: login-proxy-in var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+@keyframes login-proxy-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-family: $font-mono;
+  font-size: 12px;
+
+  &[aria-invalid='true'] {
+    border-color: var(--viz-failure);
+  }
+}
+
+.clear {
+  @include button-reset;
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition:
+    transform var(--dur-press, 160ms) var(--ease-out-strong, ease-out),
+    background-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
+    color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  color: var(--viz-failure);
+}
+
+@keyframes login-proxy-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion: drop translation/scale/rotation, keep short fades that help explain state
+   changes */
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation-name: login-proxy-fade;
+  }
+
+  .toggle,
+  .clear,
+  .chevron {
+    transition: none;
+  }
+
+  .toggle::after {
+    transition: opacity var(--dur-hover, 200ms) ease;
+  }
+
+  .toggle:active,
+  .clear:active {
+    transform: none;
+  }
+}

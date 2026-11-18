@@ -150,7 +150,9 @@ export function useRevealGroup<T extends HTMLElement>(baseDelaySeconds = 0) {
           });
         });
       },
-      { rootMargin: '0px 0px -12% 0px', threshold: 0.05 }
+      // threshold 0: a container about 20 times taller than the viewport never reaches 5%
+      // visibility, leaving children stuck at opacity 0.
+      { rootMargin: '0px 0px -12% 0px', threshold: 0 }
     );
 
     observer.observe(container);

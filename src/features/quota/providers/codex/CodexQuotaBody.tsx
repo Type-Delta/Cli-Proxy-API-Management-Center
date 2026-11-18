@@ -25,7 +25,7 @@ import { quotaReserveTooltip } from '../../quotaReserve';
 import { buildQuotaRowTitle, type QuotaBodyProps, type QuotaClassMap } from '../../types';
 
 const getPlanValueClass = (planType: string | null, classes: QuotaClassMap): string => {
-  // elite/premium 顺序契约由 resolvePlanTier 承载（tests/quotaPlanTier.test.ts 守护）。
+  // resolvePlanTier owns the elite/premium ordering, covered by tests/quotaPlanTier.test.ts.
   const tier = resolvePlanTier(planType);
   if (tier === 'elite') return classes.elitePlanValue;
   if (tier === 'premium') return classes.premiumPlanValue;
@@ -87,7 +87,7 @@ export function CodexQuotaBody({
           {(planLabel || expiryDisplay || creditsUnlimited || creditBalance !== null) && (
             <div className={classes.planMeta}>
               {planLabel && (
-                <span className={classes.planMetaItem}>
+                <span className={classes.planMetaItem} data-quota-plan="">
                   <span className={classes.planMetaLabel}>{t('codex_quota.plan_label')}</span>
                   <span className={planValueClass}>{planLabel}</span>
                 </span>

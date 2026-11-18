@@ -40,10 +40,15 @@ export function AnalyticsSettingsFields({
         />
       </SettingList>
 
-      <SettingList title={t(A('collection_title'))} description={t(A('collection_desc'))}>
+      <SettingList
+        keepDescriptionVisible
+        title={t(A('collection_title'))}
+        description={t(A('collection_desc'))}
+      >
         <StorageUsage wide />
         <TextSetting
           fieldId="clickhouseDsn"
+          keepDescriptionVisible
           wide
           size="lg"
           type="password"
@@ -57,6 +62,7 @@ export function AnalyticsSettingsFields({
         />
         <TextSetting
           fieldId="clickhouseDatabase"
+          keepDescriptionVisible
           size="md"
           label={t(A('clickhouse_database'))}
           description={t(A('clickhouse_database_hint'))}
@@ -67,6 +73,7 @@ export function AnalyticsSettingsFields({
         />
         <TextSetting
           fieldId="clickhouseTelemetryRetentionDays"
+          keepDescriptionVisible
           size="sm"
           type="number"
           min={1}
@@ -81,6 +88,7 @@ export function AnalyticsSettingsFields({
         />
         <ToggleSetting
           fieldId="clickhouseAgentQueryEnabled"
+          keepDescriptionVisible
           wide
           label={t(A('clickhouse_agent_enabled'))}
           description={t(A('clickhouse_agent_enabled_hint'))}
@@ -131,6 +139,7 @@ export function AnalyticsSettingsFields({
         />
         <TextSetting
           fieldId="analyticsPath"
+          keepDescriptionVisible
           wide
           size="lg"
           label={t(A('path'))}
@@ -143,6 +152,7 @@ export function AnalyticsSettingsFields({
         />
         <TextSetting
           fieldId="analyticsQueueCapacity"
+          keepDescriptionVisible
           size="sm"
           type="number"
           min={1}
@@ -206,6 +216,7 @@ export function AnalyticsSettingsFields({
         />
         <TextSetting
           fieldId="analyticsMaxStorageBytes"
+          keepDescriptionVisible
           type="number"
           min={0}
           label={t(A('max_storage_bytes'))}
@@ -217,6 +228,7 @@ export function AnalyticsSettingsFields({
         />
         <TextSetting
           fieldId="analyticsMinFreeBytes"
+          keepDescriptionVisible
           type="number"
           min={0}
           label={t(A('min_free_bytes'))}
@@ -228,6 +240,7 @@ export function AnalyticsSettingsFields({
         />
         <TextSetting
           fieldId="analyticsStorageTimeZone"
+          keepDescriptionVisible
           wide
           list={timeZoneOptions.length > 0 ? 'analytics-storage-time-zone-options' : undefined}
           placeholder={t(A('storage_time_zone_placeholder'))}
@@ -247,9 +260,14 @@ export function AnalyticsSettingsFields({
         </datalist>
       )}
 
-      <SettingList title={t(A('privacy_title'))} description={t(A('privacy_desc'))}>
+      <SettingList
+        keepDescriptionVisible
+        title={t(A('privacy_title'))}
+        description={t(A('privacy_desc'))}
+      >
         <ToggleSetting
           fieldId="analyticsStoreCredentialId"
+          keepDescriptionVisible
           wide
           label={t(A('store_credential_id'))}
           description={t(A('store_credential_id_desc'))}
@@ -259,9 +277,14 @@ export function AnalyticsSettingsFields({
         />
       </SettingList>
 
-      <SettingList title={t(A('viewer_title'))} description={t(A('viewer_desc'))}>
+      <SettingList
+        keepDescriptionVisible
+        title={t(A('viewer_title'))}
+        description={t(A('viewer_desc'))}
+      >
         <BlockSetting
           fieldId="analyticsViewerTrustedProxyCidrs"
+          keepDescriptionVisible
           label={t(A('trusted_proxy_cidrs'))}
           description={t(A('trusted_proxy_cidrs_hint'))}
           error={validation('analyticsViewerTrustedProxyCidrs')}
@@ -278,6 +301,7 @@ export function AnalyticsSettingsFields({
         </BlockSetting>
         <ToggleSetting
           fieldId="analyticsViewerAllowLoopbackHttp"
+          keepDescriptionVisible
           wide
           label={t(A('allow_loopback_http'))}
           description={t(A('allow_loopback_http_desc'))}

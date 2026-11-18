@@ -85,10 +85,9 @@ const resolveBearerTokenFromAuthorization = (headers: Record<string, string>): s
 
 export const modelsApi = {
   /** Refresh the global backend catalogs, not auth-file credentials. */
-  async refreshCatalog(): Promise<{ changedProviders: string[] }> {
-    const response = await apiClient.post<{ changed_providers: string[] | null }>(
-      '/models/refresh'
-    );
+  async refreshCatalog(isCurrent?: () => boolean): Promise<{ changedProviders: string[] }> {
+    const client = isCurrent ? apiClient.captureConnection(isCurrent) : apiClient;
+    const response = await client.post<{ changed_providers: string[] | null }>('/models/refresh');
     return { changedProviders: response.changed_providers ?? [] };
   },
 
@@ -325,6 +324,9 @@ export const modelsApi = {
           const resolved = { ...model, name };
           if (resolved.alias && resolved.alias.trim() === name) {
             resolved.alias = undefined;
+          }
+          if (resolved.displayName?.trim() === name) {
+            resolved.displayName = undefined;
           }
           collected.push(resolved);
         });

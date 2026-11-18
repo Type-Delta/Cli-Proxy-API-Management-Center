@@ -166,6 +166,12 @@
 
 .filterPanelButtonContent,
 .buttonContent,
+/* Switch + trailing InfoTip: the InfoTip cannot go inside the switch's <label> */
+.switchRow {
+  display: flex;
+  align-items: center;
+}
+
 .switchLabel {
   display: inline-flex;
   align-items: center;

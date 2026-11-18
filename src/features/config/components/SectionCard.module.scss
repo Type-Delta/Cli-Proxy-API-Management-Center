@@ -36,7 +36,9 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
-  align-items: start;
+  /* With the description in an InfoTip the title takes one line: center the badge and title
+     vertically. */
+  align-items: center;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--border-color);
 
@@ -88,7 +90,21 @@
   min-width: 0;
 }
 
+/* With a visible description (keepDescriptionVisible) the badge returns to top alignment. */
+.headerWithDescription {
+  align-items: start;
+}
+
+/* Title + InfoTip: normal inline flow with the title's font size and line height, so the InfoTip
+   does not grow the line. */
+.titleLine {
+  min-width: 0;
+  font-size: clamp(18px, 1.6vw, 22px);
+  line-height: 1.18;
+}
+
 .title {
+  display: inline;
   margin: 0;
   color: var(--text-primary);
   font-size: clamp(18px, 1.6vw, 22px);

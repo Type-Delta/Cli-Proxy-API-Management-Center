@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import '@/i18n';
 
 const TOOLTIP_ATTRIBUTE = 'data-cpamc-tooltip';
 
@@ -114,6 +115,86 @@ const initial: Row[] = [
 ];
 
 describe('TooltipProvider title synchronization', () => {
+  test('the public module renders explicit tooltips alongside automatic titles', async () => {
+    const {
+      InfoTip,
+      Tooltip,
+      TooltipProvider: PublicProvider,
+    } = await import('../src/components/ui/Tooltip');
+    expect(PublicProvider).toBe(TooltipProvider);
+    await withRoot(async (root) => {
+      await React.act(async () => {
+        root.render(
+          React.createElement(
+            PublicProvider,
+            null,
+            React.createElement('button', { title: 'Automatic explanation' }, 'Automatic'),
+            React.createElement(InfoTip, { content: 'Explicit explanation', label: 'Setting' }),
+            React.createElement(
+              Tooltip,
+              { content: 'Action explanation' },
+              React.createElement('button', null, 'Action')
+            )
+          )
+        );
+      });
+      const automatic = document.querySelector(`[${TOOLTIP_ATTRIBUTE}]`);
+      expect(automatic?.getAttribute(TOOLTIP_ATTRIBUTE)).toBe('Automatic explanation');
+      const tip = document.querySelector<HTMLButtonElement>('[data-info-tip]')!;
+      expect(tip).not.toBeNull();
+      await React.act(async () => {
+        tip.click();
+      });
+      expect(document.querySelector('[role="tooltip"]')?.textContent).toBe('Explicit explanation');
+      expect(automatic?.getAttribute(TOOLTIP_ATTRIBUTE)).toBe('Automatic explanation');
+    });
+  });
+
+  test('explicit and automatic tooltips share one open panel and one skin', async () => {
+    const { InfoTip } = await import('../src/components/ui/Tooltip');
+    await withRoot(async (root) => {
+      await React.act(async () => {
+        root.render(
+          React.createElement(
+            TooltipProvider,
+            null,
+            React.createElement('button', { title: 'Automatic explanation' }, 'Automatic'),
+            React.createElement(InfoTip, { content: 'Explicit explanation', label: 'Setting' })
+          )
+        );
+      });
+      const automatic = document.querySelector<HTMLButtonElement>(`[${TOOLTIP_ATTRIBUTE}]`)!;
+      const tip = document.querySelector<HTMLButtonElement>('[data-info-tip]')!;
+      const panels = () => Array.from(document.querySelectorAll('[role="tooltip"]'));
+
+      await React.act(async () => {
+        tip.click();
+      });
+      expect(panels().map((panel) => panel.textContent)).toEqual(['Explicit explanation']);
+
+      // Focusing an automatic title target closes the pinned InfoTip.
+      await React.act(async () => {
+        automatic.dispatchEvent(new windowInstance.FocusEvent('focusin', { bubbles: true }));
+      });
+      expect(panels().map((panel) => panel.textContent)).toEqual(['Automatic explanation']);
+      expect(tip.getAttribute('data-state')).toBe('closed');
+
+      // Opening the InfoTip again closes the automatic tooltip and its description link.
+      await React.act(async () => {
+        tip.click();
+      });
+      expect(panels().map((panel) => panel.textContent)).toEqual(['Explicit explanation']);
+      expect(automatic.getAttribute('aria-describedby')).toBeNull();
+    });
+    // Bun leaves CSS module classes undefined, so pin the shared skin at the source.
+    const providerSource = await Bun.file('src/components/ui/Tooltip/TooltipProvider.tsx').text();
+    expect(providerSource).toContain('className={`${sharedStyles.tooltip} ${styles.automatic}`}');
+    const automaticSkin = await Bun.file(
+      'src/components/ui/Tooltip/TooltipProvider.module.scss'
+    ).text();
+    expect(automaticSkin).not.toMatch(/\b(background|border|padding|color):/);
+  });
+
   test('keeps tooltip content when React reorders keyed rows', async () => {
     await withRoot(async (root) => {
       await render(root, initial);

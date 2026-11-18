@@ -103,7 +103,6 @@
 
 .deadline,
 .observed,
-.note,
 .unknown {
   color: var(--text-tertiary);
   font-size: 11px;
@@ -116,21 +115,26 @@
 }
 
 .observed,
-.note,
 .unknown {
   margin: 0;
 }
 
-.note {
-  margin-top: 6px;
-}
-
-.actionRow {
+/* Snapshot time (+ explanatory tip) on the left, clear cooldown on the right; without a button
+   only a quiet metadata line remains. */
+.foot {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
   margin-top: 9px;
   padding-top: 9px;
   border-top: 1px solid var(--border-color);
+}
+
+.foot .observed {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .elapsed {

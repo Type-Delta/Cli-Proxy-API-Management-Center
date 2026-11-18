@@ -1,7 +1,4 @@
-/**
- * xAI 额度渲染体：套餐 chip 行（SuperGrok Heavy / 付费档=金卡）、
- * 周/月账单水位条、按量付费余额。
- */
+/** xAI plan metadata, weekly/monthly billing meters and pay-as-you-go balances. */
 
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -98,7 +95,7 @@ export function XaiQuotaBody({ quota, classes, credential }: QuotaBodyProps<XaiQ
       <>
         <div className={classes.metaColumn}>
           <div className={classes.planMeta}>
-            <span className={classes.planMetaItem}>
+            <span className={classes.planMetaItem} data-quota-plan="">
               <span className={classes.planMetaLabel}>{t('xai_quota.plan_label')}</span>
               <span
                 className={
@@ -180,7 +177,7 @@ export function XaiQuotaBody({ quota, classes, credential }: QuotaBodyProps<XaiQ
         {(subscriptionLabel || headerReset) && (
           <div className={classes.planMeta}>
             {subscriptionLabel && (
-              <span className={classes.planMetaItem}>
+              <span className={classes.planMetaItem} data-quota-plan="">
                 <span className={classes.planMetaLabel}>{t('xai_quota.plan_label')}</span>
                 <span className={subscriptionClass}>{subscriptionLabel}</span>
               </span>

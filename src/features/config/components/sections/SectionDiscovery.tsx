@@ -17,7 +17,6 @@ export function SectionDiscovery({
   return (
     <Collapsible
       label={t('config_management.visual.serverExtras.discoveryTitle')}
-      hint={t('config_management.visual.serverExtras.discoveryHint')}
       defaultOpen={false}
     >
       <SettingList>
@@ -25,7 +24,15 @@ export function SectionDiscovery({
           fieldId="discoveryEnabled"
           wide
           label={t('config_management.visual.serverExtras.discoveryEnabled.label')}
-          description={t('config_management.visual.serverExtras.discoveryEnabled.hint')}
+          // A collapsible group title cannot hold an InfoTip (no interactive content inside
+          // <summary>), so the whole group's prerequisite joins the master switch's description.
+          description={
+            <>
+              {t('config_management.visual.serverExtras.discoveryEnabled.hint')}
+              <br />
+              {t('config_management.visual.serverExtras.discoveryHint')}
+            </>
+          }
           checked={values.discoveryEnabled}
           disabled={disabled}
           onChange={(discoveryEnabled) => onChange({ discoveryEnabled })}
@@ -41,7 +48,6 @@ export function SectionDiscovery({
         <TextSetting
           fieldId="discoveryServiceType"
           label={t('config_management.visual.serverExtras.discoveryServiceType.label')}
-          description={t('config_management.visual.serverExtras.discoveryServiceType.hint')}
           placeholder="_ai-gateway._tcp"
           error={getValidationMessage(t, validationErrors?.discoveryServiceType)}
           value={values.discoveryServiceType}

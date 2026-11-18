@@ -270,12 +270,6 @@
   color: var(--text-tertiary);
 }
 
-.antigravityQuotaGroupDescription {
-  font-size: 11px;
-  line-height: 1.4;
-  color: var(--text-quaternary);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .quotaBarFill {
     transition: none;

@@ -252,7 +252,14 @@ describe('read-only write gates', () => {
   test('system info skips config, client keys, and the request-log modal', () => {
     const page = source('src/pages/SystemPage.tsx');
     expect(page).toContain('if (readOnly) return;\n    fetchConfig()');
-    expect(page).toMatch(/const fetchModels = async[^\n]*\n {4}if \(readOnly\) return;/);
+    expect(
+      page.slice(
+        page.indexOf('const fetchModels = async'),
+        page.indexOf('const handleCatalogRefresh')
+      )
+    ).toContain('if (readOnly) return;');
+    expect(page).toContain('const handleCatalogRefresh = async () => {\n    if (readOnly) return;');
+    expect(page).toContain('readOnly ? undefined : (');
     expect(page).toMatch(
       /handleInfoVersionTap = useCallback\(\(\) => \{\n {4}if \(readOnly\) return;/
     );

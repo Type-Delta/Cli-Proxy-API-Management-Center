@@ -1,9 +1,8 @@
 @use '../../../../styles/mixins' as *;
 
-/* 区块编辑器（API 密钥 / 字符串列表 / 插件源认证 / 载荷规则）的共享样式。
-   规则从旧 VisualConfigEditor.module.scss 收编，几何统一到 10px 圆角并引用动效 tokens。 */
+/* Shared styles for key, string-list, plugin-auth and payload editors. Use 10px corners and shared motion tokens. */
 
-/* ---------- 可展开输入 ---------- */
+/* Expandable inputs. */
 
 .expandableInputWrapper {
   position: relative;
@@ -60,7 +59,7 @@
   transform: none;
 }
 
-/* ---------- 通用块布局 ---------- */
+/* Shared block layout. */
 
 .blockStack {
   display: flex;
@@ -75,7 +74,7 @@
   line-height: 1.4;
 }
 
-/* 列表的「添加」统一落在列表下方左侧：新条目会出现在这里。 */
+/* Keep Add below the list on the left, where the new entry appears. */
 .actionRow {
   display: flex;
   justify-content: flex-start;
@@ -90,7 +89,7 @@
   background: transparent;
 }
 
-/* ---------- 规则卡 ---------- */
+/* Rule cards. */
 
 .ruleCard {
   display: flex;
@@ -117,7 +116,7 @@
   line-height: 1.25;
 }
 
-/* ---------- 字符串列表 ---------- */
+/* String lists. */
 
 .stringList {
   display: flex;
@@ -132,9 +131,9 @@
   flex-wrap: wrap;
 }
 
-/* ---------- API 密钥列表 ---------- */
+/* API-key list. */
 
-/* 与设置行同一副骨架：标题 + 说明在左、主操作在右；条目是发丝分隔的单行，不再套卡片。 */
+/* Match setting rows: copy on the left and the primary action on the right. */
 .apiKeys {
   display: flex;
   flex-direction: column;
@@ -148,14 +147,9 @@
   gap: 16px;
 }
 
-.apiKeysCopy {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
+/* Align the full-width title with the Add action. */
 .apiKeysTitle {
+  min-width: 0;
   color: var(--text-primary);
   font-size: 13.5px;
   font-weight: 600;
@@ -590,7 +584,7 @@
   }
 }
 
-/* ---------- API 密钥弹窗 ---------- */
+/* API-key dialog. */
 
 .apiKeyModalInputRow {
   display: flex;
@@ -623,8 +617,7 @@
   }
 }
 
-/* 强度参考条：四段承载档位，颜色承载严重度。
-   段的填充走 scaleX（只碰 transform），键入时逐字重算也不掉帧。 */
+/* Four strength segments encode tiers, with severity colors and transform-only fills. */
 
 .strengthMeter {
   display: flex;
@@ -643,7 +636,7 @@
   height: 4px;
   border-radius: $radius-full;
   overflow: hidden;
-  // 轨道 = 填充色的淡化步阶，未点亮的段也带着当前状态
+  // Unlit segments keep a muted version of the current severity color.
   background: color-mix(in srgb, var(--strength-color) 16%, transparent);
   transition: background-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
 }
@@ -655,18 +648,18 @@
   background: var(--strength-color);
   transform: scaleX(0);
   transform-origin: left center;
-  // 段内比常规交互再快一档，把预算让给段间的 stagger
+  // Keep per-segment transitions short to leave time for staggering.
   transition:
     transform var(--dur-press, 160ms) var(--ease-out-strong, ease-out),
     background-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
 
-  // 延迟写在目标态上：点亮时依次排队，熄灭是系统响应，立刻发生
+  // Stagger segments when lighting up; extinguish them immediately.
   &[data-filled='true'] {
     transform: scaleX(1);
     transition-delay: var(--segment-delay, 0ms);
   }
 
-  // 降级只去掉位移和排队，颜色变化保留（它才是状态本身）
+  // Reduced motion removes movement and delays while preserving status colors.
   @media (prefers-reduced-motion: reduce) {
     transition: background-color var(--dur-hover, 200ms) linear;
 
@@ -684,7 +677,7 @@
   transition: color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
 }
 
-/* ---------- 插件源认证 ---------- */
+/* Plugin store authentication. */
 
 .storeAuthEditor {
   display: flex;
@@ -754,18 +747,15 @@
   display: flex;
   flex-direction: column;
   gap: 7px;
+}
 
-  > span {
-    color: var(--text-secondary);
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  small {
-    color: var(--text-tertiary);
-    font-size: 12px;
-    line-height: 1.45;
-  }
+/* Keep the Apply to label and InfoTip inline without increasing the row height. */
+.storeAuthApplyToLabel {
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .storeAuthCheckboxes {
@@ -791,7 +781,7 @@
   }
 }
 
-/* ---------- 载荷规则 ---------- */
+/* Payload rules. */
 
 .payloadRuleModelRow {
   display: grid;
@@ -871,7 +861,7 @@
   justify-self: start;
 }
 
-/* ---------- 响应式 ---------- */
+/* Responsive layout. */
 
 @media (max-width: 900px) {
   .payloadRuleModelRow,
@@ -931,7 +921,7 @@
     gap: 2px;
   }
 
-  /* 换行后操作组与名称左对齐：抵消 ghost 按钮自身的水平内边距。 */
+  /* Offset ghost-button padding so wrapped actions align with the name. */
   .apiKeyActions {
     grid-column: 2;
     margin-left: -10px;
@@ -945,7 +935,7 @@
   }
 }
 
-/* ---------- 无障碍 ---------- */
+/* Accessibility. */
 
 @media (prefers-reduced-motion: reduce) {
   .expandableToggle {

@@ -20,7 +20,9 @@ export interface ConfigFieldSearchEntry {
   /** Optional secondary i18n key shown next to the label to disambiguate duplicates
    *  (e.g. Claude vs Codex "User-Agent"). Also searchable. */
   qualifierKey?: string;
-  /** Optional hint i18n key — searchable but not shown in results. */
+  /** Optional hint i18n key — searchable but not shown in results. Only for explanations the
+   *  field still renders (inline or in its InfoTip): a match on text that is nowhere on the
+   *  page would jump to a field without showing why it matched. */
   hintKey?: string;
   /** Backend YAML key aliases, e.g. ['proxy-url']. Static strings (language-agnostic). */
   yamlKeys?: string[];
@@ -255,7 +257,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     fieldId: 'discoveryServiceType',
     sectionId: 'connectivity',
     labelKey: L('serverExtras.discoveryServiceType.label'),
-    hintKey: L('serverExtras.discoveryServiceType.hint'),
     yamlKeys: ['server', 'discovery', 'service-type'],
   },
   {
@@ -309,7 +310,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     fieldId: 'authDir',
     sectionId: 'connectivity',
     labelKey: L('sections.auth.auth_dir'),
-    hintKey: L('sections.auth.auth_dir_hint'),
     yamlKeys: ['oauth', 'auth-dir'],
   },
   {
@@ -323,7 +323,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     fieldId: 'tlsEnable',
     sectionId: 'connectivity',
     labelKey: L('sections.tls.enable'),
-    hintKey: L('sections.tls.enable_desc'),
     yamlKeys: ['server', 'tls'],
     keywords: ['tls', 'ssl', 'https'],
   },
@@ -358,6 +357,7 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     fieldId: 'rmDisableAutoUpdatePanel',
     sectionId: 'connectivity',
     labelKey: L('sections.remote.disable_auto_update_panel'),
+    hintKey: L('sections.remote.disable_auto_update_panel_desc'),
     yamlKeys: ['management', 'disable-auto-update-panel'],
   },
   {
@@ -410,7 +410,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     fieldId: 'disableImageGeneration',
     sectionId: 'network',
     labelKey: L('sections.network.disable_image_generation'),
-    hintKey: L('sections.network.disable_image_generation_hint'),
     yamlKeys: ['multimedia', 'disable-image-generation'],
     keywords: ['false', 'true', 'chat', 'passthrough'],
   },
@@ -425,7 +424,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     fieldId: 'passthroughHeaders',
     sectionId: 'network',
     labelKey: L('sections.network.passthrough_headers'),
-    hintKey: L('sections.network.passthrough_headers_desc'),
     yamlKeys: ['requests', 'passthrough-headers'],
   },
   {
@@ -448,7 +446,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     fieldId: 'debug',
     sectionId: 'logging',
     labelKey: L('sections.system.debug'),
-    hintKey: L('sections.system.debug_desc'),
     yamlKeys: ['observability', 'logs', 'debug'],
   },
   {
@@ -462,7 +459,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     fieldId: 'loggingToFile',
     sectionId: 'logging',
     labelKey: L('sections.system.logging_to_file'),
-    hintKey: L('sections.system.logging_to_file_desc'),
     yamlKeys: ['observability', 'logs', 'logging-to-file'],
   },
   {
@@ -488,7 +484,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     fieldId: 'usageStatisticsEnabled',
     sectionId: 'logging',
     labelKey: L('sections.system.usage_statistics_enabled'),
-    hintKey: L('sections.system.usage_statistics_enabled_desc'),
     yamlKeys: ['observability', 'usage', 'usage-statistics-enabled'],
   },
   {
@@ -649,7 +644,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     fieldId: 'streamingKeepaliveSeconds',
     sectionId: 'streaming',
     labelKey: L('sections.streaming.keepalive_seconds'),
-    hintKey: L('sections.streaming.keepalive_hint'),
     yamlKeys: ['requests', 'streaming', 'keepalive-seconds'],
   },
   {
@@ -684,7 +678,7 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     fieldId: 'pluginStoreSources',
     sectionId: 'advanced',
     labelKey: L('sections.system.plugin_store_sources'),
-    hintKey: L('sections.system.plugin_store_sources_hint'),
+    hintKey: L('sections.system.plugin_store_sources_desc'),
     yamlKeys: ['plugins', 'store-sources'],
   },
   {
@@ -693,6 +687,34 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     labelKey: L('sections.system.plugin_store_auth'),
     hintKey: L('sections.system.plugin_store_auth_hint'),
     yamlKeys: ['plugins', 'store-auth'],
+  },
+  {
+    fieldId: 'antigravitySensitiveWordsReplace',
+    sectionId: 'advanced',
+    labelKey: 'sensitive_replacements.literal_title',
+    yamlKeys: ['oauth', 'providers', 'antigravity', 'sensitive-words-replace'],
+    keywords: ['antigravity', 'replacement', 'RE2'],
+  },
+  {
+    fieldId: 'antigravitySensitivePatternsReplace',
+    sectionId: 'advanced',
+    labelKey: 'sensitive_replacements.pattern_title',
+    yamlKeys: ['oauth', 'providers', 'antigravity', 'sensitive-patterns-replace'],
+    keywords: ['antigravity', 'replacement', 'RE2'],
+  },
+  {
+    fieldId: 'devinSensitiveWordsReplace',
+    sectionId: 'advanced',
+    labelKey: 'sensitive_replacements.literal_title',
+    yamlKeys: ['oauth', 'providers', 'devin', 'sensitive-words-replace'],
+    keywords: ['devin', 'replacement', 'RE2'],
+  },
+  {
+    fieldId: 'devinSensitivePatternsReplace',
+    sectionId: 'advanced',
+    labelKey: 'sensitive_replacements.pattern_title',
+    yamlKeys: ['oauth', 'providers', 'devin', 'sensitive-patterns-replace'],
+    keywords: ['devin', 'replacement', 'RE2'],
   },
   {
     fieldId: 'antigravitySensitiveWords',
@@ -823,7 +845,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     yamlKeys: ['requests', 'payload', 'default'],
     sectionId: 'payload',
     labelKey: L('sections.payload.default_rules'),
-    hintKey: L('sections.payload.default_rules_desc'),
     keywords: ['payload', 'rule'],
   },
   {
@@ -831,7 +852,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     yamlKeys: ['requests', 'payload', 'default-raw'],
     sectionId: 'payload',
     labelKey: L('sections.payload.default_raw_rules'),
-    hintKey: L('sections.payload.default_raw_rules_desc'),
     keywords: ['payload', 'rule', 'json'],
   },
   {
@@ -839,7 +859,6 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     yamlKeys: ['requests', 'payload', 'override'],
     sectionId: 'payload',
     labelKey: L('sections.payload.override_rules'),
-    hintKey: L('sections.payload.override_rules_desc'),
     keywords: ['payload', 'rule'],
   },
   {
@@ -847,15 +866,32 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     yamlKeys: ['requests', 'payload', 'override-raw'],
     sectionId: 'payload',
     labelKey: L('sections.payload.override_raw_rules'),
-    hintKey: L('sections.payload.override_raw_rules_desc'),
     keywords: ['payload', 'rule', 'json'],
+  },
+  {
+    fieldId: 'payloadReplaceRules',
+    yamlKeys: ['requests', 'payload', 'replace'],
+    sectionId: 'payload',
+    labelKey: L('payload_replace.title'),
+    keywords: [
+      'payload',
+      'rule',
+      'replace',
+      'replacements',
+      'user',
+      'system',
+      'developer',
+      'paths',
+      'positions',
+      'literal',
+      'regex',
+    ],
   },
   {
     fieldId: 'payloadFilterRules',
     yamlKeys: ['requests', 'payload', 'filter'],
     sectionId: 'payload',
     labelKey: L('sections.payload.filter_rules'),
-    hintKey: L('sections.payload.filter_rules_desc'),
     keywords: ['payload', 'rule', 'filter'],
   },
 ];

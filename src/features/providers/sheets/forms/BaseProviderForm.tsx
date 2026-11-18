@@ -18,6 +18,10 @@ import {
   type ExcludedModelsCatalogState,
 } from '@/components/excludedModels';
 import { hasDisableAllModelsRule } from '@/components/providers/utils';
+import {
+  LiteralReplacementEditor,
+  PatternReplacementEditor,
+} from '@/components/providers/SensitiveReplacementEditor';
 import type { GeminiKeyConfig, OpenAIProviderConfig, ProviderKeyConfig } from '@/types';
 import type { ModelInfo } from '@/utils/models';
 import { PROVIDER_DESCRIPTORS } from '../../descriptors';
@@ -35,10 +39,12 @@ import { useModelDiscovery } from './useModelDiscovery';
 import { ModelDiscoveryPanel } from './ModelDiscoveryPanel';
 import { ConnectivityStatusIcon } from './ConnectivityStatusIcon';
 import { ApiKeyEntriesEditor } from './ApiKeyEntriesEditor';
+import { CheckboxField } from './CheckboxField';
 import { ModelEntriesEditor } from './ModelEntriesEditor';
 import styles from './sharedForm.module.scss';
 import { MAX_CREDENTIAL_WEIGHT } from '@/utils/credentialWeight';
 import { getPricingCatalogCache, loadPricingCatalogProviders } from '../../pricingCatalogCache';
+import { FieldLabel } from '@/components/ui/FieldLabel';
 import { readRuntimePolicy, validateRuntimePolicy } from '../../runtimePolicy';
 import { readModelOptions, validateModelOptions } from '../../modelOptions';
 import { RuntimePolicyEditor } from './RuntimePolicyEditor';
@@ -47,7 +53,7 @@ import { pickProviderBehavior } from '../../providerBehavior';
 import { quotaReserveProviderType } from '@/features/quota/quotaReserve';
 import { QuotaReserveEditor } from '@/features/quota/components/QuotaReserveEditor';
 
-/** 模块级常量，免得每次渲染都给 picker 一个新数组引用。 */
+/** A module constant keeps the picker array reference stable across renders. */
 const DISABLE_ALL_RULES = [DISABLE_ALL_RULE];
 
 interface BaseProviderFormProps {
@@ -110,7 +116,14 @@ function buildInitialForm(
       excludedModelsText: '',
       websockets: brand === 'codex' || brand === 'xai' ? false : undefined,
       cloak: isClaudeLikeBrand(brand)
-        ? { mode: '', strictMode: false, sensitiveWordsText: '', cacheUserId: false }
+        ? {
+            mode: '',
+            strictMode: false,
+            sensitiveWordsText: '',
+            sensitiveWordsReplace: {},
+            sensitivePatternsReplace: [],
+            cacheUserId: false,
+          }
         : undefined,
       fingerprintProfile: isClaudeLikeBrand(brand) ? '' : undefined,
       testModel:
@@ -221,6 +234,8 @@ function buildInitialForm(
           mode: (cfg as ProviderKeyConfig).cloak?.mode ?? '',
           strictMode: (cfg as ProviderKeyConfig).cloak?.strictMode === true,
           sensitiveWordsText: (cfg as ProviderKeyConfig).cloak?.sensitiveWords?.join('\n') ?? '',
+          sensitiveWordsReplace: cfg.cloak?.sensitiveWordsReplace ?? {},
+          sensitivePatternsReplace: cfg.cloak?.sensitivePatternsReplace ?? [],
           cacheUserId: (cfg as ProviderKeyConfig).cloak?.cacheUserId === true,
         }
       : undefined,
@@ -456,6 +471,8 @@ export function BaseProviderForm({
           mode: '',
           strictMode: false,
           sensitiveWordsText: '',
+          sensitiveWordsReplace: {},
+          sensitivePatternsReplace: [],
           cacheUserId: false,
         }),
         [key]: value,
@@ -532,18 +549,12 @@ export function BaseProviderForm({
     () => parseExcludedRulesText(form.excludedModelsText),
     [form.excludedModelsText]
   );
-  /**
-   * 候选目录 = discovery 发现的模型 ∪ 表单里已配置的模型名。
-   *
-   * 两者都可能为空——`vertex` 支持排除模型却不在 MODEL_DISCOVERY_BRANDS 里，永远没有
-   * discovery；其余 brand 在用户手动跑一次发现之前也没有。因此**无目录是常态**，
-   * picker 必须能在没有目录时退化成纯规则编辑器。
-   */
+  /** Combine discovered and configured models. Discovery may be unavailable or not yet run, so an empty catalog must still allow manual rules. */
   const excludedCandidates = useMemo(() => {
     const byKey = new Map<string, { id: string; displayName?: string }>();
     discovery.models.forEach((model) => {
       const id = model.name?.trim();
-      if (id) byKey.set(id.toLowerCase(), { id, displayName: model.alias || undefined });
+      if (id) byKey.set(id.toLowerCase(), { id, displayName: model.alias || model.displayName });
     });
     form.models.forEach((model) => {
       const id = model.name?.trim();
@@ -584,7 +595,7 @@ export function BaseProviderForm({
 
   return (
     <form id={formId} className={styles.form} onSubmit={handleSubmit} noValidate>
-      {/* 基础字段 */}
+      {/* Basic fields. */}
       <div className={styles.section}>
         {descriptor.supportsName ? (
           <div className={styles.field}>
@@ -666,12 +677,6 @@ export function BaseProviderForm({
           <div className={styles.field}>
             <label className={styles.label} htmlFor={`${fid}-baseUrl`}>
               {t('providersPage.form.baseUrl')}
-              {descriptor.baseUrlRequired ? (
-                <span className={styles.labelHint}>
-                  {' '}
-                  · {t('providersPage.form.baseUrlRequiredHint')}
-                </span>
-              ) : null}
             </label>
             <input
               id={`${fid}-baseUrl`}
@@ -679,6 +684,7 @@ export function BaseProviderForm({
               value={form.baseUrl}
               onChange={(e) => updateField('baseUrl', e.target.value)}
               placeholder="https://api.example.com"
+              aria-required={descriptor.baseUrlRequired || undefined}
               disabled={mutating}
             />
           </div>
@@ -739,9 +745,14 @@ export function BaseProviderForm({
 
         {brand !== 'openaiCompatibility' ? (
           <div className={styles.field}>
-            <label className={styles.label} htmlFor={`${fid}-weight`}>
-              {t('providersPage.form.weight')}
-            </label>
+            <FieldLabel
+              className={styles.labelLine}
+              labelClassName={styles.label}
+              htmlFor={`${fid}-weight`}
+              label={t('providersPage.form.weight')}
+              hint={t('providersPage.form.weightHint')}
+              hintId={`${fid}-weight-hint`}
+            />
             <input
               id={`${fid}-weight`}
               type="number"
@@ -750,21 +761,25 @@ export function BaseProviderForm({
               className={styles.input}
               value={form.weight ?? ''}
               placeholder="1"
+              aria-describedby={`${fid}-weight-hint`}
               onChange={(e) =>
                 updateField('weight', e.target.value === '' ? undefined : Number(e.target.value))
               }
               disabled={mutating}
             />
-            <span className={styles.labelHint}>{t('providersPage.form.weightHint')}</span>
           </div>
         ) : null}
 
         {descriptor.supportsTestModel ? (
           <div className={styles.field}>
-            <label className={styles.label} htmlFor={`${fid}-testModel`}>
-              {t('providersPage.form.testModel')}
-              <span className={styles.labelHint}> · {t('providersPage.form.testModelHint')}</span>
-            </label>
+            <FieldLabel
+              className={styles.labelLine}
+              labelClassName={styles.label}
+              htmlFor={`${fid}-testModel`}
+              label={t('providersPage.form.testModel')}
+              hint={t('providersPage.form.testModelHint')}
+              hintId={`${fid}-testModel-hint`}
+            />
             <Select
               id={`${fid}-testModel`}
               value={form.testModel ?? ''}
@@ -772,6 +787,7 @@ export function BaseProviderForm({
               onChange={(value) => updateField('testModel', value)}
               disabled={mutating}
               ariaLabel={t('providersPage.form.testModel')}
+              ariaDescribedBy={`${fid}-testModel-hint`}
             />
             {singleConnectivity ? (
               <div className={styles.connectivityRow}>
@@ -826,10 +842,7 @@ export function BaseProviderForm({
               disabled={mutating}
               onChange={(e) => updateField('disabled', e.target.checked)}
             />
-            <span className={styles.checkboxText}>
-              <span>{t('providersPage.form.disabled')}</span>
-              <small>{t('providersPage.form.disabledHint')}</small>
-            </span>
+            <span className={styles.checkboxText}>{t('providersPage.form.disabled')}</span>
           </label>
         ) : null}
       </div>
@@ -847,7 +860,7 @@ export function BaseProviderForm({
         supportsErrors={descriptor.supportsRequestScopedErrors}
       />
 
-      {/* 高级折叠区 */}
+      {/* Advanced collapsible settings. */}
       {descriptor.supportsApiKeyEntries && form.apiKeyEntries ? (
         <Collapsible
           label={t('providersPage.form.apiKeyEntriesSection')}
@@ -1072,8 +1085,8 @@ export function BaseProviderForm({
               catalogState={excludedCatalogState}
               onRetryCatalog={discovery.available ? () => void discovery.fetch() : undefined}
               disabled={mutating}
-              // `'*'` = 该 provider 已停用，唯一所有者是下面的 Disabled 开关。
-              // 传进来后 picker 双向过滤它，用户手打 `*` 也会被拦下并解释原因。
+              // The Disabled switch owns the '*' exclusion used to disable this provider.
+              // The picker filters it in both directions and explains why a manually entered '*' is refused.
               reservedRules={DISABLE_ALL_RULES}
               reservedRuleMessage={t('providersPage.form.excludedDisabledNote')}
             />
@@ -1083,9 +1096,14 @@ export function BaseProviderForm({
 
       {isClaudeLikeBrand(brand) ? (
         <div className={styles.field}>
-          <label id={`${fid}-fingerprint-profile-label`} className={styles.label}>
-            {t('providersPage.form.fingerprintProfile')}
-          </label>
+          <FieldLabel
+            className={styles.labelLine}
+            labelClassName={styles.label}
+            id={`${fid}-fingerprint-profile-label`}
+            label={t('providersPage.form.fingerprintProfile')}
+            hint={t('providersPage.form.fingerprintProfileHint')}
+            hintId={`${fid}-fingerprint-profile-hint`}
+          />
           <Select
             id={`${fid}-fingerprint-profile`}
             value={form.fingerprintProfile ?? ''}
@@ -1102,10 +1120,8 @@ export function BaseProviderForm({
             onChange={(value) => updateField('fingerprintProfile', value)}
             disabled={mutating}
             ariaLabelledBy={`${fid}-fingerprint-profile-label`}
+            ariaDescribedBy={`${fid}-fingerprint-profile-hint`}
           />
-          <small className={styles.labelHint}>
-            {t('providersPage.form.fingerprintProfileHint')}
-          </small>
         </div>
       ) : null}
 
@@ -1134,19 +1150,13 @@ export function BaseProviderForm({
                 <span>{t('providersPage.form.cloakStrict')}</span>
               </span>
             </label>
-            <label className={styles.checkboxRow}>
-              <input
-                type="checkbox"
-                className={styles.checkboxBox}
-                checked={form.cloak.cacheUserId}
-                disabled={mutating}
-                onChange={(e) => updateCloak('cacheUserId', e.target.checked)}
-              />
-              <span className={styles.checkboxText}>
-                <span>{t('providersPage.form.cloakCacheUserId')}</span>
-                <small>{t('providersPage.form.cloakCacheUserIdHint')}</small>
-              </span>
-            </label>
+            <CheckboxField
+              label={t('providersPage.form.cloakCacheUserId')}
+              hint={t('providersPage.form.cloakCacheUserIdHint')}
+              checked={form.cloak.cacheUserId}
+              disabled={mutating}
+              onChange={(checked) => updateCloak('cacheUserId', checked)}
+            />
             <div className={styles.field}>
               <label className={styles.label}>{t('providersPage.form.cloakSensitiveWords')}</label>
               <textarea
@@ -1155,6 +1165,54 @@ export function BaseProviderForm({
                 value={form.cloak.sensitiveWordsText}
                 onChange={(e) => updateCloak('sensitiveWordsText', e.target.value)}
                 disabled={mutating}
+              />
+            </div>
+            <div
+              className={styles.field}
+              role="group"
+              aria-labelledby={`${fid}-cloak-literal-label`}
+            >
+              <FieldLabel
+                className={styles.labelLine}
+                labelClassName={styles.label}
+                id={`${fid}-cloak-literal-label`}
+                label={t('sensitive_replacements.literal_title')}
+                hint={t('sensitive_replacements.literal_hint')}
+                hintId={`${fid}-cloak-literal-hint`}
+              />
+              <LiteralReplacementEditor
+                value={form.cloak.sensitiveWordsReplace}
+                onChange={(value) => updateCloak('sensitiveWordsReplace', value)}
+                disabled={mutating}
+                describedBy={`${fid}-cloak-literal-hint`}
+                inputClassName={styles.input}
+                addButtonClassName={styles.addBtn}
+                addButtonIcon
+              />
+            </div>
+            <div
+              className={styles.field}
+              role="group"
+              aria-labelledby={`${fid}-cloak-pattern-label`}
+            >
+              <FieldLabel
+                className={styles.labelLine}
+                labelClassName={styles.label}
+                id={`${fid}-cloak-pattern-label`}
+                label={t('sensitive_replacements.pattern_title')}
+              />
+              {/* Evaluation order and silently dropped patterns: visible, not an InfoTip. */}
+              <p id={`${fid}-cloak-pattern-hint`} className={styles.sectionDesc}>
+                {t('sensitive_replacements.pattern_hint')}
+              </p>
+              <PatternReplacementEditor
+                value={form.cloak.sensitivePatternsReplace}
+                onChange={(value) => updateCloak('sensitivePatternsReplace', value)}
+                disabled={mutating}
+                describedBy={`${fid}-cloak-pattern-hint`}
+                inputClassName={styles.input}
+                addButtonClassName={styles.addBtn}
+                addButtonIcon
               />
             </div>
           </div>

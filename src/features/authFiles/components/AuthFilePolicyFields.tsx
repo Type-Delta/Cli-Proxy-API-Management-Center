@@ -5,6 +5,7 @@ import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { ErrorRulesEditor } from '@/features/providers/sheets/forms/ErrorRulesEditor';
 import { ModelEntriesEditor } from '@/features/providers/sheets/forms/ModelEntriesEditor';
+import { FieldLabel } from '@/components/ui/FieldLabel';
 import styles from './AuthFilePolicyFields.module.scss';
 import {
   credentialPolicyError,
@@ -26,11 +27,20 @@ export function AuthFilePolicyFields({
   const { t } = useTranslation();
   const id = useId();
   const error = credentialPolicyError(draft);
-  const modeSelect = (field: CredentialPolicyField, label: string) => (
+  // The inherit/custom semantics (what it falls back to, what 0 and an empty list mean) live in the
+  // InfoTip after the label; the select points at the hint copy through aria-describedby.
+  const modeSelect = (field: CredentialPolicyField, label: string, hint: string) => (
     <>
-      <label id={`${id}-${field}`}>{t(label)}</label>
+      <FieldLabel
+        as="label"
+        label={t(label)}
+        id={`${id}-${field}`}
+        hint={t(hint)}
+        hintId={`${id}-${field}-hint`}
+      />
       <Select
         ariaLabelledBy={`${id}-${field}`}
+        ariaDescribedBy={`${id}-${field}-hint`}
         value={draft[field].mode}
         options={[
           { value: 'inherit', label: t('auth_files.policy_inherit') },
@@ -44,7 +54,11 @@ export function AuthFilePolicyFields({
   return (
     <div className={styles.policyFields}>
       <div className="form-group">
-        {modeSelect('requestRetry', 'auth_files.policy_retry_label')}
+        {modeSelect(
+          'requestRetry',
+          'auth_files.policy_retry_label',
+          'auth_files.policy_retry_hint'
+        )}
         {draft.requestRetry.mode === 'custom' && (
           <Input
             label={t('auth_files.policy_retry_count')}
@@ -59,15 +73,13 @@ export function AuthFilePolicyFields({
             }
           />
         )}
-        <div className="hint">{t('auth_files.policy_retry_hint')}</div>
       </div>
       {(['modelAliases', 'errorRules'] as const).map((field) => {
         const key = field === 'modelAliases' ? 'aliases' : 'rules';
         const policy = draft[field];
         return (
           <div className="form-group" key={field}>
-            {modeSelect(field, `auth_files.policy_${key}_label`)}
-            <div className="hint">{t(`auth_files.policy_${key}_hint`)}</div>
+            {modeSelect(field, `auth_files.policy_${key}_label`, `auth_files.policy_${key}_hint`)}
             {policy.mode === 'custom' &&
               (policy.rows === null ? (
                 <div className={styles.unsupported}>

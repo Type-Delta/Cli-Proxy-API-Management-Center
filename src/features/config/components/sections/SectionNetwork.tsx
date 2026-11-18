@@ -48,7 +48,6 @@ export function SectionNetwork({
       indexLabel={SECTION_INDEX_LABELS.network}
       icon={<Icon size={16} />}
       title={t('config_management.visual.sections.network.title')}
-      description={t('config_management.visual.sections.network.description')}
       animateIn={animateIn}
     >
       <SettingList>
@@ -105,7 +104,6 @@ export function SectionNetwork({
         <SelectSetting
           fieldId="disableImageGeneration"
           label={t('config_management.visual.sections.network.disable_image_generation')}
-          description={t('config_management.visual.sections.network.disable_image_generation_hint')}
           value={values.disableImageGeneration}
           options={disableImageGenerationOptions}
           disabled={disabled}
@@ -155,7 +153,6 @@ export function SectionNetwork({
         <ToggleSetting
           fieldId="passthroughHeaders"
           label={t('config_management.visual.sections.network.passthrough_headers')}
-          description={t('config_management.visual.sections.network.passthrough_headers_desc')}
           checked={values.passthroughHeaders}
           disabled={disabled}
           onChange={(passthroughHeaders) => onChange({ passthroughHeaders })}

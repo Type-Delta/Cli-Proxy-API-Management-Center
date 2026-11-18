@@ -11,7 +11,11 @@
     margin-bottom: 0;
   }
 
-  :global(.form-group > label) {
+  /* When Input moves its hint into an InfoTip the label is wrapped in .form-label-row: the row
+     takes the same font size, so the InfoTip aligns to the row's font size. */
+  :global(.form-group > label),
+  :global(.form-group > .form-label-row),
+  :global(.form-group > .form-label-row > label) {
     color: var(--text-secondary);
     font-size: 12px;
     font-weight: 700;
@@ -78,11 +82,20 @@
 .groupHeader {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   padding: 0 2px;
 }
 
+/* Group title + InfoTip: normal inline flow, so the icon follows the last word when the title
+   wraps. Font size and line height match the title so the InfoTip does not grow the line. */
+.groupTitleLine {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
 .groupTitle {
+  display: inline;
   margin: 0;
   color: var(--text-primary);
   font-size: 13px;
@@ -122,11 +135,14 @@
 
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--setting-control);
+  /* The description lives in an InfoTip: a row has only a one-line title by default, centered
+     with the control. Minimum height = 12px × 2 padding + 36px input, so toggle and input rows
+     match and the list keeps its rhythm. */
   align-items: center;
-  gap: 10px 24px;
+  gap: 8px 24px;
   min-width: 0;
-  min-height: 64px;
-  padding: 14px 18px;
+  min-height: 60px;
+  padding: 12px 18px;
   box-sizing: border-box;
   /* 发丝分隔线：向右、向下各投 1px，越出列表的部分被 overflow 裁掉，只剩行间与列间的线。 */
   box-shadow:
@@ -156,7 +172,9 @@
 .rowBlock {
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 12px;
+  gap: 10px;
+  padding-top: 14px;
+  padding-bottom: 14px;
 }
 
 /* 自带标题区的区块单元格（API 密钥等）。 */
@@ -172,6 +190,16 @@
   min-width: 0;
 }
 
+/* Title + InfoTip: normal inline flow (not flex), so the icon follows the last word when the
+   title wraps; font size and line height match the title, and the InfoTip's negative margins
+   keep it from growing the line box. */
+.rowLabelLine {
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 .rowLabel {
   color: var(--text-primary);
   font-size: 13.5px;
@@ -185,7 +213,10 @@
   cursor: pointer;
 }
 
-.rowDescription {
+/* Visible descriptions (keepDescriptionVisible) and extra content under the title (aside, such
+   as sponsor links) share one secondary font size. */
+.rowDescription,
+.rowAside {
   max-width: 72ch;
   color: var(--text-secondary);
   font-size: 12px;
@@ -272,9 +303,12 @@
     padding: 12px 14px;
   }
 
+  /* Once stacked, the title sits above the control and content sets the row height, so the
+     one-line minimum no longer applies. */
   .row:not(.rowToggle) {
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
+    min-height: 0;
   }
 
   .rowCell {
@@ -282,7 +316,7 @@
   }
 }
 
-/* ---------- 代理 URL 的赞助跳转（作为行说明渲染） ---------- */
+/* ---------- Proxy URL sponsor links (row aside slot, always visible) ---------- */
 
 /* 与正文融为一体的高亮链接：同字号，复用全站金色（amber）badge 配方，hover 底色加深。 */
 .fieldSponsorLink {
@@ -372,6 +406,12 @@
   flex-direction: column;
   gap: 7px;
   min-width: 0;
+}
+
+.fieldLabelLine {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .fieldLabel {

@@ -162,6 +162,7 @@ export function SectionRouting({
         <SectionCard
           icon={<Icon size={16} />}
           title={t('config_management.visual.sections.routing.title')}
+          keepDescriptionVisible
           description={t('config_management.visual.sections.routing.description')}
           animateIn={animateIn}
         >
@@ -220,6 +221,7 @@ export function SectionRouting({
                   <SelectSetting
                     fieldId="routingStrategy"
                     label={t('config_management.visual.sections.routing.strategy_pick_label')}
+                    keepDescriptionVisible
                     description={t('config_management.visual.sections.routing.strategy_note')}
                     value={values.routingStrategy}
                     options={strategyOptions}
@@ -290,6 +292,7 @@ export function SectionRouting({
                     fieldId="routingSessionAffinityTTL"
                     size="sm"
                     label={t('config_management.visual.sections.network.session_affinity_ttl')}
+                    keepDescriptionVisible
                     description={t('config_management.visual.sections.routing.affinity_ttl_hint')}
                     placeholder="1h"
                     value={values.routingSessionAffinityTTL}
@@ -301,6 +304,7 @@ export function SectionRouting({
                   <SelectSetting
                     fieldId="sessionAffinityRebindOn"
                     label={t('config_management.visual.sections.routing.rebind_on')}
+                    keepDescriptionVisible
                     description={t('config_management.visual.sections.routing.rebind_on_hint')}
                     value={values.sessionAffinityRebindOn}
                     options={rebindOptions}
@@ -312,6 +316,7 @@ export function SectionRouting({
                     label={t(
                       'config_management.visual.additions.routingSessionAffinitySubagents.label'
                     )}
+                    keepDescriptionVisible
                     description={t(
                       'config_management.visual.additions.routingSessionAffinitySubagents.hint'
                     )}
@@ -349,6 +354,7 @@ export function SectionRouting({
                   <ToggleSetting
                     fieldId="forceModelPrefix"
                     label={t('config_management.visual.sections.network.force_model_prefix')}
+                    keepDescriptionVisible
                     description={t(
                       'config_management.visual.sections.network.force_model_prefix_desc'
                     )}

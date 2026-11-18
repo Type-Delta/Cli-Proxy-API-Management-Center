@@ -1,3 +1,4 @@
+import { InfoTip } from '@/components/ui/Tooltip';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PluginQuotaMetric, PluginQuotaState } from '@/types';
@@ -43,7 +44,7 @@ export function PluginQuotaBody({
         <div className={classes.metaColumn}>
           <div className={classes.planMeta}>
             {plan && (
-              <span className={classes.planMetaItem}>
+              <span className={classes.planMetaItem} data-quota-plan="">
                 <span className={classes.planMetaLabel}>{t('plugin_quota.plan_label')}</span>
                 <span className={classes.planMetaValue}>{plan}</span>
               </span>
@@ -64,12 +65,10 @@ export function PluginQuotaBody({
           groups.map((group) => (
             <div key={group.id} className={classes.antigravityQuotaGroup}>
               <div className={classes.antigravityQuotaGroupHeader}>
-                <span className={classes.antigravityQuotaGroupTitle}>{group.label}</span>
-                {group.description && (
-                  <span className={classes.antigravityQuotaGroupDescription}>
-                    {group.description}
-                  </span>
-                )}
+                <span>
+                  <span className={classes.antigravityQuotaGroupTitle}>{group.label}</span>
+                  {group.description && <InfoTip content={group.description} label={group.label} />}
+                </span>
               </div>
               {group.buckets.map((bucket, index) => {
                 const percent = Math.round(

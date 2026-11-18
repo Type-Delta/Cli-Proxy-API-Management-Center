@@ -506,7 +506,9 @@ describe('Claude usage snapshot rendering and retention', () => {
     );
     expect(markup).not.toContain('iguana_necktie');
     expect(markup).toContain('quotaResetLabel');
-    expect(markup).toContain('<span class="planMetaItem"><span class="planMetaLabel">Plan</span>');
+    expect(markup).toContain(
+      '<span class="planMetaItem" data-quota-plan=""><span class="planMetaLabel">Plan</span>'
+    );
   });
 
   test.each([

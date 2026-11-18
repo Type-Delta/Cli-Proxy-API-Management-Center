@@ -112,8 +112,10 @@ interface SettingsAliasModalProps {
   alias: string | null;
   aliasNodes: AliasNode[];
   onClose: () => void;
-  onToggleFork: (provider: string, sourceModel: string, alias: string, fork: boolean) => void;
-  onUnlink: (provider: string, sourceModel: string, alias: string) => void;
+  /** Omit to disable the fork switches, such as while a save is pending. */
+  onToggleFork?: (provider: string, sourceModel: string, alias: string, fork: boolean) => void;
+  /** Omit to disable the unlink buttons. */
+  onUnlink?: (provider: string, sourceModel: string, alias: string) => void;
 }
 
 export function SettingsAliasModal({
@@ -166,14 +168,16 @@ export function SettingsAliasModal({
                         <ToggleSwitch
                           checked={forkEnabled}
                           onChange={(value) =>
-                            onToggleFork(source.provider, source.name, alias, value)
+                            onToggleFork?.(source.provider, source.name, alias, value)
                           }
+                          disabled={!onToggleFork}
                           ariaLabel={t('oauth_model_alias.alias_fork_label')}
                         />
                         <button
                           type="button"
                           className={styles.settingsDelete}
-                          onClick={() => onUnlink(source.provider, source.name, alias)}
+                          onClick={() => onUnlink?.(source.provider, source.name, alias)}
+                          disabled={!onUnlink}
                           aria-label={t('oauth_model_alias.diagram_delete_link', {
                             provider: source.provider,
                             name: source.name,
@@ -202,8 +206,10 @@ interface SettingsSourceModalProps {
   t: TFunction;
   source: SourceNode | null;
   onClose: () => void;
-  onToggleFork: (provider: string, sourceModel: string, alias: string, fork: boolean) => void;
-  onUnlink: (provider: string, sourceModel: string, alias: string) => void;
+  /** Omit to disable the fork switches, such as while a save is pending. */
+  onToggleFork?: (provider: string, sourceModel: string, alias: string, fork: boolean) => void;
+  /** Omit to disable the unlink buttons. */
+  onUnlink?: (provider: string, sourceModel: string, alias: string) => void;
 }
 
 export function SettingsSourceModal({
@@ -247,14 +253,16 @@ export function SettingsSourceModal({
                   <ToggleSwitch
                     checked={entry.fork === true}
                     onChange={(value) =>
-                      onToggleFork(source.provider, source.name, entry.alias, value)
+                      onToggleFork?.(source.provider, source.name, entry.alias, value)
                     }
+                    disabled={!onToggleFork}
                     ariaLabel={t('oauth_model_alias.alias_fork_label')}
                   />
                   <button
                     type="button"
                     className={styles.settingsDelete}
-                    onClick={() => onUnlink(source.provider, source.name, entry.alias)}
+                    onClick={() => onUnlink?.(source.provider, source.name, entry.alias)}
+                    disabled={!onUnlink}
                     aria-label={t('oauth_model_alias.diagram_delete_link', {
                       provider: source.provider,
                       name: source.name,

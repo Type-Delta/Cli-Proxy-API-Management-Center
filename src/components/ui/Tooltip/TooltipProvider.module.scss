@@ -1,0 +1,28 @@
+@use '../../../styles/variables' as *;
+
+/* Automatic title tooltips: the shared panel skin from Tooltip.module.scss plus behavior
+   specific to promoted titles. The role selector outranks the shared class regardless of
+   stylesheet order. */
+.automatic[role='tooltip'] {
+  z-index: $z-notification + 1;
+  pointer-events: none;
+  white-space: pre-wrap;
+  animation: tooltip-in 120ms var(--ease-out-strong, ease-out) both;
+
+  &::before {
+    content: none;
+  }
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .automatic[role='tooltip'] {
+    animation: none;
+  }
+}

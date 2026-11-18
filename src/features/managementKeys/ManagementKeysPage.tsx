@@ -284,6 +284,7 @@ function ManagementKeyEditor({
             value={draft.key}
             onChange={(event) => update({ key: event.target.value })}
             hint={t('management_keys.key_hint')}
+            keepHintVisible
             autoComplete="new-password"
             spellCheck={false}
             autoFocus={mode === 'rotate'}

@@ -38,7 +38,6 @@ export function SectionCommon({
       <SectionCard
         icon={<Icon size={16} />}
         title={t('config_management.visual.sections.common.title')}
-        description={t('config_management.visual.sections.common.description')}
         animateIn={animateIn}
       >
         <SettingList>
@@ -59,6 +58,7 @@ export function SectionCommon({
         icon={<IconSidebarDashboard size={16} />}
         title={t('config_management.visual.sections.analytics.title')}
         description={t('config_management.visual.sections.analytics.description')}
+        keepDescriptionVisible
         animateIn={animateIn}
       >
         <AnalyticsSettingsFields

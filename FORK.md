@@ -26,15 +26,15 @@ The API-key revision applies only to `/api-keys` routes. Whole-document source-m
 
 Compatibility tests cover legacy and structured fixtures, unknown-field preservation, duplicate full IDs, and colliding display prefixes.
 
-**Implementation evidence:** `src/types/apiKeys.ts`, `src/services/api/apiKeys.ts`, `src/services/api/capabilities.ts`, `src/services/api/transformers.ts`, `src/hooks/useVisualConfig.ts`, `src/features/config/components/blocks/ApiKeysCardEditor.tsx`.
+**Implementation evidence:** `src/services/api/apiKeys.ts`, `src/features/config/components/blocks/ApiKeysCardEditor.tsx`. Tests: `tests/apiKeyContracts.test.ts`, `tests/apiKeyTable.test.ts`, `tests/configSaveLifecycle.test.ts`. `src/types/apiKeys.ts`, `src/services/api/apiKeys.ts`, `src/services/api/capabilities.ts`, `src/services/api/transformers.ts`, `src/hooks/useVisualConfig.ts`, `src/features/config/components/blocks/ApiKeysCardEditor.tsx`.
 
-**Recorded validation:** On 2026-08-31:
+**Recorded validation:** On 2026-11-18, Revision/index writes, concealed keys, limits and fresh-config ETag saves remain; the editor only changes hint presentation. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
 - `bunx bun@1.3.14 install --frozen-lockfile`
 - `bunx bun@1.3.14 run verify`
 - Result: 427 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 
-**Last updated:** 2026-08-31
+**Last updated:** 2026-11-18
 
 ### DL003 — Isolated analytics workspace
 
@@ -59,15 +59,17 @@ The eight Analytics workspace tabs use distinct vendored Lucide icons, while the
 
 Frontend validation matches CPA's queue, batch, duration, retention, circuit, signed 64-bit storage, and trusted proxy CIDR constraints. Storage byte values retain full `int64` precision. Path help identifies `identity.key` and `viewers.json` as companion files beside the SQLite database. CRLF input is normalized before YAML parsing and diff normalization so serialized comments cannot retain stray carriage returns or gain visible blank lines on Windows.
 
-**Implementation evidence:** `src/components/layout/MainLayout.tsx`, `src/components/ui/icons.tsx`, `src/features/config/**`, `src/hooks/useVisualConfig.ts`, `src/types/visualConfig.ts`, `src/utils/yaml.ts`, `src/i18n/locales/**`, `tests/visualConfigAnalytics.test.ts`.
+InfoTips carry routine help, while irreversible, security, restart and scope notes remain visible. The shared YAML editor preserves analytics fields beside payload replacement and sensitive-pattern settings.
 
-**Recorded validation:** On 2026-09-02:
+**Implementation evidence:** `src/hooks/useVisualConfig.ts`, `src/features/config/components/sections/AnalyticsSettingsFields.tsx`. Tests: `tests/visualConfigAnalytics.test.ts`, `tests/configFieldParity.test.ts`. `src/components/layout/MainLayout.tsx`, `src/components/ui/icons.tsx`, `src/features/config/**`, `src/hooks/useVisualConfig.ts`, `src/types/visualConfig.ts`, `src/utils/yaml.ts`, `src/i18n/locales/**`, `tests/visualConfigAnalytics.test.ts`.
+
+**Recorded validation:** On 2026-11-18, Analytics controls and dirty-field AST writes retain validation, int64 precision, unknown siblings and CRLF handling. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
 - `bunx bun@1.3.14 run verify`
 - Result: 441 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 - An isolated raw Chrome DevTools Protocol run against a live local CPA checked the Common panel at 1440 by 900 and 390 by 844. All 12 analytics controls rendered, all nine Analytics links used SVG icons with no fallback dots, invalid CIDRs showed an error, a real `analytics.enabled` save and reload succeeded, and the run found no horizontal overflow or runtime exceptions.
 
-**Last updated:** 2026-09-03
+**Last updated:** 2026-11-18
 
 ### DL005 — Analytics navigation and key-filter parity
 
@@ -157,9 +159,9 @@ Fork baseline validation on 2026-08-31, before DL002 and DL003:
 
 ### DL010 — Round-4 analytics correctness — request dedupe, shared heatmap readout, viewer expiry, and locale fixes
 
-Round 4 follows the round-3 critique (`ANALYTICS_CRITIQUE.md`, R3-1…R3-14). Concurrent identical `POST /analytics/query` calls are now deduplicated at the transport on the serialized body, so a StrictMode Analysis mount issues five requests instead of twenty; `Retry-After` is read from 429 responses and every Retry button counts down before re-enabling instead of re-firing into the throttle. Both heatmaps share one `HeatmapReadout` live region (`role=status`, never `aria-hidden`) driven by pointer, pointerdown and focus, and the token ramp uses a new dataviz-neutral `--viz-neutral` token instead of the shell chrome grey. Latency chart captions sit in reserved gutters and all chart ticks are 11 px. The viewer page renders the shared-view link expiry and the 30-minute session expiry as two dated sentences. Events rows are the keyboard target (one roving stop per table instead of one per badge), four never-populated columns were removed from the picker, and a retained-range failure names the retention cutoff. `AnalyticsTabs` is a real `tablist` with Arrow/Home/End navigation. Providers counters are labelled "Observed" with an explanation, and every Maintenance input has an accessible name. Latin technical acronyms (`TTFT`, `RPM`, `TPM`) were previously transliterated in `zh-CN`, `zh-TW`, and `ru`; they now stay Latin in every locale with glosses confined to `*_description` keys. `analytics.overview.window_*`, 32 `analytics.job_result.*` keys, and `analytics.enums.{source,service_tier,endpoint}.*` were added and wired through `formatAnalyticsEnum`; seven unreferenced keys were pruned; all four locales carry the same 564 `analytics.*` keys. A new `analytics.storage-time-zone` Config field validates against `Intl.supportedValuesOf('timeZone')` (guarded) and warns that changing it after retention requires an analytics reset.
+Round 4 follows the round-3 critique (`ANALYTICS_CRITIQUE.md`, R3-1…R3-14). Concurrent identical `POST /analytics/query` calls are now deduplicated at the transport on the serialized body, so a StrictMode Analysis mount issues five requests instead of twenty; `Retry-After` is read from 429 responses and every Retry button counts down before re-enabling instead of re-firing into the throttle. Heatmaps expose an inline live region in `ActivityHeatmaps.tsx` (`role=status`, never `aria-hidden`) driven by pointer, pointerdown and focus, and the token ramp uses a new dataviz-neutral `--viz-neutral` token instead of the shell chrome grey. Latency chart captions sit in reserved gutters and all chart ticks are 11 px. The viewer page renders the shared-view link expiry and the 30-minute session expiry as two dated sentences. Events rows are the keyboard target (one roving stop per table instead of one per badge), four never-populated columns were removed from the picker, and a retained-range failure names the retention cutoff. `AnalyticsTabs` is a real `tablist` with Arrow/Home/End navigation. Providers counters are labelled "Observed" with an explanation, and every Maintenance input has an accessible name. Latin technical acronyms (`TTFT`, `RPM`, `TPM`) were previously transliterated in `zh-CN`, `zh-TW`, and `ru`; they now stay Latin in every locale with glosses confined to `*_description` keys. `analytics.overview.window_*`, 32 `analytics.job_result.*` keys, and `analytics.enums.{source,service_tier,endpoint}.*` were added and wired through `formatAnalyticsEnum`; seven unreferenced keys were pruned; all four locales carry the same 564 `analytics.*` keys. A new `analytics.storage-time-zone` Config field validates against `Intl.supportedValuesOf('timeZone')` (guarded) and warns that changing it after retention requires an analytics reset.
 
-**Implementation evidence:** `src/services/api/analytics.ts`, `src/services/api/client.ts`, `src/features/analytics/useAnalyticsLoad.ts`, `src/features/analytics/components/{AnalyticsShared,HeatmapReadout}.tsx`, `src/features/analytics/components/{analyticsErrorCopy,analyticsFormatting}.ts`, `src/features/analytics/AnalyticsTabs.tsx`, `src/features/analytics/ViewerPage.tsx`, `src/features/analytics/views/{Events,Providers,Maintenance,Overview}.tsx`, `src/features/analytics/views/{overview,analysis,events,viewer}/**`, `src/styles/themes.scss`, `src/i18n/locales/**`, `src/features/config/components/sections/AnalyticsSettingsFields.tsx`, `src/hooks/useVisualConfig.ts`, `src/types/visualConfig.ts`, `src/features/config/constants.ts`, `src/features/config/searchIndex.ts`.
+**Implementation evidence:** `src/services/api/analytics.ts`, `src/features/analytics/views/overview/ActivityHeatmaps.tsx`. Tests: `tests/analyticsTransportDedupe.test.ts`, `tests/analyticsViewerExpiry.test.ts`, `tests/analyticsRetryWiring.test.ts`. `src/services/api/analytics.ts`, `src/services/api/client.ts`, `src/features/analytics/useAnalyticsLoad.ts`, `src/features/analytics/components/AnalyticsShared.tsx`, `src/features/analytics/views/overview/ActivityHeatmaps.tsx`, `src/features/analytics/components/{analyticsErrorCopy,analyticsFormatting}.ts`, `src/features/analytics/AnalyticsTabs.tsx`, `src/features/analytics/ViewerPage.tsx`, `src/features/analytics/views/{Events,Providers,Maintenance,Overview}.tsx`, `src/features/analytics/views/{overview,analysis,events,viewer}/**`, `src/styles/themes.scss`, `src/i18n/locales/**`, `src/features/config/components/sections/AnalyticsSettingsFields.tsx`, `src/hooks/useVisualConfig.ts`, `src/types/visualConfig.ts`, `src/features/config/constants.ts`, `src/features/config/searchIndex.ts`.
 
 **Recorded validation:** On 2026-09-03:
 
@@ -168,7 +170,12 @@ Round 4 follows the round-3 critique (`ANALYTICS_CRITIQUE.md`, R3-1…R3-14). Co
 - `bunx eslint` on the changed TS/TSX files above: 0 errors, 0 warnings.
 - `bun run verify`: 550 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 
-**Last updated:** 2026-09-03
+- `bunx tsc --noEmit`: 0 errors.
+- `bun test`: 550 pass, 0 fail, 1986 expect() calls, 81 files.
+- `bunx eslint` on the changed TS/TSX files above: 0 errors, 0 warnings.
+- `bun run verify`: 550 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
+
+**Last updated:** 2026-11-18
 
 ### DL011 — Round-5 analytics UI hardening — chart palettes, Retry-After wiring, viewer origin, locale-independent tests
 
@@ -214,11 +221,11 @@ Following up on R5-1 from `ANALYTICS_CRITIQUE.md`, opening a shared analytics vi
 
 The four CPAMC locale files were re-synced for the round: the four `analytics.range.*`/`analytics.range_previous_month`/`analytics.range_next_month` DateRangePicker keys, the five `analytics.overview.activity_year_description`/`year_summary`/`month`/`token_month_table`/`health_month_table` heatmap keys, the four `analytics.viewer_consent_*` keys, four `analytics.analysis.*` chart-summary keys (`chart_total`, `cost_chart_summary`, `distribution_chart_summary`, `heatmap_chart_summary`), and the seven navigation keys above were added with `en`/`ru`/`zh-CN`/`zh-TW` translations; the bare `analytics.range` string collided with the new nested `analytics.range.*` object (i18next resource keys can't be both a leaf and a parent), so it was renamed to `analytics.range_label` with its two call sites in `AnalyticsShared.tsx` updated to match. 58 keys/objects that no longer had any call site were pruned, including `analytics.groups.*`, the round-≤5 flat range presets, `analytics.overview.window_*` and `activity_description`, `analytics.page_meta.*`, `analytics.state_*` (superseded by `analytics.state_labels.*`), and `nav.analytics`/`nav_meta.analytics` (superseded by the `_usage`/`_management` split). All four locale files carry the identical 575-key `analytics.*` set, the identical 13-key `nav.*` set, and the identical 13-key `nav_meta.*` set after the round.
 
-**Implementation evidence:** `src/features/analytics/components/{AnalyticsChart,chartTheme,AnalyticsShared}.tsx`, `src/features/analytics/views/overview/{ActivityHeatmaps,OverviewKpis,overviewModel}.tsx`, `src/features/analytics/views/analysis/**`, `src/features/analytics/views/keys/keyRanking.ts`, `src/features/analytics/views/{KeysView,Analysis}.tsx` and `KeysView.module.scss`, `src/features/analytics/AnalyticsShell.tsx`, `src/components/ui/{DateRangePicker/index.tsx,RefreshButton.tsx,Eyebrow.tsx}`, `src/features/analytics/query.ts`, `src/features/analytics/views/viewer/viewerApi.ts`, `src/styles/themes.scss`, `package.json` (`echarts`), and `src/i18n/locales/{en,ru,zh-CN,zh-TW}.json`.
+**Implementation evidence:** `src/features/analytics/components/AnalyticsChart.tsx`, `src/features/analytics/views/overview/ActivityHeatmaps.tsx`. Tests: `tests/analyticsChart.test.ts`, `tests/analyticsOverview.test.ts`, `tests/analyticsViewerSecurity.test.ts`. `src/features/analytics/components/{AnalyticsChart,AnalyticsShared}.tsx`, `src/features/analytics/components/chartTheme.ts`, `src/features/analytics/views/overview/{ActivityHeatmaps,OverviewKpis}.tsx`, `src/features/analytics/views/overview/overviewModel.ts`, `src/features/analytics/views/analysis/**`, `src/features/analytics/views/keys/keyRanking.ts`, `src/features/analytics/views/{KeysView,Analysis}.tsx` and `KeysView.module.scss`, `src/features/analytics/AnalyticsShell.tsx`, `src/components/ui/{DateRangePicker/index.tsx,RefreshButton.tsx,Eyebrow.tsx}`, `src/features/analytics/query.ts`, `src/features/analytics/views/viewer/viewerApi.ts`, `src/styles/themes.scss`, `package.json` (`echarts`), and `src/i18n/locales/{en,ru,zh-CN,zh-TW}.json`.
 
 **Recorded validation:** `bun run verify` passes 624 tests (0 fail, 2247 expect() calls, 86 files), ESLint, and `tsc && vite build`; `dist/index.html` is 3,893.67 kB (gzip 1,311.12 kB) after the ECharts modular-import build. `LANG=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8 bun test` passes the same 624 tests, confirming the locale-independent assertions survive the resource-structure changes. A key-set scan of `analytics.*`/`nav.*`/`nav_meta.*`/`nav_groups.*` confirms all four locale files carry identical key sets (575/13/13, `nav_groups.*` at 6 in `en`/`zh-CN`/`zh-TW`; `ru`'s `nav_groups.*` is 5 due to a pre-existing, out-of-round `plugin_pages` gap unrelated to this entry).
 
-**Last updated:** 2026-09-04
+**Last updated:** 2026-11-18
 
 ### DL013 — Stable overview hover and Sunday-first activity cells
 
@@ -357,18 +364,11 @@ field. When a visible limit changes, the editor starts from the existing limits 
 unknown extension fields. The API client retains null contract slots and the model-key hook filters them
 only at its string boundary.
 
-**Implementation evidence:** `src/features/config/components/blocks/{ApiKeysCardEditor.tsx,apiKeyEditorUtils.ts,Blocks.module.scss}`, `src/utils/keyIdentity.ts`, `src/services/api/apiKeys.ts`, `src/types/apiKeys.ts`, `src/hooks/{useVisualConfig.ts,useApiKeysForModels.ts}`; tests: `tests/apiKeyContracts.test.ts`.
+**Implementation evidence:** `src/features/config/components/blocks/apiKeyEditorUtils.ts`, `src/services/api/apiKeys.ts`. Tests: `tests/apiKeyContracts.test.ts`. `src/features/config/components/blocks/{ApiKeysCardEditor.tsx,apiKeyEditorUtils.ts,Blocks.module.scss}`, `src/utils/keyIdentity.ts`, `src/services/api/apiKeys.ts`, `src/types/apiKeys.ts`, `src/hooks/{useVisualConfig.ts,useApiKeysForModels.ts}`; tests: `tests/apiKeyContracts.test.ts`.
 
-**Recorded validation:** `bun run verify` passed 651 tests, lint, TypeScript, and the production build. After pinning
-the server index when an edit modal opens, the eight API-key contract tests, ESLint, TypeScript, and
-production build passed again. On 2026-09-06, isolated Chrome CDP checks against a real CPA backend
-through a same-origin test proxy exercised label creation, editing, and clearing at 1440px desktop
-and 390px mobile widths. Checks confirmed exact multiline Unicode labels, short-ID fallback, correct
-server indexes after a blank config entry, preservation of unknown limit fields, and mobile key
-rotation. The mobile view had no horizontal overflow or visible raw key text; browser console errors
-were empty.
+**Recorded validation:** On 2026-11-18, Original config indexes, exact labels, unchanged-limit omission and unknown limit-field preservation remain. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
-**Last updated:** 2026-09-07
+**Last updated:** 2026-11-18
 
 ### DL025 — Lazy models.dev pricing catalog and manual overrides
 
@@ -560,15 +560,13 @@ tokens. It supports dynamically updated and removed hints, viewport placement, k
 Escape dismissal, and touch. Title-only icon controls retain accessible names. Existing custom
 panels use the same colors, border, radius, and padding. Touch release does not dismiss a tapped hint.
 
-**Implementation evidence:** `src/components/ui/SegmentedControl.tsx`, `src/components/ui/SegmentedControl.module.scss`, `src/components/ui/Table/{SortableTableHead.tsx,SortableTableHead.module.scss}`, `src/components/ui/{Tooltip.tsx,Tooltip.module.scss}`, `src/App.tsx`, `src/features/analytics/views/KeysView.tsx`; tests: `tests/analyticsKeysView.test.ts`, `tests/tooltipProvider.test.ts`.
+Explicit Tooltip/InfoTip triggers and automatic title promotion share one open-tooltip coordinator in `activeTooltip.ts` and one skin using the fork ECharts tooltip tokens. Opening either trigger closes the other panel. Both use a 320px maximum width; automatic dynamic-title synchronization, focus, Escape and touch behavior remain available.
 
-**Recorded validation:** `bun run verify` passes 673 tests, ESLint, TypeScript, and the production build. Chrome
-CDP reproduced the key header's native gray background and outset border before the fix, then
-verified transparent styled headers and correct sort-arrow placement. Isolated browser checks
-verified dynamic title updates/removal, accessible names, focus/Escape, removed targets, and mobile
-first-tap tooltips constrained to the viewport. No console errors were observed.
+**Implementation evidence:** `src/components/ui/SegmentedControl.tsx`, `src/components/ui/SegmentedControl.module.scss`, `src/components/ui/Table/{SortableTableHead.tsx,SortableTableHead.module.scss}`, `src/components/ui/Tooltip/{index.ts,Tooltip.tsx,TooltipProvider.tsx,activeTooltip.ts,Tooltip.module.scss,TooltipProvider.module.scss}`, `src/App.tsx`, `src/features/analytics/views/KeysView.tsx`; tests: `tests/analyticsKeysView.test.ts`, `tests/tooltipProvider.test.ts`.
 
-**Last updated:** 2026-09-08
+**Recorded validation:** Cross-trigger regression `tests/tooltipProvider.test.ts` verifies one open explicit/automatic panel and shared styling. After the coordinator repair, 3,539 tests, lint and the production build pass.
+
+**Last updated:** 2026-11-18
 
 ### DL035 — Full-width metric trends and compact processing totals
 
@@ -953,13 +951,13 @@ other fields when the footer Save is pressed. The sheet's footer buttons use the
 
 The upstream Routing board also leads with a custom credential label, using `display_name` when supplied and retaining the raw file name for writes. Email, project and file-name fallbacks remain; secret-bearing account fields are never displayed.
 
-**Implementation evidence:** `src/features/providers/sheets/forms/{BaseProviderForm.tsx,ApiKeyEntriesEditor.tsx}`, `src/features/providers/pricingCatalogCache.ts`, `src/features/providers/components/ProviderResourceTable.tsx`, `src/features/analytics/views/Providers.tsx`, `src/features/quota/providers/zai/{ZaiQuotaBody.tsx,data.ts}`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`; `src/services/api/routing.ts`; tests: `tests/providerFormCapabilities.test.ts`, `tests/zaiQuota.test.ts`, `tests/routingBoard.test.ts`.
+**Implementation evidence:** `src/features/providers/sheets/forms/BaseProviderForm.tsx`, `src/features/quota/providers/zai/ZaiQuotaBody.tsx`. Tests: `tests/providerFormCapabilities.test.ts`, `tests/zaiQuota.test.ts`, `tests/routingBoard.test.ts`. `src/features/providers/sheets/forms/{BaseProviderForm.tsx,ApiKeyEntriesEditor.tsx}`, `src/features/providers/pricingCatalogCache.ts`, `src/features/providers/components/ProviderResourceTable.tsx`, `src/features/analytics/views/Providers.tsx`, `src/features/quota/providers/zai/{ZaiQuotaBody.tsx,data.ts}`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`; `src/services/api/routing.ts`; tests: `tests/providerFormCapabilities.test.ts`, `tests/zaiQuota.test.ts`, `tests/routingBoard.test.ts`.
 
-**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript compilation, and the single-file production build. Sixteen isolated Chrome CDP checks cover quota, OAuth, both routing screens, desktop/mobile widths, and light/dark themes without overflow or runtime exceptions. The pre-merge baseline passes 2,320 tests. Turkish strings are machine-translated pending native review; live integration remains pending against the merged CPA.
+**Recorded validation:** On 2026-11-18, Credential labels, pricing catalog, Z.AI usage, draft label save and routing display names remain. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
 On 2026-11-17, a local CPA build with a dummy credential verifies that editing only the label enables the footer Save, previews the label, persists it with one fields patch, closes the sheet and updates the card title. The footer buttons measure 32px, matching the provider sheet.
 
-**Last updated:** 2026-11-17
+**Last updated:** 2026-11-18
 
 ### DL044 — Provider selectors and OpenCode Go usage
 
@@ -974,14 +972,11 @@ rolling, weekly, and monthly usage meters with reset countdowns. The card uses t
 usage-card plan style with the literal `Go` plan value; Z.AI now uses the same `Plan` label and bold
 tier value instead of the older inline `Plan level:` text.
 
-**Implementation evidence:** `src/features/providers/sheets/forms/BaseProviderForm.tsx`, `src/features/providers/descriptors.ts`, `src/features/quota/providers/opencode-go/{OpenCodeGoQuotaBody.tsx,data.ts}`, `src/features/quota/providers/index.ts`; tests: `tests/opencodeGoQuota.test.ts`, `tests/providerFormCapabilities.test.ts`.
+**Implementation evidence:** `src/features/providers/descriptors.ts`, `src/features/quota/providers/opencode-go/data.ts`. Tests: `tests/opencodeGoQuota.test.ts`, `tests/providerFormCapabilities.test.ts`. `src/features/providers/sheets/forms/BaseProviderForm.tsx`, `src/features/providers/descriptors.ts`, `src/features/quota/providers/opencode-go/{OpenCodeGoQuotaBody.tsx,data.ts}`, `src/features/quota/providers/index.ts`; tests: `tests/opencodeGoQuota.test.ts`, `tests/providerFormCapabilities.test.ts`.
 
-**Recorded validation:** `bun run verify` passes 753 tests, TypeScript, and the production build; lint has only
-the pre-existing `Select.tsx` warning. Focused tests cover provider-form gating and serialization,
-usage-probe normalization, quota parsing, exhausted-window gating, reset scheduling, and all four
-locales.
+**Recorded validation:** On 2026-11-18, Catalog/probe controls still cover API-key families and OpenCode Go retains its real usage URL and plan rendering. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
-**Last updated:** 2026-09-17
+**Last updated:** 2026-11-18
 
 ### DL045 — Top Models share areas and output-window lines
 
@@ -1082,13 +1077,11 @@ identities without changing the built-in list. Visual/YAML round trips preserve
 unknown sibling fields, and clearing the list removes custom identities. The
 setting is searchable and translated in all seven locales.
 
-**Implementation evidence:** `src/features/config/components/sections/SectionAdvanced.tsx`, `src/hooks/useVisualConfig.ts`, `src/features/config/searchIndex.ts`, `src/types/visualConfig.ts`, `src/i18n/locales/**`; tests: `tests/visualConfigClaudeOauthSafeguard.test.ts`, `tests/toggleSwitchAccessibility.test.ts`.
+The InfoTip presentation keeps fail-closed and scope notes visible, with unknown YAML siblings preserved.
 
-**Recorded validation:** Focused config, accessibility, and four-locale copy tests pass.
-`bun run verify` passes 758 tests, TypeScript, and the production build; lint
-retains the existing `Select.tsx` warning. Chrome CDP verified the rendered
-description on desktop and at a 390px mobile viewport without horizontal
-overflow.
+**Implementation evidence:** `src/features/config/components/sections/SectionAdvanced.tsx`, `src/hooks/useVisualConfig.ts`. Tests: `tests/visualConfigClaudeOauthSafeguard.test.ts`, `tests/toggleSwitchAccessibility.test.ts`. `src/features/config/components/sections/SectionAdvanced.tsx`, `src/hooks/useVisualConfig.ts`, `src/features/config/searchIndex.ts`, `src/types/visualConfig.ts`, `src/i18n/locales/**`; tests: `tests/visualConfigClaudeOauthSafeguard.test.ts`, `tests/toggleSwitchAccessibility.test.ts`.
+
+**Recorded validation:** On 2026-11-18, Safeguard and client identities remain typed/searchable with visible fail-closed/scope notes and unknown-sibling preservation. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
 **Custom identity validation:** On the final code, `bun run verify` passes all
 2,979 tests, lint, TypeScript, and the production build. A Docker rerun with
@@ -1103,7 +1096,7 @@ show no horizontal overflow. The independent finish review found no material
 issues and returned SHIP. Executor acceptance tests use a simulated Anthropic
 transport; no real partner inference was attempted.
 
-**Last updated:** 2026-11-07
+**Last updated:** 2026-11-18
 
 ### DL050 — Cache-managed quota refresh
 
@@ -1144,11 +1137,13 @@ use the strategy-neutral label "Weight".
 
 The upstream Routing board reads GSR and its aliases without coercing them to round-robin. It keeps the strategy during unrelated settings writes, exposes GSR in its policy controls with its own strategy mark (the weighted-round-robin dots with an exponential recovery curve and a fading area beneath it), explains its weight behavior, and leaves traffic shares unspecified because its selection is dynamic.
 
-**Implementation evidence:** `src/features/routing/rules/SectionRouting.tsx`, `src/hooks/useVisualConfig.ts`, `src/features/dashboard/DashboardPage.tsx`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`, `src/features/providers/sheets/forms/BaseProviderForm.tsx`, `src/types/visualConfig.ts`, `src/types/routing.ts`, `src/services/api/routing.ts`, `src/features/routing/{logic.ts,components/WeightDialog.tsx,components/PolicyPanel.tsx}`, `src/i18n/locales/**`; tests: `tests/visualConfigRoutingStrategy.test.ts`, `tests/authFileCard.test.ts`, `tests/routingBoard.test.ts`, `tests/routingPage.test.ts`.
+Weight help distinguishes WRR exclusion for nonpositive weights from GSR zero-addition semantics and recovery/plan-tier weighting. The Routing rules link stays visible outside the InfoTip.
 
-**Recorded validation:** On 2026-11-02, `bun x bun@1.4.3 run verify` passes 2,634 tests, clean ESLint, TypeScript compilation and the single-file build, including strategy parser, board and auth-file regression coverage. Browser verification of the unified Routing page is assigned to the orchestrator. Non-English copy remains best effort pending native review.
+**Implementation evidence:** `src/features/routing/components/PolicyPanel.tsx`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`. Tests: `tests/visualConfigRoutingStrategy.test.ts`, `tests/authFileCard.test.ts`, `tests/routingPage.test.ts`, `tests/routingBoard.test.ts`. `src/features/routing/rules/SectionRouting.tsx`, `src/hooks/useVisualConfig.ts`, `src/features/dashboard/DashboardPage.tsx`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`, `src/features/providers/sheets/forms/BaseProviderForm.tsx`, `src/types/visualConfig.ts`, `src/types/routing.ts`, `src/services/api/routing.ts`, `src/features/routing/{logic.ts,components/WeightDialog.tsx,components/PolicyPanel.tsx}`, `src/i18n/locales/**`; tests: `tests/visualConfigRoutingStrategy.test.ts`, `tests/authFileCard.test.ts`, `tests/routingBoard.test.ts`, `tests/routingPage.test.ts`.
 
-**Last updated:** 2026-11-02
+**Recorded validation:** On 2026-11-18, GSR aliases/marks and nonpositive weight semantics survive; the visible Routing rules link stays outside the InfoTip. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+
+**Last updated:** 2026-11-18
 
 ### DL053 — Quota summary and credential-aware quota tooltips
 
@@ -1164,13 +1159,15 @@ Verified Ultra responses with `five_hour: null` and no session entry in `limits`
 
 Upstream quota-limit wording and the Grok client version are retained. The fork continues to use its own credential rows, reserve presentation, and gold and liquid-platinum badges instead of upstream's jade replacement.
 
-**Implementation evidence:** `src/features/quota/{QuotaPage.tsx,quotaSummary.ts,types.ts}`, `src/features/quota/components/{QuotaSummary.tsx,QuotaCard.tsx,QuotaMeter.tsx,QuotaResetLabel.tsx,QuotaResetStack.tsx}`, `src/features/quota/providers/{claude/ClaudeQuotaBody.tsx,kimi/KimiQuotaBody.tsx}`, `src/utils/quota/{planTier.ts,resetInstants.ts}`, `src/components/ui/Tooltip.tsx`; tests: `tests/{quotaSummary,quotaRowTitle,quotaResetInstants,tooltipProvider,quotaPageLogic,quotaPlanTier,quotaBodyRendering,claudeOAuthUsage,claudeUltraQuota,kimiPlan}.test.ts`, `tests/fixtures/claude-ultra-usage.json`.
+Auth Files adopts Even rows, Stacked and Compact display modes with compact-preference migration. Quota retains full-width fork rows with resets, amounts, credits, summary, reserves and history; alternate quota modes are not exposed. Quota help uses the shared explicit/automatic tooltip module.
 
-**Recorded validation:** On 2026-11-13, pinned Bun 1.4.3 `bun run verify` passes 3,163 tests across 267 files, ESLint, TypeScript and the single-file build. Independent QA confirms all seven locales contain the 4,043-key union of both parents, with no lost one-sided value changes. Chrome CDP reproduces and then verifies the corrected label-first order for the Codex credit-overage row at 1440px and 390px. Full browser integration against the merged CPA is pending.
+**Implementation evidence:** `src/features/quota/QuotaPage.tsx`, `src/features/quota/components/QuotaCard.tsx`. Tests: `tests/quotaSummary.test.ts`, `tests/quotaBodyRendering.test.ts`, `tests/claudeUltraQuota.test.ts`, `tests/quotaPlanTier.test.ts`. `src/features/quota/{QuotaPage.tsx,quotaSummary.ts,types.ts}`, `src/features/quota/components/{QuotaSummary.tsx,QuotaCard.tsx,QuotaMeter.tsx,QuotaResetLabel.tsx,QuotaResetStack.tsx}`, `src/features/quota/providers/{claude/ClaudeQuotaBody.tsx,kimi/KimiQuotaBody.tsx}`, `src/utils/quota/{planTier.ts,resetInstants.ts}`, `src/components/ui/Tooltip/{Tooltip.tsx,TooltipProvider.tsx,activeTooltip.ts}`; tests: `tests/{quotaSummary,quotaRowTitle,quotaResetInstants,tooltipProvider,quotaPageLogic,quotaPlanTier,quotaBodyRendering,claudeOAuthUsage,claudeUltraQuota,kimiPlan}.test.ts`, `tests/fixtures/claude-ultra-usage.json`.
+
+**Recorded validation:** On 2026-11-18, Fork full-width rows, summaries, reserves, gold/platinum badges, reported-only Ultra windows and reset/credit metadata survive; no quota layout modes were added. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
 On 2026-11-17, `bun run verify` passes 3,173 tests, ESLint, TypeScript and the single-file build. Chrome CDP against live data shows Claude grants as a bottom-of-column reset stack with per-grant tooltip lines, and unchanged Codex stacks.
 
-**Last updated:** 2026-11-17
+**Last updated:** 2026-11-18
 
 ### DL054 — OAuth rule editors skip API-key credentials
 
@@ -1180,13 +1177,13 @@ API-key entries (for example Z.AI or OpenCode Go under `openai-compatibility`) l
 quota page can poll them; CPA applies neither `oauth-excluded-models` nor OAuth aliases to API-key
 credentials, so offering them produced an unsupported model list and rules that never apply.
 
-**Implementation evidence:** `src/features/authFiles/constants.ts`, `src/pages/{AuthFilesOAuthExcludedEditPage.tsx,AuthFilesOAuthModelAliasEditPage.tsx}`; tests: `tests/oauthProviderOptions.test.ts`.
+The Model Rules workspace applies `oauthCredentialProviders` to both provider rails and alias graph catalogs, retaining Kiro and plugin OAuth while excluding usage-probe API-key credentials. Page-wide drafts, ledger and graph views share the connection/save lock: all six mutating graph callbacks are omitted while saving or disconnected, context menus hide rename/delete actions, and settings disable fork/unlink actions. A save response cannot silently discard edits accepted during the pending write.
 
-**Recorded validation:** A unit test covers the helper, and a CDP check against a CPA with a Kiro OAuth file
-plus Z.AI and OpenCode Go usage-probe keys showed only OAuth providers in both editors, with Kiro
-listing the Claude catalog served by CPA.
+**Implementation evidence:** `tests/modelMappingDiagramEditing.test.ts`, `src/components/modelAlias/ModelMappingDiagram.tsx`, `src/components/modelAlias/ModelMappingDiagramContextMenu.tsx`, `src/components/modelAlias/ModelMappingDiagramModals.tsx`. `src/features/authFiles/constants.ts`, `src/features/authFiles/modelRules/useModelRulesRoute.ts`. Tests: `tests/oauthProviderOptions.test.ts`. `src/features/authFiles/constants.ts`, `src/pages/{AuthFilesOAuthExcludedEditPage.tsx,AuthFilesOAuthModelAliasEditPage.tsx}`; tests: `tests/oauthProviderOptions.test.ts`.
 
-**Last updated:** 2026-10-14
+**Recorded validation:** The deferred-save graph regression fails without the callback/settings lock and passes with it.  On 2026-11-18, Both rail and graph use oauthCredentialProviders to exclude usage probes while keeping Kiro/plugin providers; workspace save-lock defect is separately F1. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+
+**Last updated:** 2026-11-18
 
 ### DL055 — Quota reserves and bypass keys
 
@@ -1215,11 +1212,11 @@ The reserve editor uses that index to find the credential's quota bars.
 
 The reserve editor derives available bars from the observed windows. A verified Ultra response without a five-hour window exposes its weekly reserves only; saved settings for unavailable bars remain removable rather than being silently discarded.
 
-**Implementation evidence:** `src/features/quota/quotaReserve.ts`, `src/features/quota/components/{QuotaReserveEditor.tsx,QuotaMeter.tsx,QuotaCard.tsx,QuotaSummary.tsx}`, `src/services/api/{transformers.ts,authFiles.ts}`, `src/features/providers/sheets/forms/BaseProviderForm.tsx`; tests: `tests/quotaReserve.test.ts`, `tests/providerEditingV8.test.ts`, `tests/quotaSummary.test.ts`, `tests/claudeUltraQuota.test.ts`, `tests/fixtures/claude-ultra-usage.json`.
+**Implementation evidence:** `src/features/quota/quotaReserve.ts`, `src/services/api/transformers.ts`. Tests: `tests/quotaReserve.test.ts`, `tests/providerEditingV8.test.ts`, `tests/quotaSummary.test.ts`, `tests/claudeUltraQuota.test.ts`. `src/features/quota/quotaReserve.ts`, `src/features/quota/components/{QuotaReserveEditor.tsx,QuotaMeter.tsx,QuotaCard.tsx,QuotaSummary.tsx}`, `src/services/api/{transformers.ts,authFiles.ts}`, `src/features/providers/sheets/forms/BaseProviderForm.tsx`; tests: `tests/quotaReserve.test.ts`, `tests/providerEditingV8.test.ts`, `tests/quotaSummary.test.ts`, `tests/claudeUltraQuota.test.ts`, `tests/fixtures/claude-ultra-usage.json`.
 
-**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,593 tests, ESLint, TypeScript compilation and the single-file production build. The weekly-only Ultra regression passed on the merged code before the plan update, so no missing-window implementation fix was needed. Eight isolated Chrome CDP checks at 1440px/390px in light/dark themes verify the weekly-only Ultra card, 150% Max-plus-Ultra capacity, history, session exclusion, reserves, and spaced Pro 500 badge without overflow or runtime exceptions. Live CPA integration is still pending against the merged CPA.
+**Recorded validation:** On 2026-11-18, Reserve bars, bypass keys, plugin/probe classification and first-key auth indexes remain; provider form changes preserve these fields. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
-**Last updated:** 2026-10-31
+**Last updated:** 2026-11-18
 
 ### DL056 — Analytics reads revalidate against a cached response
 
@@ -1284,11 +1281,11 @@ fork's analytics workspace:
 
 No upstream behaviour changes; every addition is opt-in through a new prop or class.
 
-**Implementation evidence:** `src/components/ui/{Button.tsx,Card.tsx,Select.tsx,Select.module.scss}`, `src/styles/components.scss`, `src/components/layout/MainLayout.tsx`, `src/features/providers/components/{ProviderCategoryList.tsx,ProviderLogo.tsx}`.
+**Implementation evidence:** `src/components/ui/Button.tsx`, `src/components/ui/Select.tsx`. Tests: `tests/analyticsContracts.test.ts`. `src/components/ui/{Button.tsx,Card.tsx,Select.tsx,Select.module.scss}`, `src/styles/components.scss`, `src/components/layout/MainLayout.tsx`, `src/features/providers/components/{ProviderCategoryList.tsx,ProviderLogo.tsx}`.
 
-**Recorded validation:** On 2026-10-31, Bun 1.4.3 frozen installation and `bun run verify` pass 2,576 tests, ESLint, TypeScript compilation, and the single-file production build. Sixteen isolated Chrome CDP checks cover quota, OAuth, both routing screens, desktop/mobile widths, and light/dark themes without overflow or runtime exceptions. The pre-merge baseline passes 2,320 tests. Turkish strings are machine-translated pending native review; live integration remains pending against the merged CPA.
+**Recorded validation:** On 2026-11-18, Opt-in shared icon/ref/select/table additions remain compatible; tests/build cover current callers, with no dedicated test for every shared styling detail. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
-**Last updated:** 2026-10-31
+**Last updated:** 2026-11-18
 
 ### DL058 — Remote development access
 
@@ -1330,17 +1327,15 @@ the account choice instead of reusing the previous options. The fork's former in
 
 Plugin OAuth entries coexist with the Kiro tile. Each declared plugin login can show its own title and icon, while built-in provider IDs remain reserved.
 
-**Implementation evidence:** `src/features/oauth/providers.ts`, `src/features/oauth/{kiroOAuth.ts,OAuthPage.tsx}`, `src/features/oauth/components/{KiroLoginSetup.tsx,OAuthFlowDialog.tsx}`, `src/features/oauth/hooks/useOAuthFlows.ts`; tests: `tests/{kiroProvider,pluginOAuthEntries}.test.ts`.
+A selected nonempty login proxy blocks Kiro sign-in before `startAuth` with a translated refusal rather than silently bypassing the proxy. Clearing it restores setup. Kiro keeps GET `start_url` and `region` parameters; supported built-in and plugin proxy flows use their upstream transport.
 
-**Recorded validation:** On 2026-10-19: `tests/kiroProvider.test.ts` covers the registry entry, callback support,
-both setup states, and validation. Through Chrome CDP against a CPA built from the fork, the gallery
-showed the Kiro tile; the dialog started a Builder ID login (AWS authorize URL, status polling), and an
-Identity Center attempt sent `start_url` and `region` to CPA. Desktop 1440px and mobile 390px had no
-horizontal overflow.
+**Implementation evidence:** `tests/kiroLoginProxy.test.ts`, `src/services/api/oauth.ts`. `src/features/oauth/OAuthPage.tsx`, `src/features/oauth/hooks/useOAuthFlows.ts`. Tests: `tests/kiroProvider.test.ts`, `tests/pluginOAuthEntries.test.ts`, `tests/kiroLoginProxy.test.ts`. `src/features/oauth/providers.ts`, `src/features/oauth/{kiroOAuth.ts,OAuthPage.tsx}`, `src/features/oauth/components/{KiroLoginSetup.tsx,OAuthFlowDialog.tsx}`, `src/features/oauth/hooks/useOAuthFlows.ts`; tests: `tests/{kiroProvider,pluginOAuthEntries}.test.ts`.
+
+**Recorded validation:** On 2026-11-18, Kiro setup, Identity Center GET parameters, reset-to-choice behavior and plugin coexistence remain; selected proxies are explicitly refused. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
 On 2026-11-07, Bun 1.4.3 `bun run verify` passes 3,010 tests, lint, TypeScript and the production build. Mocked Chrome CDP checks cover the touched quota, provider, OAuth and sponsor pages at 1440px and 390px in light and dark themes. All seven locale files contain the 3,979-key union.
 
-**Last updated:** 2026-11-07
+**Last updated:** 2026-11-18
 
 ### DL061 — Complete fork translations across seven locales
 
@@ -1348,11 +1343,13 @@ English, Simplified Chinese, Traditional Chinese, Russian, Vietnamese, Korean an
 
 The upstream AIcodemirror provider, quota labels, and Double 11 campaign keys are included in all seven locales alongside the fork strings.
 
+The seven-locale union includes 4,194 leaf keys with matching interpolation tokens, including Model Rules plural variants, replacement editors, display modes and the Kiro proxy refusal. Vietnamese Model Rules provider labels and counts are translated in all 14 affected values. Key parity is checked separately from untranslated-value review.
+
 **Implementation evidence:** `src/i18n/{index.ts,locales/*.json}`, `src/utils/{constants.ts,language.ts}`; tests: `tests/{koreanLocale,turkishLocale,quotaPlanTier,claudeOAuthUsage,analyticsEventRouting,analyticsOverview,oauthPage}.test.ts`.
 
-**Recorded validation:** On 2026-11-13, pinned Bun 1.4.3 `bun run verify` passes 3,163 tests across 267 files, ESLint, TypeScript and the single-file build. Independent QA confirms all seven locales contain the 4,043-key union of both parents, with no lost one-sided value changes. Credit-overage, catalog-sync, reset-grant and extra-usage keys are present in every locale. Translation quality still needs native-speaker review.
+**Recorded validation:** The independent scan verifies the 4,194-key union and interpolation parity in seven locales. Vietnamese provider values were corrected after the scan; the post-fix suite passes 3,539 tests, lint and build. Native-speaker review remains outstanding.
 
-**Last updated:** 2026-11-13
+**Last updated:** 2026-11-18
 
 ### DL062 — Analytics filter restoration
 
@@ -1481,17 +1478,11 @@ Failures preserve the last successful measurement with a warning; unsupported ba
 partial scans have explicit states. All six locales carry the added copy. The API adapter
 validates the response and normalizes backend field names before rendering.
 
-**Implementation evidence:** `src/services/api/storage.ts`, `src/features/config/storageUsage.ts`, `src/features/config/components/StorageUsage.{tsx,module.scss}`, `src/features/config/components/sections/AnalyticsSettingsFields.tsx`, `src/i18n/locales/*`, `tests/storageUsage.test.ts`.
+**Implementation evidence:** `src/features/config/components/StorageUsage.tsx`, `src/services/api/storage.ts`. Tests: `tests/storageUsage.test.ts`. `src/services/api/storage.ts`, `src/features/config/storageUsage.ts`, `src/features/config/components/StorageUsage.{tsx,module.scss}`, `src/features/config/components/sections/AnalyticsSettingsFields.tsx`, `src/i18n/locales/*`, `tests/storageUsage.test.ts`.
 
-**Recorded validation:** On 2026-10-27: `bunx bun@1.3.14 run verify` passes 2,130 tests, ESLint,
-TypeScript, and the single-file production build. Contract tests cover multiple filesystems,
-partial results, invalid counts and inconsistent partitions, zero capacity, and localized
-sizes through TiB. Live Chrome CDP checks exercise the Config Panel against the built CPA
-server at desktop and mobile widths in light, dark, and white themes. Refresh, measured-location
-disclosure, and preservation of readings after a failed refresh pass; no runtime errors or
-horizontal overflow were observed. The CPA Docker image also builds and serves the bundled panel.
+**Recorded validation:** On 2026-11-18, Filesystem bars, accounting disclosure, one-minute visible-page refresh, stale reading retention and connection guards remain. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
-**Last updated:** 2026-10-27
+**Last updated:** 2026-11-18
 
 ### DL068 — Kiro credit pricing in analytics
 
@@ -1537,11 +1528,13 @@ The shared Quota windows timeline adopts upstream calendar-boundary cells with e
 
 History uses the same updated plan ratios as the live summary: Codex Pro 100/200/500 are 10/20/50 Plus units; Claude Max/Ultra are 5/10 Pro units while stored `plan_max5`/`plan_max20` IDs stay valid. Verified Ultra samples contain the weekly windows that were actually reported, with no invented five-hour sample or projection.
 
-**Implementation evidence:** `src/features/quota/**`, `src/services/api/quotaHistory.ts`, `src/i18n/locales/**`; tests: `tests/{quotaHistory,quotaTimeline,quotaTimelineDst,claudeUltraQuota}.test.ts`, `tests/fixtures/claude-ultra-usage.json`.
+Antigravity timeline groups retain independent account/pool lanes within the fork window gating, history, drain/refill projections and DST-safe cells.
 
-**Recorded validation:** On 2026-11-03, `bun run verify` passes 2,658 tests, ESLint, TypeScript compilation and the single-file production build. Isolated headless Chrome CDP checks of the Vite dev build against a live CPA at 1440px and 390px in dark and light themes show the Claude (67% of 150% Ultra) and Codex (29% of 300% Pro 100) headers, the Codex pool-empty instant before its next reset, the Not-by fallback, day rules, refill labels, Now marker through the axis labels, gradient fills, one-line tooltip on recorded and projected points, and the stats row wrapping under the figure on mobile without overflow or page errors. The earlier Ultra validation (2026-10-31) still applies to the plan ratios below.
+**Implementation evidence:** `src/features/quota/components/QuotaHistory.tsx`, `src/features/quota/components/QuotaTimeline.tsx`. Tests: `tests/quotaHistory.test.ts`, `tests/quotaTimeline.test.ts`, `tests/quotaTimelineDst.test.ts`, `tests/antigravityQuotaTimeline.test.ts`. `src/features/quota/**`, `src/services/api/quotaHistory.ts`, `src/i18n/locales/**`; tests: `tests/{quotaHistory,quotaTimeline,quotaTimelineDst,claudeUltraQuota}.test.ts`, `tests/fixtures/claude-ultra-usage.json`.
 
-**Last updated:** 2026-10-31
+**Recorded validation:** On 2026-11-18, History samples/drain/refill models and DST-safe cells survive; new Antigravity group lanes preserve independent pools. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+
+**Last updated:** 2026-11-18
 
 ### DL072 — ClickHouse server mode in storage, settings, and analytics health
 
@@ -1551,11 +1544,13 @@ The same section edits the ClickHouse DSN (as a password input), database, telem
 
 Analytics health shows the legacy analytics import and the legacy request-log import as status chips: pending, running, done with counts, failed with the reason, or abandoned with the reason. Telemetry health loads in parallel. When it is unavailable, including a 503, the request-log item is hidden and analytics health still shows. Servers without these fields keep the previous health view.
 
-**Implementation evidence:** `src/features/config/{storageUsage.ts,components/StorageUsage.tsx,components/sections/AnalyticsSettingsFields.tsx,visualConfigServer.ts}`, `src/features/analytics/views/{Maintenance.tsx,manage/maintenanceModel.ts}`, `src/services/api/{storage.ts,analytics.ts}`, `src/types/{analytics.ts,visualConfig.ts}`, `src/i18n/locales/**`, `tests/{analyticsLegacyImport.test.tsx,visualConfigClickHouse.test.ts}`.
+Restart and security explanations remain visible beside InfoTips; logical import and ClickHouse health states retain their independent failure handling.
 
-**Recorded validation:** `bun run verify` passes, along with focused rendering and contract tests for every import state, a telemetry 503, and the locale keys. Isolated Chrome CDP checks against a local CPA and ClickHouse database cover the storage card on desktop and mobile in light, dark, and white themes, plus real import health showing Done with counts, Failed with the reason, and Abandoned.
+**Implementation evidence:** `src/features/config/visualConfigServer.ts`, `src/features/analytics/views/manage/maintenanceModel.ts`. Tests: `tests/visualConfigClickHouse.test.ts`, `tests/analyticsLegacyImport.test.tsx`. `src/features/config/{storageUsage.ts,components/StorageUsage.tsx,components/sections/AnalyticsSettingsFields.tsx,visualConfigServer.ts}`, `src/features/analytics/views/{Maintenance.tsx,manage/maintenanceModel.ts}`, `src/services/api/{storage.ts,analytics.ts}`, `src/types/{analytics.ts,visualConfig.ts}`, `src/i18n/locales/**`, `tests/{analyticsLegacyImport.test.tsx,visualConfigClickHouse.test.ts}`.
 
-**Last updated:** 2026-10-28
+**Recorded validation:** On 2026-11-18, ClickHouse settings and legacy analytics/request-log import diagnostics remain; restart/security copy is kept visible here. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+
+**Last updated:** 2026-11-18
 
 ### DL073 — Unified Routing page, rule-based routing dry run, and event routing decisions
 
@@ -1571,13 +1566,15 @@ Usage → Events → Event details gains a "Routing decision" section directly a
 
 The two tabs share strategy and session-affinity keys and load fresh on mount. The rule/trace API contracts and upstream board contracts remain together in their API and type modules; the analytics decision matrix keeps its existing presentation.
 
-**Implementation evidence:** `src/features/routing/{RoutingPage,RoutingTabs}.tsx`, `src/features/routing/rules/**`, `src/features/config/{ConfigPage.tsx,constants.ts,searchIndex.ts,hooks/useConfigDocument.ts}`, `src/features/analytics/views/events/**`, `src/components/ui/{icons,Select,RoutingConditionText}.tsx`, `src/components/ui/routingIcons.ts`, `src/hooks/useVisualConfig.ts`, `src/types/{visualConfig,routing}.ts`, `src/services/api/routing.ts`, `src/i18n/locales/**`, `tests/{routingRulesPage,routingSection,visualConfigRoutingRules,visualConfigRebase,configSaveLifecycle,configFieldParity,configUiState,configSettingLayout,configOAuthBehaviorUi,configServerUi,analyticsEventRouting}.test.ts`.
+`replace` participates in every payload-list dirty, baseline, rebase and concurrent-list guard alongside Routing rules. Ordered role/path replacements, RE2 patterns, explicit empty operands and unknown siblings survive coordinated saves with the matching backend; structured keys, analytics and canonical Signature Stabilization remain preserved.
 
-**Recorded validation:** On 2026-11-02, `bun x bun@1.4.3 run verify` passes 2,644 tests across 248 files with 22,978 assertions, ESLint without warnings, TypeScript compilation, and the single-file production build. Vite emits its existing native-config-loader warning about `__dirname`. Focused static rendering and visual-config patch tests cover stack precedence, tier grouping, disabled credentials, loading/error/empty states, routing-only patches, concurrent policy preservation and Config Panel search removal. Review regressions reproduce concurrent rule appends before preview and on confirmation, conflict notification and reload recovery, and header refresh during a pending save; all now pass. All five payload list types reject concurrent appends on initial saves. Browser checks with an isolated CDP context cover the `/routing` → `/routing/tiers` redirect, desktop tiers/rules navigation with `aria-current`, 1440px light and dark tiers rows, and 390px light stacking with no horizontal overflow or page errors; earlier fixture checks cover Save → diff → confirm → PATCH/readback, editor re-enabling, and arrow keys retaining link focus without navigating. The event matrix now follows weakest-to-strongest precedence for its existing rows. The obsolete network routing-strategy translation keys have no consumers and were removed from all seven locales. The Impeccable detector reports only the inherited rule-editor accent border, retained to preserve the existing design. Non-English copy is best effort pending native review.
+**Implementation evidence:** `src/features/routing/rules/RulesPage.tsx`, `src/hooks/useVisualConfig.ts`. Tests: `tests/routingRulesPage.test.ts`, `tests/visualConfigRoutingRules.test.ts`, `tests/configSaveLifecycle.test.ts`, `tests/analyticsEventRouting.test.ts`. `src/features/routing/{RoutingPage,RoutingTabs}.tsx`, `src/features/routing/rules/**`, `src/features/config/{ConfigPage.tsx,constants.ts,searchIndex.ts,hooks/useConfigDocument.ts}`, `src/features/analytics/views/events/**`, `src/components/ui/{icons,Select,RoutingConditionText}.tsx`, `src/components/ui/routingIcons.ts`, `src/hooks/useVisualConfig.ts`, `src/types/{visualConfig,routing}.ts`, `src/services/api/routing.ts`, `src/i18n/locales/**`, `tests/{routingRulesPage,routingSection,visualConfigRoutingRules,visualConfigRebase,configSaveLifecycle,configFieldParity,configUiState,configSettingLayout,configOAuthBehaviorUi,configServerUi,analyticsEventRouting}.test.ts`.
+
+**Recorded validation:** On 2026-11-18, Unified Routing tabs, scoped draft saves, list conflicts, rule dry runs and event decisions remain integrated. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
 The priority-chip follow-up passes `bun x bun@1.4.3 run verify`: 2,645 tests across 248 files, 22,988 assertions, clean ESLint, TypeScript compilation and the single-file build. Vite retains its native-loader `__dirname` warning and reports plugin timings. The canonical Docker bundle build passes. Isolated Chrome CDP checks against a loopback CPA with fake named API-key groups verify disabled/error/cooldown/usable colors, shared desktop chip alignment, mobile label stacking, no horizontal overflow or page errors, and softer stripes in light/dark. Screenshots cover 1440×900 light/dark and 390×844 light; error, cooldown and disabled response states are injected for this fixture.
 
-**Last updated:** 2026-11-02
+**Last updated:** 2026-11-18
 
 ### DL074 — Scoped management keys and read-only sessions
 
@@ -1589,21 +1586,25 @@ Read-only Kimi requests select an official allowlisted quota URL from the creden
 
 A full-access-only Management Keys page (`/management-keys`, Control group) lists key metadata (name, scope) from `GET /management-keys` and creates, edits (name and scope), rotates (new key only), and deletes keys through `POST`, `PATCH /:id`, and `DELETE /:id`. The key field is a concealed password input; the supplied key lives only in the open dialog's draft, is sent once, and is never stored, logged, or shown again. Edits send only changed fields. Upstream has a single management key and no scopes.
 
-**Implementation evidence:** `src/services/api/managementKeys.ts`, `src/stores/useAuthStore.ts`, `src/types/auth.ts`, `src/router/{sessionAccess.ts,MainRoutes.tsx}`, `src/components/layout/MainLayout.tsx`, `src/styles/layout.scss`, `src/features/managementKeys/**`, `src/features/quota/{QuotaPage.tsx,components/QuotaCard.tsx}`, `src/services/api/overview.ts`, `src/stores/{useOverviewStore,sessionRuntime}.ts`, `src/features/dashboard/{DashboardPage.tsx,hooks/useDashboardOverview.ts}`, `src/features/logs/{LogsPage.tsx,hooks/useLogStream.ts}`, `src/pages/SystemPage.tsx`, `src/i18n/locales/**`, `tests/{managementKeys,legacyBackendProbe,kimiQuotaDomain,metaQuotaRequests,readOnlyQuota,readOnlyOverview,logRequests}.test.ts`, `src/services/api/kimiQuota.ts`, and `src/features/quota/providers/{antigravity,meta,plugin}/`.
+System catalog refresh is absent and its handler refuses execution in read-only sessions. Combined Plugins Installed/Store views retain privileged route gating, and `/plugin-store` redirects to `/plugins?view=store` only within that access boundary.
 
-**Recorded validation:** On 2026-11-02, `bun run verify` passes 2,623 tests, lint, TypeScript, and the production build. The focused quota suites pass 65 tests covering read-only Kimi requests, Antigravity project metadata, plugin routing without discovery, and Meta rejection before downloads or minting. Chrome checks against CPA's Docker-built bundle cover full-access key creation, editing, rotation and deletion; read-only login and its scope badge; redirects from restricted routes; and no privileged config requests at desktop and 390px mobile widths. No browser errors or page overflow were observed. Later on 2026-11-02, after read-only Dashboard, Logs, and System access was added, `bun run verify` passes 2,637 tests, lint, TypeScript, and the production build; `tests/readOnlyOverview.test.ts` covers the overview contract, cache and connection guards, runtime flags, read-only traffic dedupe and counts, a static render of the read-only Dashboard's permitted links, and the write gates. Chrome checks against CPA's canonical Docker-built bundle verify Dashboard, Logs Viewer, and Management Center Info at desktop and 390px mobile widths with no forbidden config/key/model calls, HTTP failures, browser errors, or page overflow. Non-English strings are machine-translated pending native review.
+**Implementation evidence:** `src/router/sessionAccess.ts`, `src/pages/SystemPage.tsx`. Tests: `tests/managementKeys.test.ts`, `tests/readOnlyOverview.test.ts`, `tests/readOnlyQuota.test.ts`, `tests/logRequests.test.ts`. `src/services/api/managementKeys.ts`, `src/stores/useAuthStore.ts`, `src/types/auth.ts`, `src/router/{sessionAccess.ts,MainRoutes.tsx}`, `src/components/layout/MainLayout.tsx`, `src/styles/layout.scss`, `src/features/managementKeys/**`, `src/features/quota/{QuotaPage.tsx,components/QuotaCard.tsx}`, `src/services/api/overview.ts`, `src/stores/{useOverviewStore,sessionRuntime}.ts`, `src/features/dashboard/{DashboardPage.tsx,hooks/useDashboardOverview.ts}`, `src/features/logs/{LogsPage.tsx,hooks/useLogStream.ts}`, `src/pages/SystemPage.tsx`, `src/i18n/locales/**`, `tests/{managementKeys,legacyBackendProbe,kimiQuotaDomain,metaQuotaRequests,readOnlyQuota,readOnlyOverview,logRequests}.test.ts`, `src/services/api/kimiQuota.ts`, and `src/features/quota/providers/{antigravity,meta,plugin}/`.
 
-**Last updated:** 2026-11-13
+**Recorded validation:** On 2026-11-18, Scope-first login, secret-free overview, privileged-route gating and concealed management-key drafts remain; browser check denied Plugins and omitted catalog/model/config requests. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+
+**Last updated:** 2026-11-18
 
 ### DL075 — Codex assume-requested-service-tier toggle
 
 The Config Panel's Advanced & Experimental section exposes CPA's fork-only `upstream.codex.assume-requested-service-tier` as a "Assume requested service tier" toggle in the Codex group, beside upstream's Codex toggles. It reads and writes the YAML path through the visual-config additions table, defaults to off, and is searchable by label or YAML key. Upstream CPA has no such option.
 
-**Implementation evidence:** `src/types/visualConfig.ts`, `src/features/config/{visualConfigAdditions.ts,constants.ts,searchIndex.ts}`, `src/features/config/components/sections/SectionOAuthBehavior.tsx`, `src/i18n/locales/*.json`, and `tests/{configAdditionsLocalization,configFieldParity,configOAuthBehaviorUi}.test.ts`.
+The service-tier assumption remains default-off and its consequential "new usage only" scope note stays visible alongside routine InfoTip help.
 
-**Recorded validation:** On 2026-11-03, `bun run verify` passes 2,656 tests, lint, TypeScript, and the production build. Against a local CPA built with this bundle, isolated Chrome found the field by searching its YAML key, toggled it, showed a one-line `assume-requested-service-tier: true` diff in Review Changes, and saved. CPA wrote the key under `upstream.codex` and hot-reloaded, `GET /v8/management/config` reported it, and a fresh page load showed the toggle on. The row was checked at desktop and 390px mobile widths. Non-English strings are machine-translated pending native review.
+**Implementation evidence:** `src/features/config/components/sections/SectionOAuthBehavior.tsx`, `src/features/config/visualConfigAdditions.ts`. Tests: `tests/configAdditionsLocalization.test.ts`, `tests/configFieldParity.test.ts`, `tests/configOAuthBehaviorUi.test.ts`. `src/types/visualConfig.ts`, `src/features/config/{visualConfigAdditions.ts,constants.ts,searchIndex.ts}`, `src/features/config/components/sections/SectionOAuthBehavior.tsx`, `src/i18n/locales/*.json`, and `tests/{configAdditionsLocalization,configFieldParity,configOAuthBehaviorUi}.test.ts`.
 
-**Last updated:** 2026-11-03
+**Recorded validation:** On 2026-11-18, Codex service-tier assumption remains default-off, typed, searchable and serialized through its canonical v8 key. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+
+**Last updated:** 2026-11-18
 
 ### DL076 — Usage page spacing and mobile layout refinements
 
@@ -1657,7 +1658,7 @@ the plot interior, so a marker at the axis floor is no longer clipped. The mobil
 gets a top margin. The Keys card list gets the desktop table's 12px top offset, so the first card
 no longer touches the pricing disclosure.
 
-**Implementation evidence:** `src/features/analytics/{Analytics.module.scss,AnalyticsTabs.module.scss,AnalyticsShell.tsx,AnalyticsShellContext.ts}`, `src/features/analytics/views/overview/Overview.module.scss`, `src/features/analytics/views/keys/KeysView.module.scss`, `src/features/analytics/views/analysis/{Analysis.module.scss,ModelCostModal.module.scss}`, `src/features/analytics/views/Events.tsx`, `src/features/analytics/views/events/Events.module.scss`, `src/components/layout/{MainLayout.tsx,headerActionSlot.ts}`, `src/styles/layout.scss`, `src/components/ui/{DateRangePicker/index.tsx,Pagination.tsx,Pagination.module.scss,icons.tsx}`, `src/features/analytics/AnalyticsPage.tsx`, `src/features/analytics/views/overview/OverviewKpis.tsx`, `src/features/analytics/views/analysis/{TimeSeriesCharts.tsx,UsageDistribution.tsx,analysisModel.ts}`; tests: `tests/analyticsRange.test.ts`, `tests/analyticsAnalysis.test.ts`, `tests/analyticsTabsKeyboard.test.ts`.
+**Implementation evidence:** `src/components/ui/RouteTabs.module.scss`. `src/features/analytics/AnalyticsShell.tsx`, `src/components/layout/MainLayout.tsx`. Tests: `tests/analyticsRange.test.ts`, `tests/analyticsAnalysis.test.ts`, `tests/analyticsTabsKeyboard.test.ts`. `src/features/analytics/{Analytics.module.scss,AnalyticsShell.tsx,AnalyticsShellContext.ts}`, `src/features/analytics/views/overview/Overview.module.scss`, `src/features/analytics/views/keys/KeysView.module.scss`, `src/features/analytics/views/analysis/{Analysis.module.scss,ModelCostModal.module.scss}`, `src/features/analytics/views/Events.tsx`, `src/features/analytics/views/events/Events.module.scss`, `src/components/layout/{MainLayout.tsx,headerActionSlot.ts}`, `src/styles/layout.scss`, `src/components/ui/{DateRangePicker/index.tsx,Pagination.tsx,Pagination.module.scss,icons.tsx}`, `src/features/analytics/AnalyticsPage.tsx`, `src/features/analytics/views/overview/OverviewKpis.tsx`, `src/features/analytics/views/analysis/{TimeSeriesCharts.tsx,UsageDistribution.tsx,analysisModel.ts}`; tests: `tests/analyticsRange.test.ts`, `tests/analyticsAnalysis.test.ts`, `tests/analyticsTabsKeyboard.test.ts`.
 
 **Recorded validation:** On 2026-11-03, `bun run verify` passes tests, lint, TypeScript, and the production build. Against a local CPA in ClickHouse server mode seeded with 37 days of synthetic traffic across five labeled keys and seven models, isolated Chrome CDP checks of Overview, Analysis, Keys, and Events at 1440px and 390px in light and dark themes found no document or main-area horizontal overflow and no console errors; the Keys filter bar was also checked at 1180px and 1024px. The phone pass also confirmed the header filter icon appears only on phones, that the sheet shows the shared controls plus Event filters on the Events tab and Rank by on the Keys tab, that choosing an outcome in the sheet filters the list and shows a count bubble on the icon, that tapping a row opens the event detail sheet, that the pagination row fits one line at 390px, and that the desktop filter cards, table, and Columns control are unchanged.
 
@@ -1675,7 +1676,21 @@ confirmed on an iPhone that the tab strip no longer moves vertically. The pricin
 measured 0px above the first key card at 375px and 12px above the desktop table; both now measure
 12px.
 
-**Last updated:** 2026-11-05
+On 2026-11-05, `bun run verify` passed 2,935 tests, lint, TypeScript, and the production build. The
+new option and source tests fail against the previous source. Isolated Chrome CDP checks ran
+against a local CPA in ClickHouse server mode with seeded traffic. At 375px, before the change, the
+token legend ended 116px into the SVG while the plot started at 28px. A raw vertical touch drag
+scrolled the tab strip by 1px, and the strip measured 41px of content in a 40px box. After the
+change, the legend ends above the plot, the strip measures 40px in 40px, the same drag leaves it at
+0, and horizontal drags still scroll it. Headless Chrome does not rubber-band, so the iOS drag
+itself was not reproduced here. All four Usage tabs had no document
+overflow or console errors at 375px. Desktop at 1440px and phone at 390px, in light and dark, kept
+the chart layout, and mouse and keyboard legend toggles hid and restored series. The owner then
+confirmed on an iPhone that the tab strip no longer moves vertically. The pricing disclosure
+measured 0px above the first key card at 375px and 12px above the desktop table; both now measure
+12px.
+
+**Last updated:** 2026-11-18
 
 ### DL077 — Floating back-to-top control
 
@@ -1787,25 +1802,15 @@ re-reads `config.yaml` instead and makes it the baseline; any other unsaved visu
 rebased on top and stay dirty, and Discard restores the post-write server state. CPA builds
 without revisioned writes still edit the draft and save through the page's Save flow.
 
-**Implementation evidence:**
+**Implementation evidence:** `src/features/config/components/blocks/ApiKeysCardEditor.tsx`, `src/features/config/hooks/useConfigDocument.ts`. Tests: `tests/apiKeyTable.test.ts`, `tests/configSaveLifecycle.test.ts`.
 `src/features/config/components/blocks/{ApiKeysCardEditor.tsx,apiKeyEditorUtils.ts,Blocks.module.scss}`,
 `src/features/config/{ConfigPage.tsx,types.ts,hooks/useConfigDocument.ts}`,
 `src/features/config/components/{fields/sharedFields.tsx,sections/SectionCommon.tsx,sections/SectionConnectivity.tsx}`,
 `src/i18n/locales/*.json`; tests: `tests/{apiKeyTable,configSaveLifecycle}.test.ts`.
 
-**Recorded validation:** On 2026-11-11, `bun run verify` passes 3,016 tests, ESLint,
-TypeScript, and the production build. Isolated Chrome CDP at 1440px, 900px, and 390px, light
-and dark, plus WebKit at 390px, ran the dev panel against a local CPA seeded with 38 client
-keys (labelled, unlabelled, limited, and two weak). Checks covered search narrowing, the
-attention filter showing exactly the two weak keys with tooltips, a key added while a search
-was active landing first with "New" and the search cleared, reveal without column shift, and
-no page-level horizontal overflow. The editor's height with 38 keys dropped from 4,620px to
-801px. Against the same local CPA, Chrome showed "Unsaved changes" after editing a label or
-adding a key before the draft fix and none after it in Chrome, Firefox, and WebKit. A pending
-proxy-URL edit survived a key delete, and saving it afterwards produced a diff containing only
-`requests.proxy-url` and succeeded.
+**Recorded validation:** On 2026-11-18, Paged searchable concealed key table and post-write baseline adoption survive the new label hints. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
-**Last updated:** 2026-11-11
+**Last updated:** 2026-11-18
 
 ### DL082 — Claude Signature Stabilization setting
 
@@ -1824,16 +1829,18 @@ the canonical key and deletes every other stabilization spelling, pruning contai
 and keeping unknown siblings. Unedited legacy input is left as is. Config search points at the
 canonical key and still matches the legacy name.
 
-**Implementation evidence:** `src/hooks/useVisualConfig.ts`, `src/features/config/searchIndex.ts`,
+Canonical-first false precedence and legacy cleanup share the expanded replacement-aware YAML baseline/rebase logic without dropping unknown siblings.
+
+**Implementation evidence:** `src/hooks/useVisualConfig.ts`, `src/features/config/searchIndex.ts`. Tests: `tests/visualConfigSignatureStabilization.test.ts`. `src/hooks/useVisualConfig.ts`, `src/features/config/searchIndex.ts`,
 `src/i18n/locales/*.json`; tests: `tests/visualConfigSignatureStabilization.test.ts`.
 
-Browser validation against an isolated CPA server loaded a legacy enabled setting,
+**Recorded validation:** On 2026-11-18, Signature Stabilization precedence, explicit false, legacy cleanup and sibling preservation pass the focused regressions and post-repair verification. Earlier browser validation against an isolated CPA server loaded a legacy enabled setting,
 turned Signature Stabilization off, confirmed the reviewed save, and reloaded the
 canonical disabled value. The flow sent one canonical PATCH and no legacy DELETE.
 Desktop and mobile screenshots showed the existing toggle layout with no horizontal
 overflow or browser console errors.
 
-**Last updated:** 2026-11-13
+**Last updated:** 2026-11-18
 
 ### DL083 — Opt-in instruction role wrapper for compatible providers
 
@@ -1846,18 +1853,16 @@ is conveyed through text, with results depending on the model. All seven locales
 include the label and hint. Provider API regressions cover enable, disable,
 round-trip, and sibling preservation.
 
-**Recorded validation:** Bun 1.4.3 `bun run verify` passes 3,170 tests, lint,
-TypeScript, and the production build. The canonical Docker bundle builds.
-Isolated Chrome at 1440px and 390px confirms the control is initially unchecked,
-saves its provider-level option to a real v8 backend, and restores the checked
-state on reopening, with no page errors or horizontal page overflow.
+**Recorded validation:** On 2026-11-18, the OpenAI-only instruction-role wrapper retains explicit false, untouched absence and sibling-preserving writes. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+
+The provider checkbox refactor retains the compatible-provider-only instruction wrapper, explicit false, untouched absence and sibling-preserving writes.
 
 **Implementation evidence:** `src/features/providers/{descriptors.ts,providerBehavior.ts}`,
 `src/features/providers/sheets/forms/ProviderBehaviorEditor.tsx`,
 `src/services/api/{providers.ts,transformers.ts}`, `src/types/provider.ts`,
 `src/i18n/locales/`, and `tests/providerBehavior.test.ts`.
 
-**Last updated:** 2026-11-16
+**Last updated:** 2026-11-18
 
 ## Sync Checklist
 
@@ -1865,6 +1870,8 @@ Project-specific checks every upstream sync runs, in addition to the full test s
 
 - Install with the exact Bun version from `packageManager` in `package.json` and `--frozen-lockfile`, then run `bun run verify`.
 - Keep the seven locale files on one key set: take the union of both sides' keys and translate fork-only strings in every locale.
+- Scan new non-English locale values for untranslated English, including every plural variant.
+- Verify graph and editor mutation actions respect pending-save and disconnected locks, including context menus and settings dialogs.
 - Check the pages that fork entries touch against a CPA built from the matching CPA fork commit, in a browser at desktop (1440px) and mobile (390px) widths, in light and dark themes.
 - Push `main` before advancing CPA's `web/management-center` gitlink, then rebuild CPA's panel bundle.
 
@@ -1908,6 +1915,31 @@ The Keys tab keeps its Rank by field in the compact card.
 ## Merge History
 
 This is an append-only decision record, newest first, with one entry per upstream sync. It explains past integrations but does not by itself establish a current divergence; use the Divergence Log for that. Sync with upstream only when the user explicitly asks. Do not edit past entries.
+
+### 2026-11-18 - Merge upstream `main` at `e5eb4fe6`
+
+Target: `upstream/main` at `e5eb4fe63ad8a2a20d13022e13e6dc4d386ac07b`.
+Parents: fork `8b7056547848670b72d85977c34bbcd825a986b1` and upstream `e5eb4fe63ad8a2a20d13022e13e6dc4d386ac07b`. Merged 26 upstream commits since the previous `base` merge `3fad6d14a2d0269ca83681973480b8637a43bcd1`, without rebasing or squashing.
+
+User decisions: adopt InfoTips while keeping irreversible, security, restart and scope notes visible and retaining automatic title promotion. Adopt display modes on Auth Files only; Quota keeps full-width fork rows, summary, reserves, history, resets and credit details. Adopt the Model Rules workspace with usage-probe exclusion in both rail and graph and Kiro/plugin OAuth catalogs. Combine Plugins Installed/Store views under existing access restrictions. Ship payload and sensitive-pattern replacement editors with the matching CPA backend. Refuse Kiro login when a proxy is selected instead of silently ignoring it; keep its GET setup parameters. Add no Antigravity pause control. Preserve the seven-locale union. No divergence was retired.
+
+Other decisions: keep structured revisioned keys, analytics/ClickHouse configuration, GSR semantics, Routing and Signature Stabilization round trips. Keep the Routing link visible outside weight help, independent Antigravity timeline lanes, connection-isolated plugin actions and full-access-only System catalog refresh. The old Plugin Store route redirects into the combined page. Upstream autocomplete behavior retains fork descriptions, search text and selection callbacks.
+
+Integration repairs: include `replace` in every payload-list dirty/baseline/rebase/conflict guard. Unify explicit and automatic tooltips under one coordinator and shared fork skin. Lock all six Model Rules graph mutation callbacks, context-menu writes and settings actions while saving or disconnected. Keep Codex Live private-IP security, inbound-UDP prerequisites and service-tier scope notes visible. Translate all 14 Vietnamese provider values and 183 added Chinese comment lines across 40 files. Repair icon exports, obsolete key-modal input, relocated tooltip imports and workspace fixtures; update moved Tooltip, inline heatmap readout, chart-model extensions and shared RouteTabs evidence paths.
+
+Validation:
+
+- Pinned Bun 1.4.3 `bun run verify` passes 3,536 tests across 289 files, ESLint, TypeScript and the single-file production build before audit repairs; the post-repair run records 3,539 passing tests with lint/build clean. No fork test file was deleted. The graph editing regression fails without the save-lock fix, and the tooltip cross-trigger regression covers one active panel and shared styling.
+- Independent audit covers all 83 divergence entries. The seven locales contain the same 4,194 leaf keys with matching interpolation tokens and no lost parent-union key. New-value review identified the Vietnamese copy corrected above.
+- Production-UI Chrome fixtures exercise Model Rules, explicit/automatic tooltips and a 390px graph without overflow or browser exceptions. A separate read-only fixture reaches System without model/catalog/config/key requests and redirects Plugins without fetching plugin resources. These checks reproduced the graph and tooltip defects before repair; the post-repair automated suite covers their fixes.
+- Integrated Chrome QA against a locally built merged CPA serving the canonical bundle covers Dashboard, AI Providers with replacement editors, Auth Files in all three display modes, Model Rules list/diagram with an alias saved to YAML, OAuth Login, Routing, Quota, Config, Plugins Installed/Store and the `/plugin-store` redirect, System, Management Keys and Analytics at 1440px and 390px in light and dark themes with no page errors. InfoTips open one at a time and close on Escape or outside click while restart and security notes stay visible. Kiro login with a proxy selected is refused client-side without an auth-url request. A read-only scoped session hides mutation controls. A Config round trip persists its edit and keeps key labels, limits and comments. No locale shows a missing key from this sync.
+- The paired CPA Docker image and web Compose stack serve this panel build; CPA's corresponding sync entry records live provider and packaging results.
+
+Limits:
+
+- Live OAuth sign-in and provider quota spending through the panel, Firefox and WebKit were not checked. Native-speaker translation review and some legacy motion/layout details remain outstanding.
+- Integrated QA found issues that predate this sync and remain open: Analytics without ClickHouse shows the raw `analytics.state_disabled` key, and the Auth Files header actions overflow at 390px so Upload File is clipped. After a refused Kiro start the provider tile shows the generic failed status, like other refused or failed starts.
+- The pre-existing `tests/routingPage.test.ts` Prettier formatting issue remains outside this sync's repairs.
 
 ### 2026-11-13 - Merge upstream `main` at `7a66203`
 

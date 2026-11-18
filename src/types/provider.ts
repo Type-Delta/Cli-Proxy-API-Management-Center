@@ -71,6 +71,8 @@ export interface CloakConfig {
   mode?: string;
   strictMode?: boolean;
   sensitiveWords?: string[];
+  sensitiveWordsReplace?: Record<string, string>;
+  sensitivePatternsReplace?: { pattern: string; replacement: string }[];
   cacheUserId?: boolean;
 }
 

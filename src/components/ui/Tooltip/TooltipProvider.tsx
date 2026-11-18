@@ -7,7 +7,9 @@ import {
   type PropsWithChildren,
 } from 'react';
 import { createPortal } from 'react-dom';
-import styles from './Tooltip.module.scss';
+import { claimTooltip, releaseTooltip } from './activeTooltip';
+import sharedStyles from './Tooltip.module.scss';
+import styles from './TooltipProvider.module.scss';
 
 const TOOLTIP_ATTRIBUTE = 'data-cpamc-tooltip';
 const TOOLTIP_SELECTOR = `[${TOOLTIP_ATTRIBUTE}]`;
@@ -103,37 +105,41 @@ export function TooltipProvider({ children }: PropsWithChildren) {
     const current = activeRef.current;
     if (current) {
       removeDescribedBy(current.describedTarget, current.id, current.describedByBefore);
+      releaseTooltip(current.id);
     }
     activeRef.current = null;
     setActive(null);
   }, []);
 
-  const showTooltip = useCallback((target: TooltipTarget, describedTarget: Element = target) => {
-    const content = target.getAttribute(TOOLTIP_ATTRIBUTE)?.trim();
-    if (!content || !target.isConnected) return;
-    const current = activeRef.current;
-    if (current?.target === target && current.describedTarget === describedTarget) {
-      if (current.content !== content) {
-        const next = { ...current, content };
-        activeRef.current = next;
-        setActive(next);
+  const showTooltip = useCallback(
+    (target: TooltipTarget, describedTarget: Element = target) => {
+      const content = target.getAttribute(TOOLTIP_ATTRIBUTE)?.trim();
+      if (!content || !target.isConnected) return;
+      const current = activeRef.current;
+      if (current?.target === target && current.describedTarget === describedTarget) {
+        if (current.content !== content) {
+          const next = { ...current, content };
+          activeRef.current = next;
+          setActive(next);
+        }
+        return;
       }
-      return;
-    }
-    if (current) {
-      removeDescribedBy(current.describedTarget, current.id, current.describedByBefore);
-    }
-    const id = `cpamc-tooltip-${nextTooltipId++}`;
-    const next: ActiveTooltip = {
-      target,
-      content,
-      id,
-      describedTarget,
-      describedByBefore: appendDescribedBy(describedTarget, id),
-    };
-    activeRef.current = next;
-    setActive(next);
-  }, []);
+      if (current) hideTooltip();
+      const id = `cpamc-tooltip-${nextTooltipId++}`;
+      // Closes an open explicit Tooltip/InfoTip, so only one panel is ever visible.
+      claimTooltip(id, hideTooltip);
+      const next: ActiveTooltip = {
+        target,
+        content,
+        id,
+        describedTarget,
+        describedByBefore: appendDescribedBy(describedTarget, id),
+      };
+      activeRef.current = next;
+      setActive(next);
+    },
+    [hideTooltip]
+  );
 
   const positionTooltip = useCallback(() => {
     const current = activeRef.current;
@@ -334,7 +340,7 @@ export function TooltipProvider({ children }: PropsWithChildren) {
             ref={panelRef}
             id={active.id}
             role="tooltip"
-            className={styles.tooltip}
+            className={`${sharedStyles.tooltip} ${styles.automatic}`}
             style={{ left: position.left, top: position.top }}
           >
             {active.content}

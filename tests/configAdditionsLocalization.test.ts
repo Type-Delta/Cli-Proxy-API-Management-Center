@@ -88,7 +88,6 @@ describe('added configuration field localization', () => {
         'antigravityTitle',
         'xaiTitle',
         'liveRelayTitle',
-        'liveRelayHint',
         'iceAdd',
         'iceRemove',
         'iceURLs',

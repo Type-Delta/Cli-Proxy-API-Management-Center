@@ -1,31 +1,63 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo, useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Collapsible } from '@/components/ui/Collapsible';
-import type { PayloadFilterRule, PayloadRule } from '@/types/visualConfig';
+import {
+  getPayloadReplaceValidationError,
+  hasPayloadParamValidationErrors,
+} from '@/hooks/useVisualConfig';
+import type { PayloadFilterRule, PayloadReplaceRule, PayloadRule } from '@/types/visualConfig';
 import { CONFIG_TAB_ICONS, SECTION_INDEX_LABELS } from '../../constants';
 import type { ConfigSectionProps } from '../../types';
 import { SectionCard } from '../SectionCard';
 import { FieldAnchor, FieldStack } from '../fields/FieldPrimitives';
 import { PayloadFilterRulesEditor } from '../blocks/PayloadFilterRulesEditor';
+import { PayloadReplaceRulesEditor } from '../blocks/PayloadReplaceRulesEditor';
 import { PayloadRulesEditor } from '../blocks/PayloadRulesEditor';
 
 const Icon = CONFIG_TAB_ICONS.payload;
 
-export type SectionPayloadProps = ConfigSectionProps & {
-  /** 有载荷校验错误时折叠组带 key 重挂载并强制展开，把错误带到眼前。 */
-  hasPayloadValidationErrors: boolean;
-};
+type ValidatedGroup =
+  | 'payloadDefaultRules'
+  | 'payloadDefaultRawRules'
+  | 'payloadOverrideRules'
+  | 'payloadOverrideRawRules'
+  | 'payloadReplaceRules';
 
-/** 06 Payload 配置：默认值 / 原始 JSON / 覆盖 / 过滤 五个规则组。 */
-export function SectionPayload({
-  values,
-  disabled,
-  animateIn,
-  hasPayloadValidationErrors,
-  onChange,
-}: SectionPayloadProps) {
+/** 06 Payload configuration: six rule groups (default / raw JSON / override / replace / filter). */
+export function SectionPayload({ values, disabled, animateIn, onChange }: ConfigSectionProps) {
   const { t } = useTranslation();
-  const payloadValidationKey = hasPayloadValidationErrors ? 'payload-errors' : 'payload-ok';
+  const [opened, setOpened] = useState<Partial<Record<ValidatedGroup, boolean>>>({});
+
+  // Validation errors are computed per group: only the failing group expands, without affecting
+  // other drawers.
+  const groupErrors = useMemo<Record<ValidatedGroup, boolean>>(
+    () => ({
+      payloadDefaultRules: hasPayloadParamValidationErrors(values.payloadDefaultRules),
+      payloadDefaultRawRules: hasPayloadParamValidationErrors(values.payloadDefaultRawRules),
+      payloadOverrideRules: hasPayloadParamValidationErrors(values.payloadOverrideRules),
+      payloadOverrideRawRules: hasPayloadParamValidationErrors(values.payloadOverrideRawRules),
+      payloadReplaceRules: values.payloadReplaceRules.some((rule) =>
+        Boolean(getPayloadReplaceValidationError(rule))
+      ),
+    }),
+    [
+      values.payloadDefaultRules,
+      values.payloadDefaultRawRules,
+      values.payloadOverrideRules,
+      values.payloadOverrideRawRules,
+      values.payloadReplaceRules,
+    ]
+  );
+
+  // Controlled expansion without a key: an error brings its group into view, and clearing it
+  // neither remounts nor collapses it under the user.
+  const groupProps = (group: ValidatedGroup) => ({
+    open: Boolean(opened[group]) || groupErrors[group],
+    onToggle: (event: SyntheticEvent<HTMLDetailsElement>) => {
+      const next = event.currentTarget.open;
+      setOpened((current) => (current[group] === next ? current : { ...current, [group]: next }));
+    },
+  });
 
   const handlePayloadDefaultRulesChange = useCallback(
     (payloadDefaultRules: PayloadRule[]) => onChange({ payloadDefaultRules }),
@@ -48,21 +80,23 @@ export function SectionPayload({
     [onChange]
   );
 
+  const handlePayloadReplaceRulesChange = useCallback(
+    (payloadReplaceRules: PayloadReplaceRule[]) => onChange({ payloadReplaceRules }),
+    [onChange]
+  );
+
   return (
     <SectionCard
       indexLabel={SECTION_INDEX_LABELS.payload}
       icon={<Icon size={16} />}
       title={t('config_management.visual.sections.payload.title')}
-      description={t('config_management.visual.sections.payload.description')}
       animateIn={animateIn}
     >
       <FieldStack>
         <FieldAnchor fieldId="payloadDefaultRules">
           <Collapsible
-            key={`payloadDefaultRules-${payloadValidationKey}`}
             label={t('config_management.visual.sections.payload.default_rules')}
-            hint={t('config_management.visual.sections.payload.default_rules_desc')}
-            defaultOpen={hasPayloadValidationErrors}
+            {...groupProps('payloadDefaultRules')}
           >
             <PayloadRulesEditor
               value={values.payloadDefaultRules}
@@ -74,10 +108,8 @@ export function SectionPayload({
 
         <FieldAnchor fieldId="payloadDefaultRawRules">
           <Collapsible
-            key={`payloadDefaultRawRules-${payloadValidationKey}`}
             label={t('config_management.visual.sections.payload.default_raw_rules')}
-            hint={t('config_management.visual.sections.payload.default_raw_rules_desc')}
-            defaultOpen={hasPayloadValidationErrors}
+            {...groupProps('payloadDefaultRawRules')}
           >
             <PayloadRulesEditor
               value={values.payloadDefaultRawRules}
@@ -90,10 +122,8 @@ export function SectionPayload({
 
         <FieldAnchor fieldId="payloadOverrideRules">
           <Collapsible
-            key={`payloadOverrideRules-${payloadValidationKey}`}
             label={t('config_management.visual.sections.payload.override_rules')}
-            hint={t('config_management.visual.sections.payload.override_rules_desc')}
-            defaultOpen={hasPayloadValidationErrors}
+            {...groupProps('payloadOverrideRules')}
           >
             <PayloadRulesEditor
               value={values.payloadOverrideRules}
@@ -106,10 +136,8 @@ export function SectionPayload({
 
         <FieldAnchor fieldId="payloadOverrideRawRules">
           <Collapsible
-            key={`payloadOverrideRawRules-${payloadValidationKey}`}
             label={t('config_management.visual.sections.payload.override_raw_rules')}
-            hint={t('config_management.visual.sections.payload.override_raw_rules_desc')}
-            defaultOpen={hasPayloadValidationErrors}
+            {...groupProps('payloadOverrideRawRules')}
           >
             <PayloadRulesEditor
               value={values.payloadOverrideRawRules}
@@ -121,13 +149,21 @@ export function SectionPayload({
           </Collapsible>
         </FieldAnchor>
 
-        <FieldAnchor fieldId="payloadFilterRules">
+        <FieldAnchor fieldId="payloadReplaceRules">
           <Collapsible
-            key={`payloadFilterRules-${payloadValidationKey}`}
-            label={t('config_management.visual.sections.payload.filter_rules')}
-            hint={t('config_management.visual.sections.payload.filter_rules_desc')}
-            defaultOpen={hasPayloadValidationErrors}
+            label={t('config_management.visual.payload_replace.title')}
+            {...groupProps('payloadReplaceRules')}
           >
+            <PayloadReplaceRulesEditor
+              value={values.payloadReplaceRules}
+              disabled={disabled}
+              onChange={handlePayloadReplaceRulesChange}
+            />
+          </Collapsible>
+        </FieldAnchor>
+
+        <FieldAnchor fieldId="payloadFilterRules">
+          <Collapsible label={t('config_management.visual.sections.payload.filter_rules')}>
             <PayloadFilterRulesEditor
               value={values.payloadFilterRules}
               disabled={disabled}

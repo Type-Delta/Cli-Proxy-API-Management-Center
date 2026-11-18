@@ -69,7 +69,7 @@ export function ClaudeQuotaBody({
           {(planType || planItems) && (
             <div className={classes.planMeta}>
               {planType && (
-                <span className={classes.planMetaItem}>
+                <span className={classes.planMetaItem} data-quota-plan="">
                   <span className={classes.planMetaLabel}>{t('claude_quota.plan_label')}</span>
                   <span className={classes.planMetaValue}>{t(`claude_quota.${planType}`)}</span>
                 </span>
