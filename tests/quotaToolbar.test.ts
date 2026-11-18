@@ -30,8 +30,10 @@ describe('quota toolbar presentation contracts', () => {
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
   });
 
-  test('refresh all uses the normal quota cache path', () => {
-    expect(source).toContain('void loadQuota(pageItems);');
-    expect(source).not.toContain('loadQuota(pageItems, { forceRefresh: true })');
+  test('refresh all loads every credential through the normal quota cache path', () => {
+    // Every classified entry, not the tab-, search-, or page-narrowed list.
+    expect(source).toContain('void loadQuota(entries);');
+    expect(source).not.toContain('void loadQuota(pageItems);');
+    expect(source).not.toContain('forceRefresh: true');
   });
 });

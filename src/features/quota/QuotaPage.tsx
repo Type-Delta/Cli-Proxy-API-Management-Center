@@ -296,8 +296,8 @@ export function QuotaPage() {
   const pendingRefreshRef = useRef<number | null>(null);
   const prevLoadingRef = useRef(loading);
 
-  // Refresh all: reload the file list first, then batch-load the current page's quota
-  // once it settles (loading falling edge).
+  // Refresh all: reload the file list first, then batch-load every credential's quota once it
+  // settles (loading falling edge). The provider tab, search, and page do not narrow it.
   const handleRefreshAll = useCallback(() => {
     if (disableControls) return;
     pendingRefreshRef.current = sessionGeneration;
@@ -326,9 +326,9 @@ export function QuotaPage() {
         disableControls
       )
     ) {
-      void loadQuota(pageItems);
+      void loadQuota(entries);
     }
-  }, [disableControls, error, filesGeneration, loading, loadQuota, pageItems, sessionGeneration]);
+  }, [disableControls, entries, error, filesGeneration, loading, loadQuota, sessionGeneration]);
 
   useDevinQuotaAutoLoad(
     pageItems,

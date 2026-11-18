@@ -1107,7 +1107,10 @@ transport; no real partner inference was attempted.
 
 ### DL050 — Cache-managed quota refresh
 
-The Quota page's "Refresh all credentials" action uses the normal quota cache
+The Quota page's "Refresh all credentials" action reloads the credential list and then
+loads quota for every credential the page knows. The provider tab, search, and pagination
+narrow only what is displayed, not what is refreshed, so cards on other tabs and pages are
+current when the user switches to them. The refresh uses the normal quota cache
 path. CPA reconciles routing cooldowns when a provider request actually reaches
 the upstream and returns a successful usage report. A cached replay preserves the
 existing routing state, while a later request after cache expiry can observe a
@@ -1119,10 +1122,12 @@ the shared weekly pool.
 **Implementation evidence:** `src/features/quota/{QuotaPage.tsx,logic.ts,windowGating.ts}`, `src/features/quota/hooks/useQuotaBatchLoader.ts`, `src/features/quota/providers/types.ts`, `src/features/quota/providers/claude/data.ts`; tests: `tests/quotaPageLogic.test.ts`, `tests/claudeFableQuota.test.ts`, `tests/quotaWindowGating.test.ts`.
 
 **Recorded validation:** Quota tests cover cache-managed cooldown recovery and the normal
-refresh wiring. `bun run verify` passes the affected suites, lint, TypeScript,
-and the production build.
+refresh wiring, including that refresh all loads every entry rather than the current page.
+`bun run verify` passes the affected suites, lint, TypeScript, and the production build. Against
+a live CPA with the Z.AI tab selected, refresh all fetched quota for all 12 credentials across
+four providers, where the previous build fetched only the one visible credential.
 
-**Last updated:** 2026-10-07
+**Last updated:** 2026-11-18
 
 ### DL052 — Greedy soonest recovery routing strategy
 
