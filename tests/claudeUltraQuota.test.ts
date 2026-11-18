@@ -52,8 +52,9 @@ test('verified Ultra without a five-hour limit retains weekly cards, summary, ti
     expect(markup.match(/class="quotaBarFill /g)).toHaveLength(2);
     expect(markup).not.toMatch(/NaN|undefined%|width:0%/);
     const [summary] = aggregateQuotaSummaries([entry], () => quota);
-    expect(summary.primaryRemainingPercent).toBe(60);
-    expect(summary.secondaryRemainingPercent).toBe(80);
+    expect(summary.primaryLabel).toBe('claude_quota.seven_day');
+    expect(summary.primaryRemainingPercent).toBe(80);
+    expect(summary.secondaryRemainingPercent).toBe(60);
     expect(summary.loadedCount).toBe(1);
     const lane = buildTimelineLane({
       provider: 'claude',
@@ -87,7 +88,7 @@ test('verified Ultra without a five-hour limit retains weekly cards, summary, ti
       source: 'cpamc' as const,
     }));
     const history = quotaHistorySeries('claude', samples, now, now + 86400000, now);
-    expect(history.actual[0]).toEqual([now, 60]);
+    expect(history.actual[0]).toEqual([now, 80]);
     expect(history.capacity[0]).toEqual([now, 100]);
     expect(history.projected.length).toBeGreaterThan(0);
     expect(history.projected.every(([, value]) => value === null || Number.isFinite(value))).toBe(

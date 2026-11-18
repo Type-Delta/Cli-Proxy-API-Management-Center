@@ -51,34 +51,29 @@ const claudeQuota = (
 });
 
 describe('quota summary selection', () => {
-  test('uses Fable when weekly remaining ties', () => {
-    expect(
-      selectClaudePrimaryWindow([
-        [window('seven-day', 80), window('seven-day-fable', 80)],
-        [window('seven-day', 20)],
-      ])
-    ).toBe('seven-day-fable');
-  });
-
-  test('uses the weekly window with less aggregate remaining', () => {
+  test('prefers the normal weekly window even when Fable has less remaining', () => {
     expect(
       selectClaudePrimaryWindow([
         [window('seven-day', 90), window('seven-day-fable', 40)],
         [window('seven-day', 80), window('seven-day-fable', 60)],
       ])
-    ).toBe('seven-day-fable');
+    ).toBe('seven-day');
   });
 
-  test('compares Claude windows using tier-weighted remaining totals', () => {
+  test('uses the normal weekly window when only some credentials report it', () => {
     expect(
-      selectClaudePrimaryWindow(
-        [
-          [window('seven-day', 60), window('seven-day-fable', 0)],
-          [window('seven-day', 0), window('seven-day-fable', 100)],
-        ],
-        [100, 20]
-      )
-    ).toBe('seven-day-fable');
+      selectClaudePrimaryWindow([[window('seven-day-fable', 10)], [window('seven-day', 80)]])
+    ).toBe('seven-day');
+  });
+
+  test('falls back to Fable only when no credential reports the normal weekly window', () => {
+    expect(selectClaudePrimaryWindow([[window('seven-day-fable', 70)], []])).toBe(
+      'seven-day-fable'
+    );
+  });
+
+  test('labels the normal weekly window before any quota has loaded', () => {
+    expect(selectClaudePrimaryWindow([[], []])).toBe('seven-day');
   });
 
   test('keeps provider recovery windows explicit and prefers OpenCode Go monthly', () => {
@@ -111,9 +106,10 @@ describe('quota summary selection', () => {
 
     expect(summary).toMatchObject({
       type: 'claude',
-      primaryLabel: 'claude_quota.seven_day_fable',
-      primaryRemainingPercent: 20,
-      secondaryRemainingPercent: 60,
+      primaryLabel: 'claude_quota.seven_day',
+      primaryRemainingPercent: 60,
+      secondaryLabel: 'claude_quota.seven_day_fable',
+      secondaryRemainingPercent: 20,
       tierCapacityPercent: 120,
       tierLabel: 'claude_quota.plan_max',
     });
@@ -122,21 +118,21 @@ describe('quota summary selection', () => {
         credential: 'max.json',
         plan: 'claude_quota.plan_max',
         capacityPercent: 100,
-        remainingPercent: 0,
-        resetAtMs: 1_700_100_000_000,
+        remainingPercent: 60,
+        resetAtMs: 1_700_000_000_000,
+        disabled: true,
       }),
       expect.objectContaining({
         credential: 'pro.json',
         plan: 'claude_quota.plan_pro',
         capacityPercent: 20,
-        remainingPercent: 100,
+        remainingPercent: 0,
       }),
     ]);
     expect(summary.secondaryLines[0]).toMatchObject({
       credential: 'max.json',
-      resetAtMs: 1_700_000_000_000,
-      disabled: true,
-      remainingPercent: 60,
+      resetAtMs: 1_700_100_000_000,
+      remainingPercent: 0,
     });
   });
 

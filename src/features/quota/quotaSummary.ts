@@ -357,15 +357,15 @@ const remainingTotalFor = (
   return hasValue ? total : null;
 };
 
+/** Claude's headline weekly pool: the normal weekly window, or Fable when only Fable has readings. */
 export function selectClaudePrimaryWindow(
-  windowsByCredential: readonly QuotaSummaryWindow[][],
-  planValuesByCredential?: readonly (number | null)[]
+  windowsByCredential: readonly QuotaSummaryWindow[][]
 ): 'seven-day-fable' | 'seven-day' {
-  const fable = remainingTotalFor(windowsByCredential, 'seven-day-fable', planValuesByCredential);
-  const normal = remainingTotalFor(windowsByCredential, 'seven-day', planValuesByCredential);
-  if (fable === null) return 'seven-day';
-  if (normal === null) return 'seven-day-fable';
-  return fable <= normal ? 'seven-day-fable' : 'seven-day';
+  const reports = (id: string) =>
+    windowsByCredential.some((windows) =>
+      windows.some((window) => window.id === id && window.remainingPercent !== null)
+    );
+  return !reports('seven-day') && reports('seven-day-fable') ? 'seven-day-fable' : 'seven-day';
 }
 
 export function percentageOfLargestTier(value: number, largestTierValue: number): number {
@@ -421,7 +421,7 @@ export function aggregateQuotaValues(
   if (type === 'claude') {
     const windows = records.map((record) => record.windows);
     const values = records.map((record) => historyPlanValue(type, record.planId));
-    const primary = selectClaudePrimaryWindow(windows, values);
+    const primary = selectClaudePrimaryWindow(windows);
     const largest = Math.max(0, ...values.map((value) => value ?? 0));
     const units = remainingTotalFor(windows, primary, values);
     return {
@@ -610,7 +610,7 @@ export function aggregateQuotaSummaries(
 
     const windowsByCredential = records.map(({ windows }) => windows);
     const planValuesByCredential = records.map(({ quota }) => planValue(type, quota));
-    const primaryId = selectClaudePrimaryWindow(windowsByCredential, planValuesByCredential);
+    const primaryId = selectClaudePrimaryWindow(windowsByCredential);
     const secondaryId = primaryId === 'seven-day-fable' ? 'seven-day' : 'seven-day-fable';
     const primaryLabel =
       primaryId === 'seven-day-fable' ? 'claude_quota.seven_day_fable' : 'claude_quota.seven_day';
