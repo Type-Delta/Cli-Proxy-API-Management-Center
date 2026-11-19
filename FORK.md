@@ -2072,6 +2072,14 @@ validated separately with the Go test suite and build. Independent review found 
 
 ### DL079 — Routing dry-run tab, strategy reasoning, and session-binding provenance
 
+GSR strategy cards show the observed remaining-quota percentage in the weight
+equation, including zero. Older traces retain their original equation. When
+storage trimming removes the recovery base, the card shows the recorded weight
+and remaining quota without reconstructing an exact equation.
+The normalization and rendering tests cover both zero and absent fractions.
+The Dry run tab rendered the updated formula in isolated Chromium at 1440px
+and 390px with fixture quota data and no page overflow.
+
 **Routing controls, 2026-11-06.** Routing and Usage share `RouteTabs`, including the underline
 style, overflow hints, and Arrow/Home/End navigation. Since 2026-11-19 Routing tabs also carry
 glyphs like the Usage tabs, and `pageTransitionVariant` returns `none` between `/routing/*`

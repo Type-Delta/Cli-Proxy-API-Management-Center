@@ -309,6 +309,7 @@ export type RoutingStrategyWeight = {
   tier?: string;
   tier_multiplier?: number;
   tier_source?: string;
+  remaining_quota_fraction?: number;
 };
 
 export type RoutingStrategyStep = {

@@ -4462,6 +4462,7 @@
       "source_manual_reset": "từ đặt lại thủ công",
       "source_signal": "từ header {{header}}",
       "term_base": "cơ sở",
+      "term_remaining_quota": "hạn mức còn lại",
       "term_tier": "hạng",
       "term_config": "cấu hình",
       "term_weight": "trọng số",

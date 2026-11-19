@@ -239,6 +239,31 @@ describe('strategy view model', () => {
 });
 
 describe('strategy breakdown rendering', () => {
+  test('GSR explains observed quota including zero and preserves older traces', () => {
+    const weights = GSR_DRY_RUN_TRACE.strategy_step!.weights;
+    const trace = normalizeRoutingTrace({
+      ...GSR_DRY_RUN_TRACE,
+      strategy_step: {
+        ...GSR_DRY_RUN_TRACE.strategy_step,
+        weights: weights.map((row, i) => ({
+          ...row,
+          remaining_quota_fraction: [0.01, 0, -1, undefined][i],
+          weight: i === 0 ? 80_001 : i === 1 ? 2 : row.weight,
+        })),
+      },
+    })!;
+    expect(trace.strategy_step?.weights.map((row) => row.remaining_quota_fraction)).toEqual([
+      0.01,
+      0,
+      undefined,
+      undefined,
+    ]);
+    const html = render(createElement(StrategyBreakdown, { trace, labelOf, now: DRY_RUN_NOW }));
+    expect(html).toContain('remaining quota <span>1%</span>');
+    expect(html).toContain('remaining quota <span>0%</span>');
+    expect(html).toContain('max(1, round(');
+  });
+
   test('GSR shows shares, factors, formula, curve, and deterministic wording', () => {
     const html = render(
       createElement(StrategyBreakdown, { trace: GSR_DRY_RUN_TRACE, labelOf, now: DRY_RUN_NOW })

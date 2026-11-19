@@ -4462,6 +4462,7 @@
       "source_manual_reset": "elle sıfırlamadan",
       "source_signal": "{{header}} başlığından",
       "term_base": "taban",
+      "term_remaining_quota": "kalan kota",
       "term_tier": "katman",
       "term_config": "yapılandırma",
       "term_weight": "ağırlık",

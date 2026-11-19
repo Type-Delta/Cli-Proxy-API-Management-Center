@@ -4462,6 +4462,7 @@
       "source_manual_reset": "from manual reset",
       "source_signal": "from {{header}} header",
       "term_base": "base",
+      "term_remaining_quota": "remaining quota",
       "term_tier": "tier",
       "term_config": "config",
       "term_weight": "weight",

@@ -237,6 +237,16 @@ function FactorCard({
 }) {
   const decay = strategyDecay(row, view.halfLifeMs);
   const gsrFactors = view.isGsr && (!view.factorsMissing || view.factorsRebuilt);
+  const remainingQuota = row.remaining_quota_fraction;
+  const quotaPercent =
+    remainingQuota === undefined
+      ? null
+      : new Intl.NumberFormat(locale, { style: 'percent', maximumSignificantDigits: 6 }).format(
+          remainingQuota
+        );
+  const showGsrFormula =
+    gsrFactors &&
+    (quotaPercent === null || (!view.factorsRebuilt && row.base_weight !== undefined));
   const value = (amount: number | undefined) =>
     amount === undefined ? (
       '—'
@@ -342,13 +352,20 @@ function FactorCard({
               </span>
             ) : null}
           </dd>
+          {quotaPercent !== null && !showGsrFormula ? (
+            <>
+              <dt>{t('routing.strategy.term_remaining_quota')}</dt>
+              <dd>{quotaPercent}</dd>
+            </>
+          ) : null}
         </dl>
       ) : null}
 
       {view.smooth ? (
         <div className={styles.formula}>
-          {gsrFactors ? (
+          {showGsrFormula ? (
             <span className={styles.formulaLine}>
+              {quotaPercent !== null ? <span className={styles.op}>max(1, round(</span> : null}
               <span className={styles.term}>
                 {t('routing.strategy.term_base')} {value(row.base_weight)}
               </span>
@@ -356,9 +373,18 @@ function FactorCard({
               <span className={styles.term}>
                 {t('routing.strategy.term_tier')} {value(row.tier_multiplier)}
               </span>
+              {quotaPercent !== null ? (
+                <>
+                  <span className={styles.op}>×</span>
+                  <span className={styles.term}>
+                    {t('routing.strategy.term_remaining_quota')} <span>{quotaPercent}</span>
+                  </span>
+                  <span className={styles.op}>))</span>
+                </>
+              ) : null}
               <span className={styles.op}>+</span>
               <span className={styles.term}>
-                {t('routing.strategy.term_config')} {value(row.config_weight)}
+                {t('routing.strategy.term_config')} {value(row.config_weight ?? 0)}
               </span>
               <span className={styles.op}>=</span>
               <span className={cx(styles.term, styles.termResult)}>

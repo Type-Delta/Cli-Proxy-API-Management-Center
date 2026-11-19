@@ -38,6 +38,7 @@ const optional = <K extends string, V>(key: K, value: V | undefined) =>
 function normalizeWeight(raw: unknown, count: number): RoutingStrategyWeight | null {
   if (!isRecord(raw) || !validIndex(raw.index, count)) return null;
   const share = finite(raw.share);
+  const remaining = finite(raw.remaining_quota_fraction);
   return {
     index: raw.index,
     share: share === undefined ? 0 : Math.min(1, Math.max(0, share)),
@@ -52,6 +53,10 @@ function normalizeWeight(raw: unknown, count: number): RoutingStrategyWeight | n
     ...optional('tier', text(raw.tier)),
     ...optional('tier_multiplier', finite(raw.tier_multiplier)),
     ...optional('tier_source', text(raw.tier_source)),
+    ...optional(
+      'remaining_quota_fraction',
+      remaining !== undefined && remaining >= 0 && remaining <= 1 ? remaining : undefined
+    ),
   };
 }
 

@@ -100,7 +100,7 @@ export function buildStrategyView(trace: RoutingTrace | null | undefined): Strat
     // weight implies; recompute from the delay only when the weight cannot be inverted.
     const multiplier = weight.tier_multiplier ?? 1;
     const implied =
-      weight.weight !== undefined && multiplier > 0
+      weight.weight !== undefined && weight.remaining_quota_fraction === undefined && multiplier > 0
         ? (weight.weight - (weight.config_weight ?? 0)) / multiplier
         : NaN;
     const decay = Math.exp(-delayMs / halfLifeMs);

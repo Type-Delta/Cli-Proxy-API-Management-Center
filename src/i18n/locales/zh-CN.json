@@ -4462,6 +4462,7 @@
       "source_manual_reset": "来自手动重置",
       "source_signal": "来自 {{header}} 头",
       "term_base": "基础",
+      "term_remaining_quota": "剩余配额",
       "term_tier": "层级",
       "term_config": "配置",
       "term_weight": "权重",

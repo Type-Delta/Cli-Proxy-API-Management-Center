@@ -4462,6 +4462,7 @@
       "source_manual_reset": "из ручного сброса",
       "source_signal": "из заголовка {{header}}",
       "term_base": "база",
+      "term_remaining_quota": "остаток квоты",
       "term_tier": "уровень",
       "term_config": "конфиг",
       "term_weight": "вес",

@@ -4462,6 +4462,7 @@
       "source_manual_reset": "수동 초기화 기준",
       "source_signal": "{{header}} 헤더 기준",
       "term_base": "기본",
+      "term_remaining_quota": "남은 할당량",
       "term_tier": "등급",
       "term_config": "설정",
       "term_weight": "가중치",
