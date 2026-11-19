@@ -322,5 +322,7 @@ test('routing navigation uses links with the current page marked', () => {
     expect(html.match(/aria-current="page"/g)).toHaveLength(1);
     expect(html).not.toContain('<button');
     expect(html).not.toContain('aria-pressed');
+    // Each tab carries a 15px glyph, like the Usage tabs.
+    expect(html.match(/<svg[^>]*width="15"/g)).toHaveLength(3);
   }
 });

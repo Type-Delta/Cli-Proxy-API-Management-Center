@@ -15,6 +15,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { PageTransition } from '@/components/common/PageTransition';
+import { pageTransitionVariant } from '@/components/common/pageTransitionState';
 import { MainRoutes } from '@/router/MainRoutes';
 import { isPathAllowedForScope, isReadOnlyScope } from '@/router/sessionAccess';
 import { authFilesApi, capabilitiesApi, pluginsApi } from '@/services/api';
@@ -673,7 +674,8 @@ export function MainLayout() {
           icon: sidebarIcons.oauth,
         },
         {
-          path: '/routing',
+          // Read-only sessions can open only the dry run, so the entry lands there directly.
+          path: readOnly ? '/routing/dry-run' : '/routing',
           labelKey: 'nav.routing',
           metaKey: 'nav_meta.routing',
           icon: sidebarIcons.routing,
@@ -789,21 +791,6 @@ export function MainLayout() {
     );
     return nestedIndex === -1 ? null : nestedIndex;
   };
-
-  const getTransitionVariant = useCallback((fromPathname: string, toPathname: string) => {
-    const normalize = (pathname: string) => {
-      const trimmed =
-        pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
-      return trimmed === '/dashboard' ? '/' : trimmed;
-    };
-
-    const from = normalize(fromPathname);
-    const to = normalize(toPathname);
-    const isAuthFiles = (pathname: string) =>
-      pathname === '/auth-files' || pathname.startsWith('/auth-files/');
-    if (isAuthFiles(from) && isAuthFiles(to)) return 'ios';
-    return 'vertical';
-  }, []);
 
   const handleRefreshAll = async () => {
     clearCache();
@@ -1263,7 +1250,7 @@ export function MainLayout() {
                   <PageTransition
                     render={(routeLocation) => <MainRoutes location={routeLocation} />}
                     getRouteOrder={getRouteOrder}
-                    getTransitionVariant={getTransitionVariant}
+                    getTransitionVariant={pageTransitionVariant}
                     scrollContainerRef={contentRef}
                   />
                 </AnalyticsShell>

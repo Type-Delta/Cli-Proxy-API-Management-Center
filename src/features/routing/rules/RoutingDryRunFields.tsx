@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AutocompleteInput } from '@/components/ui/AutocompleteInput';
 import { buildRoutingBoard, routingApi } from '@/services/api/routing';
+import { isReadOnlyScope } from '@/router/sessionAccess';
 import { useAuthStore, useConfigStore } from '@/stores';
 import type { RoutingModelCatalog } from '@/types/routing';
 import { collectModelOptions, neededChannels, neededCredentialModels } from '../logic';
@@ -32,6 +33,7 @@ export function RoutingDryRunFields({
   const fieldId = useId();
   const apiBase = useAuthStore((state) => state.apiBase);
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
+  const readOnly = isReadOnlyScope(useAuthStore((state) => state.scope));
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
   const [models, setModels] = useState<string[]>([]);
 
@@ -40,12 +42,13 @@ export function RoutingDryRunFields({
     setModels([]);
     if (connectionStatus !== 'connected') return;
     const load = async () => {
-      const [config, credentials] = await Promise.all([
-        fetchConfig(),
+      // Read-only sessions cannot read the config, so they suggest credential models only.
+      const [raw, credentials] = await Promise.all([
+        readOnly ? {} : fetchConfig().then((config) => config.raw ?? {}),
         routingApi.listCredentials(),
       ]);
       if (cancelled) return;
-      const board = buildRoutingBoard(config.raw ?? {}, credentials);
+      const board = buildRoutingBoard(raw, credentials);
       const catalog: RoutingModelCatalog = { channels: {}, credentials: {} };
       const update = (kind: 'channels' | 'credentials', id: string, values: string[] | null) => {
         if (cancelled) return;
@@ -68,7 +71,7 @@ export function RoutingDryRunFields({
     return () => {
       cancelled = true;
     };
-  }, [apiBase, connectionStatus, fetchConfig]);
+  }, [apiBase, connectionStatus, fetchConfig, readOnly]);
   const set = (patch: Partial<RoutingDryRunInput>) => onChange({ ...value, ...patch });
 
   const keyOptions = [

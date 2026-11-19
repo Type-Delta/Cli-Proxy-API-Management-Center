@@ -5,8 +5,8 @@ import { ANALYTICS_PAGE_DEFINITIONS } from '@/features/analytics/navigation';
 export const READ_ONLY_HOME = '/';
 
 /**
- * Routes a read-only session may browse: dashboard, logs, live handle, system info, quota, and the analytics
- * usage/leaderboard views.
+ * Routes a read-only session may browse: dashboard, logs, live handle, system info, quota, the
+ * routing dry run, and the analytics usage/leaderboard views.
  */
 const READ_ONLY_PATHS = new Set<string>([
   READ_ONLY_HOME,
@@ -15,6 +15,7 @@ const READ_ONLY_PATHS = new Set<string>([
   '/live-handle',
   '/system',
   '/quota',
+  '/routing/dry-run',
   '/analytics',
   '/analytics/usage',
   '/analytics/leaderboard',

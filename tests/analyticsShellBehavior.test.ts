@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   isSamePageLocationUpdate,
   pageTransitionLayerKey,
+  pageTransitionVariant,
 } from '@/components/common/pageTransitionState';
 import { canClaimAnalyticsContent } from '@/features/analytics/analyticsShellState';
 
@@ -52,5 +53,18 @@ describe('analytics hash route transitions', () => {
       })
     ).toBe(true);
     expect(isSamePageLocationUpdate(current, current)).toBe(false);
+  });
+});
+
+describe('main layout transition variants', () => {
+  test('swaps sibling routing tabs in place instead of animating the page', () => {
+    expect(pageTransitionVariant('/routing/tiers', '/routing/dry-run')).toBe('none');
+    expect(pageTransitionVariant('/routing/rules/', '/routing/tiers')).toBe('none');
+  });
+
+  test('keeps page motion when entering or leaving routing', () => {
+    expect(pageTransitionVariant('/dashboard', '/routing/tiers')).toBe('vertical');
+    expect(pageTransitionVariant('/routing/rules', '/quota')).toBe('vertical');
+    expect(pageTransitionVariant('/auth-files', '/auth-files/oauth-excluded')).toBe('ios');
   });
 });

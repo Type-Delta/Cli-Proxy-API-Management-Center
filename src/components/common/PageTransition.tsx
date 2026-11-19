@@ -7,7 +7,11 @@ import {
   PageTransitionLayerContext,
   type LayerStatus,
 } from './PageTransitionLayer';
-import { isSamePageLocationUpdate, pageTransitionLayerKey } from './pageTransitionState';
+import {
+  isSamePageLocationUpdate,
+  pageTransitionLayerKey,
+  type TransitionVariant,
+} from './pageTransitionState';
 import './PageTransition.scss';
 
 interface PageTransitionProps {
@@ -63,8 +67,6 @@ type Layer = {
 };
 
 type TransitionDirection = 'forward' | 'backward';
-
-type TransitionVariant = 'vertical' | 'ios';
 
 export function PageTransition({
   render,
@@ -128,6 +130,10 @@ export function PageTransition({
     const nextVariant: TransitionVariant = getTransitionVariant
       ? getTransitionVariant(currentLayerPathname ?? '', location.pathname)
       : 'vertical';
+    if (nextVariant === 'none') {
+      setLayers([{ key: nextLayerKey, location, status: 'current' }]);
+      return;
+    }
 
     let nextDirection: TransitionDirection =
       fromIndex === null || toIndex === null || fromIndex === toIndex

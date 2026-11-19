@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
-import { useRevealGroup } from '@/hooks/motion';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import {
   RoutingConflictError,
@@ -76,7 +75,6 @@ export function RoutingPage() {
     cooldownClock.getSnapshot,
     cooldownClock.getSnapshot
   );
-  const revealRef = useRevealGroup<HTMLDivElement>();
   const layoutRef = useRef<HTMLDivElement>(null);
   const pageTransitionLayer = usePageTransitionLayer();
   // A page sliding out must not leave its portalled save bar behind.
@@ -380,11 +378,9 @@ export function RoutingPage() {
   const editingMember = weightEdit ? (members.get(weightEdit.key) ?? null) : null;
 
   return (
-    <div className={styles.page} ref={revealRef}>
+    <div className={styles.page}>
       <header className={styles.header}>
-        <h1 className={styles.title} data-reveal>
-          {t('routing.title')}
-        </h1>
+        <h1 className={styles.title}>{t('routing.title')}</h1>
       </header>
 
       <RoutingTabs value="credentials" />
