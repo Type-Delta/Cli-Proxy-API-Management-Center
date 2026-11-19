@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, test } from 'bun:test';
 import {
   consumeViewerCredential,
   exchangeViewerCredential,
@@ -13,6 +13,9 @@ import {
   viewerCredentialsMode,
 } from '@/features/analytics/views/viewer/viewerApi';
 import { apiClient } from '@/services/api/client';
+
+// apiClient is a process-wide singleton: leave the next test file the default empty base.
+afterEach(() => apiClient.setConfig({ apiBase: '', managementKey: '' }));
 
 describe('analytics viewer URLs', () => {
   const storage = () => {
