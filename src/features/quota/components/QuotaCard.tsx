@@ -149,8 +149,25 @@ export function QuotaCard(props: QuotaCardProps) {
     [quota, file.quotaReserveState]
   );
   const armed = file.manualResetArmed === true;
+  // Null while unknown (not loaded, loading, or unreadable), so only a read showing none hides Arm.
+  const resetsLeft =
+    entry.type === 'claude'
+      ? claudeReset.resetsLeft
+      : entry.type === 'codex' && status === 'success'
+        ? ((quota as CodexQuotaState).rateLimitResetCreditsAvailableCount ?? null)
+        : null;
+  // A pending claim keeps the pill so it can be retried.
+  const showClaudeReset =
+    entry.type === 'claude' &&
+    !readOnly &&
+    status !== 'idle' &&
+    (resetsLeft !== 0 || Boolean(claudeReset.pendingGrantId));
+  // An armed toggle always stays so it can be disarmed.
   const showArm =
-    !readOnly && Boolean(onToggleArm) && (entry.type === 'claude' || entry.type === 'codex');
+    !readOnly &&
+    Boolean(onToggleArm) &&
+    (entry.type === 'claude' || entry.type === 'codex') &&
+    (armed || resetsLeft !== 0);
   const quotaBody = displayQuota ? (
     <adapter.Body
       quota={displayQuota}
@@ -237,7 +254,7 @@ export function QuotaCard(props: QuotaCardProps) {
 
       {(status !== 'idle' || showArm) && (
         <footer className={styles.actionRow}>
-          {entry.type === 'claude' && !readOnly && status !== 'idle' && (
+          {showClaudeReset && (
             <button
               type="button"
               className={styles.actionPill}

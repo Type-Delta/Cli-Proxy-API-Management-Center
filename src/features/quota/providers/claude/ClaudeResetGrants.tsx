@@ -134,6 +134,10 @@ export function useClaudeResetGrants(
   };
   return {
     grants,
+    /** Resets left across every grant; null until the grant read lands. */
+    resetsLeft: status
+      ? status.grants.reduce((total, grant) => total + Math.max(grant.resetsLeft, 0), 0)
+      : null,
     loading: !status && !message && !pending,
     open,
     selected,

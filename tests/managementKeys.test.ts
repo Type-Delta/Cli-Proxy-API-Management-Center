@@ -413,7 +413,7 @@ describe('read-only UI gating', () => {
   test('quota hides spend/reset actions and history writes for read-only sessions', () => {
     const card = readFileSync('src/features/quota/components/QuotaCard.tsx', 'utf8');
     const page = readFileSync('src/features/quota/QuotaPage.tsx', 'utf8');
-    expect(card).toContain("entry.type === 'claude' && !readOnly");
+    expect(card).toContain("entry.type === 'claude' &&\n    !readOnly &&");
     expect(card).toContain('!readOnly &&\n    status === ');
     expect(page).toContain('readOnly={readOnly}');
     expect(page).toContain('readOnly ||\n      !historyAvailable');

@@ -31,9 +31,20 @@ describe('armed manual reset', () => {
       "armed ? 'quota_management.manual_reset_armed' : 'quota_management.manual_reset_arm'"
     );
     expect(card).not.toContain('aria-pressed');
-    expect(card).toContain(
-      "!readOnly && Boolean(onToggleArm) && (entry.type === 'claude' || entry.type === 'codex')"
+    expect(card).toMatch(
+      /!readOnly &&\s+Boolean\(onToggleArm\) &&\s+\(entry\.type === 'claude' \|\| entry\.type === 'codex'\) &&\s+\(armed \|\| resetsLeft !== 0\)/
     );
+    // Only a loaded read showing no resets hides Arm; unknown counts keep it.
+    expect(card).toContain('claudeReset.resetsLeft');
+    expect(card).toContain('rateLimitResetCreditsAvailableCount ?? null');
+    const grants = readFileSync(
+      'src/features/quota/providers/claude/ClaudeResetGrants.tsx',
+      'utf8'
+    );
+    expect(grants).toMatch(/resetsLeft: status\s+\?/);
+    // Reset limits hides on the same known-empty read, unless a claim awaits retry.
+    expect(card).toContain('(resetsLeft !== 0 || Boolean(claudeReset.pendingGrantId))');
+    expect(card).toContain('{showClaudeReset && (');
     // A failed read stays retryable without the pill: the error strip is the button.
     expect(card).toMatch(/<button\s+type="button"\s+className=\{styles\.errorStrip\}/);
   });
