@@ -4,14 +4,14 @@
  * - idle: the whole body is a click-to-load button (upstream reads are rate-limited, so
  *   nothing loads automatically);
  * - loading: dual ghost-row skeleton (aria-busy, with a visually hidden text equivalent);
- * - error: failure strip, and the footer refresh retries;
+ * - error: failure strip, itself the retry button;
  * - success: the provider Body (wearing the QuotaBody.module.scss page skin).
  * Claude observations remain visible while refreshing or after a failed read.
  */
 
-import { useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IconRefreshCw } from '@/components/ui/icons';
+import { IconRefreshCw, IconTimer } from '@/components/ui/icons';
 import type { ClaudeQuotaState, CodexQuotaState, ResolvedTheme } from '@/types';
 import { resolveQuotaErrorMessage } from '@/utils/quota';
 import { getQuotaDisplayName } from '@/utils/quota/identity';
@@ -23,8 +23,9 @@ import {
 } from '@/features/authFiles/constants';
 import { bindQuotaClasses } from '../types';
 import { QUOTA_ADAPTERS, type QuotaCardState } from '../providers';
-import { isQuotaRefreshDisabled, type QuotaFileEntry } from '../logic';
+import type { QuotaFileEntry } from '../logic';
 import { quotaReserveHitsById } from '../quotaReserve';
+import { withLockedReserves } from '../windowGating';
 import { useClaudeResetGrants } from '../providers/claude/ClaudeResetGrants';
 import { ClaudeResetGrantDialog } from '../providers/claude/ClaudeResetGrantDialog';
 import { ClaudeResetGrantDetails } from '../providers/claude/ClaudeResetGrantDetails';
@@ -50,8 +51,12 @@ export type QuotaCardProps = {
   entranceDelayMs?: number | null;
   /** Codex only: credentials in the panel sharing this account user's credit setting. */
   creditOverageSharedCount?: number;
+  /** An arm/disarm write for this credential is in flight. */
+  arming?: boolean;
   onRefresh: () => void;
   onReset: () => void;
+  /** Claude/Codex: flips the credential's armed manual reset. */
+  onToggleArm?: () => void;
 };
 
 export function QuotaCard(props: QuotaCardProps) {
@@ -64,8 +69,10 @@ export function QuotaCard(props: QuotaCardProps) {
     resetting,
     entranceDelayMs,
     creditOverageSharedCount = 1,
+    arming = false,
     onRefresh,
     onReset,
+    onToggleArm,
   } = props;
   const { t } = useTranslation();
   const adapter = QUOTA_ADAPTERS[entry.type];
@@ -136,9 +143,17 @@ export function QuotaCard(props: QuotaCardProps) {
         )}
       </>
     ) : undefined;
-  const quotaBody = quota ? (
+  // Display-only: hooks above keep the stored quota so its identity still drives their effects.
+  const displayQuota = useMemo(
+    () => withLockedReserves(quota, file.quotaReserveState),
+    [quota, file.quotaReserveState]
+  );
+  const armed = file.manualResetArmed === true;
+  const showArm =
+    !readOnly && Boolean(onToggleArm) && (entry.type === 'claude' || entry.type === 'codex');
+  const quotaBody = displayQuota ? (
     <adapter.Body
-      quota={quota}
+      quota={displayQuota}
       classes={quotaClasses}
       credential={{ displayName }}
       trailingMeta={claudeResetMeta}
@@ -196,9 +211,17 @@ export function QuotaCard(props: QuotaCardProps) {
             ))}
           </div>
         ) : status === 'error' ? (
-          <div className={styles.errorStrip} role="alert">
-            {t(`${adapter.i18nPrefix}.load_failed`, { message: errorMessage })}
-          </div>
+          <button
+            type="button"
+            className={styles.errorStrip}
+            onClick={onRefresh}
+            disabled={!canRefresh || resetting || claudeReset.busy}
+            title={t('auth_files.quota_refresh_hint')}
+          >
+            <span role="alert">
+              {t(`${adapter.i18nPrefix}.load_failed`, { message: errorMessage })}
+            </span>
+          </button>
         ) : quota && !retainedClaudeUsage ? (
           quotaBody
         ) : !retainedClaudeUsage ? (
@@ -212,9 +235,9 @@ export function QuotaCard(props: QuotaCardProps) {
         {retainedClaudeUsage && quotaBody}
       </div>
 
-      {status !== 'idle' && (
+      {(status !== 'idle' || showArm) && (
         <footer className={styles.actionRow}>
-          {entry.type === 'claude' && !readOnly && (
+          {entry.type === 'claude' && !readOnly && status !== 'idle' && (
             <button
               type="button"
               className={styles.actionPill}
@@ -239,16 +262,24 @@ export function QuotaCard(props: QuotaCardProps) {
               {t('codex_quota.reset_button')}
             </button>
           )}
-          <button
-            type="button"
-            className={styles.actionPill}
-            onClick={onRefresh}
-            disabled={isQuotaRefreshDisabled(canRefresh, loading, resetting || claudeReset.busy)}
-            title={t('auth_files.quota_refresh_hint')}
-          >
-            <IconRefreshCw size={13} className={loading ? styles.spinning : undefined} />
-            {t('auth_files.quota_refresh_single')}
-          </button>
+          {showArm && (
+            <button
+              type="button"
+              className={`${styles.actionPill} ${armed ? styles.actionPillArmed : ''}`}
+              onClick={onToggleArm}
+              disabled={!canRefresh || arming}
+              title={t(
+                armed
+                  ? 'quota_management.manual_reset_armed_hint'
+                  : 'quota_management.manual_reset_arm_hint'
+              )}
+            >
+              <IconTimer size={13} />
+              {t(
+                armed ? 'quota_management.manual_reset_armed' : 'quota_management.manual_reset_arm'
+              )}
+            </button>
+          )}
         </footer>
       )}
       {entry.type === 'claude' && (

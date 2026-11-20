@@ -27,6 +27,8 @@ export type AuthFileLookup = { name: string; authIndex?: string };
 type AuthFileEntry = AuthFilesResponse['files'][number];
 export type AuthFileFieldsPatch = {
   label?: string;
+  /** null disarms; only Claude and Codex credentials accept true. */
+  manual_reset_armed?: boolean | null;
   request_retry?: number | null;
   model_aliases?: Array<{
     name: string;
@@ -292,7 +294,10 @@ const normalizeAuthFileEntry = (
   const modified = readDateField(entry);
   const priority = readIntegerField(entry['priority']);
   const weight = readIntegerField(entry['weight']);
-  const normalizedQuotaReserveState = normalizeQuotaReserveState(entry.quota_reserve_state);
+  const normalizedQuotaReserveState = normalizeQuotaReserveState(
+    entry.quota_reserve_state,
+    entry.quota_reserve_bypassable
+  );
   const supportsQuota = readBooleanField(entry['supports_quota'] ?? entry.supportsQuota);
   const quotaProvider =
     readTextField(entry, 'quota_provider') || readTextField(entry, 'quotaProvider');
@@ -331,6 +336,7 @@ const normalizeAuthFileEntry = (
       ? { quotaReserveBypassKeys: normalizeQuotaReserveBypassKeys(entry.quota_reserve_bypass_keys) }
       : {}),
     ...(normalizedQuotaReserveState ? { quotaReserveState: normalizedQuotaReserveState } : {}),
+    ...(entry.manual_reset_armed === true ? { manualResetArmed: true } : {}),
     ...(pricingCatalog ? { pricingCatalog } : {}),
   };
 };

@@ -6,7 +6,6 @@ import {
   classifyQuotaFiles,
   filterEntriesByTab,
   filterEntriesBySearch,
-  isQuotaRefreshDisabled,
   paginate,
   resolveQuotaProviderType,
   sortQuotaEntries,
@@ -172,13 +171,6 @@ describe('filterEntriesBySearch', () => {
     expect(paginate(filterEntriesBySearch(all, 'missing'), 1, QUOTA_PAGE_SIZE).pageItems).toEqual(
       []
     );
-  });
-});
-
-describe('isQuotaRefreshDisabled', () => {
-  test('blocks a single-card refresh while the same quota is resetting', () => {
-    expect(isQuotaRefreshDisabled(true, false, true)).toBe(true);
-    expect(isQuotaRefreshDisabled(true, false, false)).toBe(false);
   });
 });
 

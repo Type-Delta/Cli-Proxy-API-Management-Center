@@ -86,7 +86,14 @@ export function ZaiQuotaBody({
                 resetRelative: resetDisplay?.relative,
                 resetAtMs: row.resetAtMs,
                 plan: level,
-                hint: [creditsLabel, quotaWindowTitle(t, { soon, disabled: row.disabled })]
+                hint: [
+                  creditsLabel,
+                  quotaWindowTitle(t, {
+                    soon,
+                    disabled: row.disabled,
+                    reserveLocked: row.reserveLocked,
+                  }),
+                ]
                   .filter(Boolean)
                   .join(' · '),
                 reserve: quotaReserveTooltip(

@@ -21,6 +21,8 @@ export type QuotaReserveState = {
   untilMs?: number | null;
   hits: QuotaReserveHit[];
   checkedAtMs?: number | null;
+  /** False when no configured client key can bypass the hold; absent from older backends. */
+  bypassable?: boolean;
 };
 
 export type QuotaReserveBar = {
@@ -255,7 +257,11 @@ export const extractQuotaCapBars = (
   });
 };
 
-export const normalizeQuotaReserveState = (value: unknown): QuotaReserveState | null => {
+/** `bypassable` is the entry-level quota_reserve_bypassable flag CPA lists beside the state. */
+export const normalizeQuotaReserveState = (
+  value: unknown,
+  bypassable?: unknown
+): QuotaReserveState | null => {
   if (!isRecord(value)) return null;
   const hits = Array.isArray(value.hits)
     ? value.hits.flatMap((rawHit): QuotaReserveHit[] => {
@@ -285,11 +291,12 @@ export const normalizeQuotaReserveState = (value: unknown): QuotaReserveState | 
     untilMs: parseTimestampMs(value.until),
     hits,
     checkedAtMs: parseTimestampMs(value.checked_at ?? value.checkedAt),
+    ...(typeof bypassable === 'boolean' ? { bypassable } : {}),
   };
 };
 
 export const readQuotaReserveState = (value: Record<string, unknown>): QuotaReserveState | null =>
-  normalizeQuotaReserveState(value.quota_reserve_state);
+  normalizeQuotaReserveState(value.quota_reserve_state, value.quota_reserve_bypassable);
 
 export const quotaReserveHitForBar = (
   state: QuotaReserveState | null | undefined,

@@ -25,7 +25,7 @@ import {
   resolveResetMs,
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
-import { blockedQuotaWindowIds } from '../../windowGating';
+import { gateQuotaWindows } from '../../windowGating';
 import type { QuotaFetchOptions, QuotaProviderData } from '../types';
 
 export const ZAI_USAGE_URL = 'https://api.z.ai/api/monitor/usage/quota/limit';
@@ -114,8 +114,7 @@ export function buildZaiQuotaWindows(payload: ZaiQuotaPayload): ZaiQuotaWindow[]
     };
   });
   const ids = windows.map((window) => window.id);
-  const blocked = blockedQuotaWindowIds(windows, [{ blockers: ids, members: ids }]);
-  return windows.map((window) => (blocked.has(window.id) ? { ...window, disabled: true } : window));
+  return gateQuotaWindows(windows, [{ blockers: ids, members: ids }]);
 }
 
 /** Plan tier reported alongside the windows. */

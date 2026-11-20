@@ -1,5 +1,5 @@
 /**
- * 单卡额度操作：刷新 + Codex 重置积分。
+ * Per-card quota actions: refresh, Codex reset credits, and the armed manual reset toggle.
  * 流程 1:1 移植旧 QuotaSection（confirm modal、resetting 再入守卫、
  * generation-guarded commit、成功/失败通知），仅把 config 换成 adapter。
  */
@@ -11,6 +11,8 @@ import {
   commitIfQuotaCacheCurrent,
   useNotificationStore,
 } from '@/stores';
+import { authFilesApi } from '@/services/api';
+import { apiClient } from '@/services/api/client';
 import type { AuthFileItem } from '@/types';
 import { getStatusFromError } from '@/utils/quota';
 import { getQuotaCacheKey } from '@/utils/quota/identity';
@@ -69,8 +71,9 @@ export function useQuotaActions(disableControls: boolean) {
     [disableControls, resettingQuotaName, showNotification, t]
   );
 
+  /** `onSettled` runs after a confirmed reset finishes, whatever its outcome. */
   const resetQuota = useCallback(
-    (file: AuthFileItem, adapter: QuotaAdapter) => {
+    (file: AuthFileItem, adapter: QuotaAdapter, onSettled?: () => void) => {
       const resetQuotaFn = adapter.resetQuota;
       if (!resetQuotaFn) return;
       if (disableControls || file.disabled) return;
@@ -106,6 +109,7 @@ export function useQuotaActions(disableControls: boolean) {
             });
           } finally {
             setResettingQuotaName((current) => (current === cacheKey ? null : current));
+            onSettled?.();
           }
         },
       });
@@ -113,5 +117,43 @@ export function useQuotaActions(disableControls: boolean) {
     [disableControls, resettingQuotaName, showConfirmation, showNotification, t]
   );
 
-  return { resettingQuotaName, refreshQuota, resetQuota };
+  const [armingQuotaName, setArmingQuotaName] = useState<string | null>(null);
+
+  /** Flips a Claude/Codex armed manual reset; resolves to the stored state, or null on failure. */
+  const toggleManualResetArm = useCallback(
+    async (file: AuthFileItem): Promise<boolean | null> => {
+      if (disableControls) return null;
+      const armed = file.manualResetArmed !== true;
+      const revision = apiClient.getConnectionRevision();
+      setArmingQuotaName(file.name);
+      try {
+        await authFilesApi.patchFields(file.name, { manual_reset_armed: armed ? true : null });
+        // A replacement connection lists its own credentials; never patch them from here.
+        if (revision !== apiClient.getConnectionRevision()) return null;
+        showNotification(
+          t(
+            armed
+              ? 'quota_management.manual_reset_arm_success'
+              : 'quota_management.manual_reset_disarm_success',
+            { name: file.name }
+          ),
+          'success'
+        );
+        return armed;
+      } catch (err: unknown) {
+        if (revision !== apiClient.getConnectionRevision()) return null;
+        const message = err instanceof Error ? err.message : t('common.unknown_error');
+        showNotification(
+          t('quota_management.manual_reset_arm_failed', { name: file.name, message }),
+          'error'
+        );
+        return null;
+      } finally {
+        setArmingQuotaName((current) => (current === file.name ? null : current));
+      }
+    },
+    [disableControls, showNotification, t]
+  );
+
+  return { resettingQuotaName, armingQuotaName, refreshQuota, resetQuota, toggleManualResetArm };
 }

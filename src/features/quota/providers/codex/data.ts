@@ -40,7 +40,7 @@ import {
   isDisabledAuthFile,
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
-import { blockedQuotaWindowIds, type QuotaWindowFamily } from '../../windowGating';
+import { gateQuotaWindows, type QuotaWindowFamily } from '../../windowGating';
 import type { QuotaFetchOptions, QuotaProviderData } from '../types';
 
 const CODEX_OPTIONAL_REQUEST_TIMEOUT_MS = 8000;
@@ -307,8 +307,7 @@ export const buildCodexQuotaWindows = (
     });
   }
 
-  const blocked = blockedQuotaWindowIds(windows, windowFamilies);
-  return windows.map((window) => (blocked.has(window.id) ? { ...window, disabled: true } : window));
+  return gateQuotaWindows(windows, windowFamilies);
 };
 
 export const normalizeCodexAccountCredits = (

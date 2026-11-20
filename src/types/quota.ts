@@ -196,7 +196,17 @@ export interface ClaudeProfileResponse {
   };
 }
 
-export interface ClaudeQuotaWindow {
+/** Availability of one quota window; see features/quota/windowGating. */
+export interface QuotaWindowGate {
+  /** Unusable right now: a window it depends on is spent or reserve-locked. */
+  disabled?: boolean;
+  /** Ids of the windows whose exhaustion makes this one unusable (itself included when it gates). */
+  gatedBy?: string[];
+  /** Held by a quota reserve that no configured client key can bypass. */
+  reserveLocked?: boolean;
+}
+
+export interface ClaudeQuotaWindow extends QuotaWindowGate {
   id: string;
   label: string;
   labelKey?: string;
@@ -287,7 +297,7 @@ export interface PluginQuotaState extends AntigravityQuotaState {
   summary: PluginQuotaMetric[];
 }
 
-export interface CodexQuotaWindow {
+export interface CodexQuotaWindow extends QuotaWindowGate {
   id: string;
   label: string;
   labelKey?: string;
@@ -359,7 +369,7 @@ export interface DevinQuotaState extends DevinQuotaData {
 }
 
 /** One AWS CodeWhisperer allowance, billed as requests or credits. */
-export interface KiroQuotaWindow {
+export interface KiroQuotaWindow extends QuotaWindowGate {
   id: string;
   labelKey?: string;
   resourceType: string;
@@ -601,7 +611,7 @@ export interface ZaiQuotaPayload {
   success?: boolean;
 }
 
-export interface ZaiQuotaWindow {
+export interface ZaiQuotaWindow extends QuotaWindowGate {
   id: string;
   label?: string;
   labelKey?: string;
@@ -645,7 +655,7 @@ export interface OpenCodeGoQuotaPayload {
   usage?: OpenCodeGoQuotaUsage | null;
 }
 
-export interface OpenCodeGoQuotaWindow {
+export interface OpenCodeGoQuotaWindow extends QuotaWindowGate {
   id: string;
   labelKey: string;
   /** Used share of the window, 0–100; null when the payload omitted it. */

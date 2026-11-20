@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { IconRefreshCw } from '@/components/ui/icons';
 import { bindQuotaClasses } from '@/features/quota/types';
 import { quotaReserveHitsById } from '@/features/quota/quotaReserve';
+import { withLockedReserves } from '@/features/quota/windowGating';
 import { QUOTA_ADAPTERS, type QuotaCardState } from '@/features/quota/providers';
 import { hasClaudeUsageData } from '@/features/quota/providers/claude/data';
 import styles from './AuthFileQuota.module.scss';
@@ -198,7 +199,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
 
   const quotaBody = quota ? (
     <adapter.Body
-      quota={quota}
+      quota={withLockedReserves(quota, file.quotaReserveState)}
       classes={compactQuotaClasses}
       credential={{ displayName: getQuotaDisplayName(file) }}
       quotaReserves={file.quotaReserves}

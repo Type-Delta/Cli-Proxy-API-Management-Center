@@ -333,17 +333,37 @@
 
 /* ---------- error ---------- */
 
+/* A button: with no per-row refresh pill, the failure itself is the retry target. */
 .errorStrip {
   flex: 1 1 100%;
   align-self: center;
+  font: inherit;
   font-size: 11.5px;
   line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
   color: var(--viz-failure);
   background: color-mix(in srgb, var(--viz-failure) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--viz-failure) 32%, transparent);
   border-radius: 9px;
   padding: 8px 10px;
   overflow-wrap: anywhere;
+  transition: background-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .errorStrip:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--viz-failure) 14%, transparent);
+  }
 }
 
 /* ---------- Right-side actions ---------- */
@@ -397,10 +417,22 @@
   }
 }
 
+/* Armed manual reset: a latched toggle in amber, the theme's "pending action" tone, so it
+ * reads as on at a glance (the neutral primary tint would read as disabled). */
+.actionPillArmed {
+  color: var(--amber-color);
+  background: color-mix(in srgb, var(--amber-color) 14%, transparent);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .actionPill:hover:not(:disabled) {
     background: color-mix(in srgb, var(--text-primary) 9%, transparent);
     color: var(--text-primary);
+  }
+
+  .actionPillArmed:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--amber-color) 22%, transparent);
+    color: var(--amber-color);
   }
 }
 

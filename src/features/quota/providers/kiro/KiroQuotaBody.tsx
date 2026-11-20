@@ -8,6 +8,7 @@ import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import { formatQuotaPercent } from '../../quotaSummary';
 import { quotaReserveTooltip } from '../../quotaReserve';
+import { quotaWindowTitle } from '../../windowGating';
 import { buildQuotaRowTitle, type QuotaBodyProps } from '../../types';
 
 const formatRequests = (value: number): string => Number(value.toFixed(2)).toString();
@@ -98,7 +99,11 @@ export function KiroQuotaBody({
                   resetRelative: reset?.relative,
                   resetAtMs: window.resetAtMs,
                   plan: quota.subscription?.title,
-                  hint: soon ? t('quota_management.soonest_row_hint') : undefined,
+                  hint: quotaWindowTitle(t, {
+                    soon,
+                    disabled: window.disabled,
+                    reserveLocked: window.reserveLocked,
+                  }),
                   reserve: quotaReserveTooltip(
                     t,
                     quotaReserves?.[window.id],
@@ -126,6 +131,7 @@ export function KiroQuotaBody({
                   classes={classes}
                   index={index}
                   label={label}
+                  disabled={window.disabled}
                   reservePercent={quotaReserves?.[window.id]}
                 />
                 <div className={classes.quotaAmount}>

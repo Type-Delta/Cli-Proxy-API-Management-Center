@@ -432,4 +432,97 @@ describe('plan allowance ratios', () => {
   test('keeps unknown ids unknown rather than inventing an Ultra API id', () => {
     expect(historyPlanValue('claude', 'ultra')).toBeNull();
   });
+
+  test('counts a reserve nobody can bypass as blocking until its reset', () => {
+    const held = (bypassable: boolean): QuotaFileEntry => ({
+      ...entry('a.json', 'codex'),
+      file: {
+        name: 'a.json',
+        type: 'codex',
+        quotaReserves: { weekly: 30 },
+        quotaReserveState: {
+          hits: [{ barId: 'weekly', reservePercent: 30, remainingPercent: 20, resetAtMs: 9000 }],
+          bypassable,
+        },
+      },
+    });
+    const quota = {
+      status: 'success' as const,
+      planType: 'pro',
+      windows: [
+        {
+          id: 'five-hour',
+          label: '5h',
+          usedPercent: 10,
+          resetAtMs: 1000,
+          gatedBy: ['five-hour', 'weekly'],
+        },
+        {
+          id: 'weekly',
+          label: 'Weekly',
+          usedPercent: 80,
+          resetAtMs: 9000,
+          gatedBy: ['five-hour', 'weekly'],
+        },
+      ],
+    };
+    const [locked] = aggregateQuotaSummaries([held(false)], () => quota);
+    expect(locked.unblockAtMs).toBe(9000);
+    expect(locked.lines.every((line) => line.disabled)).toBeTrue();
+    const [bypassable] = aggregateQuotaSummaries([held(true)], () => quota);
+    expect(bypassable.unblockAtMs).toBeNull();
+    expect(bypassable.lines.some((line) => line.disabled)).toBeFalse();
+  });
+
+  test('greys a reserve-locked Kiro line, which has no gating metadata', () => {
+    const kiro: QuotaFileEntry = {
+      ...entry('k.json', 'kiro'),
+      file: {
+        name: 'k.json',
+        type: 'kiro',
+        quotaReserveState: {
+          hits: [
+            {
+              barId: 'kiro-requests',
+              reservePercent: 30,
+              remainingPercent: 20,
+              resetAtMs: 1_700_000_000_000,
+            },
+          ],
+          bypassable: false,
+        },
+      },
+    };
+    const quota = {
+      status: 'success' as const,
+      subscription: null,
+      windows: [
+        { id: 'kiro-requests', currentUsage: 80, usageLimit: 100, resetAtMs: 1_700_000_000_000 },
+      ],
+    };
+    const [summary] = aggregateQuotaSummaries([kiro], () => quota as never);
+    expect(summary.lines[0]?.disabled).toBeTrue();
+    expect(summary.unblockAtMs).toBe(1_700_000_000_000);
+  });
+
+  test('a locked hold unblocks at the reset CPA reports for the hold', () => {
+    const file = (resetAtMs: number) => ({
+      ...entry('h.json', 'zai'),
+      file: {
+        name: 'h.json',
+        type: 'zai',
+        quotaReserveState: {
+          hits: [{ barId: 'zai-week-1', reservePercent: 30, remainingPercent: 20, resetAtMs }],
+          bypassable: false,
+        },
+      },
+    });
+    // The cached quota still carries an older reset than the hold CPA reports now.
+    const quota = {
+      status: 'success' as const,
+      windows: [{ id: 'zai-week-1', usedPercent: 80, resetAtMs: 1_700_000_000_000 }],
+    };
+    const [summary] = aggregateQuotaSummaries([file(1_700_003_600_000)], () => quota as never);
+    expect(summary.unblockAtMs).toBe(1_700_003_600_000);
+  });
 });

@@ -203,7 +203,11 @@ export function ClaudeQuotaBody({
                   resetRelative: resetDisplay?.relative,
                   resetAtMs: window.resetAtMs,
                   plan: planType ? t(`claude_quota.${planType}`) : null,
-                  hint: quotaWindowTitle(t, { soon, disabled: window.disabled }),
+                  hint: quotaWindowTitle(t, {
+                    soon,
+                    disabled: window.disabled,
+                    reserveLocked: window.reserveLocked,
+                  }),
                   reserve: quotaReserveTooltip(
                     t,
                     quotaReserves?.[window.id],

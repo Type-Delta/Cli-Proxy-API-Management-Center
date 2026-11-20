@@ -8,6 +8,7 @@
  */
 
 import type { TFunction } from 'i18next';
+import type { AuthFileQuotaReserveState, QuotaWindowGate } from '@/types';
 
 export type GatedQuotaWindow = {
   id: string;
@@ -47,14 +48,75 @@ export function blockedQuotaWindowIds(
 }
 
 /**
+ * Marks every window `disabled` that a spent blocker gates, and records each window's blockers in
+ * `gatedBy` so `withLockedReserves` can later gate it on a reserve the same way.
+ */
+export function gateQuotaWindows<T extends GatedQuotaWindow>(
+  windows: readonly T[],
+  families: readonly QuotaWindowFamily[]
+): (T & QuotaWindowGate)[] {
+  const blocked = blockedQuotaWindowIds(windows, families);
+  return windows.map((window) => {
+    const gatedBy = [
+      ...new Set(
+        families
+          .filter((family) => family.members.includes(window.id))
+          .flatMap((family) => family.blockers)
+      ),
+    ];
+    return {
+      ...window,
+      ...(gatedBy.length ? { gatedBy } : {}),
+      ...(blocked.has(window.id) ? { disabled: true } : {}),
+    };
+  });
+}
+
+/**
+ * Bars held by a reserve that no configured client key can bypass, mapped to when CPA says the
+ * hold ends (null when unknown); empty when any key can bypass.
+ */
+export const lockedReserveBarIds = (
+  state: AuthFileQuotaReserveState | null | undefined
+): Map<string, number | null> =>
+  new Map(
+    state?.bypassable === false
+      ? state.hits.map((hit) => [hit.barId, hit.resetAtMs ?? null] as const)
+      : []
+  );
+
+/**
+ * Treats a reserve nobody can bypass like a spent window: from every client's view that allowance
+ * is gone until the bar resets. The held window becomes `reserveLocked`, and it and every window it
+ * gates become `disabled`. Returns `quota` itself when nothing is locked, so memoized renders hold.
+ */
+export function withLockedReserves<Q>(
+  quota: Q,
+  state: AuthFileQuotaReserveState | null | undefined
+): Q {
+  const locked = lockedReserveBarIds(state);
+  const windows = (quota as { windows?: unknown } | undefined)?.windows;
+  if (locked.size === 0 || !Array.isArray(windows)) return quota;
+  let changed = false;
+  const next = (windows as ({ id: string } & QuotaWindowGate)[]).map((window) => {
+    const reserveLocked = locked.has(window.id);
+    if (!reserveLocked && !window.gatedBy?.some((id) => locked.has(id))) return window;
+    changed = true;
+    return { ...window, disabled: true, ...(reserveLocked ? { reserveLocked } : {}) };
+  });
+  return changed ? { ...quota, windows: next } : quota;
+}
+
+/**
  * Tooltip for one quota row. An imminent reset is the more actionable fact, so it wins over the
- * blocked note; a row that is neither urgent nor blocked gets no tooltip at all.
+ * blocked notes; a row that is neither urgent nor blocked gets no tooltip at all.
  */
 export function quotaWindowTitle(
   t: TFunction,
-  row: { soon: boolean; disabled?: boolean }
+  row: { soon: boolean } & QuotaWindowGate
 ): string | undefined {
   if (row.soon) return t('quota_management.soonest_row_hint');
+  if (row.reserveLocked) return t('quota_management.window_reserve_locked_hint');
   if (row.disabled) return t('quota_management.window_blocked_hint');
   return undefined;
 }

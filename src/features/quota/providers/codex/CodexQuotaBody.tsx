@@ -221,7 +221,11 @@ export function CodexQuotaBody({
                   resetRelative: resetDisplay?.relative,
                   resetAtMs: window.resetAtMs,
                   plan: planLabel,
-                  hint: quotaWindowTitle(t, { soon, disabled: window.disabled }),
+                  hint: quotaWindowTitle(t, {
+                    soon,
+                    disabled: window.disabled,
+                    reserveLocked: window.reserveLocked,
+                  }),
                   reserve: quotaReserveTooltip(
                     t,
                     quotaReserves?.[window.id],

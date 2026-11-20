@@ -19,7 +19,7 @@ import {
   resolveResetMs,
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
-import { blockedQuotaWindowIds } from '../../windowGating';
+import { gateQuotaWindows } from '../../windowGating';
 import type { QuotaFetchOptions, QuotaProviderData } from '../types';
 
 export const OPENCODE_GO_USAGE_URL = 'https://opencode.ai/zen/go/v1/usage';
@@ -94,8 +94,11 @@ export function buildOpenCodeGoQuotaWindows(
   const gatedWindows = windows.map((window) =>
     exhaustedIds.has(window.id) ? { ...window, usedPercent: 100 } : window
   );
-  const blocked = blockedQuotaWindowIds(gatedWindows, [{ blockers: ids, members: ids }]);
-  return windows.map((window) => (blocked.has(window.id) ? { ...window, disabled: true } : window));
+  // Gate on the exhausted reading, but keep each window's reported usage for display.
+  return gateQuotaWindows(gatedWindows, [{ blockers: ids, members: ids }]).map((window, index) => ({
+    ...window,
+    usedPercent: windows[index].usedPercent,
+  }));
 }
 
 const fetchOpenCodeGoQuota = async (

@@ -291,7 +291,64 @@ export function QuotaPage() {
   /* ---------- Loading and actions ---------- */
 
   const { batchLoading, loadQuota } = useQuotaBatchLoader();
-  const { resettingQuotaName, refreshQuota, resetQuota } = useQuotaActions(disableControls);
+  const { resettingQuotaName, armingQuotaName, refreshQuota, resetQuota, toggleManualResetArm } =
+    useQuotaActions(disableControls);
+  // Bumped by every arm toggle, so a listing requested before one cannot undo it.
+  const armTogglesRef = useRef(0);
+  const handleToggleArm = useCallback(
+    async (file: AuthFileItem) => {
+      const armed = await toggleManualResetArm(file);
+      if (armed === null) return;
+      armTogglesRef.current += 1;
+      setFiles((current) =>
+        current.map((item) =>
+          item.name === file.name ? { ...item, manualResetArmed: armed || undefined } : item
+        )
+      );
+    },
+    [toggleManualResetArm]
+  );
+
+  // CPA changes reserve holds and armed resets on its own (a quota read can create or clear a
+  // hold; an armed reset disarms once it fires). Merge just that state in, without a reload.
+  const syncCredentialState = useCallback(async () => {
+    if (connectionStatus !== 'connected') return;
+    const armToggles = armTogglesRef.current;
+    try {
+      const data = await authFilesApi.list();
+      if (sessionGeneration !== useQuotaStore.getState().cacheGeneration) return;
+      const armCurrent = armToggles === armTogglesRef.current;
+      const byName = new Map((data?.files ?? []).map((file) => [file.name, file]));
+      setFiles((current) =>
+        current.map((file) => {
+          const next = byName.get(file.name);
+          return next
+            ? {
+                ...file,
+                quotaReserveState: next.quotaReserveState,
+                manualResetArmed: armCurrent ? next.manualResetArmed : file.manualResetArmed,
+              }
+            : file;
+        })
+      );
+    } catch {
+      // Best effort: the next read or refresh syncs again.
+    }
+  }, [connectionStatus, sessionGeneration]);
+
+  const prevBatchLoadingRef = useRef(batchLoading);
+  useEffect(() => {
+    const finished = prevBatchLoadingRef.current && !batchLoading;
+    prevBatchLoadingRef.current = batchLoading;
+    if (finished) void syncCredentialState();
+  }, [batchLoading, syncCredentialState]);
+
+  const anyArmed = files.some((file) => file.manualResetArmed === true);
+  useEffect(() => {
+    if (!anyArmed) return;
+    const timer = window.setInterval(() => void syncCredentialState(), 60_000);
+    return () => window.clearInterval(timer);
+  }, [anyArmed, syncCredentialState]);
 
   const pendingRefreshRef = useRef<number | null>(null);
   const prevLoadingRef = useRef(loading);
@@ -599,8 +656,16 @@ export function QuotaPage() {
                     ? codexCreditOverageCounts.get(codexCreditOverageKey(entry.file) ?? '')
                     : undefined
                 }
-                onRefresh={() => void refreshQuota(entry.file, QUOTA_ADAPTERS[entry.type])}
-                onReset={() => resetQuota(entry.file, QUOTA_ADAPTERS[entry.type])}
+                onRefresh={() =>
+                  void refreshQuota(entry.file, QUOTA_ADAPTERS[entry.type]).then(
+                    syncCredentialState
+                  )
+                }
+                onReset={() =>
+                  resetQuota(entry.file, QUOTA_ADAPTERS[entry.type], syncCredentialState)
+                }
+                arming={armingQuotaName === entry.file.name}
+                onToggleArm={() => void handleToggleArm(entry.file)}
               />
             ))}
           </div>

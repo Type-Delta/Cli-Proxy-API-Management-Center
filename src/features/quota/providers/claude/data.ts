@@ -32,7 +32,7 @@ import {
   isDisabledAuthFile,
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
-import { blockedQuotaWindowIds } from '../../windowGating';
+import { gateQuotaWindows } from '../../windowGating';
 import type { QuotaFetchOptions, QuotaProviderData } from '../types';
 
 export type ClaudeQuotaData = {
@@ -136,10 +136,7 @@ export const buildClaudeQuotaWindows = (
   const blockers = CLAUDE_BASE_WINDOW_IDS.filter((id) =>
     windows.some((window) => window.id === id)
   );
-  const blocked = blockedQuotaWindowIds(windows, [
-    { blockers, members: windows.map((window) => window.id) },
-  ]);
-  return windows.map((window) => (blocked.has(window.id) ? { ...window, disabled: true } : window));
+  return gateQuotaWindows(windows, [{ blockers, members: windows.map((window) => window.id) }]);
 };
 
 const normalizeFlagValue = (value: unknown): boolean | undefined => {

@@ -42,6 +42,8 @@ export interface AuthFileQuotaReserveState {
   untilMs?: number | null;
   hits: AuthFileQuotaReserveHit[];
   checkedAtMs?: number | null;
+  /** False when no configured client key is on the bypass list; absent from older backends. */
+  bypassable?: boolean;
 }
 
 export interface AuthFileCooldownSnapshot {
@@ -67,6 +69,8 @@ export interface AuthFileItem {
   quotaReserveBypassKeys?: string[];
   /** Present only while the credential is currently reserved. */
   quotaReserveState?: AuthFileQuotaReserveState;
+  /** Claude/Codex: CPA spends one manual reset when this credential gets blocked. */
+  manualResetArmed?: boolean;
   /** Pricing catalog provider identifier returned by the backend. */
   pricingCatalog?: string;
   siwcBindSupported?: boolean;

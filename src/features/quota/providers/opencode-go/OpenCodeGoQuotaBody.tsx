@@ -64,7 +64,11 @@ export function OpenCodeGoQuotaBody({
                 resetRelative: resetDisplay?.relative,
                 resetAtMs: row.resetAtMs,
                 plan: t('opencode_go_quota.plan_value'),
-                hint: quotaWindowTitle(t, { soon, disabled: row.disabled }),
+                hint: quotaWindowTitle(t, {
+                  soon,
+                  disabled: row.disabled,
+                  reserveLocked: row.reserveLocked,
+                }),
                 reserve: quotaReserveTooltip(
                   t,
                   quotaReserves?.[row.id],

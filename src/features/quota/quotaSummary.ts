@@ -4,6 +4,7 @@ import type { QuotaFileEntry } from './logic';
 import type { QuotaProviderType } from './providers/types';
 import type { QuotaCardState } from './providers';
 import { quotaReserveHitForBar, type QuotaReserveHit } from './quotaReserve';
+import { lockedReserveBarIds, withLockedReserves } from './windowGating';
 
 export interface QuotaSummaryWindow {
   id: string;
@@ -242,6 +243,7 @@ export const windowsFor = (
           remainingPercent: remaining,
           resetAtMs: resetMs(row.resetAtMs),
           periodHours: null,
+          disabled: row.disabled === true,
           capacity: limit,
         },
       ];
@@ -466,20 +468,23 @@ export function aggregateQuotaValues(
  * quota is not loaded), null when it is blocked with no known recovery (an error, or a spent
  * window without a reset instant), otherwise the reset that frees it. Gated windows (`disabled`)
  * wait for every spent blocker, so the last reset wins; independent buckets free the credential
- * as soon as the first one resets.
+ * as soon as the first one resets. A window held by a reserve nobody can bypass (`locked`) counts
+ * as spent until the hold's own reset, which CPA may know more recently than the cached quota.
  */
 const credentialUnblockMs = (
   quota: QuotaCardState | undefined,
-  windows: QuotaSummaryWindow[]
+  windows: QuotaSummaryWindow[],
+  locked: ReadonlyMap<string, number | null> = new Map()
 ): number | null | undefined => {
   if (quota?.status === 'error') return null;
   if (quota?.status !== 'success') return undefined;
   const known = windows.filter((window) => window.remainingPercent !== null);
-  const isSpent = (window: QuotaSummaryWindow) => (window.remainingPercent as number) <= 0;
+  const isSpent = (window: QuotaSummaryWindow) =>
+    (window.remainingPercent as number) <= 0 || locked.has(window.id);
   if (known.length === 0 || known.some((window) => !isSpent(window) && !window.disabled)) {
     return undefined;
   }
-  const resets = known.filter(isSpent).map((window) => window.resetAtMs);
+  const resets = known.filter(isSpent).map((window) => locked.get(window.id) ?? window.resetAtMs);
   if (resets.length === 0 || resets.some((value) => value === null)) return null;
   const times = resets as number[];
   return known.some((window) => window.disabled) ? Math.max(...times) : Math.min(...times);
@@ -510,8 +515,9 @@ export function aggregateQuotaSummaries(
   entries.forEach((entry) => byType.set(entry.type, [...(byType.get(entry.type) ?? []), entry]));
   return Array.from(byType, ([type, providerEntries]) => {
     const records = providerEntries.map((entry) => {
-      const quota = quotaFor(entry);
-      return { entry, quota, windows: quota ? windowsFor(type, quota) : [] };
+      const quota = withLockedReserves(quotaFor(entry), entry.file.quotaReserveState);
+      const locked = lockedReserveBarIds(entry.file.quotaReserveState);
+      return { entry, quota, locked, windows: quota ? windowsFor(type, quota) : [] };
     });
     const aggregate = aggregateQuotaValues(
       type,
@@ -522,7 +528,7 @@ export function aggregateQuotaSummaries(
     );
     const loaded = records.filter(({ quota }) => quota?.status === 'success');
     const unblockAtMs = providerUnblockMs(
-      records.map(({ quota, windows }) => credentialUnblockMs(quota, windows))
+      records.map(({ quota, windows, locked }) => credentialUnblockMs(quota, windows, locked))
     );
     const linesFor = (id: string, largestPlanValue?: number): QuotaSummaryLine[] =>
       records.flatMap(({ entry, quota, windows }) => {

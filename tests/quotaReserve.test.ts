@@ -13,6 +13,7 @@ import {
   resolveQuotaReserveFields,
   readQuotaReserveBypassKeys,
   readQuotaReserves,
+  readQuotaReserveState,
   quotaReserveBadgeTitle,
   quotaReserveProviderType,
   quotaReserveTooltip,
@@ -262,5 +263,14 @@ describe('auth-file quota reserve patch', () => {
       )
     ).toEqual({ quota_reserve: null });
     expect(buildAuthFileFieldsPatch(editor(json, {}), (key) => key)).toEqual({});
+  });
+});
+
+describe('quota reserve bypassability', () => {
+  test('reads the entry-level flag beside the held state', () => {
+    const state = { hits: [{ bar_id: 'weekly', reserve_percent: 30 }] };
+    expect(readQuotaReserveState({ quota_reserve_state: state, quota_reserve_bypassable: false })?.bypassable).toBe(false);
+    expect(readQuotaReserveState({ quota_reserve_state: state, quota_reserve_bypassable: true })?.bypassable).toBe(true);
+    expect(readQuotaReserveState({ quota_reserve_state: state })).not.toHaveProperty('bypassable');
   });
 });

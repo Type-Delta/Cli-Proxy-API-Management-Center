@@ -65,18 +65,21 @@ describe('OpenCode Go quota parser', () => {
         labelKey: 'opencode_go_quota.rolling',
         usedPercent: 64,
         resetAtMs: Date.parse('2026-09-16T13:45:31.545Z'),
+        gatedBy: ['opencode-go-rolling', 'opencode-go-weekly', 'opencode-go-monthly'],
       },
       {
         id: 'opencode-go-weekly',
         labelKey: 'opencode_go_quota.weekly',
         usedPercent: 65,
         resetAtMs: Date.parse('2026-09-21T00:00:00.545Z'),
+        gatedBy: ['opencode-go-rolling', 'opencode-go-weekly', 'opencode-go-monthly'],
       },
       {
         id: 'opencode-go-monthly',
         labelKey: 'opencode_go_quota.monthly',
         usedPercent: 32,
         resetAtMs: Date.parse('2026-10-16T03:26:10.545Z'),
+        gatedBy: ['opencode-go-rolling', 'opencode-go-weekly', 'opencode-go-monthly'],
       },
     ]);
   });
@@ -94,6 +97,7 @@ describe('OpenCode Go quota parser', () => {
         labelKey: 'opencode_go_quota.monthly',
         usedPercent: 32,
         resetAtMs: Date.parse('2026-10-16T03:26:10.545Z'),
+        gatedBy: ['opencode-go-monthly'],
       },
     ]);
     expect(buildOpenCodeGoQuotaWindows({})).toEqual([]);
@@ -115,6 +119,7 @@ describe('OpenCode Go quota parser', () => {
         labelKey: 'opencode_go_quota.rolling',
         usedPercent: 100,
         resetAtMs: Date.parse('2026-09-16T13:45:31.545Z'),
+        gatedBy: ['opencode-go-rolling', 'opencode-go-weekly', 'opencode-go-monthly'],
         disabled: true,
       },
       {
@@ -122,6 +127,7 @@ describe('OpenCode Go quota parser', () => {
         labelKey: 'opencode_go_quota.weekly',
         usedPercent: 65,
         resetAtMs: Date.parse('2026-09-21T00:00:00.545Z'),
+        gatedBy: ['opencode-go-rolling', 'opencode-go-weekly', 'opencode-go-monthly'],
         disabled: true,
       },
       {
@@ -129,6 +135,7 @@ describe('OpenCode Go quota parser', () => {
         labelKey: 'opencode_go_quota.monthly',
         usedPercent: 32,
         resetAtMs: Date.parse('2026-10-16T03:26:10.545Z'),
+        gatedBy: ['opencode-go-rolling', 'opencode-go-weekly', 'opencode-go-monthly'],
         disabled: true,
       },
     ]);

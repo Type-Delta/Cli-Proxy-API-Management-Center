@@ -81,6 +81,7 @@ describe('Z.AI quota parser', () => {
         usedPercent: 15,
         resetAtMs: 1789113883259,
         periodHours: 5,
+        gatedBy: ['zai-hour-5', 'zai-week-1'],
       },
       {
         id: 'zai-week-1',
@@ -92,6 +93,7 @@ describe('Z.AI quota parser', () => {
         usedPercent: 32,
         resetAtMs: 1789615750984,
         periodHours: 24 * 7,
+        gatedBy: ['zai-hour-5', 'zai-week-1'],
       },
     ]);
   });
