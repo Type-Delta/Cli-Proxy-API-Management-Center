@@ -2889,6 +2889,8 @@
           "description": "헤더 위장, 서명 캐시, 플러그인 소스 및 거의 변경되지 않는 기타 설정",
           "plugins_title": "플러그인",
           "antigravity_title": "Antigravity",
+          "antigravity_oauth_safeguard": "OAuth 보호",
+          "antigravity_oauth_safeguard_desc": "CPA는 개인 Antigravity 계정의 OAuth 자격 증명으로 비공개 CLI 참조를 캡처하고 24시간마다 업데이트를 확인합니다. 업데이트에 실패하면 이전 참조를 유지합니다. 유효한 참조가 준비될 때까지 직접 OAuth 추론 요청이 차단됩니다.",
           "devin_title": "Devin",
           "signature_title": "서명 검증"
         },

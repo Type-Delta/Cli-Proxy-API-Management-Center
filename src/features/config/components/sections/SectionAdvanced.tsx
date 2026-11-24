@@ -133,6 +133,16 @@ export function SectionAdvanced({
               disabled={disabled}
               onChange={(quotaAntigravityCredits) => onChange({ quotaAntigravityCredits })}
             />
+            <ToggleSetting
+              fieldId="antigravityOauthSafeguard"
+              label={t('config_management.visual.sections.advanced.antigravity_oauth_safeguard')}
+              description={t(
+                'config_management.visual.sections.advanced.antigravity_oauth_safeguard_desc'
+              )}
+              checked={values.antigravityOauthSafeguard}
+              disabled={disabled}
+              onChange={(antigravityOauthSafeguard) => onChange({ antigravityOauthSafeguard })}
+            />
           </SettingList>
           <SettingList
             title={t('config_management.visual.sections.system.antigravity_sensitive_words')}

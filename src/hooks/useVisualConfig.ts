@@ -2123,6 +2123,7 @@ function getNextDirtyFields(
       'maxRetryInterval',
       'wsAuth',
       'quotaAntigravityCredits',
+      'antigravityOauthSafeguard',
       'routingStrategy',
       'routingSessionAffinity',
       'routingSessionAffinityTTL',
@@ -2481,6 +2482,7 @@ function parseVisualValuesFromYaml(yamlContent: string): VisualConfigValues {
         : '',
 
     quotaAntigravityCredits: Boolean(antigravity?.['antigravity-credits'] ?? false),
+    antigravityOauthSafeguard: antigravity?.['oauth-safeguard'] === true,
 
     routingStrategy: parseRoutingStrategy(routing?.strategy),
     routingSessionAffinity: Boolean(routing?.['session-affinity']),
@@ -3122,6 +3124,13 @@ export function useVisualConfig() {
           doc.setIn(
             ['oauth', 'providers', 'antigravity', 'antigravity-credits'],
             values.quotaAntigravityCredits
+          );
+        }
+        if (dirtyFields.has('antigravityOauthSafeguard')) {
+          ensureMapInDoc(doc, ['oauth', 'providers', 'antigravity']);
+          doc.setIn(
+            ['oauth', 'providers', 'antigravity', 'oauth-safeguard'],
+            values.antigravityOauthSafeguard
           );
         }
 

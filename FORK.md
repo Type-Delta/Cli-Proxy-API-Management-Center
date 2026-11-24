@@ -1960,6 +1960,22 @@ CPA changes this state on its own: a quota read can create or clear a hold, and 
 
 **Last updated:** 2026-11-20
 
+### DL089 — Antigravity OAuth safeguard in the Config panel
+
+Config → Advanced → Antigravity exposes the OAuth safeguard toggle. It reads and saves
+`oauth.providers.antigravity.oauth-safeguard`, defaults to off, and preserves the provider's other
+settings. Config search indexes the control by its label and YAML path. The help text explains the
+consumer credential requirement and the wait for a valid reference.
+
+**Implementation evidence:** `SectionAdvanced.tsx`, `useVisualConfig.ts`,
+`visualConfigAntigravityOauthSafeguard.test.ts`, and the seven Config locales.
+
+**Recorded validation:** Edge at 1440px and 390px toggled the setting by keyboard and
+confirmed save and reload through the CPA management API. The focused tests, lint, and
+production build passed. The full Windows suite reproduced its baseline failures.
+
+**Last updated:** 2026-11-24
+
 ## Merge History
 
 This is an append-only decision record, newest first, with one entry per upstream sync. It explains past integrations but does not by itself establish a current divergence; use the Divergence Log for that. Sync with upstream only when the user explicitly asks. Do not edit past entries.

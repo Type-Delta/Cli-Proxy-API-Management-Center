@@ -235,6 +235,7 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   streamingNonstreamKeepalive: ['streaming.nonstreamKeepaliveInterval'],
   // ── advanced ──────────────────────────────────────────────────────────────
   quotaAntigravityCredits: ['quotaAntigravityCredits'],
+  antigravityOauthSafeguard: ['antigravityOauthSafeguard'],
   pluginsEnabled: ['pluginsEnabled'],
   pluginStoreSources: ['pluginStoreSources'],
   pluginStoreAuth: ['pluginStoreAuth'],

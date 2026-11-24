@@ -2889,6 +2889,8 @@
           "description": "請求標頭偽裝、簽章快取、外掛來源等不常修改的設定",
           "plugins_title": "外掛",
           "antigravity_title": "Antigravity",
+          "antigravity_oauth_safeguard": "OAuth 安全防護",
+          "antigravity_oauth_safeguard_desc": "CPA 使用個人 Antigravity OAuth 憑證私下擷取 CLI 參考設定檔，並每 24 小時檢查更新。更新失敗時會保留先前的參考設定檔。有效的參考設定檔就緒前，直連 OAuth 推論請求會遭到封鎖。",
           "devin_title": "Devin",
           "signature_title": "簽章驗證"
         },
