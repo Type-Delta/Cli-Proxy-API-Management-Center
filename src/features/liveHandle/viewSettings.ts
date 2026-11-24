@@ -6,6 +6,7 @@ export interface LiveViewSettings {
   legend: boolean;
   heads: boolean;
   sessions: boolean;
+  toolCounts: boolean;
 }
 
 const STORAGE_KEY = 'liveHandle.view';
@@ -15,6 +16,7 @@ export const DEFAULT_VIEW_SETTINGS: LiveViewSettings = {
   legend: true,
   heads: true,
   sessions: false,
+  toolCounts: false,
 };
 
 export function loadViewSettings(): LiveViewSettings {

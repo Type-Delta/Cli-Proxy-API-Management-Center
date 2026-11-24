@@ -4671,6 +4671,7 @@
       "duration": "耗时",
       "status": "HTTP 状态",
       "output": "输出",
+      "tool_calls": "工具调用",
       "request_id": "请求 ID",
       "copy": "复制",
       "copied": "已复制",
@@ -4743,6 +4744,8 @@
       "legend_hint": "说明圆点、圆环和光点的含义",
       "heads": "列标题",
       "heads_hint": "API 密钥、模型和凭据上方的标题",
+      "toolCounts": "显示工具调用次数",
+      "toolCounts_hint": "在每个请求圆点上方显示扳手图标和调用次数",
       "sessions": "会话节点",
       "sessions_hint": "在密钥和模型之间增加一列，显示每个请求所属的客户端会话"
     }

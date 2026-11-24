@@ -49,7 +49,7 @@ interface FeedLine {
 
 const bold = { b: <b /> };
 
-const SETTINGS: (keyof LiveViewSettings)[] = ['feed', 'legend', 'heads', 'sessions'];
+const SETTINGS: (keyof LiveViewSettings)[] = ['feed', 'legend', 'heads', 'sessions', 'toolCounts'];
 
 function FeedText({ event, noKey }: { event: LiveMapEvent; noKey: string }) {
   const { request } = event;
@@ -145,12 +145,16 @@ export function LiveHandlePage() {
       busy: (count) => t('live_handle.busy', { count }),
       stack: (count) => t('live_handle.stack', { count }),
       tokens: (value) => t('live_handle.tokens_exact', { value }),
-      request: (request) =>
-        t('live_handle.request_label', {
+      request: (request) => {
+        const label = t('live_handle.request_label', {
           key: keyName(request, t('live_handle.no_key')),
           model: request.requestedModel || request.endpoint,
           state: t(`live_handle.state.${request.state}`),
-        }),
+        });
+        return request.toolCalls > 0
+          ? `${label} ${t('live_handle.detail.tool_calls')}: ${request.toolCalls}.`
+          : label;
+      },
     }),
     [t]
   );
@@ -171,7 +175,7 @@ export function LiveHandlePage() {
       host,
       tip,
       labels: labelsRef.current,
-      view: { sessions: viewRef.current.sessions, heads: viewRef.current.heads },
+      view: viewRef.current,
       callbacks: {
         onEvent: (event) =>
           setLines((current) => [...current, { id: ++nextLine, event }].slice(-FEED_MAX)),
@@ -219,7 +223,7 @@ export function LiveHandlePage() {
   useEffect(() => {
     viewRef.current = view;
     saveViewSettings(view);
-    mapRef.current?.setView({ sessions: view.sessions, heads: view.heads });
+    mapRef.current?.setView(view);
   }, [view]);
 
   useEffect(() => {
@@ -277,6 +281,9 @@ export function LiveHandlePage() {
     tipRows.push([t('live_handle.tip.elapsed'), requestElapsed(hoveredRequest, now)]);
     if (attempt) tipRows.push([t('live_handle.detail.credential'), credentialText(attempt)]);
     tipRows.push([t('live_handle.detail.tokens'), tokensText(t, hoveredRequest)]);
+    if (hoveredRequest.toolCalls > 0) {
+      tipRows.push([t('live_handle.detail.tool_calls'), String(hoveredRequest.toolCalls)]);
+    }
     if (hoveredRequest.attemptCount > 1) {
       tipRows.push([t('live_handle.tip.attempts'), String(hoveredRequest.attemptCount)]);
     }

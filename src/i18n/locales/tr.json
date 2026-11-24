@@ -4671,6 +4671,7 @@
       "duration": "Süre",
       "status": "HTTP durumu",
       "output": "Çıktı",
+      "tool_calls": "Araç çağrıları",
       "request_id": "İstek kimliği",
       "copy": "Kopyala",
       "copied": "Kopyalandı",
@@ -4743,6 +4744,8 @@
       "legend_hint": "Noktaların, halkaların ve kıvılcımların anlamı",
       "heads": "Sütun başlıkları",
       "heads_hint": "Anahtarların, modellerin ve kimlik bilgilerinin üstündeki başlıklar",
+      "toolCounts": "Araç çağrısı sayılarını göster",
+      "toolCounts_hint": "Her istek noktasının üzerinde anahtar simgesi ve çağrı sayısını gösterir",
       "sessions": "Oturum düğümleri",
       "sessions_hint": "Anahtarlarla modeller arasında, her isteğin hangi istemci oturumuna ait olduğunu gösteren bir sütun"
     }

@@ -125,10 +125,12 @@ export const credentialText = (attempt: LiveAttempt) =>
 export function mapNodes(request: LiveRequest) {
   const attempt = latestAttempt(request);
   const model = request.requestedModel || attempt?.upstreamModel || request.endpoint || '?';
+  const tool = request.endpoint === 'search' ? 'search' : '';
+  const modelName = tool ? `${model} · ${tool}` : model;
   return {
     key: `k:${request.key?.id ?? ''}`,
-    model: `m:${model}`,
-    modelName: model,
+    model: `m:${model}${tool ? `/${tool}` : ''}`,
+    modelName,
     session: request.session ? `s:${request.session}` : null,
     parent: request.session && request.parent ? `s:${request.parent}` : null,
     // auth_index alone can repeat across providers that share an upstream key.

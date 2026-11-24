@@ -32,6 +32,8 @@ export interface LiveMapOptions {
   sessions: boolean;
   /** Column headings above the nodes. */
   heads: boolean;
+  /** Tool-call badges beside request dots. */
+  toolCounts?: boolean;
 }
 
 export type LiveMapEvent =
@@ -163,6 +165,7 @@ interface Orb {
   g: SVGGElement;
   core: SVGCircleElement;
   ring: SVGCircleElement;
+  toolCount: SVGTextElement | null;
   color: string;
   request: LiveRequest;
   key: MapNode;
@@ -248,6 +251,9 @@ const FLASH_RISE_MS = 50;
 const FLASH_HOLD_MS = 1300;
 /** Lucide "activity", "coins", "layers", and "bot" (ISC), drawn at half size. */
 const BUSY_ICON = ['M22 12h-4l-3 9L9 3l-3 9H2'];
+const WRENCH_ICON = [
+  'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z',
+];
 const TOKEN_ICON = [
   'M13.744 17.736a6 6 0 1 1-7.48-7.48',
   'M15 6h1v4',
@@ -339,6 +345,7 @@ export function createLiveMap(options: {
   const reduced = prefersReducedMotion();
 
   const svg = svgEl('svg', { class: styles.map, role: 'group' }, host);
+  svg.toggleAttribute('data-tool-counts', view.toolCounts === true);
   const viewport = svgEl('g', { 'data-layer': 'view' }, svg);
   const layer = (name: string) => svgEl('g', { 'data-layer': name }, viewport);
   const heads = layer('heads');
@@ -1009,6 +1016,7 @@ export function createLiveMap(options: {
       g,
       core,
       ring,
+      toolCount: null,
       color: key.color,
       request,
       key,
@@ -1524,6 +1532,14 @@ export function createLiveMap(options: {
         orb = makeOrb(request, key, route);
         for (const node of route.slice(1)) travel(orb, node, session ? 600 : 700);
       }
+      if (request.toolCalls > 0 && (request.toolCalls !== orb.request.toolCalls || !orb.toolCount)) {
+        if (!orb.toolCount) {
+          const badge = svgEl('g', { class: styles.toolCount, 'aria-hidden': 'true' }, orb.g);
+          icon(WRENCH_ICON, badge).setAttribute('transform', 'translate(-11 -25) scale(.5)');
+          orb.toolCount = svgEl('text', { x: 3, y: -15 }, badge);
+        }
+        orb.toolCount.textContent = formatCompactNumber(request.toolCalls);
+      }
       orb.request = request;
       orb.route = route;
       orb.session = own;
@@ -1551,9 +1567,16 @@ export function createLiveMap(options: {
         });
         // A session in a folded stack still counts as busy, so it stays on the map.
         if (own && own !== session) own.active += 1;
-        if (cred && attempt && attempt.endedAt === null) {
-          cred.active += 1;
-          ensureEdge(model, cred).count += 1;
+        if (cred && attempt) {
+          // Tool calls can finish between provider turns while the client request stays idle.
+          // Keep their model-to-credential connection visible for that active request, but only
+          // count an open attempt as busy.
+          const providerEdge = ensureEdge(model, cred);
+          providerEdge.lastUsed = clock;
+          if (attempt.endedAt === null) {
+            cred.active += 1;
+            providerEdge.count += 1;
+          }
         }
       }
 
@@ -1664,10 +1687,11 @@ export function createLiveMap(options: {
     }
   }
 
-  /** Shows or hides the session column and headings; dots already out re-route. */
+  /** Updates map visibility and re-routes dots when the session column is hidden. */
   function setView(next: LiveMapOptions) {
     const hideSessions = view.sessions && !next.sessions;
     view = next;
+    svg.toggleAttribute('data-tool-counts', next.toolCounts === true);
     if (hideSessions) {
       for (const orb of orbs.values()) {
         orb.session = null;

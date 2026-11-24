@@ -4671,6 +4671,7 @@
       "duration": "소요 시간",
       "status": "HTTP 상태",
       "output": "출력",
+      "tool_calls": "도구 호출",
       "request_id": "요청 ID",
       "copy": "복사",
       "copied": "복사됨",
@@ -4743,6 +4744,8 @@
       "legend_hint": "점, 고리, 불꽃이 뜻하는 것",
       "heads": "열 제목",
       "heads_hint": "키, 모델, 자격 증명 위의 제목",
+      "toolCounts": "도구 호출 횟수 표시",
+      "toolCounts_hint": "각 요청 점 위에 렌치와 호출 횟수를 표시합니다",
       "sessions": "세션 노드",
       "sessions_hint": "키와 모델 사이에 각 요청이 속한 클라이언트 세션을 보여 주는 열"
     }

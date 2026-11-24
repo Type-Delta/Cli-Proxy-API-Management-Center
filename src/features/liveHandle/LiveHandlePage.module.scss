@@ -410,7 +410,8 @@
 }
 
 /* Busy and stack icons sit beside their counts in the count's colour. */
-.node .icon {
+.node .icon,
+.toolCount .icon {
   fill: none;
   stroke: var(--meta);
   stroke-width: 2.4;
@@ -527,6 +528,25 @@
 .core {
   stroke: var(--bg-quinary);
   stroke-width: 1.5;
+}
+
+.toolCount {
+  --meta: var(--text-primary);
+  color: var(--text-primary);
+  fill: currentColor;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  paint-order: stroke;
+
+  text {
+    stroke: var(--bg-quinary);
+    stroke-width: 3px;
+  }
+}
+
+.map:not([data-tool-counts]) .toolCount {
+  display: none;
 }
 
 .hit {

@@ -4671,6 +4671,7 @@
       "duration": "Duration",
       "status": "HTTP status",
       "output": "Output",
+      "tool_calls": "Tool calls",
       "request_id": "Request ID",
       "copy": "Copy",
       "copied": "Copied",
@@ -4743,6 +4744,8 @@
       "legend_hint": "What the dots, rings, and sparks mean",
       "heads": "Column labels",
       "heads_hint": "Headings above the keys, models, and credentials",
+      "toolCounts": "Show tool-call counts",
+      "toolCounts_hint": "Show a wrench and count above each request dot",
       "sessions": "Session nodes",
       "sessions_hint": "A column between keys and models showing which client session each request belongs to"
     }

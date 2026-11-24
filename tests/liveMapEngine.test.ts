@@ -264,6 +264,37 @@ test('between websocket turns the dot rests at the model, not the credential', a
   expect(Math.abs(orbX() - 1280 * 0.5)).toBeLessThan(120);
 });
 
+test('an idle provider tool call still shows its credential connection', async () => {
+  const { map, host } = await mount();
+  const finished = { state: 'finished', ended_at: iso(T0 + 1000) };
+  map.apply(
+    snapshot(
+      request({
+        state: 'idle',
+        attempts: [attempt({ ...finished, credential: { label: 'ops', auth_index: '3' } })],
+      })
+    )
+  );
+
+  expect(host.querySelectorAll('[data-layer=edges] path')).toHaveLength(2);
+});
+
+test('tool counts are off by default and toggle on existing request dots', async () => {
+  const { map, host } = await mount();
+  map.apply(snapshot(request({ id: 'with-tools', tool_calls: 1 }), request({ id: 'plain' })));
+  const withTools = host.querySelector('[aria-label="with-tools"]')!;
+  const visibleCount = () =>
+    withTools.closest('svg[data-tool-counts]') && withTools.querySelector('text');
+  expect(visibleCount()).toBeNull();
+  map.setView({ sessions: false, heads: true, toolCounts: true });
+  expect(visibleCount()?.textContent).toBe('1');
+  expect(host.querySelector('[aria-label="plain"] text')).toBeNull();
+  map.apply(snapshot(request({ id: 'with-tools', tool_calls: 2 }), request({ id: 'plain' })));
+  expect(visibleCount()?.textContent).toBe('2');
+  map.setView({ sessions: false, heads: true, toolCounts: false });
+  expect(visibleCount()).toBeNull();
+});
+
 test('failed and cancelled requests also settle to CPA count, including late usage', async () => {
   const { map, counter } = await mount();
   map.apply(snapshot());

@@ -75,6 +75,12 @@ export function LiveRequestSheet({
         <dd>
           {tokensText(t, request)} · {formatFileSize(outputBytes(request))}
         </dd>
+        {request.toolCalls > 0 && (
+          <>
+            <dt>{t('live_handle.detail.tool_calls')}</dt>
+            <dd>{request.toolCalls}</dd>
+          </>
+        )}
         <dt>{t('live_handle.detail.request_id')}</dt>
         <dd className={styles.idRow}>
           <code>{request.id}</code>

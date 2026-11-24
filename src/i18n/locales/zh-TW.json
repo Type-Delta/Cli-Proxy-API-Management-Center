@@ -4671,6 +4671,7 @@
       "duration": "耗時",
       "status": "HTTP 狀態",
       "output": "輸出",
+      "tool_calls": "工具呼叫",
       "request_id": "請求 ID",
       "copy": "複製",
       "copied": "已複製",
@@ -4743,6 +4744,8 @@
       "legend_hint": "說明圓點、圓環與光點的意義",
       "heads": "欄標題",
       "heads_hint": "API 金鑰、模型與憑證上方的標題",
+      "toolCounts": "顯示工具呼叫次數",
+      "toolCounts_hint": "在每個請求圓點上方顯示扳手圖示和呼叫次數",
       "sessions": "工作階段節點",
       "sessions_hint": "在金鑰與模型之間新增一欄，顯示每個請求所屬的用戶端工作階段"
     }

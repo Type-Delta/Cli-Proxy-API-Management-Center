@@ -131,6 +131,10 @@ describe('live handle model', () => {
       parent: null,
       credential: 'c:codex/3',
     });
+    expect(mapNodes(one({ endpoint: 'search', path: '/v1/alpha/search' }))).toMatchObject({
+      model: 'm:gpt-5.6/search',
+      modelName: 'gpt-5.6 · search',
+    });
     // Two providers sharing one upstream key share an auth index but stay separate nodes.
     const shared = (provider: string) =>
       mapNodes(

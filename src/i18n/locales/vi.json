@@ -4671,6 +4671,7 @@
       "duration": "Thời lượng",
       "status": "Trạng thái HTTP",
       "output": "Đầu ra",
+      "tool_calls": "Lượt gọi công cụ",
       "request_id": "ID yêu cầu",
       "copy": "Sao chép",
       "copied": "Đã sao chép",
@@ -4743,6 +4744,8 @@
       "legend_hint": "Ý nghĩa của chấm, vòng và tia sáng",
       "heads": "Nhãn cột",
       "heads_hint": "Tiêu đề phía trên khóa, mô hình và thông tin xác thực",
+      "toolCounts": "Hiện số lượt gọi công cụ",
+      "toolCounts_hint": "Hiện biểu tượng cờ lê và số lượt gọi phía trên mỗi chấm yêu cầu",
       "sessions": "Nút phiên",
       "sessions_hint": "Một cột giữa khóa và mô hình cho biết mỗi yêu cầu thuộc phiên máy khách nào"
     }

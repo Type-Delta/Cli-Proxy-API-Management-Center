@@ -43,6 +43,7 @@ export interface LiveRequest {
   parent: string;
   httpStatus: number;
   attemptCount: number;
+  toolCalls: number;
   /** Totals across every attempt, including ones CPA no longer lists; 0/null from older CPA. */
   outputBytes: number;
   outputTokens: number | null;
@@ -158,6 +159,7 @@ const normalizeRequest = (value: unknown): LiveRequest | null => {
     parent: text(value.parent),
     httpStatus: count(value.http_status),
     attemptCount: Math.max(count(value.attempt_count), attempts.length),
+    toolCalls: count(value.tool_calls),
     outputBytes: count(value.output_bytes),
     outputTokens: optionalCount(value.output_tokens),
     attempts,
