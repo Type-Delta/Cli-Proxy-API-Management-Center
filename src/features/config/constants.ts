@@ -236,6 +236,7 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   // ── advanced ──────────────────────────────────────────────────────────────
   quotaAntigravityCredits: ['quotaAntigravityCredits'],
   antigravityOauthSafeguard: ['antigravityOauthSafeguard'],
+  antigravityOauthSafeguardClientIdentities: ['antigravityOauthSafeguardClientIdentities'],
   pluginsEnabled: ['pluginsEnabled'],
   pluginStoreSources: ['pluginStoreSources'],
   pluginStoreAuth: ['pluginStoreAuth'],

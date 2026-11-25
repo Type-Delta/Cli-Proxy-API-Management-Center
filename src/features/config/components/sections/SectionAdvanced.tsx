@@ -143,6 +143,28 @@ export function SectionAdvanced({
               disabled={disabled}
               onChange={(antigravityOauthSafeguard) => onChange({ antigravityOauthSafeguard })}
             />
+            <BlockSetting
+              fieldId="antigravityOauthSafeguardClientIdentities"
+              keepDescriptionVisible
+              label={t(
+                'config_management.visual.sections.headers.oauth_safeguard_client_identities'
+              )}
+              description={t(
+                'config_management.visual.sections.advanced.antigravity_oauth_safeguard_client_identities_desc'
+              )}
+            >
+              <StringListEditor
+                value={values.antigravityOauthSafeguardClientIdentities}
+                disabled={disabled}
+                placeholder="t3code"
+                inputAriaLabel={t(
+                  'config_management.visual.sections.headers.oauth_safeguard_client_identities'
+                )}
+                onChange={(antigravityOauthSafeguardClientIdentities) =>
+                  onChange({ antigravityOauthSafeguardClientIdentities })
+                }
+              />
+            </BlockSetting>
           </SettingList>
           <SettingList
             title={t('config_management.visual.sections.system.antigravity_sensitive_words')}

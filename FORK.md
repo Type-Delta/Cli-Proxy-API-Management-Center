@@ -1966,6 +1966,8 @@ Config → Advanced → Antigravity exposes the OAuth safeguard toggle. It reads
 `oauth.providers.antigravity.oauth-safeguard`, defaults to off, and preserves the provider's other
 settings. Config search indexes the control by its label and YAML path. The help text explains the
 consumer credential requirement and the wait for a valid reference.
+The Custom client identities list accepts incoming User-Agent product
+names such as `t3code` and saves them in the same Antigravity provider block.
 
 **Implementation evidence:** `SectionAdvanced.tsx`, `useVisualConfig.ts`,
 `visualConfigAntigravityOauthSafeguard.test.ts`, and the seven Config locales.
@@ -1973,8 +1975,10 @@ consumer credential requirement and the wait for a valid reference.
 **Recorded validation:** Edge at 1440px and 390px toggled the setting by keyboard and
 confirmed save and reload through the CPA management API. The focused tests, lint, and
 production build passed. The full Windows suite reproduced its baseline failures.
+The custom-identity round-trip test loads and updates the list while preserving
+neighboring provider settings. Locale parity, lint, and the production build pass.
 
-**Last updated:** 2026-11-24
+**Last updated:** 2026-11-25
 
 ## Merge History
 

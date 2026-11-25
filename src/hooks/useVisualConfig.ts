@@ -2168,6 +2168,15 @@ function getNextDirtyFields(
       )
     );
   }
+  if (Object.prototype.hasOwnProperty.call(patch, 'antigravityOauthSafeguardClientIdentities')) {
+    updateDirty(
+      'antigravityOauthSafeguardClientIdentities',
+      areStringArraysEqual(
+        nextValues.antigravityOauthSafeguardClientIdentities,
+        baselineValues.antigravityOauthSafeguardClientIdentities
+      )
+    );
+  }
   if (Object.prototype.hasOwnProperty.call(patch, 'antigravitySensitiveWords')) {
     updateDirty(
       'antigravitySensitiveWords',
@@ -2483,6 +2492,9 @@ function parseVisualValuesFromYaml(yamlContent: string): VisualConfigValues {
 
     quotaAntigravityCredits: Boolean(antigravity?.['antigravity-credits'] ?? false),
     antigravityOauthSafeguard: antigravity?.['oauth-safeguard'] === true,
+    antigravityOauthSafeguardClientIdentities: parseStringList(
+      antigravity?.['oauth-safeguard-client-identities']
+    ),
 
     routingStrategy: parseRoutingStrategy(routing?.strategy),
     routingSessionAffinity: Boolean(routing?.['session-affinity']),
@@ -3132,6 +3144,15 @@ export function useVisualConfig() {
             ['oauth', 'providers', 'antigravity', 'oauth-safeguard'],
             values.antigravityOauthSafeguard
           );
+        }
+        if (dirtyFields.has('antigravityOauthSafeguardClientIdentities')) {
+          ensureMapInDoc(doc, ['oauth', 'providers', 'antigravity']);
+          setStringListInDoc(
+            doc,
+            ['oauth', 'providers', 'antigravity', 'oauth-safeguard-client-identities'],
+            values.antigravityOauthSafeguardClientIdentities
+          );
+          deleteIfMapEmpty(doc, ['oauth', 'providers', 'antigravity']);
         }
 
         const routingDirty =

@@ -2889,6 +2889,7 @@
           "description": "Giả mạo header, cache chữ ký, nguồn plugin và các cài đặt ít thay đổi khác",
           "plugins_title": "Plugin",
           "antigravity_title": "Antigravity",
+          "antigravity_oauth_safeguard_client_identities_desc": "Nhập mỗi tên sản phẩm trong User-Agent trên một dòng, bỏ số phiên bản. Ví dụ, nhập t3code cho t3code/0.0.15. Tên không phân biệt chữ hoa chữ thường. CPA vẫn kiểm tra yêu cầu gốc và mẫu tham chiếu.",
           "antigravity_oauth_safeguard": "Bảo vệ OAuth",
           "antigravity_oauth_safeguard_desc": "CPA dùng thông tin xác thực OAuth của tài khoản Antigravity cá nhân để ghi lại mẫu yêu cầu CLI riêng tư và kiểm tra bản cập nhật mỗi 24 giờ. Nếu cập nhật thất bại, CPA giữ mẫu trước đó. Các yêu cầu suy luận OAuth trực tiếp bị chặn cho đến khi có mẫu hợp lệ.",
           "devin_title": "Devin",

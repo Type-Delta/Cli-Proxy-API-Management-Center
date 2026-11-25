@@ -676,6 +676,15 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     yamlKeys: ['oauth', 'providers', 'antigravity', 'oauth-safeguard'],
   },
   {
+    fieldId: 'antigravityOauthSafeguardClientIdentities',
+    sectionId: 'advanced',
+    labelKey: L('sections.headers.oauth_safeguard_client_identities'),
+    hintKey: L('sections.advanced.antigravity_oauth_safeguard_client_identities_desc'),
+    qualifierKey: L('sections.advanced.antigravity_title'),
+    yamlKeys: ['oauth', 'providers', 'antigravity', 'oauth-safeguard-client-identities'],
+    keywords: ['antigravity', 't3code', 'user-agent'],
+  },
+  {
     fieldId: 'pluginsEnabled',
     sectionId: 'advanced',
     labelKey: L('sections.system.plugins_enabled'),
