@@ -2889,6 +2889,11 @@
           "description": "Üst Bilgi Sahteciliği, İmza Önbelleği, Eklenti Kaynakları ve Nadiren Değişen Diğer Ayarlar",
           "plugins_title": "Eklentiler",
           "antigravity_title": "Antigravity",
+          "antigravity_oauth_safeguard_gemini_sdk": "Gemini SDK’ye varsayılan olarak izin ver",
+          "antigravity_oauth_safeguard_gemini_sdk_desc": "Gemini API anahtarı modundaki T3 Code dahil, Gemini rotalarında google-genai-sdk kabul edilir. Bu ayar OAuth Koruması açıkken geçerlidir.",
+          "antigravity_oauth_safeguard_client_identities_desc": "Her satıra sürüm numarası olmadan ek bir User-Agent ürün adı girin. Referans ve giden istek denetimleri geçerliliğini korur.",
+          "antigravity_oauth_safeguard": "OAuth Koruması",
+          "antigravity_oauth_safeguard_desc": "CPA, kişisel bir Antigravity hesabının OAuth kimlik bilgileriyle özel bir CLI referansı yakalar ve 24 saatte bir güncellemeleri denetler. Güncelleme başarısız olursa önceki referans korunur. Geçerli bir referans hazır olana kadar doğrudan OAuth çıkarım istekleri engellenir.",
           "devin_title": "Devin",
           "signature_title": "İmza Doğrulama"
         },

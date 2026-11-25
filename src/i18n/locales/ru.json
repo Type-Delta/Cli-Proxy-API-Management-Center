@@ -2889,6 +2889,11 @@
           "description": "Подмена заголовков, кэш подписей, источники плагинов и другие редко изменяемые настройки",
           "plugins_title": "Плагины",
           "antigravity_title": "Antigravity",
+          "antigravity_oauth_safeguard_gemini_sdk": "Разрешить Gemini SDK по умолчанию",
+          "antigravity_oauth_safeguard_gemini_sdk_desc": "Принимать google-genai-sdk на маршрутах Gemini, включая T3 Code в режиме ключа Gemini API. Настройка действует при включённой защите OAuth.",
+          "antigravity_oauth_safeguard_client_identities_desc": "Укажите по одному дополнительному имени продукта из User-Agent на строку без номера версии. Проверки эталона и исходящего запроса сохраняются.",
+          "antigravity_oauth_safeguard": "Защита OAuth",
+          "antigravity_oauth_safeguard_desc": "CPA создаёт закрытый эталон запросов CLI с помощью OAuth-учётных данных личного аккаунта Antigravity и проверяет обновления каждые 24 часа. При сбое сохраняется предыдущий эталон. Прямые запросы к моделям через OAuth блокируются, пока нет действующего эталона.",
           "devin_title": "Devin",
           "signature_title": "Проверка подписей"
         },

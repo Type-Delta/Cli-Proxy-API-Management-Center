@@ -2889,6 +2889,11 @@
           "description": "Giả mạo header, cache chữ ký, nguồn plugin và các cài đặt ít thay đổi khác",
           "plugins_title": "Plugin",
           "antigravity_title": "Antigravity",
+          "antigravity_oauth_safeguard_gemini_sdk": "Mặc định cho phép Gemini SDK",
+          "antigravity_oauth_safeguard_gemini_sdk_desc": "Chấp nhận google-genai-sdk trên các tuyến Gemini, bao gồm T3 Code ở chế độ khóa API Gemini. Cài đặt này áp dụng khi bật Bảo vệ OAuth.",
+          "antigravity_oauth_safeguard_client_identities_desc": "Nhập mỗi tên sản phẩm User-Agent bổ sung trên một dòng, bỏ số phiên bản. CPA vẫn kiểm tra mẫu tham chiếu và yêu cầu gửi đi.",
+          "antigravity_oauth_safeguard": "Bảo vệ OAuth",
+          "antigravity_oauth_safeguard_desc": "CPA dùng thông tin xác thực OAuth của tài khoản Antigravity cá nhân để ghi lại mẫu yêu cầu CLI riêng tư và kiểm tra bản cập nhật mỗi 24 giờ. Nếu cập nhật thất bại, CPA giữ mẫu trước đó. Các yêu cầu suy luận OAuth trực tiếp bị chặn cho đến khi có mẫu hợp lệ.",
           "devin_title": "Devin",
           "signature_title": "Chữ ký Antigravity"
         },

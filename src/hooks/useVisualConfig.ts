@@ -2123,6 +2123,8 @@ function getNextDirtyFields(
       'maxRetryInterval',
       'wsAuth',
       'quotaAntigravityCredits',
+      'antigravityOauthSafeguard',
+      'antigravityOauthSafeguardAllowGeminiSdk',
       'routingStrategy',
       'routingSessionAffinity',
       'routingSessionAffinityTTL',
@@ -2164,6 +2166,15 @@ function getNextDirtyFields(
       areStringArraysEqual(
         nextValues.claudeHeaderOauthSafeguardClientIdentities,
         baselineValues.claudeHeaderOauthSafeguardClientIdentities
+      )
+    );
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'antigravityOauthSafeguardClientIdentities')) {
+    updateDirty(
+      'antigravityOauthSafeguardClientIdentities',
+      areStringArraysEqual(
+        nextValues.antigravityOauthSafeguardClientIdentities,
+        baselineValues.antigravityOauthSafeguardClientIdentities
       )
     );
   }
@@ -2481,6 +2492,12 @@ function parseVisualValuesFromYaml(yamlContent: string): VisualConfigValues {
         : '',
 
     quotaAntigravityCredits: Boolean(antigravity?.['antigravity-credits'] ?? false),
+    antigravityOauthSafeguard: antigravity?.['oauth-safeguard'] === true,
+    antigravityOauthSafeguardAllowGeminiSdk:
+      antigravity?.['oauth-safeguard-allow-gemini-sdk'] !== false,
+    antigravityOauthSafeguardClientIdentities: parseStringList(
+      antigravity?.['oauth-safeguard-client-identities']
+    ),
 
     routingStrategy: parseRoutingStrategy(routing?.strategy),
     routingSessionAffinity: Boolean(routing?.['session-affinity']),
@@ -3122,6 +3139,29 @@ export function useVisualConfig() {
           doc.setIn(
             ['oauth', 'providers', 'antigravity', 'antigravity-credits'],
             values.quotaAntigravityCredits
+          );
+        }
+        if (dirtyFields.has('antigravityOauthSafeguard')) {
+          ensureMapInDoc(doc, ['oauth', 'providers', 'antigravity']);
+          doc.setIn(
+            ['oauth', 'providers', 'antigravity', 'oauth-safeguard'],
+            values.antigravityOauthSafeguard
+          );
+        }
+        if (dirtyFields.has('antigravityOauthSafeguardClientIdentities')) {
+          ensureMapInDoc(doc, ['oauth', 'providers', 'antigravity']);
+          setStringListInDoc(
+            doc,
+            ['oauth', 'providers', 'antigravity', 'oauth-safeguard-client-identities'],
+            values.antigravityOauthSafeguardClientIdentities
+          );
+          deleteIfMapEmpty(doc, ['oauth', 'providers', 'antigravity']);
+        }
+        if (dirtyFields.has('antigravityOauthSafeguardAllowGeminiSdk')) {
+          ensureMapInDoc(doc, ['oauth', 'providers', 'antigravity']);
+          doc.setIn(
+            ['oauth', 'providers', 'antigravity', 'oauth-safeguard-allow-gemini-sdk'],
+            values.antigravityOauthSafeguardAllowGeminiSdk
           );
         }
 

@@ -2889,6 +2889,11 @@
           "description": "请求头伪装、签名缓存、插件源等不常修改的设置",
           "plugins_title": "插件",
           "antigravity_title": "Antigravity",
+          "antigravity_oauth_safeguard_gemini_sdk": "默认允许 Gemini SDK",
+          "antigravity_oauth_safeguard_gemini_sdk_desc": "在 Gemini 路由上接受 google-genai-sdk，包括使用 Gemini API 密钥模式的 T3 Code。此设置仅在启用 OAuth 安全保护时生效。",
+          "antigravity_oauth_safeguard_client_identities_desc": "每行输入一个额外的 User-Agent 产品名称，不含版本号。参考配置和出站请求检查仍然适用。",
+          "antigravity_oauth_safeguard": "OAuth 安全保护",
+          "antigravity_oauth_safeguard_desc": "CPA 使用个人 Antigravity OAuth 凭据私下采集 CLI 参考配置，并每 24 小时检查更新。更新失败时保留之前的参考配置。有效的参考配置就绪前，直连 OAuth 推理请求会被拦截。",
           "devin_title": "Devin",
           "signature_title": "签名校验"
         },

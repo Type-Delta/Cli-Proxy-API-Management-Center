@@ -1960,6 +1960,28 @@ CPA changes this state on its own: a quota read can create or clear a hold, and 
 
 **Last updated:** 2026-11-20
 
+### DL089 — Antigravity OAuth safeguard in the Config panel
+
+Config → Advanced → Antigravity exposes the OAuth safeguard toggle. It reads and saves
+`oauth.providers.antigravity.oauth-safeguard`, defaults to off, and preserves the provider's other
+settings. Config search indexes the control by its label and YAML path. The help text explains the
+consumer credential requirement and the wait for a valid reference.
+The Custom client identities list accepts incoming User-Agent product names
+and saves them in the same Antigravity provider block. The Allow Gemini SDK
+by default toggle is on for existing configs with no explicit value, so T3
+Code's Gemini API-key mode can submit requests without an extra identity.
+
+**Implementation evidence:** `SectionAdvanced.tsx`, `useVisualConfig.ts`,
+`visualConfigAntigravityOauthSafeguard.test.ts`, and the seven Config locales.
+
+**Recorded validation:** Edge at 1440px and 390px toggled the setting by keyboard and
+confirmed save and reload through the CPA management API. The focused tests, lint, and
+production build passed. The full Windows suite reproduced its baseline failures.
+The custom-identity round-trip test loads and updates the list while preserving
+neighboring provider settings. Locale parity, lint, and the production build pass.
+
+**Last updated:** 2026-11-25
+
 ## Merge History
 
 This is an append-only decision record, newest first, with one entry per upstream sync. It explains past integrations but does not by itself establish a current divergence; use the Divergence Log for that. Sync with upstream only when the user explicitly asks. Do not edit past entries.

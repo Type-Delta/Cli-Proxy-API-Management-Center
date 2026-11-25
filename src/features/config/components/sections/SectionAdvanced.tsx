@@ -133,6 +133,52 @@ export function SectionAdvanced({
               disabled={disabled}
               onChange={(quotaAntigravityCredits) => onChange({ quotaAntigravityCredits })}
             />
+            <ToggleSetting
+              fieldId="antigravityOauthSafeguard"
+              label={t('config_management.visual.sections.advanced.antigravity_oauth_safeguard')}
+              description={t(
+                'config_management.visual.sections.advanced.antigravity_oauth_safeguard_desc'
+              )}
+              checked={values.antigravityOauthSafeguard}
+              disabled={disabled}
+              onChange={(antigravityOauthSafeguard) => onChange({ antigravityOauthSafeguard })}
+            />
+            <ToggleSetting
+              fieldId="antigravityOauthSafeguardAllowGeminiSdk"
+              label={t(
+                'config_management.visual.sections.advanced.antigravity_oauth_safeguard_gemini_sdk'
+              )}
+              description={t(
+                'config_management.visual.sections.advanced.antigravity_oauth_safeguard_gemini_sdk_desc'
+              )}
+              checked={values.antigravityOauthSafeguardAllowGeminiSdk}
+              disabled={disabled}
+              onChange={(antigravityOauthSafeguardAllowGeminiSdk) =>
+                onChange({ antigravityOauthSafeguardAllowGeminiSdk })
+              }
+            />
+            <BlockSetting
+              fieldId="antigravityOauthSafeguardClientIdentities"
+              keepDescriptionVisible
+              label={t(
+                'config_management.visual.sections.headers.oauth_safeguard_client_identities'
+              )}
+              description={t(
+                'config_management.visual.sections.advanced.antigravity_oauth_safeguard_client_identities_desc'
+              )}
+            >
+              <StringListEditor
+                value={values.antigravityOauthSafeguardClientIdentities}
+                disabled={disabled}
+                placeholder="partner-app"
+                inputAriaLabel={t(
+                  'config_management.visual.sections.headers.oauth_safeguard_client_identities'
+                )}
+                onChange={(antigravityOauthSafeguardClientIdentities) =>
+                  onChange({ antigravityOauthSafeguardClientIdentities })
+                }
+              />
+            </BlockSetting>
           </SettingList>
           <SettingList
             title={t('config_management.visual.sections.system.antigravity_sensitive_words')}

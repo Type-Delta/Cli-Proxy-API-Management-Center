@@ -259,6 +259,9 @@ export type VisualConfigValues = {
   authAutoRefreshWorkers: string;
   /** OAuth-only: oauth.providers.antigravity.antigravity-credits. */
   quotaAntigravityCredits: boolean;
+  antigravityOauthSafeguard: boolean;
+  antigravityOauthSafeguardAllowGeminiSdk: boolean;
+  antigravityOauthSafeguardClientIdentities: string[];
   routingStrategy: RoutingStrategy;
   routingSessionAffinity: boolean;
   routingSessionAffinityTTL: string;
@@ -393,6 +396,9 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   gptImage2BaseModel: '',
   authAutoRefreshWorkers: '',
   quotaAntigravityCredits: false,
+  antigravityOauthSafeguard: false,
+  antigravityOauthSafeguardAllowGeminiSdk: true,
+  antigravityOauthSafeguardClientIdentities: [],
   routingStrategy: 'round-robin',
   routingSessionAffinity: false,
   routingSessionAffinityTTL: '',
