@@ -143,6 +143,20 @@ export function SectionAdvanced({
               disabled={disabled}
               onChange={(antigravityOauthSafeguard) => onChange({ antigravityOauthSafeguard })}
             />
+            <ToggleSetting
+              fieldId="antigravityOauthSafeguardAllowGeminiSdk"
+              label={t(
+                'config_management.visual.sections.advanced.antigravity_oauth_safeguard_gemini_sdk'
+              )}
+              description={t(
+                'config_management.visual.sections.advanced.antigravity_oauth_safeguard_gemini_sdk_desc'
+              )}
+              checked={values.antigravityOauthSafeguardAllowGeminiSdk}
+              disabled={disabled}
+              onChange={(antigravityOauthSafeguardAllowGeminiSdk) =>
+                onChange({ antigravityOauthSafeguardAllowGeminiSdk })
+              }
+            />
             <BlockSetting
               fieldId="antigravityOauthSafeguardClientIdentities"
               keepDescriptionVisible
@@ -156,7 +170,7 @@ export function SectionAdvanced({
               <StringListEditor
                 value={values.antigravityOauthSafeguardClientIdentities}
                 disabled={disabled}
-                placeholder="t3code"
+                placeholder="partner-app"
                 inputAriaLabel={t(
                   'config_management.visual.sections.headers.oauth_safeguard_client_identities'
                 )}

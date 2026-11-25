@@ -260,6 +260,7 @@ export type VisualConfigValues = {
   /** OAuth-only: oauth.providers.antigravity.antigravity-credits. */
   quotaAntigravityCredits: boolean;
   antigravityOauthSafeguard: boolean;
+  antigravityOauthSafeguardAllowGeminiSdk: boolean;
   antigravityOauthSafeguardClientIdentities: string[];
   routingStrategy: RoutingStrategy;
   routingSessionAffinity: boolean;
@@ -396,6 +397,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   authAutoRefreshWorkers: '',
   quotaAntigravityCredits: false,
   antigravityOauthSafeguard: false,
+  antigravityOauthSafeguardAllowGeminiSdk: true,
   antigravityOauthSafeguardClientIdentities: [],
   routingStrategy: 'round-robin',
   routingSessionAffinity: false,

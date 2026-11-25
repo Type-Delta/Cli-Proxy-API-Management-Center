@@ -2124,6 +2124,7 @@ function getNextDirtyFields(
       'wsAuth',
       'quotaAntigravityCredits',
       'antigravityOauthSafeguard',
+      'antigravityOauthSafeguardAllowGeminiSdk',
       'routingStrategy',
       'routingSessionAffinity',
       'routingSessionAffinityTTL',
@@ -2492,6 +2493,8 @@ function parseVisualValuesFromYaml(yamlContent: string): VisualConfigValues {
 
     quotaAntigravityCredits: Boolean(antigravity?.['antigravity-credits'] ?? false),
     antigravityOauthSafeguard: antigravity?.['oauth-safeguard'] === true,
+    antigravityOauthSafeguardAllowGeminiSdk:
+      antigravity?.['oauth-safeguard-allow-gemini-sdk'] !== false,
     antigravityOauthSafeguardClientIdentities: parseStringList(
       antigravity?.['oauth-safeguard-client-identities']
     ),
@@ -3153,6 +3156,13 @@ export function useVisualConfig() {
             values.antigravityOauthSafeguardClientIdentities
           );
           deleteIfMapEmpty(doc, ['oauth', 'providers', 'antigravity']);
+        }
+        if (dirtyFields.has('antigravityOauthSafeguardAllowGeminiSdk')) {
+          ensureMapInDoc(doc, ['oauth', 'providers', 'antigravity']);
+          doc.setIn(
+            ['oauth', 'providers', 'antigravity', 'oauth-safeguard-allow-gemini-sdk'],
+            values.antigravityOauthSafeguardAllowGeminiSdk
+          );
         }
 
         const routingDirty =

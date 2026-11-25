@@ -7,6 +7,7 @@ import { DEFAULT_VISUAL_VALUES } from '../src/types/visualConfig';
 
 test('Antigravity OAuth safeguard reads and writes its provider settings', () => {
   expect(DEFAULT_VISUAL_VALUES.antigravityOauthSafeguard).toBe(false);
+  expect(DEFAULT_VISUAL_VALUES.antigravityOauthSafeguardAllowGeminiSdk).toBe(true);
   const source =
     'oauth:\n  providers:\n    antigravity:\n      oauth-safeguard: true\n      antigravity-credits: true\n      oauth-safeguard-client-identities: [old-client]\n';
 
@@ -18,9 +19,11 @@ test('Antigravity OAuth safeguard reads and writes its provider settings', () =>
       setPhase(1);
     } else if (phase === 1) {
       expect(config.visualValues.antigravityOauthSafeguard).toBe(true);
+      expect(config.visualValues.antigravityOauthSafeguardAllowGeminiSdk).toBe(true);
       expect(config.visualValues.antigravityOauthSafeguardClientIdentities).toEqual(['old-client']);
       config.setVisualValues({
         antigravityOauthSafeguard: false,
+        antigravityOauthSafeguardAllowGeminiSdk: false,
         antigravityOauthSafeguardClientIdentities: ['t3code', 't3-code'],
       });
       setPhase(2);
@@ -36,6 +39,7 @@ test('Antigravity OAuth safeguard reads and writes its provider settings', () =>
       providers: {
         antigravity: {
           'oauth-safeguard': false,
+          'oauth-safeguard-allow-gemini-sdk': false,
           'antigravity-credits': true,
           'oauth-safeguard-client-identities': ['t3code', 't3-code'],
         },

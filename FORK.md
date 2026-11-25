@@ -1966,8 +1966,10 @@ Config → Advanced → Antigravity exposes the OAuth safeguard toggle. It reads
 `oauth.providers.antigravity.oauth-safeguard`, defaults to off, and preserves the provider's other
 settings. Config search indexes the control by its label and YAML path. The help text explains the
 consumer credential requirement and the wait for a valid reference.
-The Custom client identities list accepts incoming User-Agent product
-names such as `t3code` and saves them in the same Antigravity provider block.
+The Custom client identities list accepts incoming User-Agent product names
+and saves them in the same Antigravity provider block. The Allow Gemini SDK
+by default toggle is on for existing configs with no explicit value, so T3
+Code's Gemini API-key mode can submit requests without an extra identity.
 
 **Implementation evidence:** `SectionAdvanced.tsx`, `useVisualConfig.ts`,
 `visualConfigAntigravityOauthSafeguard.test.ts`, and the seven Config locales.
