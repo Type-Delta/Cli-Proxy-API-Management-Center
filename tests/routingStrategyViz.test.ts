@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import i18n from '@/i18n';
 import { apiClient } from '@/services/api/client';
 import { dryRunRouting } from '@/services/api/routing';
-import { ProjectedResponse } from '@/features/routing/dryrun/DryRunPage';
+import { DryRunOutcome } from '@/features/routing/dryrun/DryRunPage';
 import { normalizeRoutingTrace } from '@/services/api/routingTrace';
 import {
   buildDecayCurve,
@@ -70,7 +70,12 @@ test('projects HTTP details on the Dry run outcome and accepts older responses',
       success: false,
       errorClass: 'model_cooldown',
     });
-    const html = render(createElement(ProjectedResponse, { result: result! }));
+    const html = render(
+      createElement(DryRunOutcome, {
+        credentials: [],
+        state: { trace, result, warnings: [], error: null, loading: false, updatedAt: DRY_RUN_NOW },
+      })
+    );
     expect(html).toContain('HTTP status');
     expect(html).toContain('429');
     expect(html).toContain('Error class');
@@ -82,6 +87,47 @@ test('projects HTTP details on the Dry run outcome and accepts older responses',
     expect((await dryRunRouting({ model: 'claude-opus-5-5' })).result).toBeNull();
   } finally {
     post.mockRestore();
+  }
+});
+
+test('uses the credential card for successful predictions and cached estimates', () => {
+  const predicted: RoutingTrace = {
+    ...GSR_DRY_RUN_TRACE,
+    decided_by: 'strategy',
+    pick: 0,
+    pick_predicted: true,
+    candidates: [{ id: 'codex-joca', label: 'Codex - Joca', provider: 'codex' }],
+  };
+  for (const [trace, credential, label, estimated] of [
+    [predicted, { id: 'codex-joca', label: 'Codex - Joca' }, 'Codex - Joca', false],
+    [GSR_REFRESH_PENDING_TRACE, null, 'claude-team-04', true],
+  ] as const) {
+    const html = render(
+      createElement(DryRunOutcome, {
+        credentials: [],
+        state: {
+          trace,
+          result: {
+            body: 'success',
+            credential,
+            status: 200,
+            success: true,
+            errorClass: null,
+            retryAfter: null,
+          },
+          warnings: [],
+          error: null,
+          loading: false,
+          updatedAt: DRY_RUN_NOW,
+        },
+      })
+    );
+    expect(html).toContain(label);
+    expect(html).toContain('Picked by the routing strategy');
+    expect(html.includes('estimate')).toBe(estimated);
+    expect(html).not.toContain('HTTP status');
+    expect(html).not.toContain('Response body');
+    expect(html).not.toContain('>success<');
   }
 });
 

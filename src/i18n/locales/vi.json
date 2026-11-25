@@ -4427,7 +4427,6 @@
       "empty": "Nhập một mô hình để xem yêu cầu sẽ được định tuyến đến đâu.",
       "outcome_title": "Kết quả",
       "http_status": "Trạng thái HTTP",
-      "credential": "Thông tin xác thực",
       "error_class": "Loại lỗi",
       "retry_after": "Thử lại sau (giây)",
       "body": "Nội dung phản hồi",

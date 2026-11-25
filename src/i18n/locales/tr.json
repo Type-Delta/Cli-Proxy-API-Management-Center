@@ -4427,7 +4427,6 @@
       "empty": "Bir isteğin nereye yönlendirileceğini görmek için model girin.",
       "outcome_title": "Sonuç",
       "http_status": "HTTP durumu",
-      "credential": "Kimlik bilgisi",
       "error_class": "Hata sınıfı",
       "retry_after": "Yeniden deneme süresi (saniye)",
       "body": "Yanıt gövdesi",

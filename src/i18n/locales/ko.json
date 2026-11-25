@@ -4427,7 +4427,6 @@
       "empty": "모델을 입력하면 요청이 어디로 라우팅되는지 볼 수 있습니다.",
       "outcome_title": "결과",
       "http_status": "HTTP 상태",
-      "credential": "인증 정보",
       "error_class": "오류 분류",
       "retry_after": "재시도 대기 시간(초)",
       "body": "응답 본문",

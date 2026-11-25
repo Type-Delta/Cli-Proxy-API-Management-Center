@@ -16,6 +16,7 @@ import {
   useRoutingCandidateLabel,
   useRoutingDryRun,
   type RoutingDryRunInput,
+  type RoutingDryRunState,
 } from '../rules/useRoutingDryRun';
 import { StrategyBreakdown } from '../strategy/StrategyBreakdown';
 import pageStyles from '../RoutingPage.module.scss';
@@ -141,13 +142,7 @@ export function DryRunPage() {
             <>
               <section className={styles.card}>
                 <h2 className={styles.sectionTitle}>{t('routing.dry_run.outcome_title')}</h2>
-                <RoutingTraceResult
-                  state={state}
-                  credentials={credentials}
-                  showSteps={false}
-                  showTrace={state.result?.success !== false && !state.result?.credential}
-                />
-                {state.result ? <ProjectedResponse result={state.result} /> : null}
+                <DryRunOutcome state={state} credentials={credentials} />
               </section>
 
               {trace ? (
@@ -176,11 +171,31 @@ export function DryRunPage() {
   );
 }
 
-export function ProjectedResponse({ result }: { result: RoutingDryRunResult }) {
+export function DryRunOutcome({
+  state,
+  credentials,
+}: {
+  state: RoutingDryRunState;
+  credentials: RoutingCredential[];
+}) {
+  const failure = state.result?.success === false ? state.result : null;
+  return (
+    <>
+      <RoutingTraceResult
+        state={state}
+        credentials={credentials}
+        showSteps={false}
+        showTrace={!failure}
+      />
+      {failure ? <ProjectedResponse result={failure} /> : null}
+    </>
+  );
+}
+
+function ProjectedResponse({ result }: { result: RoutingDryRunResult }) {
   const { t } = useTranslation();
-  if (result.success === null) return null;
   let body = result.body;
-  if (body !== null && !result.success) {
+  if (body !== null) {
     try {
       body = JSON.stringify(JSON.parse(body), null, 2);
     } catch {
@@ -193,12 +208,6 @@ export function ProjectedResponse({ result }: { result: RoutingDryRunResult }) {
         <div>
           <dt>{t('routing.dry_run.http_status')}</dt>
           <dd>{result.status}</dd>
-        </div>
-      ) : null}
-      {result.credential ? (
-        <div>
-          <dt>{t('routing.dry_run.credential')}</dt>
-          <dd title={result.credential.id}>{result.credential.label || result.credential.id}</dd>
         </div>
       ) : null}
       {result.errorClass ? (

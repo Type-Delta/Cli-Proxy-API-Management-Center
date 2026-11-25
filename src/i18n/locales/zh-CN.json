@@ -4427,7 +4427,6 @@
       "empty": "输入模型以查看请求会被路由到哪里。",
       "outcome_title": "结果",
       "http_status": "HTTP 状态",
-      "credential": "凭据",
       "error_class": "错误类别",
       "retry_after": "重试等待时间（秒）",
       "body": "响应正文",
