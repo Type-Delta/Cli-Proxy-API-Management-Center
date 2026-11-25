@@ -4421,6 +4421,11 @@
       "updated": "更新于 {{time}}",
       "empty": "输入模型以查看请求会被路由到哪里。",
       "outcome_title": "结果",
+      "http_status": "HTTP 状态",
+      "credential": "凭据",
+      "error_class": "错误类别",
+      "retry_after": "重试等待时间（秒）",
+      "body": "响应正文",
       "precedence_title": "优先级",
       "strategy_title": "策略推理",
       "no_strategy": "此请求没有由策略排序的候选池（没有可用层级、使用插件调度器，或 CPA 版本较旧）。"

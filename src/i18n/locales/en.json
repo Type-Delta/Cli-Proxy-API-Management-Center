@@ -4421,6 +4421,11 @@
       "updated": "Updated {{time}}",
       "empty": "Enter a model to see where a request would be routed.",
       "outcome_title": "Outcome",
+      "http_status": "HTTP status",
+      "credential": "Credential",
+      "error_class": "Error class",
+      "retry_after": "Retry after (seconds)",
+      "body": "Response body",
       "precedence_title": "Precedence",
       "strategy_title": "Strategy reasoning",
       "no_strategy": "The strategy did not rank a pool for this request (no eligible tier, a plugin scheduler, or an older CPA)."

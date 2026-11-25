@@ -5,7 +5,7 @@ import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { apiKeysApi } from '@/services/api/apiKeys';
 import { routingApi } from '@/services/api/routing';
-import type { RoutingCredential } from '@/types/routing';
+import type { RoutingCredential, RoutingDryRunResult } from '@/types/routing';
 import { AffinityProvenance } from '@/features/analytics/views/events/AffinityProvenance';
 import { RoutingDecision } from '@/features/analytics/views/events/RoutingDecision';
 import { RoutingTabs } from '../RoutingTabs';
@@ -141,7 +141,13 @@ export function DryRunPage() {
             <>
               <section className={styles.card}>
                 <h2 className={styles.sectionTitle}>{t('routing.dry_run.outcome_title')}</h2>
-                <RoutingTraceResult state={state} credentials={credentials} showSteps={false} />
+                <RoutingTraceResult
+                  state={state}
+                  credentials={credentials}
+                  showSteps={false}
+                  showTrace={state.result?.success !== false && !state.result?.credential}
+                />
+                {state.result ? <ProjectedResponse result={state.result} /> : null}
               </section>
 
               {trace ? (
@@ -167,5 +173,56 @@ export function DryRunPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export function ProjectedResponse({ result }: { result: RoutingDryRunResult }) {
+  const { t } = useTranslation();
+  if (result.success === null) return null;
+  let body = result.body;
+  if (body !== null && !result.success) {
+    try {
+      body = JSON.stringify(JSON.parse(body), null, 2);
+    } catch {
+      // Keep a plain-text error exactly as CPA returned it.
+    }
+  }
+  return (
+    <dl className={styles.response}>
+      {result.status !== null ? (
+        <div>
+          <dt>{t('routing.dry_run.http_status')}</dt>
+          <dd>{result.status}</dd>
+        </div>
+      ) : null}
+      {result.credential ? (
+        <div>
+          <dt>{t('routing.dry_run.credential')}</dt>
+          <dd title={result.credential.id}>{result.credential.label || result.credential.id}</dd>
+        </div>
+      ) : null}
+      {result.errorClass ? (
+        <div>
+          <dt>{t('routing.dry_run.error_class')}</dt>
+          <dd>
+            <code>{result.errorClass}</code>
+          </dd>
+        </div>
+      ) : null}
+      {result.retryAfter !== null ? (
+        <div>
+          <dt>{t('routing.dry_run.retry_after')}</dt>
+          <dd>{result.retryAfter}</dd>
+        </div>
+      ) : null}
+      {body !== null ? (
+        <div className={styles.bodyRow}>
+          <dt>{t('routing.dry_run.body')}</dt>
+          <dd>
+            <pre>{body}</pre>
+          </dd>
+        </div>
+      ) : null}
+    </dl>
   );
 }

@@ -2088,6 +2088,12 @@ validated separately with the Go test suite and build. Independent review found 
 
 ### DL079 — Routing dry-run tab, strategy reasoning, and session-binding provenance
 
+The Dry run tab shows CPA's projected HTTP status, credential, error class, retry
+delay in seconds, and response body in the Outcome section. JSON error bodies are
+formatted for reading. Older CPA responses still show the trace verdict. Tests
+cover both response formats. Isolated Chromium checks at 1440px and 390px against
+the bundled panel covered an Opus cooldown and a successful reserve bypass.
+
 GSR strategy cards show the observed remaining-quota percentage in the weight
 equation, including zero. Older traces retain their original equation. When
 storage trimming removes the recovery base, the card shows the recorded weight

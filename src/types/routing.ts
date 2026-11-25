@@ -363,7 +363,17 @@ export type RoutingDryRunRequest = {
   rules?: RoutingRule[];
 };
 
+export type RoutingDryRunResult = {
+  body: string | null;
+  retryAfter: number | null;
+  credential: { id: string; label: string } | null;
+  status: number | null;
+  success: boolean | null;
+  errorClass: string | null;
+};
+
 export type RoutingDryRunResponse = {
+  result: RoutingDryRunResult | null;
   trace: RoutingTrace;
   warnings: string[];
 };

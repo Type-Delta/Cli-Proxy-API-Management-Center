@@ -1,9 +1,12 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter } from 'react-router-dom';
 import i18n from '@/i18n';
+import { apiClient } from '@/services/api/client';
+import { dryRunRouting } from '@/services/api/routing';
+import { ProjectedResponse } from '@/features/routing/dryrun/DryRunPage';
 import { normalizeRoutingTrace } from '@/services/api/routingTrace';
 import {
   buildDecayCurve,
@@ -40,6 +43,47 @@ const render = (node: ReturnType<typeof createElement>) =>
   renderToStaticMarkup(
     createElement(MemoryRouter, null, createElement(I18nextProvider, { i18n: en }, node))
   );
+
+test('projects HTTP details on the Dry run outcome and accepts older responses', async () => {
+  const trace = GSR_DRY_RUN_TRACE;
+  const body = '{"error":{"code":"model_cooldown","reset_time":"1h0m0s"}}';
+  const post = spyOn(apiClient, 'post')
+    .mockResolvedValueOnce({
+      trace,
+      result: {
+        body,
+        retry_after: 3600,
+        credential: null,
+        status: 429,
+        success: false,
+        error_class: 'model_cooldown',
+      },
+    })
+    .mockResolvedValueOnce({ trace });
+  try {
+    const { result } = await dryRunRouting({ model: 'claude-opus-5-5' });
+    expect(result).toEqual({
+      body,
+      retryAfter: 3600,
+      credential: null,
+      status: 429,
+      success: false,
+      errorClass: 'model_cooldown',
+    });
+    const html = render(createElement(ProjectedResponse, { result: result! }));
+    expect(html).toContain('HTTP status');
+    expect(html).toContain('429');
+    expect(html).toContain('Error class');
+    expect(html).toContain('model_cooldown');
+    expect(html).toContain('Retry after (seconds)');
+    expect(html).toContain('3600');
+    expect(html).toContain('<pre>');
+    expect(html).toContain('1h0m0s');
+    expect((await dryRunRouting({ model: 'claude-opus-5-5' })).result).toBeNull();
+  } finally {
+    post.mockRestore();
+  }
+});
 
 describe('routing trace normalization', () => {
   test('keeps strategy_step and affinity provenance from the wire', () => {
@@ -333,6 +377,7 @@ describe('strategy breakdown rendering', () => {
       createElement(RoutingTraceResult, {
         state: {
           trace: GSR_REFRESH_PENDING_TRACE,
+          result: null,
           warnings: [],
           error: null,
           loading: false,

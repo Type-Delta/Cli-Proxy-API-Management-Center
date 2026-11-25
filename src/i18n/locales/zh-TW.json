@@ -4421,6 +4421,11 @@
       "updated": "更新於 {{time}}",
       "empty": "輸入模型以查看請求會被路由到哪裡。",
       "outcome_title": "結果",
+      "http_status": "HTTP 狀態",
+      "credential": "憑證",
+      "error_class": "錯誤類別",
+      "retry_after": "重試等待時間（秒）",
+      "body": "回應本文",
       "precedence_title": "優先順序",
       "strategy_title": "策略推理",
       "no_strategy": "此請求沒有由策略排序的候選池（沒有可用層級、使用外掛排程器，或 CPA 版本較舊）。"

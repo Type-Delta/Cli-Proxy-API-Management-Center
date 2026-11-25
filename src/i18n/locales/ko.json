@@ -4421,6 +4421,11 @@
       "updated": "{{time}}에 업데이트됨",
       "empty": "모델을 입력하면 요청이 어디로 라우팅되는지 볼 수 있습니다.",
       "outcome_title": "결과",
+      "http_status": "HTTP 상태",
+      "credential": "인증 정보",
+      "error_class": "오류 분류",
+      "retry_after": "재시도 대기 시간(초)",
+      "body": "응답 본문",
       "precedence_title": "우선순위",
       "strategy_title": "전략 판단 근거",
       "no_strategy": "이 요청에서는 전략이 풀을 순위 매기지 않았습니다(사용 가능한 계층 없음, 플러그인 스케줄러 사용, 또는 이전 CPA 버전)."

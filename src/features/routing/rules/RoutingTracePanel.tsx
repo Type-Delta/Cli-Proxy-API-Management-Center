@@ -75,10 +75,12 @@ export function RoutingTraceResult({
   state,
   credentials,
   showSteps = true,
+  showTrace = true,
 }: {
   state: RoutingDryRunState;
   credentials: RoutingCredential[];
   showSteps?: boolean;
+  showTrace?: boolean;
 }) {
   const { t } = useTranslation();
   const { trace, warnings, error, loading } = state;
@@ -124,7 +126,7 @@ export function RoutingTraceResult({
         </ul>
       ) : null}
 
-      {trace ? (
+      {trace && showTrace ? (
         <>
           {outcome === 'pick' ? (
             <div className={cx(styles.winner, pickIsEstimate && styles.winnerUnknown)}>

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { routingApi, routingDryRunErrorPath } from '@/services/api/routing';
 import type {
   RoutingCredential,
+  RoutingDryRunResult,
   RoutingRule,
   RoutingTrace,
   RoutingTraceCandidate,
@@ -32,6 +33,7 @@ export const EMPTY_DRY_RUN_INPUT: RoutingDryRunInput = {
 
 export type RoutingDryRunState = {
   trace: RoutingTrace | null;
+  result: RoutingDryRunResult | null;
   warnings: string[];
   error: { message: string; path?: string } | null;
   loading: boolean;
@@ -60,6 +62,7 @@ export function useRoutingDryRun({
   const { t } = useTranslation();
   const [state, setState] = useState<RoutingDryRunState>({
     trace: null,
+    result: null,
     warnings: [],
     error: null,
     loading: false,
@@ -76,7 +79,13 @@ export function useRoutingDryRun({
     const requestedModel = model.trim();
     if (!requestedModel || disabled) {
       lastRequest.current = '';
-      setState((current) => ({ ...current, trace: null, error: null, loading: false }));
+      setState((current) => ({
+        ...current,
+        trace: null,
+        result: null,
+        error: null,
+        loading: false,
+      }));
       return;
     }
     let cancelled = false;
@@ -111,6 +120,7 @@ export function useRoutingDryRun({
           if (cancelled) return;
           setState({
             trace: response.trace,
+            result: response.result,
             warnings: response.warnings,
             error: null,
             loading: false,
@@ -121,6 +131,7 @@ export function useRoutingDryRun({
           if (cancelled) return;
           setState({
             trace: null,
+            result: null,
             warnings: [],
             loading: false,
             updatedAt: null,

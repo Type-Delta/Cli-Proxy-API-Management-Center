@@ -4421,6 +4421,11 @@
       "updated": "Cập nhật lúc {{time}}",
       "empty": "Nhập một mô hình để xem yêu cầu sẽ được định tuyến đến đâu.",
       "outcome_title": "Kết quả",
+      "http_status": "Trạng thái HTTP",
+      "credential": "Thông tin xác thực",
+      "error_class": "Loại lỗi",
+      "retry_after": "Thử lại sau (giây)",
+      "body": "Nội dung phản hồi",
       "precedence_title": "Thứ tự ưu tiên",
       "strategy_title": "Lập luận của chiến lược",
       "no_strategy": "Chiến lược không xếp hạng nhóm nào cho yêu cầu này (không có tầng khả dụng, dùng bộ lập lịch plugin, hoặc CPA phiên bản cũ)."

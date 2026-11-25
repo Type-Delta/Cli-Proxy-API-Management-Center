@@ -502,6 +502,7 @@ import type {
   RoutingCredentialsResponse,
   RoutingDryRunRequest,
   RoutingDryRunResponse,
+  RoutingDryRunResult,
 } from '@/types/routing';
 import { normalizeRoutingTrace } from './routingTrace';
 
@@ -574,6 +575,28 @@ export async function getRoutingCredentials(): Promise<RoutingCredentialsRespons
   return normalizeCredentialsResponse(await apiClient.get<unknown>('/routing/credentials'));
 }
 
+const normalizeDryRunResult = (raw: unknown): RoutingDryRunResult | null => {
+  if (!isRecord(raw)) return null;
+  const { body, retry_after, credential, status, success, error_class } = raw;
+  return {
+    body: typeof body === 'string' ? body : null,
+    retryAfter:
+      typeof retry_after === 'number' && Number.isSafeInteger(retry_after) && retry_after >= 0
+        ? retry_after
+        : null,
+    credential:
+      isRecord(credential) && typeof credential.id === 'string' && credential.id
+        ? { id: credential.id, label: typeof credential.label === 'string' ? credential.label : '' }
+        : null,
+    status:
+      typeof status === 'number' && Number.isInteger(status) && status >= 100 && status <= 599
+        ? status
+        : null,
+    success: typeof success === 'boolean' ? success : null,
+    errorClass: typeof error_class === 'string' && error_class ? error_class : null,
+  };
+};
+
 /** Side-effect-free prediction of a hypothetical request. */
 export async function dryRunRouting(body: RoutingDryRunRequest): Promise<RoutingDryRunResponse> {
   const raw = await apiClient.post<unknown>('/routing/dry-run', body);
@@ -584,6 +607,7 @@ export async function dryRunRouting(body: RoutingDryRunRequest): Promise<Routing
   }
   return {
     trace,
+    result: normalizeDryRunResult(record.result),
     warnings: Array.isArray(record.warnings)
       ? record.warnings.map((warning) => String(warning ?? ''))
       : [],
