@@ -20,6 +20,15 @@ const UNIT_KEYS = {
   most_reliable: 'unit_success',
   speed: 'unit_speed',
   most_talkative: 'unit_tokens',
+  marathon: 'unit_duration',
+} as const satisfies Record<AnalyticsModelLeaderboardMetric, string>;
+
+const ACCENT_CLASS = {
+  most_used: styles.accentMostUsed,
+  most_reliable: styles.accentMostReliable,
+  speed: styles.accentSpeed,
+  most_talkative: styles.accentMostTalkative,
+  marathon: styles.accentMarathon,
 } as const satisfies Record<AnalyticsModelLeaderboardMetric, string>;
 
 const MEDAL_CLASS: Record<number, string> = {
@@ -40,6 +49,7 @@ const VALUE_SCALE = {
   most_reliable: 10_000,
   speed: 10,
   most_talkative: 1,
+  marathon: 1,
 } as const satisfies Record<AnalyticsModelLeaderboardMetric, number>;
 
 const RANK_KEYS = { 1: 'rank_first', 2: 'rank_second', 3: 'rank_third' } as const;
@@ -160,12 +170,17 @@ function PodSkeleton({ rank }: { rank: 1 | 2 | 3 }) {
 export function ModelLeaderboardAwardCard({
   metric,
   rows,
+  keyLabels,
+  keyLabelsLoading = false,
   runnersCollapsed,
   refreshing = false,
   loading = false,
 }: {
   metric: AnalyticsModelLeaderboardMetric;
   rows: AnalyticsModelLeaderboardRow[];
+  /** Catalog labels keyed by key_id; absent or still-loading catalog entries resolve separately. */
+  keyLabels?: ReadonlyMap<string, string>;
+  keyLabelsLoading?: boolean;
   runnersCollapsed: boolean;
   /** Reload over existing data: keep the card and show the Usage-style corner pill. */
   refreshing?: boolean;
@@ -182,6 +197,14 @@ export function ModelLeaderboardAwardCard({
   const runners = runnersUpRows(rows);
   const valueOf = (row: AnalyticsModelLeaderboardRow) =>
     formatLeaderboardValue(metric, row.value, locale);
+
+  const marathonKey = (row: AnalyticsModelLeaderboardRow) => {
+    if (!row.key_id) return undefined;
+    return (
+      keyLabels?.get(row.key_id) ??
+      (keyLabelsLoading ? '' : t('analytics.unknown_key', { defaultValue: 'Unknown key' }))
+    );
+  };
 
   const subline = (row: AnalyticsModelLeaderboardRow): string => {
     switch (metric) {
@@ -208,6 +231,14 @@ export function ModelLeaderboardAwardCard({
           : t('analytics.leaderboard.reasoning', {
               percent: Math.round(row.reasoning_share * 100),
             });
+      case 'marathon': {
+        if (row.samples === undefined) return '';
+        const requests = t('analytics.leaderboard.marathon_requests', {
+          count: row.samples,
+        });
+        const key = marathonKey(row);
+        return key ? `${requests} · ${key}` : requests;
+      }
     }
   };
 
@@ -273,7 +304,8 @@ export function ModelLeaderboardAwardCard({
 
   return (
     <section
-      className={'card ' + styles.award}
+      className={'card ' + styles.award + ' ' + ACCENT_CLASS[metric]}
+      data-metric={metric}
       aria-labelledby={headingId}
       aria-busy={loading || refreshing || undefined}
     >
@@ -400,6 +432,9 @@ export function ModelLeaderboardAwardCard({
                   <span className={styles.runnerRank}>{row.rank}</span>
                   <FamilyGlyph model={row.model} className={styles.runnerGlyph} />
                   <span className={styles.runnerModel}>{row.model}</span>
+                  {metric === 'marathon' && (
+                    <span className={styles.runnerDetail}>{subline(row)}</span>
+                  )}
                   <b className={styles.runnerValue}>{valueOf(row)}</b>
                 </li>
               ))}

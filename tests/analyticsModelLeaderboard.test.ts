@@ -14,6 +14,7 @@ import {
   podiumSlots,
   runnersUpRows,
 } from '@/features/analytics/views/leaderboard/modelLeaderboardModel';
+import { formatSplitDuration } from '@/features/analytics/components/analyticsFormatting';
 import {
   markMascotUrlBroken,
   MODEL_FAMILY_MASCOTS,
@@ -173,11 +174,18 @@ describe('model leaderboard layout model', () => {
         { metric: 'most_used', rows: [row(1, 'claude-sonnet-5-5', 1284, { providers: 3 })] },
       ],
     });
-    expect(LEADERBOARD_METRICS).toEqual(['most_used', 'most_reliable', 'speed', 'most_talkative']);
+    expect(LEADERBOARD_METRICS).toEqual([
+      'most_used',
+      'most_reliable',
+      'speed',
+      'most_talkative',
+      'marathon',
+    ]);
     expect(indexed.most_used).toHaveLength(1);
     expect(indexed.most_reliable).toEqual([]);
     expect(indexed.speed).toHaveLength(1);
     expect(indexed.most_talkative).toEqual([]);
+    expect(indexed.marathon).toEqual([]);
   });
 
   test('fills podium display order 2nd-1st-3rd and keeps empty slots as placeholders', () => {
@@ -211,6 +219,16 @@ describe('model leaderboard layout model', () => {
     expect(formatLeaderboardValue('speed', 184, 'en')).toBe('184');
     expect(formatLeaderboardValue('most_talkative', 38200, 'en')).toBe('38,200');
     expect(formatLeaderboardValue('most_talkative', 382000, 'en')).toBe('382K');
+    expect(formatLeaderboardValue('marathon', 8_040_000, 'en')).toBe('2h 14m');
+    expect(formatLeaderboardValue('marathon', 2_883_000, 'en')).toBe('48m 3s');
+    expect(formatLeaderboardValue('marathon', 950, 'en')).toBe('950ms');
+  });
+
+  test('keeps split durations to their two largest parts', () => {
+    expect(formatSplitDuration(31_536_000_000, 'en')).toBe('365d');
+    expect(formatSplitDuration(97_200_000, 'en')).toBe('1d 3h');
+    expect(formatSplitDuration(3_660_000, 'en')).toBe('1h 1m');
+    expect(formatSplitDuration(-1_000, 'en')).toBe('—');
   });
 });
 
@@ -327,17 +345,77 @@ describe('model leaderboard first load', () => {
     expect(markup).not.toContain('>sessions<');
   });
 
-  test('renders the range chip and all four real card headers before rankings arrive', () => {
+  test('renders the range chip and all five real card headers before rankings arrive', () => {
     const markup = renderToStaticMarkup(createElement(ModelLeaderboard));
-    expect((markup.match(/<section /g) ?? []).length).toBe(4);
-    expect((markup.match(/aria-labelledby="leaderboard-award-/g) ?? []).length).toBe(4);
+    expect((markup.match(/<section /g) ?? []).length).toBe(5);
+    expect((markup.match(/aria-labelledby="leaderboard-award-/g) ?? []).length).toBe(5);
     expect(markup).toContain('Most Used');
     expect(markup).toContain('Most Reliable');
     expect(markup).toContain('Speed Maniac');
     expect(markup).toContain('Most Talkative');
+    expect(markup).toContain('Marathon');
     expect(markup).toContain('Past 7 days');
     expect(markup).toContain('at least 80 tok/s');
     expect(markup).not.toContain('No model reached');
+  });
+});
+
+describe('marathon award key attribution', () => {
+  const marathonCard = (
+    rows: AnalyticsModelLeaderboardRow[],
+    keyLabels?: ReadonlyMap<string, string>,
+    keyLabelsLoading = false
+  ) =>
+    renderToStaticMarkup(
+      createElement(ModelLeaderboardAwardCard, {
+        metric: 'marathon',
+        rows,
+        keyLabels,
+        keyLabelsLoading,
+        runnersCollapsed: false,
+      })
+    );
+
+  test('shows the catalog label beside the request count', () => {
+    const markup = marathonCard(
+      [row(1, 'glm-5.3-flash', 8_040_000, { samples: 43, key_id: 'key-known' })],
+      new Map([['key-known', 'Automation key']])
+    );
+    expect(markup).toContain('2h 14m');
+    expect(markup).toContain('43 requests · Automation key');
+    expect(markup).toContain('processing time');
+  });
+
+  test('runners-up keep the request count and key label', () => {
+    const markup = marathonCard(
+      [1, 2, 3, 4].map((rank) =>
+        row(rank, `model-${rank}`, 100_000 - rank * 1000, { samples: rank, key_id: 'key-bravo' })
+      ),
+      new Map([['key-bravo', 'Bravo key']])
+    );
+    const runners = markup.slice(markup.indexOf('Runners-up'));
+    expect(runners).toContain('model-4');
+    expect(runners).toContain('4 requests · Bravo key');
+  });
+
+  test('renders an absent catalog entry as unknown and omits a missing key_id', () => {
+    const unknown = marathonCard([
+      row(1, 'glm-5.3-flash', 2_883_000, { samples: 18, key_id: 'key-lost' }),
+    ]);
+    expect(unknown).toContain('18 requests · Unknown key');
+    const omitted = marathonCard([row(2, 'gpt-5.6-luna', 61_000, { samples: 2 })]);
+    expect(omitted).toContain('2 requests');
+    expect(omitted).not.toContain('Unknown key');
+  });
+
+  test('does not show a key while its label catalog is still loading', () => {
+    const markup = marathonCard(
+      [row(1, 'glm-5.3-flash', 61_000, { samples: 2, key_id: 'key-known' })],
+      new Map(),
+      true
+    );
+    expect(markup).toContain('2 requests');
+    expect(markup).not.toContain('Unknown key');
   });
 });
 

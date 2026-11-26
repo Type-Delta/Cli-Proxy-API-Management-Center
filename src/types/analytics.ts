@@ -397,7 +397,11 @@ export type AnalyticsLeaderboardResponse = Omit<AnalyticsLeaderboard, 'rows'> & 
  * form the podium and 4-6 the runners-up. Fields beyond rank/model/value are metric-specific.
  */
 export type AnalyticsModelLeaderboardMetric =
-  'most_used' | 'most_reliable' | 'speed' | 'most_talkative';
+  | 'most_used'
+  | 'most_reliable'
+  | 'speed'
+  | 'most_talkative'
+  | 'marathon';
 
 export type AnalyticsModelLeaderboardRow = {
   rank: number;
@@ -408,6 +412,7 @@ export type AnalyticsModelLeaderboardRow = {
   failed?: number;
   samples?: number;
   reasoning_share?: number;
+  key_id?: string;
 };
 
 export type AnalyticsModelLeaderboardAward = {

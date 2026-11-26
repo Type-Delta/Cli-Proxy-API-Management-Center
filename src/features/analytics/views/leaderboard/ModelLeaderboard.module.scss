@@ -1,6 +1,6 @@
 @use '../../../../styles/variables' as *;
 
-// Standalone page: a window chip above the four award cards.
+// Standalone page: a window chip above the five award cards.
 .leaderboard {
   display: flex;
   min-width: 0;
@@ -60,6 +60,27 @@
   padding: 24px;
 }
 
+// Metric accents distinguish the cards without replacing the shared medal tokens.
+.accentMostUsed {
+  --award-accent: var(--viz-cat-1);
+}
+
+.accentMostReliable {
+  --award-accent: var(--success-color);
+}
+
+.accentSpeed {
+  --award-accent: var(--viz-cat-2);
+}
+
+.accentMostTalkative {
+  --award-accent: var(--viz-cat-3);
+}
+
+.accentMarathon {
+  --award-accent: var(--viz-cat-4);
+}
+
 .awardHead {
   grid-area: head;
   min-width: 0;
@@ -67,7 +88,7 @@
 
 .awardTitle {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--award-accent, var(--text-primary));
   font-size: 17px;
   line-height: 1.3;
 }
@@ -384,9 +405,20 @@
   white-space: nowrap;
 }
 
+.runnerDetail {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .runnerValue {
+  flex-shrink: 0;
   margin-left: auto;
   padding-left: 8px;
+  white-space: nowrap;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }

@@ -1,4 +1,7 @@
-import { formatCompactTokens } from '@/features/analytics/components/analyticsFormatting';
+import {
+  formatCompactTokens,
+  formatSplitDuration,
+} from '@/features/analytics/components/analyticsFormatting';
 import type {
   AnalyticsModelLeaderboard,
   AnalyticsModelLeaderboardAward,
@@ -6,15 +9,16 @@ import type {
   AnalyticsModelLeaderboardRow,
 } from '@/types';
 
-/** Contract order of the four awards; the page always renders them in this order. */
+/** Contract order of the five awards; the page always renders them in this order. */
 export const LEADERBOARD_METRICS = [
   'most_used',
   'most_reliable',
   'speed',
   'most_talkative',
+  'marathon',
 ] as const satisfies readonly AnalyticsModelLeaderboardMetric[];
 
-/** Rows indexed by metric; the response always carries all four, but read defensively. */
+/** Rows indexed by metric; the response always carries all five, but read defensively. */
 export function awardsByMetric(
   data: AnalyticsModelLeaderboard
 ): Record<AnalyticsModelLeaderboardMetric, AnalyticsModelLeaderboardRow[]> {
@@ -23,6 +27,7 @@ export function awardsByMetric(
     most_reliable: [],
     speed: [],
     most_talkative: [],
+    marathon: [],
   };
   for (const award of data.awards as AnalyticsModelLeaderboardAward[]) {
     if (award.metric in indexed) indexed[award.metric] = award.rows;
@@ -77,6 +82,8 @@ export function formatLeaderboardValue(
       return formatSuccessRate(value, locale);
     case 'speed':
       return formatSpeed(value, locale);
+    case 'marathon':
+      return formatSplitDuration(value, locale);
   }
 }
 

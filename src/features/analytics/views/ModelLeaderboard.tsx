@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { analyticsApi } from '@/services/api';
+import type { AnalyticsKey } from '@/types';
 import { AsyncState } from '../components/AnalyticsShared';
 import { useAnalyticsLoad as useLoad } from '../useAnalyticsLoad';
 import {
@@ -41,6 +42,40 @@ export function ModelLeaderboard() {
   const data = leaderboard.data;
   const [initialEnd] = useState(() => new Date());
   const awards = useMemo(() => (data ? awardsByMetric(data) : null), [data]);
+  const leaderboardWindow = data ? { start: data.start, end: data.end } : undefined;
+  const needsKeyLabels =
+    Boolean(leaderboardWindow) && Boolean(awards?.marathon.some((row) => row.key_id));
+  const keyCatalog = useLoad<AnalyticsKey[]>(
+    async () => {
+      if (!leaderboardWindow) throw new Error('Leaderboard window unavailable');
+      const keys: AnalyticsKey[] = [];
+      let cursor = '';
+      do {
+        const page = await analyticsApi.keys(
+          {
+            ...leaderboardWindow,
+            time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+            page_size: 200,
+          },
+          cursor
+        );
+        keys.push(...page.keys);
+        cursor = page.meta.next_cursor ?? '';
+      } while (cursor && keys.length < 10_000);
+      return keys;
+    },
+    leaderboardWindow
+      ? `model-leaderboard-keys:${leaderboardWindow.start}:${leaderboardWindow.end}`
+      : 'model-leaderboard-keys',
+    needsKeyLabels
+  );
+  const keyLabels = useMemo(
+    () =>
+      new Map(
+        (keyCatalog.data ?? []).map((key) => [key.key_id, key.label || key.short_key_id])
+      ),
+    [keyCatalog.data]
+  );
   // Reserve localized date widths while CPA resolves the rolling window. Only confirmed dates show.
   const dates = formatLeaderboardRange(
     data?.start ?? new Date(initialEnd.getTime() - 7 * 86_400_000).toISOString(),
@@ -85,6 +120,8 @@ export function ModelLeaderboard() {
                   key={metric}
                   metric={metric}
                   rows={awards?.[metric] ?? []}
+                  keyLabels={keyLabels}
+                  keyLabelsLoading={keyCatalog.loading}
                   runnersCollapsed={runnersCollapsed}
                   loading={leaderboard.loading && !data}
                   refreshing={leaderboard.loading && !!data}

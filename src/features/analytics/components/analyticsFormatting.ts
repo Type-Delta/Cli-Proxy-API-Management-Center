@@ -99,6 +99,33 @@ export function formatAccumulatedDuration(milliseconds: number, locale?: string)
   }).format(milliseconds / divisor);
 }
 
+/** Shows the two largest duration parts, so a session length reads as "2h 14m", not seconds. */
+export function formatSplitDuration(milliseconds: number, locale?: string) {
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) return DASH;
+  const format = (value: number, unit: Intl.NumberFormatOptions['unit']) =>
+    new Intl.NumberFormat(locale, {
+      style: 'unit',
+      unit,
+      unitDisplay: 'narrow',
+      maximumFractionDigits: 0,
+    }).format(value);
+  if (milliseconds < 1_000) return format(milliseconds, 'millisecond');
+  let remaining = Math.floor(milliseconds / 1_000);
+  const days = Math.floor(remaining / 86_400);
+  remaining %= 86_400;
+  const hours = Math.floor(remaining / 3_600);
+  remaining %= 3_600;
+  const minutes = Math.floor(remaining / 60);
+  const seconds = remaining % 60;
+  const parts = [
+    days && format(days, 'day'),
+    hours && format(hours, 'hour'),
+    minutes && format(minutes, 'minute'),
+    !days && !hours && seconds && format(seconds, 'second'),
+  ].filter(Boolean);
+  return parts.slice(0, 2).join(' ');
+}
+
 const asDate = (value: Date | string | number) => {
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;

@@ -1982,6 +1982,30 @@ neighboring provider settings. Locale parity, lint, and the production build pas
 
 **Last updated:** 2026-11-25
 
+### DL090 — Marathon award and key attribution on the Model Leaderboard
+
+The leaderboard renders CPA's fifth award after Most Talkative. Its value is the summed processing
+time of a model's longest session in the rolling week, formatted as the two largest duration parts
+("2h 14m", "48m 3s"), and its detail names the request count and the API key on podium places
+and runners-up alike. Key labels use the
+existing analytics key catalog over the leaderboard's resolved window: labels win, a label-less
+historical key falls back to its short identity, an absent catalog entry is Unknown, and a missing
+`key_id` omits attribution. The catalog is requested only when the marathon rows carry key IDs.
+Cards now carry metric accents and five stacked cards use the existing responsive podium layout.
+Marathon copy is present across all seven locales.
+
+**Implementation evidence:** `src/types/analytics.ts`,
+`src/features/analytics/components/analyticsFormatting.ts`, `src/features/analytics/views/ModelLeaderboard.tsx`,
+`src/features/analytics/views/leaderboard/*`, `src/i18n/locales/*.json`, `tests/analyticsModelLeaderboard.test.ts`.
+
+**Recorded validation:** On 2026-11-26, isolated Chromium against the dev server with intercepted
+analytics responses showed "2h 14m", localized request counts, named configured and rotated keys,
+the short fallback for a label-less historical key, and omitted attribution on a row without a key.
+Desktop at 1440px and mobile at 390px had no overflow or console errors; mobile runners-up toggled.
+Bun 1.4.3 `verify` passes 3,644 tests, ESLint, TypeScript, and the single-file production build.
+
+**Last updated:** 2026-11-26
+
 ## Merge History
 
 This is an append-only decision record, newest first, with one entry per upstream sync. It explains past integrations but does not by itself establish a current divergence; use the Divergence Log for that. Sync with upstream only when the user explicitly asks. Do not edit past entries.
