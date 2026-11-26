@@ -2041,6 +2041,28 @@ heatmap empty state.
 
 This is an append-only decision record, newest first, with one entry per upstream sync. It explains past integrations but does not by itself establish a current divergence; use the Divergence Log for that. Sync with upstream only when the user explicitly asks. Do not edit past entries.
 
+### 2026-11-26 - Merge upstream `main` at `3866a168`
+
+Target: `upstream/main` at `3866a16878b04c19627ef0db06a33f5cd79878cf`.
+Parents: fork `af5255f43723f27c783def1c857c20726cf4dcf5` and upstream `3866a16878b04c19627ef0db06a33f5cd79878cf`. Merged 40 upstream commits since the previous `base`, without rebasing or squashing.
+
+User decisions: adopt upstream brand tabs and connection cards with every fork provider feature ported: credential labels (on cards and in search), per-key pricing catalog, usage probe and reserve editing, the compatible-only instruction wrapper, and read-only restrictions. Enable Copilot OAuth and quota with the paired CPA; native Copilot quota refuses read-only sessions before any credential download. Offer Antigravity verification as a separate link beside the fork retry button. Adopt upstream YAML alias/CRLF preservation and blocked-save messages for plain string client keys while structured keys keep labels, limits, revisions and fresh ETags. Show server ID and OAuth request error rules with the matching CPA; server ID stays unset when absent. Take upstream's stronger tests and deletions but carry fork regressions forward.
+
+Other decisions: keep the liquid-platinum flagship badge over upstream's jade (DL053) and the fork Claude metadata layout. Remove expired promotion UI. Restore the shared Table that upstream deleted, because fork Analytics, API-key and Management Keys screens import it. Keep the seven-locale union. No divergence was retired.
+
+Integration repairs: move ProviderLogo styles out of the deleted category list. Route upstream draft-conflict errors through the fork save-error mapper. Repair the System page server ID for the runtime split. Upstream's plural parity test treats keys as plurals only when English has both `_one` and `_other`, and now also enforces exact leaf keys and per-leaf interpolation. Native connection cards list member labels with masked keys. Provider delete confirmations recheck connection revision, status, scope and the mutation lock on confirm. Restored the fork Auth Files card and Claude reset-grant integration assertions.
+
+Validation:
+
+- Pinned Bun 1.4.3 `bun run verify` passes 3,675 tests across 290 files, ESLint, TypeScript and the single-file build, both in the merge worktree and in a clean clone. All seven locales hold the same 4,423 leaf keys.
+- An independent review covered all 89 divergence entries and the 64 conflict paths. Its four merge-introduced findings (native card labels, stale delete confirmation, weak parity test, dropped tests) are fixed with regressions.
+- Against the merged CPA in isolated headless Chrome, 24 routes at 1440px and 390px in light and dark show no page errors or horizontal overflow. A UI-labelled native key shows `label · masked key` on its card, is found by label search, and saves a usage probe to config.yaml with the label kept. The System page shows the persisted server ID.
+
+Limits:
+
+- The stale delete guard is covered by unit tests only: the open confirmation blocks logout, so the UI cannot reach that state. No Antigravity credential was available for the verification link, and live Copilot OAuth was not exercised. Firefox and WebKit were not checked.
+- Known inherited issues left for separate work: a whole-source save can send the previous server's config to a replacement connection if the connection switches during the final read; the structured key writer turns YAML aliases into objects; an unchanged int64 Analytics value blocks unrelated Visual saves; existing Vietnamese and Chinese copy contains untranslated English.
+
 ### 2026-11-18 - Merge upstream `main` at `e5eb4fe6`
 
 Target: `upstream/main` at `e5eb4fe63ad8a2a20d13022e13e6dc4d386ac07b`.
