@@ -484,7 +484,7 @@ describe('analytics Analysis models', () => {
     expect(mapped.maxTokens).toBe(100);
     expect(selectHeatmapModels(mapped, 1)).toEqual({
       models: ['model-a'],
-      totalModels: 2,
+      totalModels: 1,
     });
   });
 
@@ -591,7 +591,26 @@ describe('analytics Analysis models', () => {
       ),
       renderToStaticMarkup(
         createElement(KeyModelHeatmap, {
-          section: { meta: { partial: false }, keys: ['key-a'], models: ['model-a'], cells: [] },
+          section: {
+            meta: { partial: false },
+            keys: ['key-a'],
+            models: ['model-a'],
+            cells: [
+              {
+                key_id: 'key-a',
+                model: 'model-a',
+                requests: 1,
+                input_tokens: 10,
+                output_tokens: 0,
+                cached_tokens: 0,
+                cache_read_tokens: 0,
+                cache_creation_tokens: 0,
+                reasoning_tokens: 0,
+                total_tokens: 10,
+                known_cost_usd: '0',
+              },
+            ],
+          },
           loading: false,
           error: '',
           onRetry: () => {},
@@ -806,7 +825,34 @@ describe('analytics Analysis models', () => {
       meta: { partial: false },
       keys: ['key-a'],
       models: ['model-a', 'model-b'],
-      cells: [],
+      cells: [
+        {
+          key_id: 'key-a',
+          model: 'model-a',
+          requests: 1,
+          input_tokens: 10,
+          output_tokens: 0,
+          cached_tokens: 0,
+          cache_read_tokens: 0,
+          cache_creation_tokens: 0,
+          reasoning_tokens: 0,
+          total_tokens: 10,
+          known_cost_usd: '0',
+        },
+        {
+          key_id: 'key-a',
+          model: 'model-b',
+          requests: 1,
+          input_tokens: 20,
+          output_tokens: 0,
+          cached_tokens: 0,
+          cache_read_tokens: 0,
+          cache_creation_tokens: 0,
+          reasoning_tokens: 0,
+          total_tokens: 20,
+          known_cost_usd: '0',
+        },
+      ],
     } satisfies AnalysisKeyModelMatrix;
     const markup = renderToStaticMarkup(
       createElement(KeyModelHeatmap, {

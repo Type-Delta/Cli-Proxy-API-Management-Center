@@ -18,7 +18,7 @@ import type {
   LegacyImportStatus,
   TelemetryHealth,
 } from '@/types';
-import { analyticsKeyIdentity } from '../analyticsKeyFilterModel';
+import { analyticsKeyIdentity, sortAnalyticsKeysByConfigured } from '../analyticsKeyFilterModel';
 import {
   formatAnalyticsEnum,
   formatDateTime,
@@ -372,7 +372,7 @@ export function Maintenance({ keys }: { keys: AnalyticsKey[] }) {
                   setPurgeBatch('');
                   setConfirmation('');
                 }}
-                options={keys.map((item) => ({
+                options={sortAnalyticsKeysByConfigured(keys).map((item) => ({
                   value: item.key_id,
                   label: analyticsKeyIdentity(item),
                 }))}

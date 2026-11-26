@@ -640,8 +640,6 @@ export type HeatmapMatrix = {
   models: string[];
   rows: HeatmapMatrixRow[];
   maxTokens: number;
-  maxCost: number;
-  maxGeneration: number;
 };
 
 export type HeatmapMetric = 'tokens' | 'cost' | 'generation';
@@ -690,42 +688,52 @@ export function buildHeatmapMatrix(matrix: AnalysisKeyModelMatrix): HeatmapMatri
       (maximum, cell) => Math.max(maximum, nonNegative(cell.total_tokens)),
       0
     ),
-    maxCost: cells.reduce(
-      (maximum, cell) => Math.max(maximum, Math.max(0, finite(cell.known_cost_usd))),
-      0
-    ),
-    maxGeneration: cells.reduce(
-      (maximum, cell) =>
-        Math.max(
-          maximum,
-          cell.generation_time_ms == null ? 0 : nonNegative(cell.generation_time_ms)
-        ),
-      0
-    ),
   };
 }
 
 export function selectHeatmapModels(
   matrix: HeatmapMatrix,
   limit: number,
-  metric: HeatmapMetric = 'tokens'
+  metric: HeatmapMetric = 'tokens',
+  visibleKeyIds: readonly string[] = matrix.keys
 ) {
-  const totals = new Map(matrix.models.map((model) => [model, 0]));
+  const models = heatmapModelsWithRecordedTokens(matrix, visibleKeyIds);
+  const visibleKeys = new Set(visibleKeyIds);
+  const totals = new Map(models.map((model) => [model, 0]));
   for (const row of matrix.rows) {
+    if (!visibleKeys.has(row.keyId)) continue;
     for (const cell of row.cells) {
+      if (!totals.has(cell.model)) continue;
       const value = heatmapMetricValue(cell.value, metric);
       if (value !== null) totals.set(cell.model, (totals.get(cell.model) ?? 0) + value);
     }
   }
   return {
-    models: [...matrix.models]
+    models: models
       .sort(
         (left, right) =>
           (totals.get(right) ?? 0) - (totals.get(left) ?? 0) || left.localeCompare(right)
       )
       .slice(0, Math.max(1, limit)),
-    totalModels: matrix.models.length,
+    totalModels: models.length,
   };
+}
+
+/** Heatmap columns must contain at least one recorded token in the rows currently in view. */
+export function heatmapModelsWithRecordedTokens(
+  matrix: HeatmapMatrix,
+  visibleKeyIds: readonly string[] = matrix.keys
+) {
+  const visibleKeys = new Set(visibleKeyIds);
+  const totals = new Map(matrix.models.map((model) => [model, 0]));
+  for (const row of matrix.rows) {
+    if (!visibleKeys.has(row.keyId)) continue;
+    for (const cell of row.cells) {
+      if (!totals.has(cell.model)) continue;
+      totals.set(cell.model, (totals.get(cell.model) ?? 0) + nonNegative(cell.value?.total_tokens));
+    }
+  }
+  return matrix.models.filter((model) => (totals.get(model) ?? 0) > 0);
 }
 
 export function compactKeyId(keyId: string) {

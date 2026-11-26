@@ -18,7 +18,7 @@ import {
 import { analyticsApi } from '@/services/api';
 import type { AnalyticsKey, ViewerCreateResponse, ViewerMetadata } from '@/types';
 import { copyToClipboard } from '@/utils/clipboard';
-import { analyticsKeyIdentity } from '../analyticsKeyFilterModel';
+import { analyticsKeyIdentity, sortAnalyticsKeysByConfigured } from '../analyticsKeyFilterModel';
 import { formatDateTime } from '../components/analyticsFormatting';
 import { ANALYTICS_TABLE_PAGE_SIZE, TablePagination } from '../components/TablePagination';
 import { viewerAfterCopy, redactViewerKeyId } from './manage/sharedViewsLogic';
@@ -74,7 +74,7 @@ export function SharedViews({ keys }: { keys: AnalyticsKey[] }) {
   );
   const keyOptions = useMemo(
     () =>
-      keys.map((key) => ({
+      sortAnalyticsKeysByConfigured(keys).map((key) => ({
         value: key.key_id,
         label: analyticsKeyIdentity(key),
       })),

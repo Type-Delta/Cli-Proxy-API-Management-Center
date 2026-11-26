@@ -2006,6 +2006,26 @@ Bun 1.4.3 `verify` passes 3,644 tests, ESLint, TypeScript, and the single-file p
 
 **Last updated:** 2026-11-26
 
+### DL091 — Configured-first key pickers and token-bearing heatmap columns
+
+Analytics API-key pickers (the shared searchable key filter, Shared Views, and Maintenance purge)
+list configured keys first, then rotated, deleted, historical, and identity-conflict keys, keeping
+the previous order within each group. The Usage page's Key × Model heatmap omits model columns whose
+recorded tokens total zero across the currently visible key rows, reranks the remaining columns when
+those rows change, and shows the existing empty state when no column remains. Its color scale
+uses the rendered cells only, so hidden columns no longer stretch the range.
+
+**Implementation evidence:** `src/features/analytics/analyticsKeyFilterModel.ts`,
+`src/features/analytics/views/{SharedViews,Maintenance}.tsx`,
+`src/features/analytics/views/analysis/{analysisModel.ts,KeyModelHeatmap.tsx}`,
+`tests/analyticsKeyFilterOrder.test.ts`, `tests/analyticsKeyModelHeatmap.test.ts`.
+
+**Recorded validation:** On 2026-11-26, Bun 1.4.3 `verify` passed, and isolated Chromium checks
+confirmed the picker order, the heatmap columns updating as the visible keys changed, and the
+heatmap empty state.
+
+**Last updated:** 2026-11-26
+
 ## Merge History
 
 This is an append-only decision record, newest first, with one entry per upstream sync. It explains past integrations but does not by itself establish a current divergence; use the Divergence Log for that. Sync with upstream only when the user explicitly asks. Do not edit past entries.

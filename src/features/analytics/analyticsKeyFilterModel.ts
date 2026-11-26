@@ -6,14 +6,29 @@ export const MAX_RENDERED_ANALYTICS_KEYS = 200;
 export const analyticsKeyIdentity = (key: Pick<AnalyticsKey, 'label' | 'short_key_id'>) =>
   key.label ? `${key.label} · ${key.short_key_id}` : key.short_key_id;
 
+/** Stable partition so configured keys lead every picker without reordering either group. */
+export const sortAnalyticsKeysByConfigured = <T extends Pick<AnalyticsKey, 'status'>>(
+  keys: readonly T[]
+) => {
+  const configured: T[] = [];
+  const retained: T[] = [];
+  for (const key of keys) {
+    if (key.status === 'configured') configured.push(key);
+    else retained.push(key);
+  }
+  return [...configured, ...retained];
+};
+
 export const filterAnalyticsKeys = (keys: AnalyticsKey[], query: string) => {
   const needle = query.normalize('NFKC').trim().toLocaleLowerCase();
-  const sorted = [...keys].sort(
-    (left, right) =>
-      analyticsKeyIdentity(left).localeCompare(analyticsKeyIdentity(right), undefined, {
-        sensitivity: 'base',
-        numeric: true,
-      }) || left.key_id.localeCompare(right.key_id)
+  const sorted = sortAnalyticsKeysByConfigured(
+    [...keys].sort(
+      (left, right) =>
+        analyticsKeyIdentity(left).localeCompare(analyticsKeyIdentity(right), undefined, {
+          sensitivity: 'base',
+          numeric: true,
+        }) || left.key_id.localeCompare(right.key_id)
+    )
   );
   if (!needle) return sorted;
   return sorted.filter((key) =>

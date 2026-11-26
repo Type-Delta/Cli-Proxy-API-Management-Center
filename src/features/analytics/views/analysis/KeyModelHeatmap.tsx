@@ -119,12 +119,8 @@ export function KeyModelHeatmap({
         ];
       })
     );
-    const maxValue =
-      metric === 'tokens'
-        ? matrix.maxTokens
-        : metric === 'cost'
-          ? matrix.maxCost
-          : matrix.maxGeneration;
+    // Scale to the rendered cells so hidden columns never stretch the color range.
+    const maxValue = cells.reduce((maximum, [, , value]) => Math.max(maximum, value ?? 0), 0);
     return keyModelHeatmapOption({
       keys: matrix.keys,
       models: visibleModels,
@@ -217,7 +213,7 @@ export function KeyModelHeatmap({
       error={error}
       errorStatus={errorStatus}
       retryAt={retryAt}
-      hasData={Boolean(matrix && matrix.rows.length > 0 && matrix.models.length > 0)}
+      hasData={Boolean(matrix && matrix.rows.length > 0 && visibleModels.length > 0)}
       partial={section?.meta.partial}
       emptyDescription={
         section === null
