@@ -11,7 +11,12 @@ import type {
 import { apiClient } from '@/services/api/client';
 import { pluginsApi } from '@/services/api/plugins';
 import { normalizeAuthIndex } from '@/utils/authIndex';
-import { buildAntigravityQuotaGroups, isDisabledAuthFile, isPluginQuotaFile } from '@/utils/quota';
+import {
+  buildAntigravityQuotaGroups,
+  isDisabledAuthFile,
+  isPluginQuotaFile,
+  selectedQuotaPluginId,
+} from '@/utils/quota';
 import type { QuotaProviderData } from '../types';
 
 type PluginQuotaPayload = AntigravityQuotaSummaryPayload & {
@@ -125,8 +130,7 @@ export const fetchPluginQuota = async (
   const provider = String(file.quotaProvider ?? file['quota_provider'] ?? '').trim();
   // New v8 credentials carry the host's authoritative selection, including multi-provider
   // plugins and healthy alternatives. Do not re-resolve it against a stale plugin list.
-  const selectedPlugin = file.quotaPluginId ?? file['quota_plugin_id'];
-  let pluginId = typeof selectedPlugin === 'string' ? selectedPlugin : undefined;
+  let pluginId = selectedQuotaPluginId(file);
   if (!pluginId && useAuthStore.getState().scope === 'read-only') {
     throw new Error(t('plugin_quota.plugin_not_found', { provider }));
   }

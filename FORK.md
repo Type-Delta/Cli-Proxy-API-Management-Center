@@ -22,19 +22,21 @@ The rules:
 
 CPAMC reads legacy string keys and structured key objects without coercing objects to strings. Row edits preserve unknown entry and limit fields, use the configuration index plus revision on supported CPA versions, and block structured limit writes on older versions. Raw keys remain available to administrators but start concealed. Reveal and raw-copy actions are per row, revealed state clears when the route or authenticated connection changes, and full SHA-256 key IDs remain internal until the administrator explicitly copies one. The visible identity uses the shortest collision-safe even-length prefix starting at 12 characters. The existing configuration page now shows request and token caps, reset cadence, current consumption, and confirmed counter reset.
 
-The API-key revision applies only to `/api-keys` routes. Whole-document source-mode saves send the `ETag` of a fresh `/config.yaml` read as `If-Match`, and only when that read still matches the reviewed baseline. CPA compares `If-Match` on v8 `/config.yaml` against the config file hash, so sending the API-key revision there returned `412 precondition_failed` on every source save. Failed config saves turn `precondition_failed` (from the server or the baseline check) and `read_only_field` (naming the field as a YAML path) into translated explanations. Any other failure shows CPA's own message, including the YAML parser's line for a syntax error.
+The API-key revision applies only to `/api-keys` routes. Whole-document source-mode saves send the `ETag` of a fresh `/config.yaml` read as `If-Match`, and only when that read still matches the reviewed baseline. CPA compares `If-Match` on v8 `/config.yaml` against the config file hash, so sending the API-key revision there returned `412 precondition_failed` on every source save. Failed config saves turn `precondition_failed` (from the server or the baseline check) and `read_only_field` (naming the field as a YAML path) into translated explanations. Any other failure shows CPA's own message, including the YAML parser's line for a syntax error. Upstream's blocked-save reasons (concurrent list change, unsafe YAML structure, comment-losing sensitive-word list, invalid OAuth error rule) use upstream's translated messages through the same path.
+
+Visual saves write `access.api-keys` through two paths. A list that already holds structured entries, or an edit that sets a label, uses the fork merge, which keeps labels, limits and unknown entry fields by index. A plain string list uses upstream's writer, which keeps quotes, comments, tags, anchors and aliases. Visual edits parse the line-ending-normalized document and now block the save on a YAML parse error instead of returning the unchanged text.
 
 Compatibility tests cover legacy and structured fixtures, unknown-field preservation, duplicate full IDs, and colliding display prefixes.
 
-**Implementation evidence:** `src/services/api/apiKeys.ts`, `src/features/config/components/blocks/ApiKeysCardEditor.tsx`. Tests: `tests/apiKeyContracts.test.ts`, `tests/apiKeyTable.test.ts`, `tests/configSaveLifecycle.test.ts`. `src/types/apiKeys.ts`, `src/services/api/apiKeys.ts`, `src/services/api/capabilities.ts`, `src/services/api/transformers.ts`, `src/hooks/useVisualConfig.ts`, `src/features/config/components/blocks/ApiKeysCardEditor.tsx`.
+**Implementation evidence:** `src/services/api/apiKeys.ts`, `src/features/config/components/blocks/ApiKeysCardEditor.tsx`, `src/features/config/hooks/useConfigDocument.ts`. Tests: `tests/apiKeyContracts.test.ts`, `tests/apiKeyTable.test.ts`, `tests/configSaveLifecycle.test.ts`, `tests/visualConfigV8.test.ts`. `src/types/apiKeys.ts`, `src/services/api/apiKeys.ts`, `src/services/api/capabilities.ts`, `src/services/api/transformers.ts`, `src/hooks/useVisualConfig.ts`, `src/features/config/components/blocks/ApiKeysCardEditor.tsx`.
 
-**Recorded validation:** On 2026-11-18, Revision/index writes, concealed keys, limits and fresh-config ETag saves remain; the editor only changes hint presentation. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+**Recorded validation:** On 2026-11-26, the upstream sync at `3866a168` passes pinned Bun 1.4.3 `bun run verify` (tests, ESLint, TypeScript and the production build). `tests/visualConfigV8.test.ts` covers structured entries keeping labels and limits beside upstream's string-key tests. On 2026-11-18, Revision/index writes, concealed keys, limits and fresh-config ETag saves remain; the editor only changes hint presentation. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
 - `bunx bun@1.3.14 install --frozen-lockfile`
 - `bunx bun@1.3.14 run verify`
 - Result: 427 tests passed, ESLint passed, TypeScript compilation passed, and the Vite single-file production build passed.
 
-**Last updated:** 2026-11-18
+**Last updated:** 2026-11-26
 
 ### DL003 — Isolated analytics workspace
 
@@ -291,13 +293,13 @@ The Keys tab contains only its sortable ranking/catalog table and mobile cards. 
 
 ### DL018 — Provider logos in Event filters
 
-The Events provider dropdown and selected value display existing provider brand logos. Select options accept optional icons, and ProviderCategoryList shares its themed logo renderer with Events. Analytics provider aliases resolve to their matching brand; Antigravity uses its existing OAuth asset. Unknown custom providers retain their text labels.
+The Events provider dropdown and selected value display existing provider brand logos. Select options accept optional icons. The themed logo renderer is the standalone `ProviderLogo` with its own `ProviderLogo.module.scss`; upstream removed the provider category list that used to own those styles, so Events is now its only caller. Analytics provider aliases resolve to their matching brand; Antigravity uses its existing OAuth asset. Unknown custom providers retain their text labels.
 
-**Implementation evidence:** `src/features/analytics/views/Events.tsx`, `src/components/ui/{Select.tsx,Select.module.scss}`, `src/features/providers/components/{ProviderLogo.tsx,ProviderCategoryList.tsx}`.
+**Implementation evidence:** `src/features/analytics/views/Events.tsx`, `src/components/ui/{Select.tsx,Select.module.scss}`, `src/features/providers/components/{ProviderLogo.tsx,ProviderLogo.module.scss}`.
 
-**Recorded validation:** Isolated Chrome CDP at 1440px/light and 390px/dark confirms every mock provider option has one visible, loaded logo. Frontend tests, lint, TypeScript, production build, Go compile, and diff checks pass.
+**Recorded validation:** On 2026-11-26, the upstream sync at `3866a168` passes pinned Bun 1.4.3 `bun run verify` (tests, ESLint, TypeScript and the production build). The logo renderer compiles from its own stylesheet. Isolated Chrome CDP at 1440px/light and 390px/dark confirms every mock provider option has one visible, loaded logo. Frontend tests, lint, TypeScript, production build, Go compile, and diff checks pass.
 
-**Last updated:** 2026-09-05
+**Last updated:** 2026-11-26
 
 ### DL019 — Preserve ECharts entrance on initial page load
 
@@ -931,8 +933,12 @@ Provider forms accept an optional `label` on every API-key entry (Claude, Codex,
 Interactions, xAI, Vertex, and OpenAI-compatible key entries). The OpenAI-compatible form adds a
 searchable `Pricing catalog` select populated from the persisted models.dev provider list served by
 `GET /v8/management/analytics/pricing/catalog-providers`, cached once per session so no request is
-made per keystroke, and a `Usage probe` select (None or Z.ai). Provider tables and detail views show
-the label next to the masked key.
+made per keystroke, and a `Usage probe` select (None or Z.ai). Upstream's brand tabs and connection cards
+carry the label: a labelled resource card leads with it (unnamed key resources use it as the title,
+named ones put it before the masked key), the detail view lists it as a field and before each masked
+OpenAI-compatible key, native connection cards list each labelled key as `label · masked key` (three at most, then a
+count), and native key rows show it before the masked key and edit it in each key's own settings
+panel. Provider search matches labels for both resource cards and native connection members. Labels are key-level; native group defaults never carry them.
 
 Analytics credential rows lead with the backend `display_name`, keeping the short hashed identity
 as a tooltip and as muted secondary text in the detail table. When a credential row carries
@@ -951,20 +957,23 @@ other fields when the footer Save is pressed. The sheet's footer buttons use the
 
 The upstream Routing board also leads with a custom credential label, using `display_name` when supplied and retaining the raw file name for writes. Email, project and file-name fallbacks remain; secret-bearing account fields are never displayed.
 
-**Implementation evidence:** `src/features/providers/sheets/forms/BaseProviderForm.tsx`, `src/features/quota/providers/zai/ZaiQuotaBody.tsx`. Tests: `tests/providerFormCapabilities.test.ts`, `tests/zaiQuota.test.ts`, `tests/routingBoard.test.ts`. `src/features/providers/sheets/forms/{BaseProviderForm.tsx,ApiKeyEntriesEditor.tsx}`, `src/features/providers/pricingCatalogCache.ts`, `src/features/providers/components/ProviderResourceTable.tsx`, `src/features/analytics/views/Providers.tsx`, `src/features/quota/providers/zai/{ZaiQuotaBody.tsx,data.ts}`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`; `src/services/api/routing.ts`; tests: `tests/providerFormCapabilities.test.ts`, `tests/zaiQuota.test.ts`, `tests/routingBoard.test.ts`.
+**Implementation evidence:** `src/features/providers/sheets/forms/BaseProviderForm.tsx`, `src/features/quota/providers/zai/ZaiQuotaBody.tsx`. Tests: `tests/providerFormCapabilities.test.ts`, `tests/zaiQuota.test.ts`, `tests/routingBoard.test.ts`. `src/features/providers/sheets/forms/{BaseProviderForm.tsx,ApiKeyEntriesEditor.tsx}`, `src/features/providers/pricingCatalogCache.ts`, `src/features/providers/components/{ResourceCard.tsx,ConnectionCard.tsx}`, `src/features/providers/{connectionCardSummary.ts,resourceView.ts}`, `src/features/providers/sheets/ResourceDetailView.tsx`, `src/features/providers/useProviderWorkbench.ts`, `src/features/analytics/views/Providers.tsx`, `src/features/quota/providers/zai/{ZaiQuotaBody.tsx,data.ts}`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`; `src/services/api/routing.ts`; tests: `tests/providerFormCapabilities.test.ts`, `tests/zaiQuota.test.ts`, `tests/routingBoard.test.ts`, `tests/connectionEditor.test.ts`, `tests/nativeWorkbenchPresentation.test.ts`.
 
-**Recorded validation:** On 2026-11-18, Credential labels, pricing catalog, Z.AI usage, draft label save and routing display names remain. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+**Recorded validation:** On 2026-11-26, the upstream sync at `3866a168` passes pinned Bun 1.4.3 `bun run verify` (tests, ESLint, TypeScript and the production build). `tests/connectionEditor.test.ts` covers labels, pricing catalogs and usage probes on edited and new native members; `tests/nativeWorkbenchPresentation.test.ts` renders a labelled member on the real native brand panel and finds it by label. On 2026-11-18, Credential labels, pricing catalog, Z.AI usage, draft label save and routing display names remain. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
 On 2026-11-17, a local CPA build with a dummy credential verifies that editing only the label enables the footer Save, previews the label, persists it with one fields patch, closes the sheet and updates the card title. The footer buttons measure 32px, matching the provider sheet.
 
-**Last updated:** 2026-11-18
+**Last updated:** 2026-11-26
 
 ### DL044 — Provider selectors and OpenCode Go usage
 
 Every API-key provider form now exposes the optional `Pricing catalog` selector instead of limiting
 it to OpenAI-compatible providers: Claude, Codex, Gemini, Interactions, xAI, and Vertex. The same
 forms expose `Usage probe` with the Z.AI and OpenCode Go choices. Multi-protocol sponsor forms stay
-unchanged because their configuration is composed from the same underlying API-key sections.
+unchanged because their configuration is composed from the same underlying API-key sections. In
+upstream's native connection editor both selectors sit in a Pricing & usage section of each key's
+settings panel, because CPA treats them as key fields; the shared group form omits them.
+OpenAI-compatible providers keep them in the provider form.
 
 The Quota page adds an OpenCode Go tab. Credentials with `usage_probe: opencode-go` call
 `https://opencode.ai/zen/go/v1/usage` through the existing management API-call path and render
@@ -974,9 +983,9 @@ tier value instead of the older inline `Plan level:` text.
 
 **Implementation evidence:** `src/features/providers/descriptors.ts`, `src/features/quota/providers/opencode-go/data.ts`. Tests: `tests/opencodeGoQuota.test.ts`, `tests/providerFormCapabilities.test.ts`. `src/features/providers/sheets/forms/BaseProviderForm.tsx`, `src/features/providers/descriptors.ts`, `src/features/quota/providers/opencode-go/{OpenCodeGoQuotaBody.tsx,data.ts}`, `src/features/quota/providers/index.ts`; tests: `tests/opencodeGoQuota.test.ts`, `tests/providerFormCapabilities.test.ts`.
 
-**Recorded validation:** On 2026-11-18, Catalog/probe controls still cover API-key families and OpenCode Go retains its real usage URL and plan rendering. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+**Recorded validation:** On 2026-11-26, the upstream sync at `3866a168` passes pinned Bun 1.4.3 `bun run verify` (tests, ESLint, TypeScript and the production build). On 2026-11-18, Catalog/probe controls still cover API-key families and OpenCode Go retains its real usage URL and plan rendering. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
-**Last updated:** 2026-11-18
+**Last updated:** 2026-11-26
 
 ### DL045 — Top Models share areas and output-window lines
 
@@ -1141,9 +1150,9 @@ Weight help distinguishes WRR exclusion for nonpositive weights from GSR zero-ad
 
 **Implementation evidence:** `src/features/routing/components/PolicyPanel.tsx`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`. Tests: `tests/visualConfigRoutingStrategy.test.ts`, `tests/authFileCard.test.ts`, `tests/routingPage.test.ts`, `tests/routingBoard.test.ts`. `src/features/routing/rules/SectionRouting.tsx`, `src/hooks/useVisualConfig.ts`, `src/features/dashboard/DashboardPage.tsx`, `src/features/authFiles/components/AuthFileDetailsSheet.tsx`, `src/features/providers/sheets/forms/BaseProviderForm.tsx`, `src/types/visualConfig.ts`, `src/types/routing.ts`, `src/services/api/routing.ts`, `src/features/routing/{logic.ts,components/WeightDialog.tsx,components/PolicyPanel.tsx}`, `src/i18n/locales/**`; tests: `tests/visualConfigRoutingStrategy.test.ts`, `tests/authFileCard.test.ts`, `tests/routingBoard.test.ts`, `tests/routingPage.test.ts`.
 
-**Recorded validation:** On 2026-11-18, GSR aliases/marks and nonpositive weight semantics survive; the visible Routing rules link stays outside the InfoTip. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+**Recorded validation:** On 2026-11-26, the upstream sync at `3866a168` passes pinned Bun 1.4.3 `bun run verify` (tests, ESLint, TypeScript and the production build). Upstream retired `tests/authFileCard.test.ts`; the fork keeps it for weight help and its card switch/action contracts, and the fork GSR parser test is retained. On 2026-11-18, GSR aliases/marks and nonpositive weight semantics survive; the visible Routing rules link stays outside the InfoTip. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
-**Last updated:** 2026-11-18
+**Last updated:** 2026-11-26
 
 ### DL053 — Quota summary and credential-aware quota tooltips
 
@@ -1195,7 +1204,7 @@ striped. Provider summary cards stripe each credential's segment the same way. R
 tooltips add the reserve and, while it holds, when it lifts; affected auth files show a compact
 Reserve reached badge.
 
-The auth-file editor and Z.AI/OpenCode Go provider forms load the credential's bars, enable a
+The auth-file editor and Z.AI/OpenCode Go provider forms (per key in native connections) load the credential's bars, enable a
 reserve per bar, and provide pointer and keyboard slider handles. Client keys that can use the
 reserve are chosen from a searchable picker and shown as removable chips with labels and
 eight-character key fragments; missing saved IDs remain removable. API normalization and
@@ -1214,9 +1223,9 @@ The reserve editor derives available bars from the observed windows. A verified 
 
 **Implementation evidence:** `src/features/quota/quotaReserve.ts`, `src/services/api/transformers.ts`. Tests: `tests/quotaReserve.test.ts`, `tests/providerEditingV8.test.ts`, `tests/quotaSummary.test.ts`, `tests/claudeUltraQuota.test.ts`. `src/features/quota/quotaReserve.ts`, `src/features/quota/components/{QuotaReserveEditor.tsx,QuotaMeter.tsx,QuotaCard.tsx,QuotaSummary.tsx}`, `src/services/api/{transformers.ts,authFiles.ts}`, `src/features/providers/sheets/forms/BaseProviderForm.tsx`; tests: `tests/quotaReserve.test.ts`, `tests/providerEditingV8.test.ts`, `tests/quotaSummary.test.ts`, `tests/claudeUltraQuota.test.ts`, `tests/fixtures/claude-ultra-usage.json`.
 
-**Recorded validation:** On 2026-11-18, Reserve bars, bypass keys, plugin/probe classification and first-key auth indexes remain; provider form changes preserve these fields. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+**Recorded validation:** On 2026-11-26, the upstream sync at `3866a168` passes pinned Bun 1.4.3 `bun run verify` (tests, ESLint, TypeScript and the production build). On 2026-11-18, Reserve bars, bypass keys, plugin/probe classification and first-key auth indexes remain; provider form changes preserve these fields. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
-**Last updated:** 2026-11-18
+**Last updated:** 2026-11-26
 
 ### DL056 — Analytics reads revalidate against a cached response
 
@@ -1274,18 +1283,18 @@ fork's analytics workspace:
 - `src/components/ui/Button.tsx` — optional `icon` prop rendered before the label (hidden while loading).
 - `src/components/ui/Card.tsx` — optional `ref` forwarded to the root `div` (React 19 ref-as-prop) so scroll reveals need no wrapper.
 - `src/components/ui/Select.tsx` / `Select.module.scss` — optional `icon` on `SelectOption`, rendered in the trigger and option rows; searchable single and multiple selection, option descriptions and minimum dropdown widths remain. Upstream portal classes and right-edge alignment compose with the fork viewport bounds and multi-select sizing.
-- `src/components/ui/Table/Table.module.scss` — a 12px top margin on the table frame. The sticky trailing action column is analytics-owned (`.stickyAction` in `src/features/analytics/Analytics.module.scss`).
+- `src/components/ui/Table/{Table.tsx,Table.module.scss,index.ts}` — upstream deleted the shared Table once its providers page stopped using it; the fork keeps it for Analytics, client API keys and Management Keys, with a 12px top margin on the table frame. The sticky trailing action column is analytics-owned (`.stickyAction` in `src/features/analytics/Analytics.module.scss`).
 - `src/styles/components.scss` — `.btn-icon` sizing for the Button icon slot.
 - `src/components/layout/MainLayout.tsx` — sidebar selection scoped to the analytics parent page.
-- `src/features/providers/components/ProviderCategoryList.tsx` — logo rendering moved into the shared `ProviderLogo` component (also used by Event filters, DL018).
+- `src/features/providers/components/ProviderLogo.tsx` — the themed logo renderer used by Event filters (DL018) owns its styles in `ProviderLogo.module.scss`.
 
 No upstream behaviour changes; every addition is opt-in through a new prop or class.
 
-**Implementation evidence:** `src/components/ui/Button.tsx`, `src/components/ui/Select.tsx`. Tests: `tests/analyticsContracts.test.ts`. `src/components/ui/{Button.tsx,Card.tsx,Select.tsx,Select.module.scss}`, `src/styles/components.scss`, `src/components/layout/MainLayout.tsx`, `src/features/providers/components/{ProviderCategoryList.tsx,ProviderLogo.tsx}`.
+**Implementation evidence:** `src/components/ui/Button.tsx`, `src/components/ui/Select.tsx`. Tests: `tests/analyticsContracts.test.ts`. `src/components/ui/{Button.tsx,Card.tsx,Select.tsx,Select.module.scss}`, `src/styles/components.scss`, `src/components/layout/MainLayout.tsx`, `src/components/ui/Table/`, `src/features/providers/components/{ProviderLogo.tsx,ProviderLogo.module.scss}`.
 
-**Recorded validation:** On 2026-11-18, Opt-in shared icon/ref/select/table additions remain compatible; tests/build cover current callers, with no dedicated test for every shared styling detail. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+**Recorded validation:** On 2026-11-26, the upstream sync at `3866a168` passes pinned Bun 1.4.3 `bun run verify` (tests, ESLint, TypeScript and the production build). Fork Table callers compile against the restored component. On 2026-11-18, Opt-in shared icon/ref/select/table additions remain compatible; tests/build cover current callers, with no dedicated test for every shared styling detail. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
-**Last updated:** 2026-11-18
+**Last updated:** 2026-11-26
 
 ### DL058 — Remote development access
 
@@ -1325,17 +1334,17 @@ only appears once something is typed. Starting sends `start_url` and `region` wi
 the account choice instead of reusing the previous options. The fork's former inline Kiro card on
 `src/pages/OAuthPage.tsx` was removed with that page.
 
-Plugin OAuth entries coexist with the Kiro tile. Each declared plugin login can show its own title and icon, while built-in provider IDs remain reserved.
+Upstream's GitHub Copilot tile sits beside Kiro; the provider type keeps both. It relies on the paired CPA's native Copilot login. Plugin OAuth entries coexist with the Kiro tile. Each declared plugin login can show its own title and icon, while built-in provider IDs remain reserved.
 
 A selected nonempty login proxy blocks Kiro sign-in before `startAuth` with a translated refusal rather than silently bypassing the proxy. Clearing it restores setup. Kiro keeps GET `start_url` and `region` parameters; supported built-in and plugin proxy flows use their upstream transport.
 
 **Implementation evidence:** `tests/kiroLoginProxy.test.ts`, `src/services/api/oauth.ts`. `src/features/oauth/OAuthPage.tsx`, `src/features/oauth/hooks/useOAuthFlows.ts`. Tests: `tests/kiroProvider.test.ts`, `tests/pluginOAuthEntries.test.ts`, `tests/kiroLoginProxy.test.ts`. `src/features/oauth/providers.ts`, `src/features/oauth/{kiroOAuth.ts,OAuthPage.tsx}`, `src/features/oauth/components/{KiroLoginSetup.tsx,OAuthFlowDialog.tsx}`, `src/features/oauth/hooks/useOAuthFlows.ts`; tests: `tests/{kiroProvider,pluginOAuthEntries}.test.ts`.
 
-**Recorded validation:** On 2026-11-18, Kiro setup, Identity Center GET parameters, reset-to-choice behavior and plugin coexistence remain; selected proxies are explicitly refused. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+**Recorded validation:** On 2026-11-26, the upstream sync at `3866a168` passes pinned Bun 1.4.3 `bun run verify` (tests, ESLint, TypeScript and the production build). On 2026-11-18, Kiro setup, Identity Center GET parameters, reset-to-choice behavior and plugin coexistence remain; selected proxies are explicitly refused. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
 On 2026-11-07, Bun 1.4.3 `bun run verify` passes 3,010 tests, lint, TypeScript and the production build. Mocked Chrome CDP checks cover the touched quota, provider, OAuth and sponsor pages at 1440px and 390px in light and dark themes. All seven locale files contain the 3,979-key union.
 
-**Last updated:** 2026-11-18
+**Last updated:** 2026-11-26
 
 ### DL061 — Complete fork translations across seven locales
 
@@ -1343,13 +1352,13 @@ English, Simplified Chinese, Traditional Chinese, Russian, Vietnamese, Korean an
 
 The upstream AIcodemirror provider, quota labels, and Double 11 campaign keys are included in all seven locales alongside the fork strings.
 
-The seven-locale union includes 4,194 leaf keys with matching interpolation tokens, including Model Rules plural variants, replacement editors, display modes and the Kiro proxy refusal. Vietnamese Model Rules provider labels and counts are translated in all 14 affected values. Key parity is checked separately from untranslated-value review.
+The seven-locale union includes 4,422 leaf keys after the 2026-11-26 sync with matching interpolation tokens, including Model Rules plural variants, replacement editors, display modes and the Kiro proxy refusal. Vietnamese Model Rules provider labels and counts are translated in all 14 affected values. Every locale carries `_one`, `_few`, `_many` and `_other` for each plural key. Upstream's plural-aware `tests/localeParity.test.ts` replaces the per-language key test; the fork treats a key as plural only when English has both `_one` and `_other`, so ordinary keys such as `formula_one` or `cpa_other` are not misread as plural forms. The same suite also requires the exact sorted leaf-key set and per-leaf interpolation tokens of English, so a missing plural variant fails. Key parity is checked separately from untranslated-value review.
 
-**Implementation evidence:** `src/i18n/{index.ts,locales/*.json}`, `src/utils/{constants.ts,language.ts}`; tests: `tests/{koreanLocale,turkishLocale,quotaPlanTier,claudeOAuthUsage,analyticsEventRouting,analyticsOverview,oauthPage}.test.ts`.
+**Implementation evidence:** `src/i18n/{index.ts,locales/*.json}`, `src/utils/{constants.ts,language.ts}`; tests: `tests/{localeParity,turkishLocale,quotaPlanTier,claudeOAuthUsage,analyticsEventRouting,analyticsOverview,oauthPage}.test.ts`.
 
-**Recorded validation:** The independent scan verifies the 4,194-key union and interpolation parity in seven locales. Vietnamese provider values were corrected after the scan; the post-fix suite passes 3,539 tests, lint and build. Native-speaker review remains outstanding.
+**Recorded validation:** On 2026-11-26, the upstream sync at `3866a168` passes pinned Bun 1.4.3 `bun run verify` (tests, ESLint, TypeScript and the production build). All seven locales share the same 4,422 leaf keys; new non-English values were scanned for copied English (only brand names and language endonyms match). The independent scan verifies the 4,194-key union and interpolation parity in seven locales. Vietnamese provider values were corrected after the scan; the post-fix suite passes 3,539 tests, lint and build. Native-speaker review remains outstanding.
 
-**Last updated:** 2026-11-18
+**Last updated:** 2026-11-26
 
 ### DL062 — Analytics filter restoration
 
@@ -1582,7 +1591,7 @@ Login reads `GET /session` before anything else and keeps its `scope` (`full-acc
 
 Instead of the full config, read-only sessions read the secret-free `GET /overview` summary (runtime flags, retry count, routing strategy, proxy URL, client and provider key counts). The API layer normalizes only those fields, and `useOverviewStore` holds the summary per connection with a TTL cache, in-flight deduplication, and a connection-revision guard; it is never merged into the full `Config`. `src/stores/sessionRuntime.ts` gives Dashboard, Logs, and System one runtime view: the full config for full-access sessions, the overview for read-only sessions, so read-only Logs follow the real file-logging and request-log flags. The read-only Dashboard takes key counts from the overview, shows the model count as unavailable (it never reads client API keys or calls `/v1/models`), hides the WebSocket-auth and model-prefix toggles the overview omits, and shows only links to permitted pages. Its traffic treats `api-key-usage` identities as opaque, and because read-only credential listings omit API-key accounts, API-key credentials are counted from `api-key-usage` alone. Logs keep viewing, filtering, downloads, and auto-refresh, but hide and refuse the server-side clear. Management Center Info keeps version checks and local login-storage actions; it skips the model list and cannot open the request-log toggle. On Quota, read-only sessions keep viewing and refreshing quota but do not see the Codex reset, credit-overage, or Claude reset-grant spend actions and do not post quota-history samples. The UI is not the security boundary: CPA enforces the scope on every request. Login generations and connection revisions also guard successful and failed config completions, so an old admin login cannot overwrite a newer session or restore remembered credentials after logout. The shared Axios client stamps each request synchronously and suppresses version, plugin, and logout events from earlier connections, including a switch away and back.
 
-Read-only Kimi requests select an official allowlisted quota URL from the credential identity without downloading secrets; full-access sessions retain credential-based domain resolution. Antigravity uses sanitized project metadata and never falls back to a credential download in read-only sessions. Plugin quota requests use the server-selected `quota_plugin_id`; missing metadata produces a quota error without requesting the privileged plugin list. Meta shows an explicit read-only limitation before any download or upstream request because its existing quota flow mints an API key; no observational Meta quota endpoint or cached response is exposed by the current backend.
+Read-only Kimi requests select an official allowlisted quota URL from the credential identity without downloading secrets; full-access sessions retain credential-based domain resolution. Antigravity uses sanitized project metadata and never falls back to a credential download in read-only sessions. Plugin quota requests use the server-selected `quota_plugin_id`; missing metadata produces a quota error without requesting the privileged plugin list. Meta shows an explicit read-only limitation before any download or upstream request because its existing quota flow mints an API key; no observational Meta quota endpoint or cached response is exposed by the current backend. Native Copilot quota downloads the credential to read its GitHub token, so read-only sessions get a translated limitation before any download; a host-selected Copilot quota plugin still uses the plugin route. Plugin provider artwork comes from the privileged plugin list, so read-only sessions show built-in artwork. The System page shows the server ID only to full-access sessions. Provider resource and native connection delete confirmations capture the connection revision when they open; confirming deletes nothing unless the same connection is still connected, full access, and no provider mutation is running.
 
 A full-access-only Management Keys page (`/management-keys`, Control group) lists key metadata (name, scope) from `GET /management-keys` and creates, edits (name and scope), rotates (new key only), and deletes keys through `POST`, `PATCH /:id`, and `DELETE /:id`. The key field is a concealed password input; the supplied key lives only in the open dialog's draft, is sent once, and is never stored, logged, or shown again. Edits send only changed fields. Upstream has a single management key and no scopes.
 
@@ -1590,11 +1599,11 @@ Read-only Routing opens straight on Dry run: the sidebar entry targets `/routing
 
 System catalog refresh is absent and its handler refuses execution in read-only sessions. Combined Plugins Installed/Store views retain privileged route gating, and `/plugin-store` redirects to `/plugins?view=store` only within that access boundary.
 
-**Implementation evidence:** `src/router/sessionAccess.ts`, `src/pages/SystemPage.tsx`. Tests: `tests/managementKeys.test.ts`, `tests/readOnlyOverview.test.ts`, `tests/readOnlyQuota.test.ts`, `tests/logRequests.test.ts`. `src/services/api/managementKeys.ts`, `src/stores/useAuthStore.ts`, `src/types/auth.ts`, `src/router/{sessionAccess.ts,MainRoutes.tsx}`, `src/components/layout/MainLayout.tsx`, `src/styles/layout.scss`, `src/features/managementKeys/**`, `src/features/quota/{QuotaPage.tsx,components/QuotaCard.tsx}`, `src/services/api/overview.ts`, `src/stores/{useOverviewStore,sessionRuntime}.ts`, `src/features/dashboard/{DashboardPage.tsx,hooks/useDashboardOverview.ts}`, `src/features/logs/{LogsPage.tsx,hooks/useLogStream.ts}`, `src/pages/SystemPage.tsx`, `src/i18n/locales/**`, `tests/{managementKeys,legacyBackendProbe,kimiQuotaDomain,metaQuotaRequests,readOnlyQuota,readOnlyOverview,logRequests}.test.ts`, `src/services/api/kimiQuota.ts`, and `src/features/quota/providers/{antigravity,meta,plugin}/`.
+**Implementation evidence:** `src/router/sessionAccess.ts`, `src/pages/SystemPage.tsx`. Tests: `tests/managementKeys.test.ts`, `tests/readOnlyOverview.test.ts`, `tests/readOnlyQuota.test.ts`, `tests/logRequests.test.ts`. `src/services/api/managementKeys.ts`, `src/stores/useAuthStore.ts`, `src/types/auth.ts`, `src/router/{sessionAccess.ts,MainRoutes.tsx}`, `src/components/layout/MainLayout.tsx`, `src/styles/layout.scss`, `src/features/managementKeys/**`, `src/features/quota/{QuotaPage.tsx,components/QuotaCard.tsx}`, `src/services/api/overview.ts`, `src/stores/{useOverviewStore,sessionRuntime}.ts`, `src/features/dashboard/{DashboardPage.tsx,hooks/useDashboardOverview.ts}`, `src/features/logs/{LogsPage.tsx,hooks/useLogStream.ts}`, `src/pages/SystemPage.tsx`, `src/i18n/locales/**`, `tests/{managementKeys,legacyBackendProbe,kimiQuotaDomain,metaQuotaRequests,readOnlyQuota,readOnlyOverview,logRequests}.test.ts`, `src/features/quota/providers/copilot/data.ts`, `src/features/providers/{deleteGuard.ts,ProvidersWorkbenchPage.tsx}`, `tests/providerDeleteGuard.test.ts`, `src/services/api/kimiQuota.ts`, and `src/features/quota/providers/{antigravity,meta,plugin}/`.
 
-**Recorded validation:** On 2026-11-18, Scope-first login, secret-free overview, privileged-route gating and concealed management-key drafts remain; browser check denied Plugins and omitted catalog/model/config requests. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
+**Recorded validation:** On 2026-11-26, the upstream sync at `3866a168` passes pinned Bun 1.4.3 `bun run verify` (tests, ESLint, TypeScript and the production build). `tests/readOnlyQuota.test.ts` proves read-only Copilot quota makes no download or API call. On 2026-11-18, Scope-first login, secret-free overview, privileged-route gating and concealed management-key drafts remain; browser check denied Plugins and omitted catalog/model/config requests. The pinned Bun 1.4.3 verification passes tests, ESLint, TypeScript and the production build; the post-repair run passes 3,539 tests.
 
-**Last updated:** 2026-11-19
+**Last updated:** 2026-11-26
 
 ### DL075 — Codex assume-requested-service-tier toggle
 
@@ -1952,13 +1961,13 @@ When CPA reports that a held reserve has no configured client key on its bypass 
 
 On the Quota page, each Claude and Codex card's Refresh pill is replaced by an Arm reset toggle. The toggle reads Armed with an amber tint while armed, and is hidden for read-only keys. It is also hidden once the card's loaded reset read shows no resets left (Claude grants or Codex credits), unless the credential is already armed, so it can still be disarmed; while the count is unknown it stays. A Claude card's Reset limits pill follows the same rule, but stays while a claim awaits retry. Its label carries the state, so it does not also set `aria-pressed`. It writes `manual_reset_armed` through `PATCH /credentials/fields`. CPA spends one reset grant or credit when the credential's normal weekly limit is used up or held by an unbypassable reserve, or when it holds a grant or credit that expires within 15 minutes, then disarms (CPA DL078). Five-hour, monthly and model-specific limits never trigger it.
 
-CPA changes this state on its own: a quota read can create or clear a hold, and an armed reset disarms once it fires. The page therefore re-reads the credential list without a reload and merges only `quotaReserveState` and `manualResetArmed`. This happens after a batch, single, or manual-reset quota read, and every minute while any credential is armed. A listing requested before an arm toggle never overwrites the toggle's result. Per-card retry moved to the failure strip itself, which is now a button. Loaded cards for providers without an arm toggle have no per-card refresh. The idle click-to-load body and Refresh all credentials are unchanged.
+CPA changes this state on its own: a quota read can create or clear a hold, and an armed reset disarms once it fires. The page therefore re-reads the credential list without a reload and merges only `quotaReserveState` and `manualResetArmed`. This happens after a batch, single, or manual-reset quota read, and every minute while any credential is armed. A listing requested before an arm toggle never overwrites the toggle's result. Per-card retry moved to the failure strip itself, which is now a button. When upstream reports an Antigravity account-verification error, its allowlisted Google Accounts link renders as a separate link below the strip, so retry and verification are two keyboard targets; the Auth Files quota section keeps upstream's inline link. Loaded cards for providers without an arm toggle have no per-card refresh. The idle click-to-load body and Refresh all credentials are unchanged.
 
-**Implementation evidence:** `src/features/quota/windowGating.ts` (`gateQuotaWindows`, `withLockedReserves`, `lockedReserveBarIds`), the Claude, Codex, Z.ai, and OpenCode Go `data.ts` files, the five reserve-capable `*QuotaBody.tsx` files, `src/features/quota/{quotaSummary.ts,quotaReserve.ts,QuotaPage.tsx}`, `src/features/quota/components/{QuotaCard.tsx,QuotaCard.module.scss}`, `src/features/quota/hooks/useQuotaActions.ts`, `src/features/authFiles/components/AuthFileQuotaSection.tsx`, `src/services/api/authFiles.ts`, `src/types/{quota.ts,authFile.ts}`, all seven locales; tests: `tests/quotaWindowGating.test.ts`, `tests/quotaSummary.test.ts`, `tests/quotaReserve.test.ts`, `tests/quotaManualResetArm.test.ts`, `tests/opencodeGoQuota.test.ts`, `tests/zaiQuota.test.ts`.
+**Implementation evidence:** `src/features/quota/windowGating.ts` (`gateQuotaWindows`, `withLockedReserves`, `lockedReserveBarIds`), the Claude, Codex, Z.ai, and OpenCode Go `data.ts` files, the five reserve-capable `*QuotaBody.tsx` files, `src/features/quota/{quotaSummary.ts,quotaReserve.ts,QuotaPage.tsx}`, `src/features/quota/components/{QuotaCard.tsx,QuotaCard.module.scss,QuotaErrorMessage.tsx}`, `src/features/quota/hooks/useQuotaActions.ts`, `src/features/authFiles/components/AuthFileQuotaSection.tsx`, `src/services/api/authFiles.ts`, `src/types/{quota.ts,authFile.ts}`, all seven locales; tests: `tests/quotaWindowGating.test.ts`, `tests/quotaSummary.test.ts`, `tests/quotaReserve.test.ts`, `tests/quotaManualResetArm.test.ts`, `tests/opencodeGoQuota.test.ts`, `tests/zaiQuota.test.ts`, `tests/quotaErrorMessage.test.ts`.
 
-**Recorded validation:** Bun 1.4.3 `bun run verify` passes 3,629 tests, lint, TypeScript, and the production build. Against a local CPA built from the matching CPA change, with copies of real Claude and Codex credentials, isolated Chrome CDP showed a Claude credential held by a reserve whose only bypass key was not configured locally. Its held 5-hour bar and gated weekly and Fable bars were grayed, and their tooltips gave the reserve and blocked notes, at 1440px and 390px in light and dark themes with no horizontal overflow. Arm reset armed and disarmed a healthy Codex credential, persisting and removing the flag in its auth file. After an external disarm through the API, the open page cleared its pressed state within its 60-second sync. A revoked token rendered the failure strip as the retry button at 390px. With the save request answered in the browser, so no real reset could be spent, the toggle read Armed with the amber tint and returned to Arm reset on a second click, at 1440px and 390px in light and dark themes. Against copies of three Claude and three Codex credentials, Arm stayed on every card before quota loaded, then disappeared only from the Claude card with no reset grants; reported as armed, that card kept its Armed toggle.
+**Recorded validation:** On 2026-11-26, the upstream sync at `3866a168` passes pinned Bun 1.4.3 `bun run verify` (tests, ESLint, TypeScript and the production build). `tests/quotaErrorMessage.test.ts` keeps the link out of the retry button. Bun 1.4.3 `bun run verify` passes 3,629 tests, lint, TypeScript, and the production build. Against a local CPA built from the matching CPA change, with copies of real Claude and Codex credentials, isolated Chrome CDP showed a Claude credential held by a reserve whose only bypass key was not configured locally. Its held 5-hour bar and gated weekly and Fable bars were grayed, and their tooltips gave the reserve and blocked notes, at 1440px and 390px in light and dark themes with no horizontal overflow. Arm reset armed and disarmed a healthy Codex credential, persisting and removing the flag in its auth file. After an external disarm through the API, the open page cleared its pressed state within its 60-second sync. A revoked token rendered the failure strip as the retry button at 390px. With the save request answered in the browser, so no real reset could be spent, the toggle read Armed with the amber tint and returned to Arm reset on a second click, at 1440px and 390px in light and dark themes. Against copies of three Claude and three Codex credentials, Arm stayed on every card before quota loaded, then disappeared only from the Claude card with no reset grants; reported as armed, that card kept its Armed toggle.
 
-**Last updated:** 2026-11-20
+**Last updated:** 2026-11-26
 
 ### DL089 — Antigravity OAuth safeguard in the Config panel
 

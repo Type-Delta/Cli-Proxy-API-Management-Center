@@ -31,6 +31,10 @@ import {
   isAntigravityFile,
   isDisabledAuthFile,
 } from '@/utils/quota';
+import {
+  AntigravityValidationError,
+  getAntigravityValidationError,
+} from '@/services/api/antigravityValidation';
 import { normalizeAuthIndex } from '@/utils/authIndex';
 import type { QuotaProviderData } from '../types';
 
@@ -142,6 +146,7 @@ const fetchAntigravityQuota = async (
 
   let lastError = '';
   let lastStatus: number | undefined;
+  let validationError: AntigravityValidationError | undefined;
   let priorityStatus: number | undefined;
   let hadSuccess = false;
   const collectedGroups = new Map<string, AntigravityQuotaGroup>();
@@ -158,6 +163,11 @@ const fetchAntigravityQuota = async (
       });
 
       if (result.statusCode < 200 || result.statusCode >= 300) {
+        if (result.statusCode === 403 && !validationError?.url) {
+          validationError =
+            getAntigravityValidationError(result, t('antigravity_quota.verify_account')) ??
+            validationError;
+        }
         lastError = getApiCallErrorMessage(result);
         lastStatus = result.statusCode;
         if (result.statusCode === 403 || result.statusCode === 404) {
@@ -213,6 +223,8 @@ const fetchAntigravityQuota = async (
     }
   }
 
+  if (validationError && collectedGroups.size === 0) throw validationError;
+
   if (hadSuccess) {
     return {
       groups: Array.from(collectedGroups.values()),
@@ -243,12 +255,13 @@ export const ANTIGRAVITY_CONFIG: QuotaProviderData<AntigravityQuotaState, Antigr
     subscription: data.subscription,
     serverTimeOffsetMs: data.serverTimeOffsetMs,
   }),
-  buildErrorState: (message, status) => ({
+  buildErrorState: (message, status, cause) => ({
     status: 'error',
     groups: [],
     subscription: null,
     serverTimeOffsetMs: null,
     error: message,
     errorStatus: status,
+    ...(cause instanceof AntigravityValidationError && { validation: { url: cause.url } }),
   }),
 };

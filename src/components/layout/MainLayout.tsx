@@ -16,6 +16,11 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { PageTransition } from '@/components/common/PageTransition';
 import { pageTransitionVariant } from '@/components/common/pageTransitionState';
+import {
+  collectPluginProviderLogos,
+  EMPTY_PROVIDER_LOGOS,
+  PluginProviderLogos,
+} from '@/features/plugins/providerLogos';
 import { MainRoutes } from '@/router/MainRoutes';
 import { isPathAllowedForScope, isReadOnlyScope } from '@/router/sessionAccess';
 import { authFilesApi, capabilitiesApi, pluginsApi } from '@/services/api';
@@ -55,7 +60,8 @@ import {
   resolvePluginAssetURL,
   type PluginResourceEntry,
 } from '@/features/plugins/pluginResources';
-import { APIKEY_FUN_DISPLAY_NAME, hasApiKeyFunConfig } from '@/features/providers/sponsor';
+import { APIKEY_FUN_DISPLAY_NAME } from '@/features/providers/sponsor';
+import { hasApiKeyFunConfig } from '@/features/providers/sponsorBundle';
 import {
   analyticsPageFromPathname,
   ANALYTICS_WORKSPACE_ICON,
@@ -317,7 +323,17 @@ export function MainLayout() {
   } | null>(null);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
-  const [pluginResources, setPluginResources] = useState<PluginResourceEntry[]>([]);
+  const [pluginData, setPluginData] = useState<{
+    apiBase: string;
+    resources: PluginResourceEntry[];
+    logos: ReadonlyMap<string, string>;
+  } | null>(null);
+  const currentPluginData =
+    connectionStatus === 'connected' && supportsPlugin && pluginData?.apiBase === apiBase
+      ? pluginData
+      : null;
+  const pluginResources = currentPluginData?.resources ?? [];
+  const pluginRequestRef = useRef(0);
   const [supportsAnalytics, setSupportsAnalytics] = useState(false);
   const [expandedPluginResourceIDs, setExpandedPluginResourceIDs] = useState<Set<string>>(
     () => new Set()
@@ -471,18 +487,25 @@ export function MainLayout() {
   }, [fetchConfig, fetchOverview, readOnly]);
 
   const loadPluginResources = useCallback(async () => {
+    const requestID = ++pluginRequestRef.current;
+    // Read-only sessions never request the privileged plugin list.
     if (connectionStatus !== 'connected' || !supportsPlugin || readOnly) {
-      setPluginResources([]);
+      setPluginData(null);
       return;
     }
 
     try {
       const plugins = await pluginsApi.list();
-      setPluginResources(collectPluginResourceEntries(plugins.plugins));
+      if (requestID !== pluginRequestRef.current) return;
+      setPluginData({
+        apiBase,
+        resources: collectPluginResourceEntries(plugins.plugins),
+        logos: collectPluginProviderLogos(plugins.plugins, apiBase),
+      });
     } catch {
-      setPluginResources([]);
+      if (requestID === pluginRequestRef.current) setPluginData(null);
     }
-  }, [connectionStatus, supportsPlugin, readOnly]);
+  }, [apiBase, connectionStatus, supportsPlugin, readOnly]);
 
   const loadAuthFilesCount = useCallback(async () => {
     const requestID = ++authFilesCountRequestRef.current;
@@ -511,6 +534,7 @@ export function MainLayout() {
     window.addEventListener(AUTH_FILES_CHANGED_EVENT, loadAuthFilesCount);
 
     return () => {
+      pluginRequestRef.current += 1;
       authFilesCountRequestRef.current += 1;
       window.clearTimeout(timer);
       window.removeEventListener(PLUGIN_RESOURCES_REFRESH_EVENT, loadPluginResources);
@@ -1247,12 +1271,16 @@ export function MainLayout() {
             >
               <AnalyticsFilterProvider>
                 <AnalyticsShell pathname={location.pathname}>
-                  <PageTransition
-                    render={(routeLocation) => <MainRoutes location={routeLocation} />}
-                    getRouteOrder={getRouteOrder}
-                    getTransitionVariant={pageTransitionVariant}
-                    scrollContainerRef={contentRef}
-                  />
+                  <PluginProviderLogos.Provider
+                    value={currentPluginData?.logos ?? EMPTY_PROVIDER_LOGOS}
+                  >
+                    <PageTransition
+                      render={(routeLocation) => <MainRoutes location={routeLocation} />}
+                      getRouteOrder={getRouteOrder}
+                      getTransitionVariant={pageTransitionVariant}
+                      scrollContainerRef={contentRef}
+                    />
+                  </PluginProviderLogos.Provider>
                 </AnalyticsShell>
               </AnalyticsFilterProvider>
             </main>

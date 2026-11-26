@@ -9,7 +9,16 @@ import {
 } from '@/utils/providerKeys';
 
 export type BuiltInOAuthProvider =
-  'codex' | 'anthropic' | 'antigravity' | 'kimi' | 'kimi-ai' | 'xai' | 'devin' | 'meta' | 'kiro';
+  | 'codex'
+  | 'anthropic'
+  | 'antigravity'
+  | 'kimi'
+  | 'kimi-ai'
+  | 'xai'
+  | 'devin'
+  | 'meta'
+  | 'kiro'
+  | 'copilot';
 
 export interface OAuthStartResponse {
   url: string;

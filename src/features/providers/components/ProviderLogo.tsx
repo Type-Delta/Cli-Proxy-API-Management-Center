@@ -1,5 +1,5 @@
 import type { ProviderBrandLogo } from '../brandLogos';
-import styles from './ProviderCategoryList.module.scss';
+import styles from './ProviderLogo.module.scss';
 
 export function ProviderLogo({ logo }: { logo: ProviderBrandLogo | undefined }) {
   if (!logo) return null;

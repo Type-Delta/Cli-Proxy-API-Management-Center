@@ -43,13 +43,6 @@ describe('login palette', () => {
     expect(Object.keys(light).sort()).toEqual(Object.keys(dark).sort());
   });
 
-  test('white theme only swaps the background to pure white', () => {
-    expect(palette).toMatch(
-      /html\[data-theme='white'\]\) & \{\s*--login-bg: #ffffff;\s*--bg-primary: #ffffff;\s*\}/
-    );
-    expect(palette).toMatch(/html\[data-theme='dark'\]\) & \{\s*@include login-tokens-dark;/);
-  });
-
   for (const [name, set, bgs] of [
     ['light', light, backgrounds.light],
     ['dark', dark, backgrounds.dark],

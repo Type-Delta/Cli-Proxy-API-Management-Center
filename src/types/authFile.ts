@@ -14,6 +14,7 @@ export type AuthFileType =
   | 'devin'
   | 'kiro'
   | 'meta'
+  | 'copilot'
   | 'antigravity'
   | 'xai'
   | 'iflow'

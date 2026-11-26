@@ -27,6 +27,8 @@ interface SheetProps {
   closeDisabled?: boolean;
   className?: string;
   ariaLabel?: string;
+  /** Reset body scroll and initial focus when navigating within an open sheet. */
+  viewKey?: string;
   /**
    * If provided, called before starting the close animation when the user
    * triggers a close (Escape, overlay click, or close button). Return false
@@ -53,6 +55,7 @@ export function Sheet({
   closeDisabled = false,
   className,
   ariaLabel,
+  viewKey,
   confirmClose,
   children,
 }: PropsWithChildren<SheetProps>) {
@@ -64,7 +67,6 @@ export function Sheet({
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
-  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
 
@@ -144,21 +146,22 @@ export function Sheet({
     return () => unlockScroll();
   }, [shouldLockScroll]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (open && !previouslyFocusedRef.current && document.activeElement instanceof HTMLElement) {
+      previouslyFocusedRef.current = document.activeElement;
+    }
+  }, [open]);
+
+  useLayoutEffect(() => {
     if (!open) return;
-    previouslyFocusedRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const t = window.setTimeout(() => {
-      if (bodyRef.current) bodyRef.current.scrollTop = 0;
-      const first = getFocusableElements()[0];
-      (first ?? closeBtnRef.current ?? sheetRef.current)?.focus({ preventScroll: true });
-    }, 0);
-    return () => window.clearTimeout(t);
-  }, [getFocusableElements, open]);
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    const first = getFocusableElements()[0];
+    (first ?? sheetRef.current)?.focus({ preventScroll: true });
+  }, [getFocusableElements, open, viewKey]);
 
   useEffect(() => {
     if (open || isVisible) return;
-    previouslyFocusedRef.current?.focus();
+    previouslyFocusedRef.current?.focus({ preventScroll: true });
     previouslyFocusedRef.current = null;
   }, [isVisible, open]);
 
@@ -226,7 +229,6 @@ export function Sheet({
         onMouseDown={(e) => e.stopPropagation()}
       >
         <button
-          ref={closeBtnRef}
           type="button"
           className={styles.closeBtn}
           onClick={closeDisabled ? undefined : handleClose}

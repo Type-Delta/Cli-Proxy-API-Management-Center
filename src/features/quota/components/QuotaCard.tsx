@@ -1,3 +1,8 @@
+import {
+  QuotaErrorMessage,
+  QuotaVerificationLink,
+} from '@/features/quota/components/QuotaErrorMessage';
+import { ProviderArtwork } from '@/components/common/ProviderArtwork';
 /**
  * Quota credential row: identity (provider icon + mono file name) | quota body | actions.
  *
@@ -13,7 +18,6 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconRefreshCw, IconTimer } from '@/components/ui/icons';
 import type { ClaudeQuotaState, CodexQuotaState, ResolvedTheme } from '@/types';
-import { resolveQuotaErrorMessage } from '@/utils/quota';
 import { getQuotaDisplayName } from '@/utils/quota/identity';
 import {
   getAuthFileIcon,
@@ -106,11 +110,7 @@ export function QuotaCard(props: QuotaCardProps) {
       : entry.type;
   const iconSrc = getAuthFileIcon(providerType, resolvedTheme);
   const typeLabel = getTypeLabel(t, providerType);
-  const errorMessage = resolveQuotaErrorMessage(
-    t,
-    quota?.errorStatus,
-    quota?.error || t('common.unknown_error')
-  );
+
   const creditOverage = useCodexCreditOverage(
     file,
     entry.type === 'codex' ? (quota as CodexQuotaState | undefined) : undefined,
@@ -195,11 +195,9 @@ export function QuotaCard(props: QuotaCardProps) {
               : undefined
           }
         >
-          {iconSrc ? (
-            <img src={iconSrc} alt="" className={styles.icon} />
-          ) : (
+          <ProviderArtwork provider={providerType} src={iconSrc} className={styles.icon}>
             <span className={styles.iconFallback}>{typeLabel.slice(0, 1).toUpperCase()}</span>
-          )}
+          </ProviderArtwork>
         </span>
         <span className={styles.fileName} title={displayName}>
           {displayName}
@@ -227,18 +225,25 @@ export function QuotaCard(props: QuotaCardProps) {
               </div>
             ))}
           </div>
-        ) : status === 'error' ? (
-          <button
-            type="button"
-            className={styles.errorStrip}
-            onClick={onRefresh}
-            disabled={!canRefresh || resetting || claudeReset.busy}
-            title={t('auth_files.quota_refresh_hint')}
-          >
-            <span role="alert">
-              {t(`${adapter.i18nPrefix}.load_failed`, { message: errorMessage })}
-            </span>
-          </button>
+        ) : status === 'error' && quota ? (
+          <>
+            <button
+              type="button"
+              className={styles.errorStrip}
+              onClick={onRefresh}
+              disabled={!canRefresh || resetting || claudeReset.busy}
+              title={t('auth_files.quota_refresh_hint')}
+            >
+              <span role="alert">
+                <QuotaErrorMessage
+                  quota={quota}
+                  i18nPrefix={adapter.i18nPrefix}
+                  showVerificationLink={false}
+                />
+              </span>
+            </button>
+            <QuotaVerificationLink quota={quota} className={styles.errorVerificationLink} />
+          </>
         ) : quota && !retainedClaudeUsage ? (
           quotaBody
         ) : !retainedClaudeUsage ? (

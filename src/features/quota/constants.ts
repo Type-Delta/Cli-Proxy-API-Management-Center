@@ -11,6 +11,7 @@ export const QUOTA_TAB_ORDER: readonly QuotaProviderType[] = [
   'zai',
   'opencode-go',
   'devin',
+  'copilot',
   'meta',
   'plugin',
 ];

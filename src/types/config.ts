@@ -11,6 +11,7 @@ export interface QuotaExceededConfig {
 }
 
 export interface Config {
+  serverId?: string;
   providerGroups?: Record<string, unknown>;
   debug?: boolean;
   proxyUrl?: string;

@@ -48,6 +48,7 @@ export const BUILT_IN_QUOTA_PROVIDERS: ReadonlySet<string> = new Set([
   'codex',
   'devin',
   'kimi',
+  'copilot',
   'kiro',
   'meta',
   'xai',
@@ -56,12 +57,21 @@ export const BUILT_IN_QUOTA_PROVIDERS: ReadonlySet<string> = new Set([
 /** Fork usage-probe providers (API-key credentials) that also have built-in cards. */
 const BUILT_IN_USAGE_PROBES: ReadonlySet<string> = new Set(['zai', 'opencode-go']);
 
+/** v8 auth_files.go emits quota_plugin_id when the host selects a quota route. */
+export function selectedQuotaPluginId(file: AuthFileItem): string | undefined {
+  const id = file.quotaPluginId ?? file['quota_plugin_id'];
+  return typeof id === 'string' && id.trim() ? id.trim() : undefined;
+}
+
 /**
- * Generic plugin quota card for providers without a built-in card. Built-in cards win even
- * when a plugin also advertises quota for the same provider.
+ * Generic plugin quota card for providers without a built-in card. Built-in cards and fork
+ * usage probes win even when a plugin also advertises quota for the same provider, except
+ * when Copilot has an explicit host-selected route.
  */
 export function isPluginQuotaFile(file: AuthFileItem): boolean {
-  if (BUILT_IN_QUOTA_PROVIDERS.has(resolveAuthProvider(file))) return false;
+  const provider = resolveAuthProvider(file);
+  if (provider === 'copilot' && selectedQuotaPluginId(file)) return true;
+  if (BUILT_IN_QUOTA_PROVIDERS.has(provider)) return false;
   const probe = file.usageProbe ?? file['usage_probe'];
   if (typeof probe === 'string' && BUILT_IN_USAGE_PROBES.has(probe.trim().toLowerCase()))
     return false;

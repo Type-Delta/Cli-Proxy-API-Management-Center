@@ -14,6 +14,7 @@ import type {
   KiroQuotaState,
   KimiQuotaState,
   OpenCodeGoQuotaState,
+  CopilotQuotaState,
   MetaQuotaState,
   PluginQuotaState,
   XaiQuotaState,
@@ -39,6 +40,7 @@ interface QuotaStoreState {
   kimiQuota: Record<string, KimiQuotaState>;
   kiroQuota: Record<string, KiroQuotaState>;
   opencodeGoQuota: Record<string, OpenCodeGoQuotaState>;
+  copilotQuota: Record<string, CopilotQuotaState>;
   metaQuota: Record<string, MetaQuotaState>;
   pluginQuota: Record<string, PluginQuotaState>;
   xaiQuota: Record<string, XaiQuotaState>;
@@ -56,6 +58,7 @@ interface QuotaStoreState {
   setKimiQuota: (updater: QuotaUpdater<Record<string, KimiQuotaState>>) => void;
   setKiroQuota: (updater: QuotaUpdater<Record<string, KiroQuotaState>>) => void;
   setOpenCodeGoQuota: (updater: QuotaUpdater<Record<string, OpenCodeGoQuotaState>>) => void;
+  setCopilotQuota: (updater: QuotaUpdater<Record<string, CopilotQuotaState>>) => void;
   setMetaQuota: (updater: QuotaUpdater<Record<string, MetaQuotaState>>) => void;
   setPluginQuota: (updater: QuotaUpdater<Record<string, PluginQuotaState>>) => void;
   setXaiQuota: (updater: QuotaUpdater<Record<string, XaiQuotaState>>) => void;
@@ -82,6 +85,7 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
   kimiQuota: {},
   kiroQuota: {},
   opencodeGoQuota: {},
+  copilotQuota: {},
   metaQuota: {},
   pluginQuota: {},
   xaiQuota: {},
@@ -160,6 +164,8 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
     set((state) => ({
       opencodeGoQuota: resolveUpdater(updater, state.opencodeGoQuota),
     })),
+  setCopilotQuota: (updater) =>
+    set((state) => ({ copilotQuota: resolveUpdater(updater, state.copilotQuota) })),
   setMetaQuota: (updater) =>
     set((state) => ({ metaQuota: resolveUpdater(updater, state.metaQuota) })),
   setPluginQuota: (updater) =>
@@ -200,6 +206,7 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
           devinQuota: omitNames(state.devinQuota),
           kimiQuota: omitNames(state.kimiQuota),
           kiroQuota: omitNames(state.kiroQuota),
+          copilotQuota: omitNames(state.copilotQuota),
           metaQuota: omitNames(state.metaQuota),
           opencodeGoQuota: omitNames(state.opencodeGoQuota),
           pluginQuota: omitNames(state.pluginQuota),
@@ -217,6 +224,7 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
         devinQuota: {},
         kimiQuota: {},
         kiroQuota: {},
+        copilotQuota: {},
         metaQuota: {},
         opencodeGoQuota: {},
         pluginQuota: {},

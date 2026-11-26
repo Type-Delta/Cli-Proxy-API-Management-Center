@@ -31,6 +31,7 @@ import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
 import iconGemini from '@/assets/icons/gemini.svg';
 import iconClaude from '@/assets/icons/claude.svg';
 import iconMeta from '@/assets/icons/meta.svg';
+import iconCopilot from '@/assets/icons/copilot.svg';
 import iconDevinLight from '@/assets/icons/devin.svg';
 import iconDevinDark from '@/assets/icons/devin-dark.svg';
 import iconKiro from '@/assets/icons/kiro.svg';
@@ -55,6 +56,7 @@ const MODEL_CATEGORY_ICONS: Record<string, string | { light: string; dark: strin
   gpt: { light: iconOpenaiLight, dark: iconOpenaiDark },
   claude: iconClaude,
   meta: iconMeta,
+  copilot: iconCopilot,
   gemini: iconGemini,
   qwen: iconQwen,
   kimi: { light: iconKimiDark, dark: iconKimiLight },
@@ -100,6 +102,8 @@ export function SystemPage() {
   const runtime = useRuntime();
   // Read-only sessions cannot change server settings or reach client API keys for `/models`.
   const readOnly = isReadOnlyScope(auth.scope);
+  // Read-only sessions never load the full config, so they show no server ID.
+  const serverId = useConfigStore((state) => (readOnly ? undefined : state.config?.serverId));
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
   const clearCache = useConfigStore((state) => state.clearCache);
   const updateConfigValue = useConfigStore((state) => state.updateConfigValue);
@@ -414,6 +418,12 @@ export function SystemPage() {
               <div className={styles.tileLabel}>{t('connection.status')}</div>
               <div className={styles.tileValue}>{t(`common.${auth.connectionStatus}_status`)}</div>
               <div className={styles.tileSub}>{auth.apiBase || '-'}</div>
+              {serverId && (
+                <div className={styles.tileSub}>
+                  {t('config_management.visual.serverExtras.serverId.label')}{' '}
+                  <code>{serverId}</code>
+                </div>
+              )}
             </div>
           </div>
         </Card>

@@ -7,6 +7,9 @@ import { parse as parseYaml, parseDocument } from 'yaml';
 import { useConfigStore, useNotificationStore } from '@/stores';
 import { configFileApi } from '@/services/api/configFile';
 import { normalizeYamlLineEndings } from '@/utils/yaml';
+import { parseConfigDocument } from '@/services/api/configYaml';
+import { configDraftErrorMessage } from '../configDraftError';
+import { InvalidOAuthRuleError } from '../visualOAuthErrorRules';
 import { apiClient } from '@/services/api/client';
 import { isRecord } from '@/utils/helpers';
 import {
@@ -24,8 +27,8 @@ import type { ConfigEditorMode } from '../constants';
  * explanation; anything else shows the server's message (e.g. the YAML parser error and line).
  */
 export function configSaveErrorMessage(err: unknown, t: TFunction): string {
-  if (err instanceof ConfigDraftConflictError) {
-    return t('config_management.concurrent_list_conflict', { path: err.path.join('.') });
+  if (err instanceof ConfigDraftConflictError || err instanceof InvalidOAuthRuleError) {
+    return configDraftErrorMessage(t, err);
   }
   const apiCode = isRecord(err) ? err.apiCode : undefined;
   if (apiCode === 'precondition_failed') return t('config_management.server_changed_on_save');
@@ -69,7 +72,7 @@ export function hasTrustedProxiesChange(beforeYaml: string, afterYaml: string): 
 function normalizeYamlForVisualDiff(yamlContent: string): string {
   const normalizedYaml = normalizeYamlLineEndings(yamlContent);
   try {
-    const doc = parseDocument(normalizedYaml);
+    const doc = parseConfigDocument(normalizedYaml);
     return doc.toString({ indent: 2, lineWidth: 120, minContentWidth: 0 });
   } catch {
     return normalizedYaml;
@@ -97,8 +100,18 @@ export function buildConfigSaveDraft(
   applyVisualChanges: (yaml: string) => string
 ): string {
   if (sourceDirty) {
-    if (mode === 'source') return sourceDraftYaml;
-    throw new Error('Unsaved source edits must be saved or discarded before visual editing');
+    if (mode !== 'source') {
+      throw new Error('Unsaved source edits must be saved or discarded before visual editing');
+    }
+    // CodeMirror emits LF regardless of the loaded file's line endings. Restore CRLF
+    // before both preview and PUT, without parsing YAML or changing the final newline.
+    if (
+      latestServerYaml.includes('\r\n') &&
+      !/[\r\n]/.test(latestServerYaml.replace(/\r\n/g, ''))
+    ) {
+      return sourceDraftYaml.replace(/\r?\n/g, '\r\n');
+    }
+    return sourceDraftYaml;
   }
   return applyVisualChanges(latestServerYaml);
 }
@@ -337,7 +350,7 @@ export function useConfigDocument({
           // recovery; reloading can explicitly replace the draft from the server.
           showNotification(
             recoveryError instanceof ConfigDraftConflictError
-              ? t('config_management.concurrent_list_conflict', {
+              ? t(`config_management.${recoveryError.reason}`, {
                   path: recoveryError.path.join('.'),
                 })
               : t('config_management.precise_save_recovery_required'),
@@ -351,7 +364,7 @@ export function useConfigDocument({
           // Keep the primary mutation/readback error; the cache is already invalidated.
         }
       } else {
-        showNotification(`${t('notification.save_failed')}: ${message}`, 'error');
+        showNotification(message, 'error');
       }
     } finally {
       if (operation.isCurrent()) setSaving(false);
@@ -403,8 +416,8 @@ export function useConfigDocument({
         }
       }
 
-      // Generated source still merges visual edits onto fresh YAML; a real source draft is
-      // preserved verbatim. The visible mode determines the wire protocol, not edit origin.
+      // Generated source merges visual edits onto fresh YAML; actual source edits bypass
+      // YAML serialization. The visible mode determines the wire protocol, not edit origin.
       const nextMergedYaml = recoveryRequired
         ? recoverVisualDraft(latestServerYaml)
         : buildConfigSaveDraft(

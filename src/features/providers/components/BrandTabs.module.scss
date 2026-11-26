@@ -1,0 +1,247 @@
+@use '../../../styles/mixins' as *;
+
+/* Brand segments: quiet underline tabs, the same recipe as Auth Files ProviderTabs.
+   Switched often, so no entrance animation; only colour and underline transition with state. */
+
+.bar {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.strip {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  flex: 0 1 auto;
+  min-width: 0;
+  /* Overlap the outer baseline so the active underline sits on the hairline */
+  margin-bottom: -1px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  --fade-start: 0px;
+  --fade-end: 0px;
+  /* Edge fades only appear on a side that actually hides brands; no hard divider */
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--fade-start),
+    #000 calc(100% - var(--fade-end)),
+    transparent
+  );
+
+  &[data-overflow-start] {
+    --fade-start: 32px;
+  }
+
+  &[data-overflow-end] {
+    --fade-end: 32px;
+  }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 8px 11px 11px;
+  border-radius: 8px 8px 0 0;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition:
+    color var(--dur-hover) var(--ease-out-strong),
+    background-color var(--dur-hover) var(--ease-out-strong);
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 0;
+    height: 2px;
+    border-radius: $radius-full;
+    background: transparent;
+    transition: background-color var(--dur-hover) var(--ease-out-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tab:hover:not(.tabActive) {
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--bg-tertiary) 55%, transparent);
+  }
+}
+
+.tabActive {
+  color: var(--text-primary);
+  font-weight: 650;
+
+  &::after {
+    background: var(--text-primary);
+  }
+}
+
+.label {
+  line-height: 1.4;
+}
+
+.count {
+  font-family: $font-mono;
+  font-size: 10.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+  min-width: 18px;
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 0 6px;
+  border-radius: $radius-full;
+  background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+
+  .tabActive & {
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--text-primary) 11%, transparent);
+  }
+}
+
+/* Partner group: hairline + small mono label, separated from regular brands */
+.divider {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  align-self: center;
+  height: 18px;
+  margin: 0 4px 3px 6px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border-color);
+  font-family: $font-mono;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber-text);
+  white-space: nowrap;
+}
+
+/* ---------- Quick-connect invitation: pinned on the right, stacked brand avatars ---------- */
+
+.partners {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin: 3px 0 6px auto;
+  padding: 0 5px 0 12px;
+  border: 1px solid color-mix(in srgb, var(--amber-color) 26%, var(--border-color));
+  border-radius: $radius-full;
+  background:
+    radial-gradient(
+      140% 160% at 0% 0%,
+      color-mix(in srgb, var(--amber-color) 10%, transparent),
+      transparent 70%
+    ),
+    var(--bg-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color var(--dur-hover) var(--ease-out-strong),
+    box-shadow var(--dur-hover) var(--ease-out-strong),
+    transform var(--dur-press) var(--ease-out-strong);
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+.partnersLabel {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--amber-text);
+}
+
+.partnersStack {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Stacked avatars: each mark has a page-colour ring so they read as a group, not a row of icons */
+.partnersStack .partnerLogo {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 0 0 2px var(--bg-primary);
+  border-radius: 50%;
+
+  img {
+    width: 60%;
+    height: 60%;
+  }
+
+  & + .partnerLogo {
+    margin-left: -4px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .partners:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--amber-color) 45%, var(--border-color));
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--amber-color) 14%, transparent);
+  }
+}
+
+@include mobile {
+  .bar {
+    flex-wrap: wrap;
+  }
+
+  .strip {
+    flex-basis: 100%;
+  }
+
+  .partners {
+    margin-top: 8px;
+    height: 32px;
+  }
+
+  .partners {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .tab::after,
+  .partners {
+    transition: none;
+  }
+
+  .partners:active:not(:disabled) {
+    transform: none;
+  }
+}

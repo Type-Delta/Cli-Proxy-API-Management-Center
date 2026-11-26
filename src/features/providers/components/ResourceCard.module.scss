@@ -1,0 +1,463 @@
+@use '../../../styles/mixins' as *;
+
+/* ============================================================
+ * Resource card — same recipe as credential cards (14px radius / 1px border / 82% translucent paper)
+ * Identity → endpoint → capabilities → health → actions; disabled cards dim content but keep actions clear.
+ * ============================================================ */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
+  transition:
+    border-color var(--dur-press) var(--ease-out-strong),
+    box-shadow var(--dur-hover) var(--ease-out-strong);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    border-color: var(--border-hover);
+  }
+}
+
+.cardDisabled {
+  background: color-mix(in srgb, var(--bg-primary) 55%, var(--bg-tertiary));
+}
+
+.cardDisabled > .body {
+  opacity: 0.62;
+}
+
+.cardSelected {
+  border-color: color-mix(in srgb, var(--text-primary) 40%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text-primary) 22%, transparent);
+}
+
+/* One-time cascade when data first arrives; switching brand / filters does not replay it */
+.cardEnter {
+  animation: resource-card-in 220ms var(--ease-out-strong) both;
+  animation-delay: var(--card-delay, 0s);
+}
+
+@keyframes resource-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* ---------- Identity ---------- */
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.titleWrap {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.title {
+  display: block;
+  max-width: 100%;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.45;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+  @include text-ellipsis;
+  border-radius: 4px;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--dur-hover) var(--ease-out-strong);
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .title:hover {
+    text-decoration-color: color-mix(in srgb, var(--text-primary) 35%, transparent);
+  }
+}
+
+.titleMono {
+  font-family: $font-mono;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+
+.stateBadge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: $radius-full;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--amber-text);
+  background: var(--amber-10);
+  border: 1px solid var(--amber-30);
+}
+
+.sub {
+  margin-top: -6px;
+  font-family: $font-mono;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+  @include text-ellipsis;
+}
+
+/* Labelled credentials of a native connection, one per line (DL043). */
+.memberLabels {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: -4px 0 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.memberLabel {
+  font-family: $font-mono;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  @include text-ellipsis;
+}
+
+/* ---------- Endpoint ---------- */
+
+.endpoint {
+  font-family: $font-mono;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+  @include text-ellipsis;
+}
+
+.endpointNote {
+  color: var(--text-tertiary);
+}
+
+/* ---------- Capability chips ---------- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: $radius-full;
+  font-family: $font-mono;
+  font-size: 11.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-quaternary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-quaternary) 22%, transparent);
+  white-space: nowrap;
+}
+
+.chipLabel {
+  font-family: $font-family;
+  font-size: 11px;
+  font-weight: 550;
+  opacity: 0.8;
+}
+
+.chipZero {
+  color: var(--text-tertiary);
+}
+
+.chipPrefix {
+  color: var(--primary-active);
+  background: var(--primary-10);
+  border-color: var(--primary-30);
+}
+
+.chipTag {
+  font-family: $font-family;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: transparent;
+  border-color: var(--border-primary);
+}
+
+/* ---------- Health ---------- */
+
+.health {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.healthHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.healthLabel {
+  font-family: $font-mono;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.healthCounts {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: $font-mono;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-quaternary);
+}
+
+/* Green is reserved for live traffic */
+.countOk {
+  color: var(--viz-success);
+}
+
+.countFail {
+  color: var(--viz-failure);
+}
+
+/* ---------- Actions ---------- */
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+}
+
+.utility {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    transform var(--dur-press) var(--ease-out-strong),
+    background-color var(--dur-hover) var(--ease-out-strong),
+    border-color var(--dur-hover) var(--ease-out-strong),
+    color var(--dur-hover) var(--ease-out-strong);
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 1px;
+  }
+}
+
+/* Destructive actions stay quiet and only show colour on hover */
+.iconButtonDanger {
+  color: var(--danger-color);
+  border-color: color-mix(in srgb, var(--danger-color) 28%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .iconButton:hover:not(:disabled) {
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+    background: var(--bg-tertiary);
+  }
+
+  .iconButtonDanger:hover:not(:disabled) {
+    color: var(--danger-color);
+    border-color: color-mix(in srgb, var(--danger-color) 45%, transparent);
+    background: var(--destructive-10);
+  }
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.toggleLabel {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* ---------- Connection card: the whole card opens the editor; the switch is the only in-place action ---------- */
+
+.connectionCard {
+  transition:
+    border-color var(--dur-press) var(--ease-out-strong),
+    box-shadow var(--dur-hover) var(--ease-out-strong),
+    transform var(--dur-press) var(--ease-out-strong);
+
+  &:has(.cardLink:active:not(:disabled)) {
+    transform: scale(0.99);
+  }
+
+  &:has(.cardLink:focus-visible) {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+/* The title button's pseudo-element covers the card: one focus target, one accessible name, all clickable */
+.cardLink {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+/* Controls that float above the card hit area and stay interactive in place (switch, status-bar tooltip) */
+.cardControl {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+/* The switch is inline-flex; in a block container it baseline-aligns with line-height gaps, so use flex to centre it with the title */
+.head > .cardControl {
+  display: flex;
+  align-items: center;
+}
+
+.editHint {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  opacity: 0;
+  transition: opacity var(--dur-hover) var(--ease-out-strong);
+}
+
+.connectionCard:has(.cardLink:focus-visible) .editHint {
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .connectionCard:has(.cardLink:not(:disabled)):hover {
+    box-shadow: 0 6px 20px -12px color-mix(in srgb, var(--text-primary) 30%, transparent);
+
+    .editHint {
+      opacity: 1;
+    }
+
+    .title {
+      text-decoration-color: transparent;
+    }
+  }
+}
+
+/* When every key is disabled, dim the content but keep the switch clear for re-enabling */
+.connectionCard.cardDisabled .head > :not(.cardControl),
+.connectionCard.cardDisabled .head ~ * {
+  opacity: 0.62;
+}
+
+.connectionCard.cardDisabled > .body {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .connectionCard,
+  .editHint {
+    transition: none;
+  }
+
+  .connectionCard:has(.cardLink:active:not(:disabled)) {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .title,
+  .iconButton {
+    transition: none;
+  }
+
+  .cardEnter {
+    animation: none;
+  }
+
+  .iconButton:active:not(:disabled) {
+    transform: none;
+  }
+}

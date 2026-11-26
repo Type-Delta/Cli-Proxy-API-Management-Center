@@ -29,21 +29,21 @@ Sync with upstream only when asked. Merge without rebasing, keep every Divergenc
 
 ## Project Scope & Structure
 
-This is a React 19 + TypeScript + Vite management frontend for CLI Proxy API, not the proxy itself. It exclusively uses the backend v8 Management API under `/v8/management` and the v8 configuration layout; do not add v0 fallbacks or legacy config adapters.
+This is a React 19 + TypeScript + Vite management frontend for CLI Proxy API, not the proxy itself. For management operations, use the v8 Management API under `/v8/management` and the v8 configuration layout; do not add v0 fallbacks or legacy config adapters. The public model list (`/v1/models`) is not a Management API endpoint.
 Fork-only CPA routes (`/capabilities`, `/analytics/*`, `/api-keys`, `/api-key-limits`) are
-addressed relative to the same v8 base; the public analytics viewer keeps `/v0/analytics/viewer`. Plugin resources and custom HTTP extensions are exceptions: preserve their backend-declared paths.
+addressed relative to the same v8 base; the public analytics viewer keeps `/v0/analytics/viewer`. Plugin resources and custom HTTP extensions are exceptions: preserve their backend-declared paths. The one sanctioned Management API v0 touchpoint is `src/services/api/legacyBackendProbe.ts`: after a v8 login 404 it only detects an outdated backend to show a clearer error, and must never supply application data or act as a login fallback.
 
-- `src/features/`: feature-owned pages, components, hooks, types, and logic. Current features include `dashboard`, `providers`, `authFiles`, `oauth`, `quota`, `config`, `logs`, `plugins`, and Analytics.
-- `src/pages/`: existing route pages outside the feature layout. Follow nearby conventions when modifying these; do not migrate unrelated code.
+- `src/features/`: feature-owned pages, components, hooks, types, and logic. Current features include `dashboard`, `providers`, `authFiles`, `oauth`, `quota`, `config`, `logs`, `plugins`, `routing`, `liveHandle`, and Analytics.
+- `src/pages/`: remaining route pages outside the feature layout. Follow nearby conventions when modifying these; do not migrate unrelated code.
 - `src/components/`, `src/hooks/`, and `src/utils/`: shared UI, hooks, and utilities. Keep feature-specific code in its feature.
 - `src/services/api/`: API client, domain endpoints, and backend data normalization.
 - `src/services/storage/`: browser persistence.
 - `src/stores/`: Zustand state.
 - `src/types/`: shared types.
 - `src/styles/`: global styles and theme tokens. Component-specific SCSS Modules stay beside their component.
+- `src/App.tsx`: hash-router setup. `src/router/MainRoutes.tsx`: authenticated route table. `ProtectedRoute` and `MainLayout` guard and wrap the authenticated app.
 - `src/assets/`: bundled assets, including provider icons in `icons/`.
-- `src/router/`: application routes.
-- `src/i18n/locales/`: English, Simplified Chinese, Traditional Chinese, Russian, Vietnamese, Korean, and Turkish locale files, registered in `src/i18n/index.ts`.
+- `src/i18n/locales/`: English, Simplified Chinese, Traditional Chinese, Russian, Vietnamese, Korean, and Turkish locale files, registered in `src/i18n/index.ts`; fallback language is `zh-CN`. Run `bun test tests/localeParity.test.ts` to check keys, interpolation tokens, and plural forms.
 - `tests/`: Bun tests.
 - `dist/index.html`: the single-file production artifact.
 
@@ -95,7 +95,9 @@ falling back to `dev`.
 - Normalize backend fields on read and serialize on write in the API layer; consult `transformers.ts` and the relevant domain module. Keep raw backend field-name handling out of ordinary UI components.
 - `useConfigStore.fetchConfig(forceRefresh?: boolean)` uses a full-config TTL cache and in-flight request deduplication. Reuse it where appropriate and invalidate or update caches after mutations using existing store actions.
 - Preserve stale-request guards and cache cleanup when switching connections or logging out. Old asynchronous responses must not overwrite the new session's state.
-- Provider UI capabilities live in `src/features/providers/descriptors.ts`; adapters map provider configs to the shared resource model. Extend these abstractions rather than scattering provider-specific conditionals across components.
+- In `src/features/authFiles/`, keep credential status changes in `statusActions.ts` and credential refreshes in `refreshActions.ts`. Global model catalog sync belongs in `modelCatalogSync.ts`; it is not a credential refresh.
+- Use `routingApi.applyPlan` in `src/services/api/routing.ts` for routing board saves. It writes credentials individually, then builds a single config patch against a fresh document. A save is not atomic: distinguish applied, failed, and unattempted changes.
+- Provider UI capabilities live in `src/features/providers/descriptors.ts`; `adapters.ts` maps provider configs to the shared resource model. Extend these abstractions rather than scattering provider-specific conditionals across components.
 
 ## Conventions
 
@@ -120,8 +122,9 @@ Tests are centralized under `tests/` as `*.test.ts` files and use `bun:test`; sh
 `tests/fixtures/` and helpers in `tests/helpers/`. Existing suites cover
 pure logic, React server-side static rendering via `renderToStaticMarkup`, and source/contract checks.
 There is no configured browser DOM test harness; static markup tests do not verify browser interactions.
-Prefer extracting testable logic and following nearby test patterns rather than introducing a new
-framework by default.
+Test observable behavior rather than matching implementation text, and extend a nearby suite before
+adding overlapping coverage. Prefer extracting testable logic and following nearby test patterns rather
+than introducing a new framework by default.
 
 For code changes, add or update relevant regression tests, run focused tests while iterating, and run
 `bun run verify` before handoff. For UI changes, verify the affected route in a browser and include

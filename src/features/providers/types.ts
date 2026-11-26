@@ -6,12 +6,14 @@ import type {
   GeminiKeyConfig,
   OpenAIProviderConfig,
   ProviderKeyConfig,
+  ProviderSource,
   QuotaReserveConfig,
 } from '@/types';
+import type { MemberModes } from '@/services/api/nativeProviderGroups';
 import type { ThinkingLevel } from './thinkingLevels';
 import type { RuntimePolicyDraft } from './runtimePolicy';
 import type { ModelOptionsInput } from './modelOptions';
-import type { ProviderBehaviorOptions } from '@/types/provider';
+import type { NativeKeyOptions, ProviderBehaviorOptions } from '@/types/provider';
 
 export type ProviderBrand =
   | 'gemini'
@@ -127,7 +129,18 @@ export interface ProviderResource {
   raw: unknown;
 }
 
+export interface NativeSection {
+  source: ProviderSource;
+  name: string;
+  baseUrl?: string;
+  prefix?: string;
+  keyCount: number;
+  members: ProviderResource[];
+}
+
 export interface ProviderGroup {
+  ambiguousProtocols?: SponsorProtocol[];
+  nativeSections?: NativeSection[];
   id: ProviderBrand;
   resources: ProviderResource[];
 }
@@ -185,6 +198,7 @@ export interface ApiKeyEntryInput {
   apiKey: string;
   existingApiKey?: string;
   label?: string;
+  savedProxyUrl?: string;
   proxyUrl: string;
   weight?: number;
   authIndex?: string;
@@ -199,7 +213,8 @@ export interface CloakInput {
   cacheUserId: boolean;
 }
 
-export interface ProviderEntryFormInput extends ProviderBehaviorOptions {
+export interface ProviderEntryFormInput extends ProviderBehaviorOptions, NativeKeyOptions {
+  memberModes?: MemberModes;
   /** OpenAI 创建时只在 apiKeyEntries 中传 */
   apiKey: string;
   /** Friendly label for single-key provider entries. */
