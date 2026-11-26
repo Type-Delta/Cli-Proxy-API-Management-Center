@@ -80,7 +80,7 @@ describe('Routing Rules tab', () => {
     // base layers are listed weakest (top) to strongest (bottom)
     const strategyAt = markup.indexOf('Routing strategy');
     const tiersAt = markup.indexOf('Priority tiers');
-    const rulesAt = markup.indexOf('Custom rules');
+    const rulesAt = markup.indexOf('>Custom rules<');
     const affinityAt = markup.indexOf('Session affinity');
     const gateAt = markup.indexOf('Routing gate');
     expect(strategyAt).toBeGreaterThan(-1);
@@ -204,6 +204,14 @@ describe('Routing Rules tab', () => {
     };
     const steps = buildRoutingTraceSteps(trace, () => 'a', translations.t);
     expect(steps.find((step: { key: string }) => step.key === 'strategy')?.tone).toBe('info');
+    const ruleSteps = buildRoutingTraceSteps(
+      { ...trace, tier: { priority: 0, pool: [0], rule_pool: true } },
+      () => 'a',
+      translations.t
+    );
+    expect(ruleSteps.find((step) => step.key === 'strategy')?.detail).toContain(
+      'custom rule pool'
+    );
   });
 
   test('treats a wire trace without pick_predicted as an unpredicted strategy pick', () => {

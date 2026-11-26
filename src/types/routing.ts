@@ -1,9 +1,8 @@
 /**
  * Routing board view model.
  *
- * CPA schedules in strict priority tiers: the highest priority with an available credential
- * serves a request, and `routing.strategy` spreads requests only among that tier. The board is
- * that order made explicit for every config API key, OpenAI-compatible provider and credential.
+ * The board shows priority order for config API keys, OpenAI-compatible providers and credentials.
+ * Without an applied custom rule, the strategy selects within the highest eligible priority tier.
  */
 
 import type { AuthFileCooldown, AuthFileCooldownSnapshot } from './authFile';
@@ -267,8 +266,8 @@ export type RoutingTrace = {
     applied: number;
     pool?: number[];
   };
-  /** Strategy input: highest priority tier of the (possibly narrowed) pool. */
-  tier?: { priority: number; pool: number[] };
+  /** Strategy input: highest eligible priority tier or the applied custom rule pool. */
+  tier?: { priority: number; pool: number[]; rule_pool?: boolean };
   affinity?: RoutingAffinityStep;
   /** Selected candidate index, or -1. */
   pick: number;

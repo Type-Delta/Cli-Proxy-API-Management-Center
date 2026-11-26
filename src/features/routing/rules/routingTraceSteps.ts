@@ -79,7 +79,8 @@ export function buildRoutingTraceSteps(
   const tier = trace.tier;
   const poolLabels = (tier?.pool ?? []).map((index) => labelOf(trace.candidates[index]));
   const strategyDetail = [
-    tier
+    tier?.rule_pool ? t('config_management.visual.routing_trace.strategy_rule_pool') : '',
+    tier && !tier.rule_pool
       ? t('config_management.visual.routing_trace.strategy_tier', { priority: tier.priority })
       : '',
     poolLabels.length > 0
